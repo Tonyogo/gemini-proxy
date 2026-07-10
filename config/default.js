@@ -1,14 +1,7 @@
 require('dotenv').config();
 
-const parseAllowedKeys = (keysStr) => {
-  if (!keysStr) return [];
-  return keysStr.split(',').map(k => k.trim()).filter(Boolean);
-};
-
 module.exports = {
   port: process.env.PORT || 3000,
-  geminiApiKey: process.env.GEMINI_API_KEY,
-  allowedKeys: parseAllowedKeys(process.env.ALLOWED_KEYS),
   defaultModel: process.env.DEFAULT_GEMINI_MODEL || 'gemini-2.5-flash',
   logLevel: process.env.LOG_LEVEL || 'info',
   modelMapping: {

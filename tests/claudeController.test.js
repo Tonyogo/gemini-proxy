@@ -1,6 +1,5 @@
 const request = require('supertest');
 const app = require('../src/app');
-const config = require('../config/default');
 
 // Mock node-fetch globally
 jest.mock('node-fetch', () => {
@@ -19,12 +18,6 @@ jest.mock('node-fetch', () => {
 });
 
 describe('POST /v1/messages (Authentication / Headers)', () => {
-  beforeEach(() => {
-    // Reset config options before each run
-    config.allowedKeys = [];
-    config.geminiApiKey = 'server-test-key';
-  });
-
   it('authenticates successfully via standard Bearer Authorization', async () => {
     const res = await request(app)
       .post('/v1/messages')
@@ -64,12 +57,9 @@ describe('POST /v1/messages (Authentication / Headers)', () => {
     expect(res.body.content[0].text).toEqual('Mock response from Gemini!');
   });
 
-  it('denies access if allowedKeys list is set and incoming key is missing or wrong', async () => {
-    config.allowedKeys = ['key-alpha', 'key-beta'];
-
+  it('denies access if no API key is provided', async () => {
     const resFail = await request(app)
       .post('/v1/messages')
-      .set('x-api-key', 'key-gamma')
       .send({
         model: 'claude-3-5-sonnet',
         messages: [{ role: 'user', content: 'What is the capital of France?' }]
@@ -77,15 +67,5 @@ describe('POST /v1/messages (Authentication / Headers)', () => {
 
     expect(resFail.statusCode).toEqual(401);
     expect(resFail.body.error.type).toEqual('authentication_error');
-
-    const resPass = await request(app)
-      .post('/v1/messages')
-      .set('x-api-key', 'key-alpha')
-      .send({
-        model: 'claude-3-5-sonnet',
-        messages: [{ role: 'user', content: 'What is the capital of France?' }]
-      });
-
-    expect(resPass.statusCode).toEqual(200);
   });
 });

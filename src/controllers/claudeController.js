@@ -18,38 +18,20 @@ class ClaudeController {
     return clientKey;
   }
 
-  _determineUpstreamApiKey(clientKey) {
-    // If the server owner set a restricted list of allowed client keys (Authorization block)
-    if (config.allowedKeys && config.allowedKeys.length > 0) {
-      if (!clientKey || !config.allowedKeys.includes(clientKey)) {
-        return { authorized: false };
-      }
-      // Allowed client key matched, use server's default Gemini key to make downstream requests
-      return { authorized: true, apiKey: config.geminiApiKey };
-    }
-
-    // No restricted allowedKeys set, act in pass-through mode:
-    // Forward client's provided key to Google. Fallback to server's Gemini key if none provided.
-    const apiKey = clientKey || config.geminiApiKey;
-    return { authorized: !!apiKey, apiKey };
-  }
-
   async handleMessages(req, res) {
     try {
-      const clientKey = this._extractClientKey(req);
-      const authResult = this._determineUpstreamApiKey(clientKey);
+      const apiKey = this._extractClientKey(req);
 
-      if (!authResult.authorized) {
+      if (!apiKey) {
         return res.status(401).json({
           type: 'error',
           error: {
             type: 'authentication_error',
-            message: 'Access denied. A valid API key was not found, is incorrect, or unauthorized.'
+            message: 'Access denied. A valid Google Gemini API key was not provided in headers (x-api-key, Authorization Bearer, or x-goog-api-key).'
           }
         });
       }
 
-      const apiKey = authResult.apiKey;
       const { googleRequest, cleanModelName, isStream } = claudeTranslator.translateClaudeToGoogle(req.body);
 
       if (isStream) {
@@ -145,23 +127,20 @@ class ClaudeController {
 
   async handleCountTokens(req, res) {
     try {
-      const clientKey = this._extractClientKey(req);
-      const authResult = this._determineUpstreamApiKey(clientKey);
+      const apiKey = this._extractClientKey(req);
 
-      if (!authResult.authorized) {
+      if (!apiKey) {
         return res.status(401).json({
           type: 'error',
           error: {
             type: 'authentication_error',
-            message: 'Access denied. A valid API key was not found, is incorrect, or unauthorized.'
+            message: 'Access denied. A valid Google Gemini API key was not provided in headers (x-api-key, Authorization Bearer, or x-goog-api-key).'
           }
         });
       }
 
-      const apiKey = authResult.apiKey;
       const { googleRequest, cleanModelName } = claudeTranslator.translateClaudeToGoogle(req.body);
 
-      // We call countTokens endpoint instead of generateContent
       const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${cleanModelName}:countTokens?key=${apiKey}`;
       logger.info(`Counting tokens for Gemini Model: ${cleanModelName}`);
 
