@@ -1,0 +1,17 @@
+require('dotenv').config();
+
+module.exports = {
+  port: process.env.PORT || 3000,
+  geminiApiKey: process.env.GEMINI_API_KEY,
+  defaultModel: process.env.DEFAULT_GEMINI_MODEL || 'gemini-2.5-flash',
+  logLevel: process.env.LOG_LEVEL || 'info',
+  modelMapping: {
+    "claude-3-5-sonnet": "gemini-2.5-pro",
+    "claude-3-5-sonnet-20241022": "gemini-2.5-pro",
+    "claude-3-5-haiku": "gemini-2.5-flash",
+    "claude-3-5-haiku-20241022": "gemini-2.5-flash",
+    "claude-3-opus": "gemini-2.5-pro",
+    "claude-3-sonnet": "gemini-2.5-flash",
+    "claude-3-haiku": "gemini-2.5-flash"
+  }
+};
