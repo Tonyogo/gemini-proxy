@@ -3,6 +3,51 @@ const config = require('../../config/default');
 const claudeTranslator = require('../services/claudeTranslator');
 const logger = require('../utils/logger');
 
+const SUPPORTED_MODELS = [
+  {
+    "type": "model",
+    "id": "claude-3-5-sonnet-20241022",
+    "display_name": "Claude 3.5 Sonnet (New)",
+    "created_at": "2024-10-22T00:00:00Z"
+  },
+  {
+    "type": "model",
+    "id": "claude-3-5-sonnet",
+    "display_name": "Claude 3.5 Sonnet",
+    "created_at": "2024-06-20T00:00:00Z"
+  },
+  {
+    "type": "model",
+    "id": "claude-3-5-haiku-20241022",
+    "display_name": "Claude 3.5 Haiku",
+    "created_at": "2024-10-22T00:00:00Z"
+  },
+  {
+    "type": "model",
+    "id": "claude-3-5-haiku",
+    "display_name": "Claude 3.5 Haiku (Standard)",
+    "created_at": "2024-10-22T00:00:00Z"
+  },
+  {
+    "type": "model",
+    "id": "claude-3-opus",
+    "display_name": "Claude 3 Opus",
+    "created_at": "2024-03-07T00:00:00Z"
+  },
+  {
+    "type": "model",
+    "id": "claude-3-sonnet",
+    "display_name": "Claude 3 Sonnet",
+    "created_at": "2024-02-29T00:00:00Z"
+  },
+  {
+    "type": "model",
+    "id": "claude-3-haiku",
+    "display_name": "Claude 3 Haiku",
+    "created_at": "2024-03-07T00:00:00Z"
+  }
+];
+
 class ClaudeController {
   _extractClientKey(req) {
     let clientKey = null;
@@ -166,6 +211,66 @@ class ClaudeController {
       });
     } catch (err) {
       logger.error(`Unhandled count tokens error: ${err.message}`);
+      const normalized = claudeTranslator.normalizeError(err);
+      return res.status(normalized.status).json(normalized.payload);
+    }
+  }
+
+  async handleListModels(req, res) {
+    try {
+      const apiKey = this._extractClientKey(req);
+      if (!apiKey) {
+        return res.status(401).json({
+          type: 'error',
+          error: {
+            type: 'authentication_error',
+            message: 'Access denied. A valid Google Gemini API key was not provided.'
+          }
+        });
+      }
+
+      return res.status(200).json({
+        data: SUPPORTED_MODELS,
+        has_more: false,
+        first_id: SUPPORTED_MODELS[0].id,
+        last_id: SUPPORTED_MODELS[SUPPORTED_MODELS.length - 1].id
+      });
+    } catch (err) {
+      logger.error(`Unhandled list models error: ${err.message}`);
+      const normalized = claudeTranslator.normalizeError(err);
+      return res.status(normalized.status).json(normalized.payload);
+    }
+  }
+
+  async handleRetrieveModel(req, res) {
+    try {
+      const apiKey = this._extractClientKey(req);
+      if (!apiKey) {
+        return res.status(401).json({
+          type: 'error',
+          error: {
+            type: 'authentication_error',
+            message: 'Access denied. A valid Google Gemini API key was not provided.'
+          }
+        });
+      }
+
+      const modelId = req.params.model_id;
+      const model = SUPPORTED_MODELS.find(m => m.id === modelId);
+
+      if (!model) {
+        return res.status(404).json({
+          type: 'error',
+          error: {
+            type: 'invalid_request_error',
+            message: `Model '${modelId}' does not exist.`
+          }
+        });
+      }
+
+      return res.status(200).json(model);
+    } catch (err) {
+      logger.error(`Unhandled retrieve model error: ${err.message}`);
       const normalized = claudeTranslator.normalizeError(err);
       return res.status(normalized.status).json(normalized.payload);
     }
