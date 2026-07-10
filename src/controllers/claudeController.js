@@ -4,22 +4,52 @@ const claudeTranslator = require('../services/claudeTranslator');
 const logger = require('../utils/logger');
 
 class ClaudeController {
+  _extractClientKey(req) {
+    let clientKey = null;
+    if (req.headers["x-api-key"]) {
+      clientKey = req.headers["x-api-key"];
+    } else if (req.headers["x-goog-api-key"]) {
+      clientKey = req.headers["x-goog-api-key"];
+    } else if (req.headers.authorization && req.headers.authorization.startsWith("Bearer ")) {
+      clientKey = req.headers.authorization.substring(7).trim();
+    } else if (req.query && req.query.key) {
+      clientKey = req.query.key;
+    }
+    return clientKey;
+  }
+
+  _determineUpstreamApiKey(clientKey) {
+    // If the server owner set a restricted list of allowed client keys (Authorization block)
+    if (config.allowedKeys && config.allowedKeys.length > 0) {
+      if (!clientKey || !config.allowedKeys.includes(clientKey)) {
+        return { authorized: false };
+      }
+      // Allowed client key matched, use server's default Gemini key to make downstream requests
+      return { authorized: true, apiKey: config.geminiApiKey };
+    }
+
+    // No restricted allowedKeys set, act in pass-through mode:
+    // Forward client's provided key to Google. Fallback to server's Gemini key if none provided.
+    const apiKey = clientKey || config.geminiApiKey;
+    return { authorized: !!apiKey, apiKey };
+  }
+
   async handleMessages(req, res) {
     try {
-      const authHeader = req.headers.authorization || '';
-      const clientApiKey = authHeader.replace(/^Bearer\s+/i, '').trim();
-      const apiKey = clientApiKey || config.geminiApiKey;
+      const clientKey = this._extractClientKey(req);
+      const authResult = this._determineUpstreamApiKey(clientKey);
 
-      if (!apiKey) {
+      if (!authResult.authorized) {
         return res.status(401).json({
           type: 'error',
           error: {
             type: 'authentication_error',
-            message: 'No Google API key provided. Set GEMINI_API_KEY env or send Bearer Authorization token.'
+            message: 'Access denied. A valid API key was not found, is incorrect, or unauthorized.'
           }
         });
       }
 
+      const apiKey = authResult.apiKey;
       const { googleRequest, cleanModelName, isStream } = claudeTranslator.translateClaudeToGoogle(req.body);
 
       if (isStream) {
@@ -115,20 +145,20 @@ class ClaudeController {
 
   async handleCountTokens(req, res) {
     try {
-      const authHeader = req.headers.authorization || '';
-      const clientApiKey = authHeader.replace(/^Bearer\s+/i, '').trim();
-      const apiKey = clientApiKey || config.geminiApiKey;
+      const clientKey = this._extractClientKey(req);
+      const authResult = this._determineUpstreamApiKey(clientKey);
 
-      if (!apiKey) {
+      if (!authResult.authorized) {
         return res.status(401).json({
           type: 'error',
           error: {
             type: 'authentication_error',
-            message: 'No Google API key provided. Set GEMINI_API_KEY env or send Bearer Authorization token.'
+            message: 'Access denied. A valid API key was not found, is incorrect, or unauthorized.'
           }
         });
       }
 
+      const apiKey = authResult.apiKey;
       const { googleRequest, cleanModelName } = claudeTranslator.translateClaudeToGoogle(req.body);
 
       // We call countTokens endpoint instead of generateContent
