@@ -1,6 +1,6 @@
 # Gemini-Proxy: Claude API to Gemini API Stateless Proxy
 
-一个轻量、无状态、高性能的 API 代理服务器。它作为 Anthropic Claude Messages API 的无缝替代品，接收 Claude 格式的 API 请求，并自动将其翻译并转发至 Google AI Studio (Gemini) 官方 API，最后将生成的流式（SSE）或非流式响应转换回 Claude 格式返回给客户端。
+一个轻量、无状态、高性能的 API 代理服务器。它作为 Anthropic Claude Messages API 的无缝替代品，接收 Claude 格式 of API 请求，并自动将其翻译并转发至 Google AI Studio (Gemini) 官方 API，最后将生成的流式（SSE）或非流式响应转换回 Claude 格式返回给客户端。
 
 ---
 
@@ -8,12 +8,13 @@
 
 - **轻量且无状态**：无任何数据库、浏览器实例（Playwright/Puppeteer）或账户轮询队列，所有请求完全在内存中高效处理。
 - **纯透传定位 (无配置密钥泄露风险)**：服务器本身**不保存任何官方 API 密钥**。客户端请求必须在 Header 中携带 `x-api-key`、`Authorization: Bearer <key>` 或 `x-goog-api-key` 作为官方 Gemini 密钥。代理端在翻译完参数后直接透传并访问下游 Google 接口，完全零运营与配额消耗。
+- **自定义 Base URL 支持 (`GEMINI_BASE_URL`)**：支持通过环境变量自定义 Google Gemini 接口的请求地址，完美适配自建反代、国内网络中转（如 Cloudflare Workers、Nginx 等），并内建智能斜杠容错机制。
 - **全功能翻译转换**：
   - 系统提示词（System Prompt）支持。
   - 多轮对话及角色（User / Assistant / Tool）自动映射。
   - 多模态输入：支持 Base64 图片数据的自动转换。
   - 智能思考（Thinking Mode）：支持 Claude `thinking` 参数与 Gemini 2.5 `thinkingConfig` 思考预算的自动映射。
-  - 工具调用（Tools / Function Calling）：支持 Claude 工具格式到 Gemini 声明的自动转换及返回接收。
+  - 工具调用（Tools / Function Calling）：支持 Claude 工具格式到 Gemini 声明 of 自动转换及返回接收。
 - **流式 SSE 实时传输**：支持毫秒级、低延迟的 Server-Sent Events 流式生成，与 Claude 官方流式事件完全兼容。
 - **Token 计数支持**：完整实现 `/v1/messages/count_tokens` 接口。
 - **可用模型名查询**：完整支持 `/v1/models` 以及 `/v1/models/:model_id` 查询。
@@ -37,7 +38,7 @@ gemini-proxy/
 │   ├── utils/
 │   │   └── logger.js          # 工具类：基于日志级别的格式化日志输出
 │   └── app.js                 # Express 应用注册、中间件及生命周期
-├── .env                       # 本地环境变量配置（端口等）
+├── .env                       # 本地环境变量配置（端口、中转基址等）
 ├── index.js                   # 服务启动入口
 ├── package.json               # 依赖项及启动脚本
 └── README.md                  # 本使用说明文档
@@ -63,6 +64,10 @@ npm install
 ```env
 # 代理服务器监听端口
 PORT=3000
+
+# 自定义 Gemini Upstream API 基础地址 (可选项。用于国内中转、Cloudflare Workers 等自建反代，默认指向官方地址)
+# 支持尾部带斜杠或不带斜杠，代理端会自动进行合并容错处理。
+GEMINI_BASE_URL=https://generativelanguage.googleapis.com
 
 # 当客户端传入 generic 模型 ID 时默认映射的 Gemini 模型
 DEFAULT_GEMINI_MODEL=gemini-2.5-flash
@@ -225,7 +230,7 @@ event: content_block_delta
 data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"烈日當空"}}
 
 event: content_block_delta
-data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"，照臨四方"}}
+data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"，照临四方"}}
 
 ...
 
@@ -309,8 +314,8 @@ PASS tests/claudeStreaming.test.js
 PASS tests/claudeTranslator.test.js
 
 Test Suites: 6 passed, 6 total
-Tests:       17 passed, 17 total
+Tests:       18 passed, 18 total
 Snapshots:   0 total
-Time:        0.442 s
+Time:        0.512 s
 Ran all test suites.
 ```
