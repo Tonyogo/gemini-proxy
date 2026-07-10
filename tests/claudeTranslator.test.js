@@ -153,4 +153,45 @@ describe('Gemini to Claude Non-Stream Response Translation', () => {
     expect(result.usage.input_tokens).toEqual(10);
     expect(result.usage.output_tokens).toEqual(15);
   });
+
+  it('converts Gemini functionCall response back to Claude tool_use format (based on log.json capture)', () => {
+    const geminiResponse = {
+      candidates: [{
+        content: {
+          parts: [
+            {
+              functionCall: {
+                name: 'TaskCreate',
+                args: {
+                  subject: 'Explore project context',
+                  description: 'Check files, docs, and recent commits to understand transaction logging.',
+                  activeForm: 'Exploring project context'
+                }
+              }
+            }
+          ]
+        },
+        finishReason: 'STOP'
+      }],
+      usageMetadata: {
+        promptTokenCount: 47883,
+        candidatesTokenCount: 53,
+        thoughtsTokenCount: 291
+      }
+    };
+
+    const result = translator.convertGoogleToClaudeNonStream(geminiResponse, 'gemini-2.5-flash');
+
+    // Assert 1: output contains tool_use block
+    expect(result.content[0].type).toEqual('tool_use');
+    expect(result.content[0].name).toEqual('TaskCreate');
+    expect(result.content[0].input.subject).toEqual('Explore project context');
+    expect(result.content[0].input.description).toEqual('Check files, docs, and recent commits to understand transaction logging.');
+    expect(result.content[0].id).toBeDefined();
+
+    // Assert 2: usage and token counts parsed correctly (with thought tokens summed up into output_tokens)
+    expect(result.usage.input_tokens).toEqual(47883);
+    expect(result.usage.output_tokens).toEqual(53 + 291); // candidates + thoughts
+    expect(result.stop_reason).toEqual('tool_use');
+  });
 });
