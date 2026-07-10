@@ -1,0 +1,34 @@
+const payloadLogger = require('../src/services/payloadLogger');
+const fs = require('fs').promises;
+const path = require('path');
+
+describe('PayloadLogger Service', () => {
+  const testId = 'test_transaction_abc123';
+  const filePath = path.join(process.cwd(), 'data', 'debug', `transaction_${testId}.json`);
+
+  afterEach(async () => {
+    try {
+      await fs.unlink(filePath);
+    } catch (e) {
+      // ignore
+    }
+  });
+
+  it('correctly creates the directory and writes pretty-printed json payload', async () => {
+    const clientReq = { messages: [{ role: 'user', content: 'Hi' }] };
+    const gemReq = { contents: [{ role: 'user', parts: [{ text: 'Hi' }] }] };
+    const gemRes = { candidates: [{ content: { parts: [{ text: 'Hello' }] } }] };
+
+    await payloadLogger.saveTransaction(testId, clientReq, gemReq, gemRes);
+
+    const exists = await fs.access(filePath).then(() => true).catch(() => false);
+    expect(exists).toBe(true);
+
+    const dataText = await fs.readFile(filePath, 'utf8');
+    const data = JSON.parse(dataText);
+
+    expect(data.client_req).toEqual(clientReq);
+    expect(data.gem_req).toEqual(gemReq);
+    expect(data.gem_res).toEqual(gemRes);
+  });
+});
