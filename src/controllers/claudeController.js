@@ -95,11 +95,11 @@ class ClaudeController {
         });
       }
 
-      logger.debug(`[Request] Incoming Claude payload body: ${JSON.stringify(req.body, null, 2)}`);
+      logger.debug(`[Request] Incoming Claude payload body: ${JSON.stringify(req.body)}`);
 
       const { googleRequest, cleanModelName, isStream } = claudeTranslator.translateClaudeToGoogle(req.body);
 
-      logger.debug(`[Adapter] Mapped Gemini request body: ${JSON.stringify(googleRequest, null, 2)}`);
+      logger.debug(`[Adapter] Mapped Gemini request body: ${JSON.stringify(googleRequest)}`);
 
       if (isStream) {
         const targetUrl = this._getUpstreamUrl(`/v1beta/models/${cleanModelName}:streamGenerateContent?alt=sse&key=${apiKey}`);
@@ -206,11 +206,11 @@ class ClaudeController {
         });
       }
 
-      logger.debug(`[Request] Incoming Claude CountTokens payload body: ${JSON.stringify(req.body, null, 2)}`);
+      logger.debug(`[Request] Incoming Claude CountTokens payload body: ${JSON.stringify(req.body)}`);
 
       const { googleRequest, cleanModelName } = claudeTranslator.translateClaudeToGoogle(req.body);
 
-      logger.debug(`[Adapter] Mapped Gemini CountTokens request body: ${JSON.stringify(googleRequest, null, 2)}`);
+      logger.debug(`[Adapter] Mapped Gemini CountTokens request body: ${JSON.stringify(googleRequest)}`);
 
       const targetUrl = this._getUpstreamUrl(`/v1beta/models/${cleanModelName}:countTokens?key=${apiKey}`);
       logger.info(`Counting tokens for Gemini Model: ${cleanModelName} at custom URL: ${targetUrl.replace(/\?key=.*/, '?key=***')}`);
