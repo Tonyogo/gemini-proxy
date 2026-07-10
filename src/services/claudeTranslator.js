@@ -1,0 +1,307 @@
+const config = require('../../config/default');
+const logger = require('../utils/logger');
+
+class ClaudeTranslator {
+  translateClaudeToGoogle(claudeBody) {
+    const rawModel = claudeBody.model || config.defaultModel;
+    const cleanModelName = config.modelMapping[rawModel] || config.defaultModel;
+
+    let systemInstruction = null;
+    if (claudeBody.system) {
+      systemInstruction = {
+        parts: [{ text: claudeBody.system }]
+      };
+    }
+
+    const contents = [];
+    const toolIdToNameMap = new Map();
+
+    if (claudeBody.messages && Array.isArray(claudeBody.messages)) {
+      for (const msg of claudeBody.messages) {
+        const role = msg.role === 'assistant' ? 'model' : 'user';
+        const parts = [];
+
+        if (typeof msg.content === 'string') {
+          parts.push({ text: msg.content });
+        } else if (Array.isArray(msg.content)) {
+          for (const block of msg.content) {
+            if (block.type === 'text') {
+              parts.push({ text: block.text });
+            } else if (block.type === 'image') {
+              parts.push({
+                inlineData: {
+                  mimeType: block.source.media_type,
+                  data: block.source.data
+                }
+              });
+            } else if (block.type === 'tool_use') {
+              toolIdToNameMap.set(block.id, block.name);
+              parts.push({
+                functionCall: {
+                  name: block.name,
+                  args: block.input || {}
+                }
+              });
+            } else if (block.type === 'tool_result') {
+              const matchedName = toolIdToNameMap.get(block.tool_use_id) || 'unknown_tool';
+              parts.push({
+                functionResponse: {
+                  name: matchedName,
+                  response: { content: block.content }
+                }
+              });
+            }
+          }
+        }
+        contents.push({ role, parts });
+      }
+    }
+
+    const googleRequest = { contents };
+    if (systemInstruction) {
+      googleRequest.systemInstruction = systemInstruction;
+    }
+
+    // Set configuration parameters
+    const generationConfig = {};
+    if (claudeBody.max_tokens) {
+      generationConfig.maxOutputTokens = claudeBody.max_tokens;
+    }
+    if (claudeBody.temperature !== undefined) {
+      generationConfig.temperature = claudeBody.temperature;
+    }
+    if (claudeBody.top_p !== undefined) {
+      generationConfig.topP = claudeBody.top_p;
+    }
+    if (Object.keys(generationConfig).length > 0) {
+      googleRequest.generationConfig = generationConfig;
+    }
+
+    // Handle thinking budget
+    if (claudeBody.thinking && claudeBody.thinking.type === 'enabled') {
+      googleRequest.thinkingConfig = {
+        thinkingBudget: claudeBody.thinking.budget_tokens || 1024
+      };
+    }
+
+    // Handle tools mapping
+    if (claudeBody.tools && Array.isArray(claudeBody.tools)) {
+      googleRequest.tools = [{
+        functionDeclarations: claudeBody.tools.map(tool => ({
+          name: tool.name,
+          description: tool.description,
+          parameters: tool.input_schema
+        }))
+      }];
+    }
+
+    return {
+      googleRequest,
+      cleanModelName,
+      isStream: claudeBody.stream === true
+    };
+  }
+
+  convertGoogleToClaudeNonStream(googleResponse, modelName) {
+    const candidate = googleResponse.candidates?.[0];
+    const usage = googleResponse.usageMetadata || {};
+
+    const content = [];
+    const messageId = `msg_fake_${Math.random().toString(36).substr(2, 9)}`;
+
+    if (candidate && candidate.content && Array.isArray(candidate.content.parts)) {
+      for (const part of candidate.content.parts) {
+        if (part.thought === true && part.text) {
+          content.push({
+            type: 'thinking',
+            thinking: part.text,
+            signature: part.thoughtSignature || 'dummy_signature'
+          });
+        } else if (part.text) {
+          content.push({
+            type: 'text',
+            text: part.text
+          });
+        } else if (part.functionCall) {
+          content.push({
+            id: `toolu_fake_${Math.random().toString(36).substr(2, 9)}`,
+            type: 'tool_use',
+            name: part.functionCall.name,
+            input: part.functionCall.args || {}
+          });
+        }
+      }
+    }
+
+    if (content.length === 0) {
+      content.push({ type: 'text', text: '' });
+    }
+
+    let stopReason = 'end_turn';
+    if (candidate && candidate.finishReason === 'MAX_TOKENS') {
+      stopReason = 'max_tokens';
+    } else if (candidate && candidate.content && candidate.content.parts.some(p => p.functionCall)) {
+      stopReason = 'tool_use';
+    }
+
+    return {
+      id: messageId,
+      type: 'message',
+      role: 'assistant',
+      model: modelName,
+      content,
+      stop_reason: stopReason,
+      stop_sequence: null,
+      usage: {
+        input_tokens: usage.promptTokenCount || 0,
+        output_tokens: (usage.candidatesTokenCount || 0) + (usage.thoughtsTokenCount || 0)
+      }
+    };
+  }
+
+  translateGoogleToClaudeStream(googleChunk, modelName, streamState) {
+    if (!googleChunk || googleChunk.trim() === '') return null;
+
+    let jsonString = googleChunk;
+    if (jsonString.startsWith('data: ')) {
+      jsonString = jsonString.substring(6).trim();
+    }
+    if (jsonString === '[DONE]') return null;
+
+    let googleResponse;
+    try {
+      googleResponse = JSON.parse(jsonString);
+    } catch (e) {
+      return null;
+    }
+
+    const candidate = googleResponse.candidates?.[0];
+    const usage = googleResponse.usageMetadata;
+    const events = [];
+
+    if (!streamState.messageId) {
+      streamState.messageId = `msg_stream_${Math.random().toString(36).substr(2, 9)}`;
+      streamState.contentBlockIndex = 0;
+    }
+
+    if (!streamState.messageStartSent) {
+      events.push({
+        type: 'message_start',
+        message: {
+          id: streamState.messageId,
+          type: 'message',
+          role: 'assistant',
+          model: modelName,
+          content: [],
+          stop_reason: null,
+          stop_sequence: null,
+          usage: {
+            input_tokens: usage ? usage.promptTokenCount || 0 : 0,
+            output_tokens: 0
+          }
+        }
+      });
+      streamState.messageStartSent = true;
+    }
+
+    if (candidate && candidate.content && Array.isArray(candidate.content.parts)) {
+      for (const part of candidate.content.parts) {
+        if (part.thought === true && part.text) {
+          if (!streamState.thinkingBlockStarted) {
+            events.push({
+              type: 'content_block_start',
+              index: streamState.contentBlockIndex,
+              content_block: { type: 'thinking', thinking: '', signature: part.thoughtSignature || 'dummy' }
+            });
+            streamState.thinkingBlockStarted = true;
+          }
+          events.push({
+            type: 'content_block_delta',
+            index: streamState.contentBlockIndex,
+            delta: { type: 'thinking_delta', thinking: part.text }
+          });
+        } else if (part.text) {
+          if (streamState.thinkingBlockStarted) {
+            events.push({ type: 'content_block_stop', index: streamState.contentBlockIndex });
+            streamState.thinkingBlockStarted = false;
+            streamState.contentBlockIndex++;
+          }
+          if (!streamState.textBlockStarted) {
+            events.push({
+              type: 'content_block_start',
+              index: streamState.contentBlockIndex,
+              content_block: { type: 'text', text: '' }
+            });
+            streamState.textBlockStarted = true;
+          }
+          events.push({
+            type: 'content_block_delta',
+            index: streamState.contentBlockIndex,
+            delta: { type: 'text_delta', text: part.text }
+          });
+        } else if (part.functionCall) {
+          if (streamState.textBlockStarted) {
+            events.push({ type: 'content_block_stop', index: streamState.contentBlockIndex });
+            streamState.textBlockStarted = false;
+            streamState.contentBlockIndex++;
+          }
+          events.push({
+            type: 'content_block_start',
+            index: streamState.contentBlockIndex,
+            content_block: {
+              type: 'tool_use',
+              id: `toolu_stream_${Math.random().toString(36).substr(2, 9)}`,
+              name: part.functionCall.name,
+              input: part.functionCall.args || {}
+            }
+          });
+          events.push({ type: 'content_block_stop', index: streamState.contentBlockIndex });
+          streamState.contentBlockIndex++;
+        }
+      }
+    }
+
+    if (usage && googleResponse.candidates?.[0]?.finishReason) {
+      if (streamState.textBlockStarted) {
+        events.push({ type: 'content_block_stop', index: streamState.contentBlockIndex });
+        streamState.textBlockStarted = false;
+      }
+      let stopReason = 'end_turn';
+      if (candidate.finishReason === 'MAX_TOKENS') {
+        stopReason = 'max_tokens';
+      }
+      events.push({
+        type: 'message_delta',
+        delta: { stop_reason: stopReason, stop_sequence: null },
+        usage: { output_tokens: (usage.candidatesTokenCount || 0) + (usage.thoughtsTokenCount || 0) }
+      });
+      events.push({ type: 'message_stop' });
+    }
+
+    if (events.length === 0) return null;
+
+    return events.map(ev => `event: ${ev.type}\ndata: ${JSON.stringify(ev)}\n\n`).join('');
+  }
+
+  normalizeError(error) {
+    logger.error(`API Error: ${error.message || error}`);
+    const status = error.status || 500;
+    let type = 'api_error';
+    if (status === 400) type = 'invalid_request_error';
+    if (status === 401 || status === 403) type = 'authentication_error';
+    if (status === 429) type = 'rate_limit_error';
+
+    return {
+      status,
+      payload: {
+        type: 'error',
+        error: {
+          type,
+          message: error.message || 'Internal Server Error'
+        }
+      }
+    };
+  }
+}
+
+module.exports = new ClaudeTranslator();
