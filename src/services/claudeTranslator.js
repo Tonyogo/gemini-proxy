@@ -7,10 +7,36 @@ class ClaudeTranslator {
     const cleanModelName = config.modelMapping[rawModel] || config.defaultModel;
 
     let systemInstruction = null;
+
+    const appendSystemContent = (content) => {
+      let text = "";
+      if (typeof content === "string") {
+        text = content;
+      } else if (Array.isArray(content)) {
+        text = content
+          .map(block => {
+            if (typeof block === "string") return block;
+            if (block && block.type === "text") return block.text || "";
+            return block?.text || "";
+          })
+          .filter(Boolean)
+          .join("\n");
+      }
+
+      if (!text) return;
+
+      if (systemInstruction) {
+        systemInstruction.parts[0].text = `${systemInstruction.parts[0].text}\n${text}`;
+      } else {
+        systemInstruction = {
+          parts: [{ text }],
+          role: "user" // REQUIRED: Google Studio REST API requires "role": "user" for systemInstruction
+        };
+      }
+    };
+
     if (claudeBody.system) {
-      systemInstruction = {
-        parts: [{ text: claudeBody.system }]
-      };
+      appendSystemContent(claudeBody.system);
     }
 
     const contents = [];
@@ -18,6 +44,12 @@ class ClaudeTranslator {
 
     if (claudeBody.messages && Array.isArray(claudeBody.messages)) {
       for (const msg of claudeBody.messages) {
+        // Filter out and append any messages with role === 'system'
+        if (msg.role === 'system') {
+          appendSystemContent(msg.content);
+          continue;
+        }
+
         const role = msg.role === 'assistant' ? 'model' : 'user';
         const parts = [];
 

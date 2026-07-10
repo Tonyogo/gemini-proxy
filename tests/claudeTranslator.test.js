@@ -22,6 +22,31 @@ describe('Claude to Gemini Request Translation', () => {
     expect(result.googleRequest.systemInstruction.parts[0].text).toEqual('You are a helpful assistant');
   });
 
+  it('translates system prompts with role user and combines messages system roles', () => {
+    const claudePayload = {
+      model: 'claude-3-5-sonnet',
+      system: 'This is the main system prompt',
+      messages: [
+        { role: 'system', content: 'This is a message system prompt' },
+        { role: 'user', content: 'Hello' }
+      ]
+    };
+    const result = translator.translateClaudeToGoogle(claudePayload);
+
+    // Assert 1: systemInstruction role must be 'user'
+    expect(result.googleRequest.systemInstruction.role).toEqual('user');
+
+    // Assert 2: Both system prompts are combined with a newline
+    expect(result.googleRequest.systemInstruction.parts[0].text).toEqual(
+      'This is the main system prompt\nThis is a message system prompt'
+    );
+
+    // Assert 3: System messages must be filtered OUT of conversational contents
+    expect(result.googleRequest.contents.length).toEqual(1);
+    expect(result.googleRequest.contents[0].role).toEqual('user');
+    expect(result.googleRequest.contents[0].parts[0].text).toEqual('Hello');
+  });
+
   it('translates images', () => {
     const claudePayload = {
       model: 'claude-3-5-haiku',
