@@ -2,6 +2,115 @@ const config = require('../../config/default');
 const logger = require('../utils/logger');
 
 class ClaudeTranslator {
+  _convertSchemaToGemini(obj, isResponseSchema = false, isProperties = false) {
+    if (!obj || typeof obj !== "object") return obj;
+
+    const result = Array.isArray(obj) ? [] : {};
+
+    for (const key of Object.keys(obj)) {
+      const unsupportedKeys = [
+        "$schema",
+        "additionalProperties",
+        "ref",
+        "$ref",
+        "propertyNames",
+        "patternProperties",
+        "unevaluatedProperties",
+        "exclusiveMinimum",
+        "exclusiveMaximum",
+        "const",
+        "$comment",
+        "enumDescriptions"
+      ];
+
+      if (isResponseSchema) {
+        unsupportedKeys.push("default", "examples", "$defs", "id");
+      }
+
+      if (!isProperties && unsupportedKeys.includes(key)) {
+        continue;
+      }
+
+      if (key === "anyOf" && !isProperties) {
+        if (Array.isArray(obj[key])) {
+          const variants = obj[key];
+          const hasNull = variants.some(v => v.type === "null");
+          const nonNullVariants = variants.filter(v => v.type !== "null");
+
+          if (hasNull) {
+            result.nullable = true;
+          }
+
+          if (nonNullVariants.length === 1) {
+            const converted = this._convertSchemaToGemini(nonNullVariants[0], isResponseSchema, false);
+            Object.assign(result, converted);
+            if (hasNull) result.nullable = true;
+            continue;
+          } else if (nonNullVariants.length > 0) {
+            result.anyOf = nonNullVariants.map(v =>
+              this._convertSchemaToGemini(v, isResponseSchema, false)
+            );
+            continue;
+          } else if (hasNull) {
+            continue;
+          }
+        }
+      }
+
+      if (key === "type" && !isProperties) {
+        if (Array.isArray(obj[key])) {
+          const types = obj[key];
+          const nonNullTypes = types.filter(t => t !== "null");
+          const hasNull = types.includes("null");
+
+          if (hasNull) {
+            result.nullable = true;
+          }
+
+          if (nonNullTypes.length === 1) {
+            result[key] = nonNullTypes[0].toUpperCase();
+          } else if (nonNullTypes.length > 1) {
+            if (isResponseSchema) {
+              result.anyOf = nonNullTypes.map(t => ({
+                type: t.toUpperCase(),
+              }));
+            } else {
+              result[key] = nonNullTypes.map(t => t.toUpperCase());
+            }
+          } else {
+            result[key] = "STRING";
+          }
+        } else if (typeof obj[key] === "string") {
+          result[key] = obj[key].toUpperCase();
+        } else if (typeof obj[key] === "object" && obj[key] !== null) {
+          result[key] = this._convertSchemaToGemini(obj[key], isResponseSchema, false);
+        } else {
+          result[key] = obj[key];
+        }
+      } else if (key === "enum" && !isProperties) {
+        if (isResponseSchema) {
+          if (Array.isArray(obj[key])) {
+            result[key] = obj[key].map(String);
+          } else if (obj[key] !== undefined && obj[key] !== null) {
+            result[key] = [String(obj[key])];
+          }
+          result["type"] = "STRING";
+        } else {
+          result[key] = obj[key];
+        }
+      } else if (typeof obj[key] === "object" && obj[key] !== null) {
+        const nextIsProperties = key === "properties";
+        const recursionFlag = isProperties ? false : nextIsProperties;
+
+        result[key] = this._convertSchemaToGemini(obj[key], isResponseSchema, recursionFlag);
+      } else {
+        result[key] = obj[key];
+      }
+    }
+
+    return result;
+  }
+
   translateClaudeToGoogle(claudeBody) {
     const rawModel = claudeBody.model || config.defaultModel;
     const cleanModelName = config.modelMapping[rawModel] || config.defaultModel;
@@ -122,7 +231,7 @@ class ClaudeTranslator {
         functionDeclarations: claudeBody.tools.map(tool => ({
           name: tool.name,
           description: tool.description,
-          parameters: tool.input_schema
+          parameters: this._convertSchemaToGemini(tool.input_schema)
         }))
       }];
     }

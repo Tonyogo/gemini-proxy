@@ -84,6 +84,55 @@ describe('Claude to Gemini Request Translation', () => {
   });
 });
 
+describe('Claude to Gemini Tools Schema Sanitization', () => {
+  it('recursively cleans and translates Claude input schemas to Gemini-compliant structures', () => {
+    const claudePayload = {
+      model: 'claude-3-5-sonnet',
+      messages: [{ role: 'user', content: 'Use the tool.' }],
+      tools: [
+        {
+          name: 'get_weather',
+          description: 'Gets current weather',
+          input_schema: {
+            type: 'object',
+            $schema: 'http://json-schema.org/draft-07/schema#',
+            additionalProperties: false,
+            properties: {
+              location: {
+                type: 'string',
+                description: 'The city name'
+              },
+              unit: {
+                type: ['string', 'null'],
+                enum: ['celsius', 'fahrenheit'],
+                default: 'celsius'
+              }
+            },
+            required: ['location']
+          }
+        }
+      ]
+    };
+
+    const result = translator.translateClaudeToGoogle(claudePayload);
+    const params = result.googleRequest.tools[0].functionDeclarations[0].parameters;
+
+    // Assert 1: Lowercase "object" is mapped to uppercase "OBJECT"
+    expect(params.type).toEqual('OBJECT');
+
+    // Assert 2: Blacklisted keywords ($schema, additionalProperties) must be recursively stripped
+    expect(params.$schema).toBeUndefined();
+    expect(params.additionalProperties).toBeUndefined();
+
+    // Assert 3: properties location type string mapped to uppercase STRING
+    expect(params.properties.location.type).toEqual('STRING');
+
+    // Assert 4: Nullable types array ['string', 'null'] mapped to single type and nullable: true
+    expect(params.properties.unit.type).toEqual('STRING');
+    expect(params.properties.unit.nullable).toEqual(true);
+  });
+});
+
 describe('Gemini to Claude Non-Stream Response Translation', () => {
   it('converts standard text response', () => {
     const geminiResponse = {
