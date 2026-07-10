@@ -1,29 +1,19 @@
 const request = require('supertest');
 const app = require('../src/app');
-const fs = require('fs').promises;
-const path = require('path');
+const payloadLogger = require('../src/services/payloadLogger');
 const fetch = require('node-fetch');
 
 jest.mock('node-fetch');
 
-describe('ClaudeController Transaction Logging', () => {
-  const debugDir = path.join(process.cwd(), 'data', 'debug');
+describe('ClaudeController Transaction Logging (via Spy)', () => {
+  let logSpy;
 
-  beforeEach(async () => {
-    try {
-      await fs.mkdir(debugDir, { recursive: true });
-    } catch (e) {}
+  beforeEach(() => {
+    logSpy = jest.spyOn(payloadLogger, 'saveTransaction').mockImplementation(() => Promise.resolve());
   });
 
-  afterEach(async () => {
-    try {
-      const files = await fs.readdir(debugDir);
-      for (const f of files) {
-        if (f.startsWith('transaction_')) {
-          await fs.unlink(path.join(debugDir, f));
-        }
-      }
-    } catch (e) {}
+  afterEach(() => {
+    logSpy.mockRestore();
   });
 
   it('correctly logs non-streaming requests and responses', async () => {
@@ -45,16 +35,14 @@ describe('ClaudeController Transaction Logging', () => {
 
     expect(res.statusCode).toEqual(200);
 
-    // Wait a brief moment for async file-write to complete
-    await new Promise(r => setTimeout(r, 100));
+    // Verify spy call parameters
+    expect(logSpy).toHaveBeenCalled();
+    const [transactionId, clientReq, gemReq, gemRes] = logSpy.mock.calls[0];
 
-    const files = await fs.readdir(debugDir);
-    const transFile = files.find(f => f.startsWith('transaction_') && f.endsWith('.json'));
-    expect(transFile).toBeDefined();
-
-    const data = JSON.parse(await fs.readFile(path.join(debugDir, transFile), 'utf8'));
-    expect(data.client_req.model).toEqual('claude-3-5-sonnet');
-    expect(data.gem_res.candidates[0].content.parts[0].text).toEqual('Non-streaming response');
+    expect(transactionId).toBeDefined();
+    expect(clientReq.model).toEqual('claude-3-5-sonnet');
+    expect(gemReq.contents[0].parts[0].text).toEqual('What is 1+1?');
+    expect(gemRes.candidates[0].content.parts[0].text).toEqual('Non-streaming response');
   });
 
   it('correctly aggregates and logs streaming chunks', async () => {
@@ -77,24 +65,31 @@ describe('ClaudeController Transaction Logging', () => {
         stream: true
       });
 
-    const chunk = {
-      candidates: [{ content: { parts: [{ text: 'Streaming chunk content' }] } }]
+    const chunk1 = {
+      candidates: [{ content: { parts: [{ text: 'Streaming chunk content 1' }] } }]
+    };
+    const chunk2 = {
+      candidates: [{ content: { parts: [{ text: 'Streaming chunk content 2' }] } }]
     };
 
-    mockStream.push(`data: ${JSON.stringify(chunk)}\n\n`);
+    mockStream.push(`data: ${JSON.stringify(chunk1)}\n\n`);
+    mockStream.push(`data: ${JSON.stringify(chunk2)}\n\n`);
     mockStream.push(null); // end
 
     await promise;
 
-    // Wait a brief moment for async file-write to complete
-    await new Promise(r => setTimeout(r, 100));
+    // Verify spy call parameters
+    expect(logSpy).toHaveBeenCalled();
+    const [transactionId, clientReq, gemReq, gemRes] = logSpy.mock.calls[0];
 
-    const files = await fs.readdir(debugDir);
-    const transFile = files.find(f => f.startsWith('transaction_') && f.endsWith('.json'));
-    expect(transFile).toBeDefined();
+    expect(transactionId).toBeDefined();
+    expect(clientReq.model).toEqual('claude-3-5-sonnet');
+    expect(gemReq.contents[0].parts[0].text).toEqual('Tell a story');
 
-    const data = JSON.parse(await fs.readFile(path.join(debugDir, transFile), 'utf8'));
-    expect(data.client_req.model).toEqual('claude-3-5-sonnet');
-    expect(data.gem_res[0].candidates[0].content.parts[0].text).toEqual('Streaming chunk content');
+    // Verified chunk aggregation
+    expect(gemRes).toBeInstanceOf(Array);
+    expect(gemRes.length).toEqual(2);
+    expect(gemRes[0].candidates[0].content.parts[0].text).toEqual('Streaming chunk content 1');
+    expect(gemRes[1].candidates[0].content.parts[0].text).toEqual('Streaming chunk content 2');
   });
 });
