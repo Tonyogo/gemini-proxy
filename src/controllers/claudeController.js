@@ -6,6 +6,18 @@ const logger = require('../utils/logger');
 const SUPPORTED_MODELS = [
   {
     "type": "model",
+    "id": "claude-opus-4-7",
+    "display_name": "Claude 4.7 Opus (Gemini Flash)",
+    "created_at": "2026-07-10T00:00:00Z"
+  },
+  {
+    "type": "model",
+    "id": "claude-sonnet-4-6",
+    "display_name": "Claude 4.6 Sonnet (Gemini Flash Lite)",
+    "created_at": "2026-07-10T00:00:00Z"
+  },
+  {
+    "type": "model",
     "id": "claude-3-5-sonnet-20241022",
     "display_name": "Claude 3.5 Sonnet (New)",
     "created_at": "2024-10-22T00:00:00Z"

@@ -12,6 +12,8 @@ module.exports = {
     "claude-3-5-haiku-20241022": "gemini-2.5-flash",
     "claude-3-opus": "gemini-2.5-pro",
     "claude-3-sonnet": "gemini-2.5-flash",
-    "claude-3-haiku": "gemini-2.5-flash"
+    "claude-3-haiku": "gemini-2.5-flash",
+    "claude-opus-4-7": "gemini-2.5-flash",
+    "claude-sonnet-4-6": "gemini-2.5-flash-lite"
   }
 };
