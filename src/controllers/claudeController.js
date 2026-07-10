@@ -101,9 +101,12 @@ class ClaudeController {
 
       logger.debug(`[Adapter] Mapped Gemini request body: ${JSON.stringify(googleRequest)}`);
 
+      const clientEndpoint = `${req.method} ${req.originalUrl || req.path}`;
+
       if (isStream) {
         const targetUrl = this._getUpstreamUrl(`/v1beta/models/${cleanModelName}:streamGenerateContent?alt=sse&key=${apiKey}`);
-        logger.info(`Starting streaming request to Gemini Model: ${cleanModelName} at custom URL: ${targetUrl.replace(/\?key=.*/, '?key=***')}`);
+        const safeDisplayUrl = targetUrl.replace(/\?key=.*/, '?key=***');
+        logger.info(`[Request] Received ${clientEndpoint} -> Proxying to Gemini: POST ${safeDisplayUrl}`);
 
         const response = await fetch(targetUrl, {
           method: 'POST',
@@ -163,7 +166,8 @@ class ClaudeController {
 
       // Non-Streaming generation
       const targetUrl = this._getUpstreamUrl(`/v1beta/models/${cleanModelName}:generateContent?key=${apiKey}`);
-      logger.info(`Sending generation request to Gemini Model: ${cleanModelName} at custom URL: ${targetUrl.replace(/\?key=.*/, '?key=***')}`);
+      const safeDisplayUrl = targetUrl.replace(/\?key=.*/, '?key=***');
+      logger.info(`[Request] Received ${clientEndpoint} -> Proxying to Gemini: POST ${safeDisplayUrl}`);
 
       const response = await fetch(targetUrl, {
         method: 'POST',
@@ -212,8 +216,10 @@ class ClaudeController {
 
       logger.debug(`[Adapter] Mapped Gemini CountTokens request body: ${JSON.stringify(googleRequest)}`);
 
+      const clientEndpoint = `${req.method} ${req.originalUrl || req.path}`;
       const targetUrl = this._getUpstreamUrl(`/v1beta/models/${cleanModelName}:countTokens?key=${apiKey}`);
-      logger.info(`Counting tokens for Gemini Model: ${cleanModelName} at custom URL: ${targetUrl.replace(/\?key=.*/, '?key=***')}`);
+      const safeDisplayUrl = targetUrl.replace(/\?key=.*/, '?key=***');
+      logger.info(`[Request] Received ${clientEndpoint} -> Proxying to Gemini: POST ${safeDisplayUrl}`);
 
       const response = await fetch(targetUrl, {
         method: 'POST',
