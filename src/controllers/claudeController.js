@@ -1,6 +1,7 @@
 const fetch = require('node-fetch');
 const config = require('../../config/default');
 const claudeTranslator = require('../services/claudeTranslator');
+const payloadLogger = require('../services/payloadLogger');
 const logger = require('../utils/logger');
 
 const SUPPORTED_MODELS = [
@@ -81,25 +82,36 @@ class ClaudeController {
     return `${base}/${cleanPath}`;
   }
 
+  _generateTransactionId() {
+    return `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
   async handleMessages(req, res) {
+    const transactionId = this._generateTransactionId();
+    const clientReq = req.body;
+    let gemReq = null;
+
     try {
       const apiKey = this._extractClientKey(req);
 
       if (!apiKey) {
-        return res.status(401).json({
+        const errPayload = {
           type: 'error',
           error: {
             type: 'authentication_error',
             message: 'Access denied. A valid Google Gemini API key was not provided in headers (x-api-key, Authorization Bearer, or x-goog-api-key).'
           }
-        });
+        };
+        payloadLogger.saveTransaction(transactionId, clientReq, null, errPayload);
+        return res.status(401).json(errPayload);
       }
 
-      logger.debug(`[Request] Incoming Claude payload body: ${JSON.stringify(req.body)}`);
+      logger.debug(`[Request] Incoming Claude payload body: ${JSON.stringify(clientReq)}`);
 
-      const { googleRequest, cleanModelName, isStream } = claudeTranslator.translateClaudeToGoogle(req.body);
+      const { googleRequest, cleanModelName, isStream } = claudeTranslator.translateClaudeToGoogle(clientReq);
+      gemReq = googleRequest;
 
-      logger.debug(`[Adapter] Mapped Gemini request body: ${JSON.stringify(googleRequest)}`);
+      logger.debug(`[Adapter] Mapped Gemini request body: ${JSON.stringify(gemReq)}`);
 
       const clientEndpoint = `${req.method} ${req.originalUrl || req.path}`;
 
@@ -111,7 +123,7 @@ class ClaudeController {
         const response = await fetch(targetUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(googleRequest)
+          body: JSON.stringify(gemReq)
         });
 
         if (!response.ok) {
@@ -121,6 +133,8 @@ class ClaudeController {
           const errMessage = errorJson?.error?.message || errorText || 'Gemini upstream API error';
           const errStatus = response.status;
           const normalized = claudeTranslator.normalizeError({ status: errStatus, message: errMessage });
+
+          payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: errMessage });
           return res.status(normalized.status).json(normalized.payload);
         }
 
@@ -130,6 +144,7 @@ class ClaudeController {
         res.setHeader('Connection', 'keep-alive');
 
         const streamState = {};
+        const gemResChunks = [];
 
         // Read downstream response body stream chunk by chunk
         response.body.on('data', (buffer) => {
@@ -140,6 +155,15 @@ class ClaudeController {
             const trimmed = line.trim();
             if (!trimmed) continue;
 
+            if (trimmed.startsWith('data: ')) {
+              const jsonStr = trimmed.substring(6).trim();
+              if (jsonStr !== '[DONE]') {
+                try {
+                  gemResChunks.push(JSON.parse(jsonStr));
+                } catch (e) { /* ignore */ }
+              }
+            }
+
             const translated = claudeTranslator.translateGoogleToClaudeStream(trimmed, cleanModelName, streamState);
             if (translated) {
               res.write(translated);
@@ -148,6 +172,7 @@ class ClaudeController {
         });
 
         response.body.on('end', () => {
+          payloadLogger.saveTransaction(transactionId, clientReq, gemReq, gemResChunks);
           res.end();
         });
 
@@ -158,6 +183,7 @@ class ClaudeController {
             error: { type: 'api_error', message: 'Downstream connection lost' }
           };
           res.write(`event: error\ndata: ${JSON.stringify(errPayload)}\n\n`);
+          payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: err.message, partial_chunks: gemResChunks });
           res.end();
         });
 
@@ -172,7 +198,7 @@ class ClaudeController {
       const response = await fetch(targetUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(googleRequest)
+        body: JSON.stringify(gemReq)
       });
 
       if (!response.ok) {
@@ -182,39 +208,50 @@ class ClaudeController {
         const errMessage = errorJson?.error?.message || errorText || 'Gemini upstream API error';
         const errStatus = response.status;
         const normalized = claudeTranslator.normalizeError({ status: errStatus, message: errMessage });
+
+        payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: errMessage });
         return res.status(normalized.status).json(normalized.payload);
       }
 
       const geminiData = await response.json();
       const translatedResponse = claudeTranslator.convertGoogleToClaudeNonStream(geminiData, cleanModelName);
 
+      payloadLogger.saveTransaction(transactionId, clientReq, gemReq, geminiData);
       return res.status(200).json(translatedResponse);
     } catch (err) {
       logger.error(`Unhandled error: ${err.message}`);
       const normalized = claudeTranslator.normalizeError(err);
+      payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: err.message });
       return res.status(normalized.status).json(normalized.payload);
     }
   }
 
   async handleCountTokens(req, res) {
+    const transactionId = this._generateTransactionId();
+    const clientReq = req.body;
+    let gemReq = null;
+
     try {
       const apiKey = this._extractClientKey(req);
 
       if (!apiKey) {
-        return res.status(401).json({
+        const errPayload = {
           type: 'error',
           error: {
             type: 'authentication_error',
             message: 'Access denied. A valid Google Gemini API key was not provided in headers (x-api-key, Authorization Bearer, or x-goog-api-key).'
           }
-        });
+        };
+        payloadLogger.saveTransaction(transactionId, clientReq, null, errPayload);
+        return res.status(401).json(errPayload);
       }
 
-      logger.debug(`[Request] Incoming Claude CountTokens payload body: ${JSON.stringify(req.body)}`);
+      logger.debug(`[Request] Incoming Claude CountTokens payload body: ${JSON.stringify(clientReq)}`);
 
-      const { googleRequest, cleanModelName } = claudeTranslator.translateClaudeToGoogle(req.body);
+      const { googleRequest, cleanModelName } = claudeTranslator.translateClaudeToGoogle(clientReq);
+      gemReq = googleRequest;
 
-      logger.debug(`[Adapter] Mapped Gemini CountTokens request body: ${JSON.stringify(googleRequest)}`);
+      logger.debug(`[Adapter] Mapped Gemini CountTokens request body: ${JSON.stringify(gemReq)}`);
 
       const clientEndpoint = `${req.method} ${req.originalUrl || req.path}`;
       const targetUrl = this._getUpstreamUrl(`/v1beta/models/${cleanModelName}:countTokens?key=${apiKey}`);
@@ -224,7 +261,7 @@ class ClaudeController {
       const response = await fetch(targetUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(googleRequest)
+        body: JSON.stringify(gemReq)
       });
 
       if (!response.ok) {
@@ -234,16 +271,21 @@ class ClaudeController {
         const errMessage = errorJson?.error?.message || errorText || 'Gemini upstream API error';
         const errStatus = response.status;
         const normalized = claudeTranslator.normalizeError({ status: errStatus, message: errMessage });
+
+        payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: errMessage });
         return res.status(normalized.status).json(normalized.payload);
       }
 
       const geminiData = await response.json();
+
+      payloadLogger.saveTransaction(transactionId, clientReq, gemReq, geminiData);
       return res.status(200).json({
         input_tokens: geminiData.totalTokens || 0
       });
     } catch (err) {
       logger.error(`Unhandled count tokens error: ${err.message}`);
       const normalized = claudeTranslator.normalizeError(err);
+      payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: err.message });
       return res.status(normalized.status).json(normalized.payload);
     }
   }
