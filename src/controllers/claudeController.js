@@ -63,6 +63,12 @@ class ClaudeController {
     return clientKey;
   }
 
+  _getUpstreamUrl(pathAndQuery) {
+    const base = config.geminiBaseUrl.replace(/\/+$/, '');
+    const cleanPath = pathAndQuery.replace(/^\/+/, '');
+    return `${base}/${cleanPath}`;
+  }
+
   async handleMessages(req, res) {
     try {
       const apiKey = this._extractClientKey(req);
@@ -80,8 +86,8 @@ class ClaudeController {
       const { googleRequest, cleanModelName, isStream } = claudeTranslator.translateClaudeToGoogle(req.body);
 
       if (isStream) {
-        const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${cleanModelName}:streamGenerateContent?alt=sse&key=${apiKey}`;
-        logger.info(`Starting streaming request to Gemini Model: ${cleanModelName}`);
+        const targetUrl = this._getUpstreamUrl(`/v1beta/models/${cleanModelName}:streamGenerateContent?alt=sse&key=${apiKey}`);
+        logger.info(`Starting streaming request to Gemini Model: ${cleanModelName} at custom URL: ${targetUrl.replace(/\?key=.*/, '?key=***')}`);
 
         const response = await fetch(targetUrl, {
           method: 'POST',
@@ -140,8 +146,8 @@ class ClaudeController {
       }
 
       // Non-Streaming generation
-      const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${cleanModelName}:generateContent?key=${apiKey}`;
-      logger.info(`Sending generation request to Gemini Model: ${cleanModelName}`);
+      const targetUrl = this._getUpstreamUrl(`/v1beta/models/${cleanModelName}:generateContent?key=${apiKey}`);
+      logger.info(`Sending generation request to Gemini Model: ${cleanModelName} at custom URL: ${targetUrl.replace(/\?key=.*/, '?key=***')}`);
 
       const response = await fetch(targetUrl, {
         method: 'POST',
@@ -186,8 +192,8 @@ class ClaudeController {
 
       const { googleRequest, cleanModelName } = claudeTranslator.translateClaudeToGoogle(req.body);
 
-      const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${cleanModelName}:countTokens?key=${apiKey}`;
-      logger.info(`Counting tokens for Gemini Model: ${cleanModelName}`);
+      const targetUrl = this._getUpstreamUrl(`/v1beta/models/${cleanModelName}:countTokens?key=${apiKey}`);
+      logger.info(`Counting tokens for Gemini Model: ${cleanModelName} at custom URL: ${targetUrl.replace(/\?key=.*/, '?key=***')}`);
 
       const response = await fetch(targetUrl, {
         method: 'POST',

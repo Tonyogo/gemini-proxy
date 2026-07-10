@@ -1,5 +1,7 @@
 const request = require('supertest');
 const app = require('../src/app');
+const config = require('../config/default');
+const claudeController = require('../src/controllers/claudeController');
 
 // Mock node-fetch globally
 jest.mock('node-fetch', () => {
@@ -67,5 +69,17 @@ describe('POST /v1/messages (Authentication / Headers)', () => {
 
     expect(resFail.statusCode).toEqual(401);
     expect(resFail.body.error.type).toEqual('authentication_error');
+  });
+});
+
+describe('ClaudeController URL helper methods', () => {
+  it('correctly normalizes base URLs and path slashes', () => {
+    config.geminiBaseUrl = 'https://my-custom-endpoint.com/';
+    let url = claudeController._getUpstreamUrl('/v1beta/models');
+    expect(url).toEqual('https://my-custom-endpoint.com/v1beta/models');
+
+    config.geminiBaseUrl = 'https://my-custom-endpoint.com';
+    url = claudeController._getUpstreamUrl('v1beta/models');
+    expect(url).toEqual('https://my-custom-endpoint.com/v1beta/models');
   });
 });

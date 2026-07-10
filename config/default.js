@@ -2,6 +2,7 @@ require('dotenv').config();
 
 module.exports = {
   port: process.env.PORT || 3000,
+  geminiBaseUrl: process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com',
   defaultModel: process.env.DEFAULT_GEMINI_MODEL || 'gemini-2.5-flash',
   logLevel: process.env.LOG_LEVEL || 'info',
   modelMapping: {
