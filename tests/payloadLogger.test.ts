@@ -1,6 +1,6 @@
-const payloadLogger = require('../src/services/payloadLogger');
-const fs = require('fs').promises;
-const path = require('path');
+import payloadLogger from '../src/services/payloadLogger';
+import { promises as fs } from 'fs';
+import * as path from 'path';
 
 describe('PayloadLogger Service', () => {
   const testId = 'test_transaction_abc123';

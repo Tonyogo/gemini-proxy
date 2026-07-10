@@ -1,5 +1,5 @@
-const request = require('supertest');
-const app = require('../src/app');
+import request from 'supertest';
+import app from '../src/app';
 
 describe('GET /v1/models (Models API)', () => {
   it('denies access to GET /v1/models without API key', async () => {

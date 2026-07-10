@@ -1,12 +1,12 @@
-const request = require('supertest');
-const app = require('../src/app');
-const fetch = require('node-fetch');
+import request from 'supertest';
+import app from '../src/app';
+import fetch from 'node-fetch';
 
 jest.mock('node-fetch');
 
 describe('POST /v1/messages/count_tokens', () => {
   it('correctly translates request and counts tokens via Gemini API', async () => {
-    fetch.mockResolvedValue({
+    (fetch as unknown as jest.Mock).mockResolvedValue({
       status: 200,
       ok: true,
       json: () => Promise.resolve({ totalTokens: 42 })

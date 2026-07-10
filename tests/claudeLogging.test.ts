@@ -1,12 +1,12 @@
-const request = require('supertest');
-const app = require('../src/app');
-const payloadLogger = require('../src/services/payloadLogger');
-const fetch = require('node-fetch');
+import request from 'supertest';
+import app from '../src/app';
+import payloadLogger from '../src/services/payloadLogger';
+import fetch from 'node-fetch';
 
 jest.mock('node-fetch');
 
 describe('ClaudeController Transaction Logging (via Spy)', () => {
-  let logSpy;
+  let logSpy: jest.SpyInstance;
 
   beforeEach(() => {
     logSpy = jest.spyOn(payloadLogger, 'saveTransaction').mockImplementation(() => Promise.resolve());
@@ -17,7 +17,7 @@ describe('ClaudeController Transaction Logging (via Spy)', () => {
   });
 
   it('correctly logs non-streaming requests and responses', async () => {
-    fetch.mockResolvedValue({
+    (fetch as unknown as jest.Mock).mockResolvedValue({
       status: 200,
       ok: true,
       json: () => Promise.resolve({
@@ -50,7 +50,7 @@ describe('ClaudeController Transaction Logging (via Spy)', () => {
     const mockStream = new Readable();
     mockStream._read = () => {};
 
-    fetch.mockResolvedValue({
+    (fetch as unknown as jest.Mock).mockResolvedValue({
       status: 200,
       ok: true,
       body: mockStream
