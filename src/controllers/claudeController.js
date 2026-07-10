@@ -114,7 +114,52 @@ class ClaudeController {
   }
 
   async handleCountTokens(req, res) {
-    res.status(501).json({ error: 'Token counting not yet implemented.' });
+    try {
+      const authHeader = req.headers.authorization || '';
+      const clientApiKey = authHeader.replace(/^Bearer\s+/i, '').trim();
+      const apiKey = clientApiKey || config.geminiApiKey;
+
+      if (!apiKey) {
+        return res.status(401).json({
+          type: 'error',
+          error: {
+            type: 'authentication_error',
+            message: 'No Google API key provided. Set GEMINI_API_KEY env or send Bearer Authorization token.'
+          }
+        });
+      }
+
+      const { googleRequest, cleanModelName } = claudeTranslator.translateClaudeToGoogle(req.body);
+
+      // We call countTokens endpoint instead of generateContent
+      const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/${cleanModelName}:countTokens?key=${apiKey}`;
+      logger.info(`Counting tokens for Gemini Model: ${cleanModelName}`);
+
+      const response = await fetch(targetUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(googleRequest)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorJson;
+        try { errorJson = JSON.parse(errorText); } catch (e) { /* ignore */ }
+        const errMessage = errorJson?.error?.message || errorText || 'Gemini upstream API error';
+        const errStatus = response.status;
+        const normalized = claudeTranslator.normalizeError({ status: errStatus, message: errMessage });
+        return res.status(normalized.status).json(normalized.payload);
+      }
+
+      const geminiData = await response.json();
+      return res.status(200).json({
+        input_tokens: geminiData.totalTokens || 0
+      });
+    } catch (err) {
+      logger.error(`Unhandled count tokens error: ${err.message}`);
+      const normalized = claudeTranslator.normalizeError(err);
+      return res.status(normalized.status).json(normalized.payload);
+    }
   }
 }
 
