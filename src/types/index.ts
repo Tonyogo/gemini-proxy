@@ -41,3 +41,11 @@ export interface GeminiRequest {
   thinkingConfig?: { thinkingBudget?: number };
   tools?: any[];
 }
+
+export interface ModelConfig {
+  type: 'model';
+  id: string;
+  display_name: string;
+  created_at: string;
+  gemini_mapping: string;
+}
