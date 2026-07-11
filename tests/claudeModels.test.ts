@@ -26,19 +26,19 @@ describe('GET /v1/models (Models API)', () => {
   });
 
   it('denies access to GET /v1/models/:model_id without API key', async () => {
-    const res = await request(app).get('/v1/models/claude-3-5-sonnet');
+    const res = await request(app).get('/v1/models/claude-sonnet-4.6');
     expect(res.statusCode).toEqual(401);
   });
 
   it('successfully retrieves a specific model detail by ID', async () => {
     const res = await request(app)
-      .get('/v1/models/claude-3-5-sonnet')
+      .get('/v1/models/claude-sonnet-4.6')
       .set('x-api-key', 'client-test-key');
 
     expect(res.statusCode).toEqual(200);
-    expect(res.body.id).toEqual('claude-3-5-sonnet');
+    expect(res.body.id).toEqual('claude-sonnet-4.6');
     expect(res.body.type).toEqual('model');
-    expect(res.body.display_name).toEqual('Claude 3.5 Sonnet (Gemini 3.5 Flash)');
+    expect(res.body.display_name).toEqual('Claude 4.6 Sonnet (Gemini 3.5 Flash)');
 
     // Assert: Check that private gemini_mapping is completely stripped from detailed responses
     expect(res.body.gemini_mapping).toBeUndefined();

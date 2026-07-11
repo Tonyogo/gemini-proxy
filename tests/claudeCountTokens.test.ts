@@ -16,7 +16,7 @@ describe('POST /v1/messages/count_tokens', () => {
       .post('/v1/messages/count_tokens')
       .set('Authorization', 'Bearer dummy-key')
       .send({
-        model: 'claude-3-5-sonnet',
+        model: 'claude-sonnet-4.6',
         messages: [{ role: 'user', content: 'What is the answer to the ultimate question?' }]
       });
 

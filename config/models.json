@@ -1,23 +1,23 @@
 [
   {
     "type": "model",
-    "id": "claude-3-opus",
-    "display_name": "Claude 3 Opus (Gemini 3.1 Pro)",
-    "created_at": "2024-03-07T00:00:00Z",
+    "id": "claude-opus-4.8",
+    "display_name": "Claude 4.8 Opus (Gemini 3.1 Pro)",
+    "created_at": "2026-07-11T00:00:00Z",
     "gemini_mapping": "gemini-3.1-pro-preview"
   },
   {
     "type": "model",
-    "id": "claude-3-5-sonnet",
-    "display_name": "Claude 3.5 Sonnet (Gemini 3.5 Flash)",
-    "created_at": "2024-06-20T00:00:00Z",
+    "id": "claude-sonnet-4.6",
+    "display_name": "Claude 4.6 Sonnet (Gemini 3.5 Flash)",
+    "created_at": "2026-07-11T00:00:00Z",
     "gemini_mapping": "gemini-3.5-flash"
   },
   {
     "type": "model",
-    "id": "claude-3-5-haiku",
-    "display_name": "Claude 3.5 Haiku (Gemini 3.1 Flash Lite)",
-    "created_at": "2024-10-22T00:00:00Z",
+    "id": "claude-haiku-4.5",
+    "display_name": "Claude 4.5 Haiku (Gemini 3.1 Flash Lite)",
+    "created_at": "2026-07-11T00:00:00Z",
     "gemini_mapping": "gemini-3.1-flash-lite"
   }
 ]

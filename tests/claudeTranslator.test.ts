@@ -3,7 +3,7 @@ import translator from '../src/services/claudeTranslator';
 describe('Claude to Gemini Request Translation', () => {
   it('translates basic message requests', () => {
     const claudePayload = {
-      model: 'claude-3-5-sonnet',
+      model: 'claude-sonnet-4.6',
       messages: [{ role: 'user', content: 'Hello' }]
     } as any;
     const result = translator.translateClaudeToGoogle(claudePayload);
@@ -14,7 +14,7 @@ describe('Claude to Gemini Request Translation', () => {
 
   it('translates system prompts', () => {
     const claudePayload = {
-      model: 'claude-3-5-sonnet',
+      model: 'claude-sonnet-4.6',
       system: 'You are a helpful assistant',
       messages: [{ role: 'user', content: 'Hi' }]
     } as any;
@@ -24,7 +24,7 @@ describe('Claude to Gemini Request Translation', () => {
 
   it('translates system prompts with role user and combines messages system roles', () => {
     const claudePayload = {
-      model: 'claude-3-5-sonnet',
+      model: 'claude-sonnet-4.6',
       system: 'This is the main system prompt',
       messages: [
         { role: 'system', content: 'This is a message system prompt' },
@@ -49,7 +49,7 @@ describe('Claude to Gemini Request Translation', () => {
 
   it('translates images', () => {
     const claudePayload = {
-      model: 'claude-3-5-haiku',
+      model: 'claude-haiku-4.5',
       messages: [{
         role: 'user',
         content: [
@@ -75,7 +75,7 @@ describe('Claude to Gemini Request Translation', () => {
 
   it('translates thinking config', () => {
     const claudePayload = {
-      model: 'claude-3-5-sonnet',
+      model: 'claude-sonnet-4.6',
       messages: [{ role: 'user', content: 'Explain string theory' }],
       thinking: { type: 'enabled', budget_tokens: 1024 }
     } as any;
@@ -87,7 +87,7 @@ describe('Claude to Gemini Request Translation', () => {
 describe('Claude to Gemini Tools Schema Sanitization', () => {
   it('recursively cleans and translates Claude input schemas to Gemini-compliant structures', () => {
     const claudePayload = {
-      model: 'claude-3-5-sonnet',
+      model: 'claude-sonnet-4.6',
       messages: [{ role: 'user', content: 'Use the tool.' }],
       tools: [
         {
@@ -136,7 +136,7 @@ describe('Claude to Gemini Tools Schema Sanitization', () => {
 describe('Claude Tools Interaction Roundtrips (Complex and Multi-Turn)', () => {
   it('successfully resolves tool names and translates various types of tool_result content to Gemini', () => {
     const claudePayload = {
-      model: 'claude-3-5-sonnet',
+      model: 'claude-sonnet-4.6',
       messages: [
         {
           role: 'assistant',
