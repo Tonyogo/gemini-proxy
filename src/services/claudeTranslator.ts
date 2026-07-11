@@ -218,12 +218,6 @@ class ClaudeTranslator {
       googleRequest.generationConfig = generationConfig;
     }
 
-    if (claudeBody.thinking && claudeBody.thinking.type === 'enabled') {
-      googleRequest.thinkingConfig = {
-        thinkingBudget: claudeBody.thinking.budget_tokens || 1024
-      };
-    }
-
     if (claudeBody.tools && Array.isArray(claudeBody.tools)) {
       googleRequest.tools = [{
         functionDeclarations: claudeBody.tools.map((tool: any) => ({

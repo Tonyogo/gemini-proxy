@@ -72,16 +72,6 @@ describe('Claude to Gemini Request Translation', () => {
     expect(parts[1].inlineData!.mimeType).toEqual('image/png');
     expect(parts[1].inlineData!.data).toEqual('iVBORw0KGgoAAAANS...');
   });
-
-  it('translates thinking config', () => {
-    const claudePayload = {
-      model: 'claude-sonnet-4.6',
-      messages: [{ role: 'user', content: 'Explain string theory' }],
-      thinking: { type: 'enabled', budget_tokens: 1024 }
-    } as any;
-    const result = translator.translateClaudeToGoogle(claudePayload);
-    expect(result.googleRequest.thinkingConfig!.thinkingBudget).toEqual(1024);
-  });
 });
 
 describe('Claude to Gemini Tools Schema Sanitization', () => {

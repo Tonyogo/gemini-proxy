@@ -38,7 +38,6 @@ export interface GeminiRequest {
   contents: GeminiContent[];
   systemInstruction?: { parts: { text: string }[]; role: 'user' };
   generationConfig?: Record<string, any>;
-  thinkingConfig?: { thinkingBudget?: number };
   tools?: any[];
 }
 
