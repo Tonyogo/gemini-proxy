@@ -1,8 +1,18 @@
 import config from '../../config/default';
+import modelsList from '../../config/models.json';
 import logger from '../utils/logger';
-import { ClaudeRequest, GeminiRequest, GeminiContent, GeminiPart } from '../types';
+import { ClaudeRequest, GeminiRequest, GeminiContent, GeminiPart, ModelConfig } from '../types';
 
 class ClaudeTranslator {
+  private modelMapping: Map<string, string>;
+
+  constructor() {
+    this.modelMapping = new Map<string, string>();
+    for (const model of modelsList as ModelConfig[]) {
+      this.modelMapping.set(model.id, model.gemini_mapping);
+    }
+  }
+
   public _convertSchemaToGemini(obj: any, isResponseSchema: boolean = false, isProperties: boolean = false): any {
     if (!obj || typeof obj !== "object") return obj;
 
@@ -105,7 +115,7 @@ class ClaudeTranslator {
 
   public translateClaudeToGoogle(claudeBody: ClaudeRequest) {
     const rawModel = claudeBody.model || config.defaultModel;
-    const cleanModelName = config.modelMapping[rawModel] || config.defaultModel;
+    const cleanModelName = this.modelMapping.get(rawModel) || config.defaultModel;
 
     let systemInstruction: any = null;
 

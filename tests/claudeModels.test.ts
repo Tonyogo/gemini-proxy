@@ -20,6 +20,9 @@ describe('GET /v1/models (Models API)', () => {
     expect(res.body.data[0].id).toBeDefined();
     expect(res.body.data[0].display_name).toBeDefined();
     expect(res.body.has_more).toEqual(false);
+
+    // Assert: Check that private gemini_mapping is completely stripped from response
+    expect(res.body.data[0].gemini_mapping).toBeUndefined();
   });
 
   it('denies access to GET /v1/models/:model_id without API key', async () => {
@@ -36,6 +39,9 @@ describe('GET /v1/models (Models API)', () => {
     expect(res.body.id).toEqual('claude-3-5-sonnet-20241022');
     expect(res.body.type).toEqual('model');
     expect(res.body.display_name).toEqual('Claude 3.5 Sonnet (New)');
+
+    // Assert: Check that private gemini_mapping is completely stripped from detailed responses
+    expect(res.body.gemini_mapping).toBeUndefined();
   });
 
   it('returns 404 with invalid_request_error for non-existent model ID', async () => {

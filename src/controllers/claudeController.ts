@@ -2,21 +2,18 @@ import { Request, Response } from 'express';
 // @ts-ignore
 import fetch from 'node-fetch';
 import config from '../../config/default';
+import modelsList from '../../config/models.json';
+import { ModelConfig } from '../types';
 import claudeTranslator from '../services/claudeTranslator';
 import payloadLogger from '../services/payloadLogger';
 import logger from '../utils/logger';
 
-const SUPPORTED_MODELS = [
-  { "type": "model", "id": "claude-opus-4-7", "display_name": "Claude 4.7 Opus (Gemini Flash)", "created_at": "2026-07-10T00:00:00Z" },
-  { "type": "model", "id": "claude-sonnet-4-6", "display_name": "Claude 4.6 Sonnet (Gemini Flash Lite)", "created_at": "2026-07-10T00:00:00Z" },
-  { "type": "model", "id": "claude-3-5-sonnet-20241022", "display_name": "Claude 3.5 Sonnet (New)", "created_at": "2024-10-22T00:00:00Z" },
-  { "type": "model", "id": "claude-3-5-sonnet", "display_name": "Claude 3.5 Sonnet", "created_at": "2024-06-20T00:00:00Z" },
-  { "type": "model", "id": "claude-3-5-haiku-20241022", "display_name": "Claude 3.5 Haiku", "created_at": "2024-10-22T00:00:00Z" },
-  { "type": "model", "id": "claude-3-5-haiku", "display_name": "Claude 3.5 Haiku (Standard)", "created_at": "2024-10-22T00:00:00Z" },
-  { "type": "model", "id": "claude-3-opus", "display_name": "Claude 3 Opus", "created_at": "2024-03-07T00:00:00Z" },
-  { "type": "model", "id": "claude-3-sonnet", "display_name": "Claude 3 Sonnet", "created_at": "2024-02-29T00:00:00Z" },
-  { "type": "model", "id": "claude-3-haiku", "display_name": "Claude 3 Haiku", "created_at": "2024-03-07T00:00:00Z" }
-];
+const sanitizeModel = (model: ModelConfig) => {
+  const { gemini_mapping, ...cleanModel } = model;
+  return cleanModel;
+};
+
+const SUPPORTED_MODELS = (modelsList as ModelConfig[]).map(sanitizeModel);
 
 class ClaudeController {
   private _extractClientKey(req: Request): string | null {
