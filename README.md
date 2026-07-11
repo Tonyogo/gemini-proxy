@@ -1,23 +1,25 @@
 # Gemini-Proxy: Claude API to Gemini API Stateless Proxy
 
-一个轻量、无状态、高性能的 API 代理服务器。它作为 Anthropic Claude Messages API 的无缝替代品，接收 Claude 格式 of API 请求，并自动将其翻译并转发至 Google AI Studio (Gemini) 官方 API，最后将生成的流式（SSE）或非流式响应转换回 Claude 格式返回给客户端。
+一个轻量、无状态、高性能、使用 **TypeScript** 全盘重构的 API 代理服务器。它作为 Anthropic Claude Messages API 的无缝替代品，接收 Claude 格式的 API 请求，并自动将其翻译并转发至 Google AI Studio (Gemini) 官方 API，最后将生成的流式（SSE）或非流式响应转换回 Claude 格式返回给客户端。
 
 ---
 
 ## 🌟 核心特性
 
+- **TypeScript 强类型支持**：全盘采用严格模式（strict）的 TypeScript 开发，提供极致的安全性和健壮性，杜绝因 JSON Schema 繁琐键值定位引发的运行时崩溃。
 - **轻量且无状态**：无任何数据库、浏览器实例（Playwright/Puppeteer）或账户轮询队列，所有请求完全在内存中高效处理。
 - **纯透传定位 (无配置密钥泄露风险)**：服务器本身**不保存任何官方 API 密钥**。客户端请求必须在 Header 中携带 `x-api-key`、`Authorization: Bearer <key>` 或 `x-goog-api-key` 作为官方 Gemini 密钥。代理端在翻译完参数后直接透传并访问下游 Google 接口，完全零运营与配额消耗。
-- **自定义 Base URL 支持 (`GEMINI_BASE_URL`)**：支持通过环境变量自定义 Google Gemini 接口的请求地址，完美适配自建反代、国内网络中转（如 Cloudflare Workers、Nginx 等），并内建智能斜杠容错机制。
+- **自定义 Base URL 支持 (`GEMINI_BASE_URL`)**：支持通过环境变量自定义 Google Gemini 接口的请求地址，完美适配自建反代、国内网络中转（如 Cloudflare Workers、Nginx 等），并内建智能斜杠合并与纠错机制。
+- **数据与逻辑完美解耦 (`models.json`)**：将所有 Claude 的模型详细信息以及其到 Gemini 的映射关系高度整合在 `config/models.json` 配置文件中。未来增加新模型映射、添加别名，均只需在此单文件里增改一行，**无需改动并重新编译任何逻辑代码**。
 - **全功能翻译转换**：
-  - 系统提示词（System Prompt）支持。
-  - 多轮对话及角色（User / Assistant / Tool）自动映射。
+  - 系统提示词（System Prompt）支持（多 System 拼装及对话序列过滤净化）。
+  - 多轮复杂对话及角色（User / Assistant / Tool）自动映射。
   - 多模态输入：支持 Base64 图片数据的自动转换。
-  - 智能思考（Thinking Mode）：支持 Claude `thinking` 参数与 Gemini 2.5 `thinkingConfig` 思考预算的自动映射。
-  - 工具调用（Tools / Function Calling）：支持 Claude 工具格式到 Gemini 声明 of 自动转换及返回接收。
+  - 智能思考（Thinking Mode）：支持 Claude `thinking` 参数与 Gemini 2.5 思考预算的自动映射与 Token 统计。
+  - 完备的工具调用（Tools / Function Calling）：支持 Claude 工具格式到 Gemini 声明的自动大写转换、Draft 不兼容属性递归剔除，以及多轮对话下 `tool_use_id` 到原始函数名的 Map 还原和非标参数类型兼容。
 - **流式 SSE 实时传输**：支持毫秒级、低延迟的 Server-Sent Events 流式生成，与 Claude 官方流式事件完全兼容。
 - **Token 计数支持**：完整实现 `/v1/messages/count_tokens` 接口。
-- **可用模型名查询**：完整支持 `/v1/models` 以及 `/v1/models/:model_id` 查询。
+- **可用模型名查询**：完整支持 `/v1/models` 以及 `/v1/models/:model_id` 查询，且已自动通过数据清洗在输出时对客户端过滤隐藏内部映射字段（如 `gemini_mapping`）。
 - **完善的错误映射**：自动将 Gemini 各种错误格式包装成 Claude 官方格式，使客户端的 SDK 能够完美捕获异常。
 
 ---
@@ -27,20 +29,29 @@
 ```text
 gemini-proxy/
 ├── config/
-│   └── default.js             # 配置文件读取、默认模型及模型映射表
+│   ├── default.ts             # 配置文件读取、基础默认配置项
+│   └── models.json            # 核心配置文件：受支持的模型列表及到 Gemini 的映射规则
 ├── src/
+│   ├── types/
+│   │   └── index.ts           # 强类型定义声明 (Claude 与 Gemini API REST 协议载荷接口)
 │   ├── routes/
-│   │   └── claudeRoutes.js    # 路由层：/v1/messages, /v1/models, /v1/messages/count_tokens
+│   │   └── claudeRoutes.ts    # 路由层：/v1/messages, /v1/models, /v1/messages/count_tokens
 │   ├── controllers/
-│   │   └── claudeController.js# 控制器层：处理 HTTP 流式与非流式请求、模型列表及转发
+│   │   └── claudeController.ts# 控制器层：Express 请求与响应逻辑、双向映射 info 日志等
 │   ├── services/
-│   │   └── claudeTranslator.js# 服务层：核心翻译适配器 (Claude <-> Gemini 转换逻辑)
+│   │   ├── claudeTranslator.ts# 服务层：核心翻译适配器 (Claude <-> Gemini 核心协议转换)
+│   │   └── payloadLogger.ts   # 服务层：异步、非阻塞式交易日志文件保存器
 │   ├── utils/
-│   │   └── logger.js          # 工具类：基于日志级别的格式化日志输出
-│   └── app.js                 # Express 应用注册、中间件及生命周期
+│   │   └── logger.ts          # 工具类：支持日志级别的定制化控制台日志输出
+│   ├── app.ts                 # Express 应用注册、中间件绑定
+│   └── index.ts               # 服务监听主启动入口
+├── tests/
+│   ├── jest.config.ts         # ts-jest 测试框架配置
+│   └── *.test.ts              # 包含 25 个精细化功能断言的高覆盖 TS 自动化测试集
+├── dist/                      # (Git-ignored) 经 tsc 编译输出的 CommonJS 生产代码
 ├── .env                       # 本地环境变量配置（端口、中转基址等）
-├── index.js                   # 服务启动入口
-├── package.json               # 依赖项及启动脚本
+├── tsconfig.json              # TypeScript 编译选项配置文件
+├── package.json               # 项目依赖、TypeScript 工具链及 npm 运行脚本
 └── README.md                  # 本使用说明文档
 ```
 
@@ -53,7 +64,7 @@ gemini-proxy/
 需要确保本地安装了 **Node.js (v18+)**。
 
 ```bash
-# 安装所需依赖包
+# 安装所需依赖包（自动加载并搭建 TypeScript 工具链）
 npm install
 ```
 
@@ -69,7 +80,7 @@ PORT=3000
 # 支持尾部带斜杠或不带斜杠，代理端会自动进行合并容错处理。
 GEMINI_BASE_URL=https://generativelanguage.googleapis.com
 
-# 当客户端传入 generic 模型 ID 时默认映射的 Gemini 模型
+# 当客户端传入 generic 模型 ID 时默认映射的 Gemini 默认模型
 DEFAULT_GEMINI_MODEL=gemini-2.5-flash
 
 # 日志输出级别: error, warn, info, debug
@@ -78,32 +89,46 @@ LOG_LEVEL=info
 
 ### 3. 运行服务
 
+#### A. 生产环境编译运行 (标准 tsc 模式)：
 ```bash
-# 开发模式 / 生产模式启动
+# 1. 编译 TypeScript 到 dist 文件夹中
+npm run build
+
+# 2. 启动编译好的生产服务
 npm start
+```
+
+#### B. 极速开发模式 (热重载及免编译直接执行)：
+```bash
+# 使用 ts-node-dev 动态监控更改并免编译启动
+npm run dev
 ```
 
 服务启动后，默认会在本地 `http://localhost:3000` 监听请求。
 
 ---
 
-## 🧭 模型映射关系
+## 🧭 模型配置与映射关系 (`config/models.json`)
 
-默认内置了以下 Claude 模型到 Gemini 最新模型的映射（可在 `config/default.js` 中随时修改）：
+系统受支持的模型列表及映射转换关系全部在 **`config/models.json`** 中进行单点维护，目前内置了以下前卫模型及经典模型的到官方最新 Gemini 的映射：
 
-| 客户端请求的 Claude 模型 | 转发至 Google Studio 的模型 |
-| :--- | :--- |
-| `claude-3-5-sonnet` / `claude-3-5-sonnet-20241022` | `gemini-2.5-pro` |
-| `claude-3-5-haiku` / `claude-3-5-haiku-20241022` | `gemini-2.5-flash` |
-| `claude-3-opus` | `gemini-2.5-pro` |
-| `claude-3-sonnet` / `claude-3-haiku` | `gemini-2.5-flash` |
-| 其它未知模型名 | 默认使用 `DEFAULT_GEMINI_MODEL` (如 `gemini-2.5-flash`) |
+| 客户端请求的 Claude 模型 (ID) | 内部中转到的 Google 官方模型名 (`gemini_mapping`) | 备注 |
+| :--- | :--- | :--- |
+| **`claude-opus-4-7`** | `gemini-2.5-flash` | 未来前瞻：直接享受 Google 主力 Flash 极速推理 |
+| **`claude-sonnet-4-6`** | `gemini-2.5-flash-lite` | 未来前瞻：直接享受极低成本、超高速 Lite 推理 |
+| `claude-3-5-sonnet` / `claude-3-5-sonnet-20241022` | `gemini-2.5-pro` | 标准映射：谷歌最高智商 2.5 Pro 护航 |
+| `claude-3-5-haiku` / `claude-3-5-haiku-20241022` | `gemini-2.5-flash` | 标准映射 |
+| `claude-3-opus` | `gemini-2.5-pro` | 经典模型转换 |
+| `claude-3-sonnet` / `claude-3-haiku` | `gemini-2.5-flash` | 经典模型转换 |
+| 其它未知模型名 | 默认使用 `DEFAULT_GEMINI_MODEL` | 容错机制 |
+
+您只需修改此文件里对应的 `"gemini_mapping"` 的属性，即可瞬间实现动态的负载匹配中转。
 
 ---
 
 ## 🚀 API 接口使用说明
 
-所有请求必须带上你的 Gemini API Key 作为认证密钥。
+所有请求必须在请求头中带上您的 Gemini API Key 作为鉴权密钥。
 
 ### 1. 模型列表与详情查询
 
@@ -116,10 +141,16 @@ curl http://localhost:3000/v1/models \
      -H "x-api-key: YOUR_GEMINI_API_KEY"
 ```
 
-**响应格式：**
+**响应格式：** (输出已通过数据清洗安全，会自动隐藏内部 `gemini_mapping` 字段)
 ```json
 {
   "data": [
+    {
+      "type": "model",
+      "id": "claude-opus-4-7",
+      "display_name": "Claude 4.7 Opus (Gemini Flash)",
+      "created_at": "2026-07-10T00:00:00Z"
+    },
     {
       "type": "model",
       "id": "claude-3-5-sonnet-20241022",
@@ -129,7 +160,7 @@ curl http://localhost:3000/v1/models \
     ...
   ],
   "has_more": false,
-  "first_id": "claude-3-5-sonnet-20241022",
+  "first_id": "claude-opus-4-7",
   "last_id": "claude-3-haiku"
 }
 ```
@@ -139,18 +170,8 @@ curl http://localhost:3000/v1/models \
 
 **请求示例 (cURL)：**
 ```bash
-curl http://localhost:3000/v1/models/claude-3-5-sonnet-20241022 \
+curl http://localhost:3000/v1/models/claude-opus-4-7 \
      -H "x-api-key: YOUR_GEMINI_API_KEY"
-```
-
-**响应格式：**
-```json
-{
-  "type": "model",
-  "id": "claude-3-5-sonnet-20241022",
-  "display_name": "Claude 3.5 Sonnet (New)",
-  "created_at": "2024-10-22T00:00:00Z"
-}
 ```
 
 ---
@@ -171,28 +192,6 @@ curl -X POST http://localhost:3000/v1/messages \
          {"role": "user", "content": "你好，请用一句话介绍你自己。"}
        ]
      }'
-```
-
-**响应格式：**
-```json
-{
-  "id": "msg_fake_7vpxz8p91",
-  "type": "message",
-  "role": "assistant",
-  "model": "gemini-2.5-pro",
-  "content": [
-    {
-      "type": "text",
-      "text": "你好！我是由 Google 训练的大型语言模型 Gemini。"
-    }
-  ],
-  "stop_reason": "end_turn",
-  "stop_sequence": null,
-  "usage": {
-    "input_tokens": 15,
-    "output_tokens": 20
-  }
-}
 ```
 
 ---
@@ -218,32 +217,6 @@ curl -X POST http://localhost:3000/v1/messages \
      }'
 ```
 
-**流式响应事件流：**
-```text
-event: message_start
-data: {"type":"message_start","message":{"id":"msg_stream_z8x9p3r1","type":"message","role":"assistant","model":"gemini-2.5-pro","content":[],"stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":12,"output_tokens":0}}}
-
-event: content_block_start
-data: {"type":"content_block_start","index":0,"content_block":{"type":"text","text":""}}
-
-event: content_block_delta
-data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"烈日當空"}}
-
-event: content_block_delta
-data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"，照临四方"}}
-
-...
-
-event: content_block_stop
-data: {"type":"content_block_stop","index":0}
-
-event: message_delta
-data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"output_tokens":28}}
-
-event: message_stop
-data: {"type":"message_stop"}
-```
-
 ---
 
 ### 4. Token 数量计算
@@ -260,13 +233,6 @@ curl -X POST http://localhost:3000/v1/messages/count_tokens \
          {"role": "user", "content": "测试一下这段文字占用了多少个 Token。"}
        ]
      }'
-```
-
-**响应格式：**
-```json
-{
-  "input_tokens": 14
-}
 ```
 
 ---
@@ -295,27 +261,40 @@ curl -X POST http://localhost:3000/v1/messages \
 
 ---
 
+## 🛡️ 交易 payload 审计日志 (`data/debug/`)
+
+当您开启 `LOG_LEVEL=debug` 时，系统会自动将完整的请求和响应 lifecycle 交易数据以**绝对异步、非阻塞（0 延迟阻碍）**的形式写入本地文件系统 `data/debug/transaction_{ID}.json`。
+
+每条交易日志包含：
+1. `client_req`：客户端发送给代理的原汁原味的 Claude 请求参数。
+2. `gem_req`：翻译转换后的高清洁 Gemini 官方 API 请求包（已安全脱敏 API Key）。
+3. `gem_res`：下游 Google 官方返回的最原始的数据包（流式场景下，会自动聚合所有的流 chunks 按数组顺序完美还原并归档，包含 `thoughtsTokenCount` 与 `candidatesTokenCount`）。
+
+---
+
 ## 🧪 测试验证
 
-本项目包含一套基于 `Jest` + `Supertest` 的完整单元测试与端到端集成测试，测试覆盖了健康检查、格式翻译器、路由控制器、SSE 实时流管道及 Token 计数接口。
+本项目包含一套基于 `ts-jest` 驱动的完备的自动化测试集，测试全盘覆盖了健康、格式翻译适配器、模型查询、多态工具调用、SSE 实时事件管道流动、以及高并发审计日志在 Jest 间谍模式（Spy mock）下的线程隔离检验。
 
-运行全量测试套件：
+运行全量测试：
 ```bash
 npm test
 ```
 
 测试执行结果：
 ```text
-PASS tests/claudeCountTokens.test.js
-PASS tests/claudeModels.test.js
-PASS tests/claudeController.test.js
-PASS tests/health.test.js
-PASS tests/claudeStreaming.test.js
-PASS tests/claudeTranslator.test.js
+PASS tests/claudeLogging.test.ts
+PASS tests/claudeTranslator.test.ts
+PASS tests/payloadLogger.test.ts
+PASS tests/health.test.ts
+PASS tests/claudeController.test.ts
+PASS tests/claudeModels.test.ts
+PASS tests/claudeCountTokens.test.ts
+PASS tests/claudeStreaming.test.ts
 
-Test Suites: 6 passed, 6 total
-Tests:       18 passed, 18 total
+Test Suites: 8 passed, 8 total
+Tests:       25 passed, 25 total
 Snapshots:   0 total
-Time:        0.512 s
+Time:        3.616 s
 Ran all test suites.
 ```
