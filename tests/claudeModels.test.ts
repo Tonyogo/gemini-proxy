@@ -38,7 +38,7 @@ describe('GET /v1/models (Models API)', () => {
     expect(res.statusCode).toEqual(200);
     expect(res.body.id).toEqual('claude-3-5-sonnet-20241022');
     expect(res.body.type).toEqual('model');
-    expect(res.body.display_name).toEqual('Claude 3.5 Sonnet (New)');
+    expect(res.body.display_name).toEqual('Claude 3.5 Sonnet (New - Gemini 3.1 Pro)');
 
     // Assert: Check that private gemini_mapping is completely stripped from detailed responses
     expect(res.body.gemini_mapping).toBeUndefined();

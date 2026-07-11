@@ -7,7 +7,7 @@ describe('Claude to Gemini Request Translation', () => {
       messages: [{ role: 'user', content: 'Hello' }]
     } as any;
     const result = translator.translateClaudeToGoogle(claudePayload);
-    expect(result.cleanModelName).toEqual('gemini-2.5-pro');
+    expect(result.cleanModelName).toEqual('gemini-3.1-pro-preview');
     expect(result.googleRequest.contents[0].role).toEqual('user');
     expect(result.googleRequest.contents[0].parts[0].text).toEqual('Hello');
   });
@@ -66,7 +66,7 @@ describe('Claude to Gemini Request Translation', () => {
       }]
     } as any;
     const result = translator.translateClaudeToGoogle(claudePayload);
-    expect(result.cleanModelName).toEqual('gemini-2.5-flash');
+    expect(result.cleanModelName).toEqual('gemini-3.5-flash');
     const parts = result.googleRequest.contents[0].parts;
     expect(parts[0].text).toEqual('What is this?');
     expect(parts[1].inlineData!.mimeType).toEqual('image/png');
