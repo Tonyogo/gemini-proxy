@@ -45,7 +45,7 @@ describe('Claude to Gemini Request Translation', () => {
     // First message (was role: system)
     expect(result.googleRequest.contents[0].role).toEqual('user');
     expect(result.googleRequest.contents[0].parts[0].text).toEqual(
-      '<system-directive>\nThis is a message system prompt\n</system-directive>'
+      '<system-reminder>\nThis is a message system prompt\n</system-reminder>'
     );
 
     // Second message (was role: user)
