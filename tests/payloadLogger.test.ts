@@ -14,12 +14,13 @@ describe('PayloadLogger Service', () => {
     }
   });
 
-  it('correctly creates the directory and writes pretty-printed json payload', async () => {
+  it('correctly creates the directory and writes pretty-printed json payload with 4 keys', async () => {
     const clientReq = { messages: [{ role: 'user', content: 'Hi' }] };
     const gemReq = { contents: [{ role: 'user', parts: [{ text: 'Hi' }] }] };
     const gemRes = { candidates: [{ content: { parts: [{ text: 'Hello' }] } }] };
+    const claudeRes = { content: [{ type: 'text', text: 'Hello' }] };
 
-    await payloadLogger.saveTransaction(testId, clientReq, gemReq, gemRes);
+    await payloadLogger.saveTransaction(testId, clientReq, gemReq, gemRes, claudeRes);
 
     const exists = await fs.access(filePath).then(() => true).catch(() => false);
     expect(exists).toBe(true);
@@ -30,5 +31,6 @@ describe('PayloadLogger Service', () => {
     expect(data.client_req).toEqual(clientReq);
     expect(data.gem_req).toEqual(gemReq);
     expect(data.gem_res).toEqual(gemRes);
+    expect(data.claude_res).toEqual(claudeRes);
   });
 });

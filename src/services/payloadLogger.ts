@@ -21,14 +21,21 @@ class PayloadLogger {
     }
   }
 
-  public async saveTransaction(transactionId: string, clientReq: any, gemReq: any, gemRes: any): Promise<void> {
+  public async saveTransaction(
+    transactionId: string,
+    clientReq: any,
+    gemReq: any,
+    gemRes: any,
+    claudeRes: any
+  ): Promise<void> {
     try {
       await this._ensureDirectory();
 
       const payload = {
         client_req: clientReq || null,
         gem_req: gemReq || null,
-        gem_res: gemRes || null
+        gem_res: gemRes || null,
+        claude_res: claudeRes || null
       };
 
       const filePath = path.join(this.debugDir, `transaction_${transactionId}.json`);
