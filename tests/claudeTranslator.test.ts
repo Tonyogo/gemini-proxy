@@ -33,18 +33,24 @@ describe('Claude to Gemini Request Translation', () => {
     } as any;
     const result = translator.translateClaudeToGoogle(claudePayload);
 
-    // Assert 1: systemInstruction role must be 'user'
+    // Assert 1: systemInstruction role must be 'user' and only contain the base prompt
     expect(result.googleRequest.systemInstruction!.role).toEqual('user');
-
-    // Assert 2: Both system prompts are combined with a newline
     expect(result.googleRequest.systemInstruction!.parts[0].text).toEqual(
-      'This is the main system prompt\nThis is a message system prompt'
+      'This is the main system prompt'
     );
 
-    // Assert 3: System messages must be filtered OUT of conversational contents
-    expect(result.googleRequest.contents.length).toEqual(1);
+    // Assert 2: The inline system message is converted to role 'user' and wrapped in tags
+    expect(result.googleRequest.contents.length).toEqual(2);
+
+    // First message (was role: system)
     expect(result.googleRequest.contents[0].role).toEqual('user');
-    expect(result.googleRequest.contents[0].parts[0].text).toEqual('Hello');
+    expect(result.googleRequest.contents[0].parts[0].text).toEqual(
+      '<system-directive>\nThis is a message system prompt\n</system-directive>'
+    );
+
+    // Second message (was role: user)
+    expect(result.googleRequest.contents[1].role).toEqual('user');
+    expect(result.googleRequest.contents[1].parts[0].text).toEqual('Hello');
   });
 
   it('translates images', () => {

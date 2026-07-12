@@ -153,10 +153,32 @@ class ClaudeTranslator {
     const contents: GeminiContent[] = [];
     const toolIdToNameMap = new Map<string, string>();
 
+    const wrapSystemMessageContent = (content: any): GeminiPart[] => {
+      const parts: GeminiPart[] = [];
+      if (typeof content === 'string') {
+        parts.push({ text: `<system-directive>\n${content}\n</system-directive>` });
+      } else if (Array.isArray(content)) {
+        for (const block of content) {
+          if (block.type === 'text') {
+            parts.push({ text: `<system-directive>\n${block.text}\n</system-directive>` });
+          } else if (block.text) {
+            parts.push({ text: `<system-directive>\n${block.text}\n</system-directive>` });
+          } else {
+            parts.push(block);
+          }
+        }
+      }
+      return parts;
+    };
+
     if (claudeBody.messages && Array.isArray(claudeBody.messages)) {
       for (const msg of claudeBody.messages) {
         if (msg.role === 'system') {
-          appendSystemContent(msg.content);
+          // CLAUDE CODE CLI FIX: Map inline system roles to user role and wrap inside <system-directive> tags
+          contents.push({
+            role: 'user',
+            parts: wrapSystemMessageContent(msg.content)
+          });
           continue;
         }
 
