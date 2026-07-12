@@ -60,12 +60,8 @@ class ClaudeController {
         return res.status(401).json(errPayload);
       }
 
-      logger.debug(`[Request] Incoming Claude payload body: ${JSON.stringify(clientReq)}`);
-
       const { googleRequest, cleanModelName, isStream } = claudeTranslator.translateClaudeToGoogle(clientReq);
       gemReq = googleRequest;
-
-      logger.debug(`[Adapter] Mapped Gemini request body: ${JSON.stringify(gemReq)}`);
 
       const clientEndpoint = `${req.method} ${req.originalUrl || req.path}`;
 
@@ -196,12 +192,8 @@ class ClaudeController {
         return res.status(401).json(errPayload);
       }
 
-      logger.debug(`[Request] Incoming Claude CountTokens payload body: ${JSON.stringify(clientReq)}`);
-
       const { googleRequest, cleanModelName } = claudeTranslator.translateClaudeToGoogle(clientReq);
       gemReq = googleRequest;
-
-      logger.debug(`[Adapter] Mapped Gemini CountTokens request body: ${JSON.stringify(gemReq)}`);
 
       const clientEndpoint = `${req.method} ${req.originalUrl || req.path}`;
       const targetUrl = this._getUpstreamUrl(`/v1beta/models/${cleanModelName}:countTokens?key=${apiKey}`);
