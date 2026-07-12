@@ -37,12 +37,16 @@ describe('ClaudeController Transaction Logging (via Spy)', () => {
 
     // Verify spy call parameters
     expect(logSpy).toHaveBeenCalled();
-    const [transactionId, clientReq, gemReq, gemRes] = logSpy.mock.calls[0];
+    const [transactionId, clientReq, gemReq, gemRes, claudeRes] = logSpy.mock.calls[0];
 
     expect(transactionId).toBeDefined();
     expect(clientReq.model).toEqual('claude-sonnet-4.6');
     expect(gemReq.contents[0].parts[0].text).toEqual('What is 1+1?');
     expect(gemRes.candidates[0].content.parts[0].text).toEqual('Non-streaming response');
+
+    // Assert: Verify that raw, un-mutated Claude response is written
+    expect(claudeRes.content[0].type).toEqual('text');
+    expect(claudeRes.content[0].text).toEqual('Non-streaming response');
   });
 
   it('correctly aggregates and logs streaming chunks', async () => {
@@ -80,7 +84,7 @@ describe('ClaudeController Transaction Logging (via Spy)', () => {
 
     // Verify spy call parameters
     expect(logSpy).toHaveBeenCalled();
-    const [transactionId, clientReq, gemReq, gemRes] = logSpy.mock.calls[0];
+    const [transactionId, clientReq, gemReq, gemRes, claudeRes] = logSpy.mock.calls[0];
 
     expect(transactionId).toBeDefined();
     expect(clientReq.model).toEqual('claude-sonnet-4.6');
@@ -91,5 +95,10 @@ describe('ClaudeController Transaction Logging (via Spy)', () => {
     expect(gemRes.length).toEqual(2);
     expect(gemRes[0].candidates[0].content.parts[0].text).toEqual('Streaming chunk content 1');
     expect(gemRes[1].candidates[0].content.parts[0].text).toEqual('Streaming chunk content 2');
+
+    // Verified Claude responses array
+    expect(claudeRes).toBeInstanceOf(Array);
+    expect(claudeRes.length).toBeGreaterThan(0);
+    expect(claudeRes[0]).toContain('message_start');
   });
 });
