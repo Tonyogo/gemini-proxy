@@ -248,17 +248,12 @@ describe('Gemini to Claude Non-Stream Response Translation', () => {
 
     const result = translator.convertGoogleToClaudeNonStream(geminiResponse, 'gemini-2.5-flash');
 
-    // Assert 1: output prefixes an empty text block before the tool_use
-    expect(result.content.length).toEqual(2);
-    expect(result.content[0].type).toEqual('text');
-    expect(result.content[0].text).toEqual('');
-
-    // Assert 2: tool_use is preserved at index 1
-    expect(result.content[1].type).toEqual('tool_use');
-    expect(result.content[1].name).toEqual('TaskCreate');
-    expect(result.content[1].input.subject).toEqual('Explore project context');
-    expect(result.content[1].input.description).toEqual('Check files, docs, and recent commits to understand transaction logging.');
-    expect(result.content[1].id).toBeDefined();
+    // Assert 1: output contains tool_use block directly
+    expect(result.content[0].type).toEqual('tool_use');
+    expect(result.content[0].name).toEqual('TaskCreate');
+    expect(result.content[0].input.subject).toEqual('Explore project context');
+    expect(result.content[0].input.description).toEqual('Check files, docs, and recent commits to understand transaction logging.');
+    expect(result.content[0].id).toBeDefined();
 
     expect(result.usage.input_tokens).toEqual(47883);
     expect(result.usage.output_tokens).toEqual(53 + 291); // candidates + thoughts
@@ -267,7 +262,7 @@ describe('Gemini to Claude Non-Stream Response Translation', () => {
 });
 
 describe('Gemini to Claude Stream Response Translation', () => {
-  it('injects synthetic empty text block before tool_use in stream if missing', () => {
+  it('correctly translates functionCall stream chunks without injecting empty text blocks', () => {
     const streamState: any = {};
     const chunk = {
       candidates: [{
@@ -285,19 +280,10 @@ describe('Gemini to Claude Stream Response Translation', () => {
     // First is message_start
     expect(events[0]).toContain('message_start');
 
-    // Second should be synthetic text block start
+    // Second should be the actual tool_use start directly
     expect(events[1]).toContain('content_block_start');
-    expect(events[1]).toContain('"type":"text"');
-    expect(events[1]).toContain('"text":""');
-
-    // Third should be synthetic text block stop
-    expect(events[2]).toContain('content_block_stop');
-    expect(events[2]).toContain('"index":0');
-
-    // Fourth should be the actual tool_use start
-    expect(events[3]).toContain('content_block_start');
-    expect(events[3]).toContain('tool_use');
-    expect(events[3]).toContain('get_weather');
-    expect(events[3]).toContain('"index":1');
+    expect(events[1]).toContain('tool_use');
+    expect(events[1]).toContain('get_weather');
+    expect(events[1]).toContain('"index":0');
   });
 });

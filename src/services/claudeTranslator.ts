@@ -278,11 +278,6 @@ class ClaudeTranslator {
             text: part.text
           });
         } else if (part.functionCall) {
-          // CLAUDE SDK FIX: Inject empty text block if tool_use is first
-          if (content.length === 0) {
-            content.push({ type: 'text', text: '' });
-          }
-
           content.push({
             id: `toolu_fake_${Math.random().toString(36).substring(2, 11)}`,
             type: 'tool_use',
@@ -367,7 +362,6 @@ class ClaudeTranslator {
     if (candidate && candidate.content && Array.isArray(candidate.content.parts)) {
       for (const part of candidate.content.parts) {
         if (part.thought === true && part.text) {
-          streamState.hasEmittedText = true;
           if (!streamState.thinkingBlockStarted) {
             events.push({
               type: 'content_block_start',
@@ -382,7 +376,6 @@ class ClaudeTranslator {
             delta: { type: 'thinking_delta', thinking: part.text }
           });
         } else if (part.text) {
-          streamState.hasEmittedText = true;
           if (streamState.thinkingBlockStarted) {
             events.push({ type: 'content_block_stop', index: streamState.contentBlockIndex });
             streamState.thinkingBlockStarted = false;
@@ -402,18 +395,6 @@ class ClaudeTranslator {
             delta: { type: 'text_delta', text: part.text }
           });
         } else if (part.functionCall) {
-          // CLAUDE SDK FIX: Inject synthetic empty text block if none emitted yet
-          if (!streamState.hasEmittedText) {
-            events.push({
-              type: 'content_block_start',
-              index: streamState.contentBlockIndex,
-              content_block: { type: 'text', text: '' }
-            });
-            events.push({ type: 'content_block_stop', index: streamState.contentBlockIndex });
-            streamState.contentBlockIndex++;
-            streamState.hasEmittedText = true;
-          }
-
           if (streamState.textBlockStarted) {
             events.push({ type: 'content_block_stop', index: streamState.contentBlockIndex });
             streamState.textBlockStarted = false;
