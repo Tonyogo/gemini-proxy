@@ -208,12 +208,33 @@ class ClaudeTranslator {
               });
             } else if (block.type === 'tool_result') {
               const matchedName = toolIdToNameMap.get(block.tool_use_id) || 'unknown_tool';
-              parts.push({
-                functionResponse: {
-                  name: matchedName,
-                  response: { content: block.content }
-                }
-              });
+
+              // SKILL SUBSTITUTION BUGFIX: If we detect the "Skill" tool output being returned,
+              // check if it is followed by a text block containing the up-to-date Skill instructions.
+              // If so, substitute the text block content directly as the function's return response content,
+              // and skip emitting the redundant text block. This prevents Gemini from receiving confusing
+              // "Launching skill..." placeholder responses followed by a massive disjoint text instruction.
+              const isSkillTool = matchedName === 'Skill' || matchedName.endsWith(':Skill');
+              const blockIndex = msg.content.indexOf(block);
+              const nextBlock = msg.content[blockIndex + 1];
+
+              if (isSkillTool && nextBlock && nextBlock.type === 'text') {
+                parts.push({
+                  functionResponse: {
+                    name: matchedName,
+                    response: { content: nextBlock.text } // Substitute text content as tool result!
+                  }
+                });
+                // Remove the subsequent text block from content array so it is not processed in subsequent loop passes
+                msg.content.splice(blockIndex + 1, 1);
+              } else {
+                parts.push({
+                  functionResponse: {
+                    name: matchedName,
+                    response: { content: block.content }
+                  }
+                });
+              }
             }
           }
         }
