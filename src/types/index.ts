@@ -25,8 +25,9 @@ export interface ClaudeRequest {
 export interface GeminiPart {
   text?: string;
   inlineData?: { mimeType: string; data: string };
-  functionCall?: { name: string; args: Record<string, any> };
+  functionCall?: { name: string; args: Record<string, any>; id?: string };
   functionResponse?: { name: string; response: any };
+  thoughtSignature?: string;
 }
 
 export interface GeminiContent {

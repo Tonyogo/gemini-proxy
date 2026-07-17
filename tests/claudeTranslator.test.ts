@@ -182,6 +182,12 @@ describe('Claude Tools Interaction Roundtrips (Complex and Multi-Turn)', () => {
     const assistantBubble = result.googleRequest.contents[0];
     expect(assistantBubble.role).toEqual('model');
     expect(assistantBubble.parts[0].functionCall!.name).toEqual('get_weather');
+    expect(assistantBubble.parts[0].functionCall!.id).toEqual('toolu_key_weather_01');
+    expect(assistantBubble.parts[0].thoughtSignature).toEqual('context_engineering_is_the_way_to_go');
+
+    expect(assistantBubble.parts[1].functionCall!.name).toEqual('calculate_sum');
+    expect(assistantBubble.parts[1].functionCall!.id).toEqual('toolu_key_calc_02');
+    expect(assistantBubble.parts[1].thoughtSignature).toEqual('context_engineering_is_the_way_to_go');
 
     const userBubble = result.googleRequest.contents[1];
     expect(userBubble.role).toEqual('user');

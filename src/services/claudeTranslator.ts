@@ -3,6 +3,8 @@ import modelsList from '../../config/models.json';
 import logger from '../utils/logger';
 import { ClaudeRequest, GeminiRequest, GeminiContent, GeminiPart, ModelConfig } from '../types';
 
+const BYPASS_SIGNATURE = 'context_engineering_is_the_way_to_go';
+
 class ClaudeTranslator {
   private modelMapping: Map<string, string>;
 
@@ -203,8 +205,10 @@ class ClaudeTranslator {
               parts.push({
                 functionCall: {
                   name: block.name,
-                  args: block.input || {}
-                }
+                  args: block.input || {},
+                  id: block.id
+                },
+                thoughtSignature: BYPASS_SIGNATURE
               });
             } else if (block.type === 'tool_result') {
               const matchedName = toolIdToNameMap.get(block.tool_use_id) || 'unknown_tool';
@@ -301,7 +305,7 @@ class ClaudeTranslator {
           content.push({
             type: 'thinking',
             thinking: part.text,
-            signature: part.thoughtSignature || 'context_engineering_is_the_way_to_go'
+            signature: part.thoughtSignature || BYPASS_SIGNATURE
           });
         } else if (part.text) {
           content.push({
@@ -397,7 +401,7 @@ class ClaudeTranslator {
             events.push({
               type: 'content_block_start',
               index: streamState.contentBlockIndex,
-              content_block: { type: 'thinking', thinking: '', signature: part.thoughtSignature || 'context_engineering_is_the_way_to_go' }
+              content_block: { type: 'thinking', thinking: '', signature: part.thoughtSignature || BYPASS_SIGNATURE }
             });
             streamState.thinkingBlockStarted = true;
           }
