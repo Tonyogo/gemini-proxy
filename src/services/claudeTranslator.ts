@@ -202,11 +202,13 @@ class ClaudeTranslator {
               });
             } else if (block.type === 'tool_use') {
               toolIdToNameMap.set(block.id, block.name);
+              // Extract Gemini ID if block.id starts with "toolu_g_"
+              const geminiCallId = block.id.startsWith('toolu_g_') ? block.id.substring(8) : block.id;
               parts.push({
                 functionCall: {
                   name: block.name,
                   args: block.input || {},
-                  id: block.id
+                  id: geminiCallId
                 },
                 thoughtSignature: BYPASS_SIGNATURE
               });
@@ -313,8 +315,9 @@ class ClaudeTranslator {
             text: part.text
           });
         } else if (part.functionCall) {
+          const callId = part.functionCall.id ? `toolu_g_${part.functionCall.id}` : `toolu_fake_${Math.random().toString(36).substring(2, 11)}`;
           content.push({
-            id: `toolu_fake_${Math.random().toString(36).substring(2, 11)}`,
+            id: callId,
             type: 'tool_use',
             name: part.functionCall.name,
             input: part.functionCall.args || {}
@@ -435,13 +438,14 @@ class ClaudeTranslator {
             streamState.textBlockStarted = false;
             streamState.contentBlockIndex++;
           }
+          const callId = part.functionCall.id ? `toolu_g_${part.functionCall.id}` : `toolu_stream_${Math.random().toString(36).substring(2, 11)}`;
           // 1. Send content_block_start with empty input object
           events.push({
             type: 'content_block_start',
             index: streamState.contentBlockIndex,
             content_block: {
               type: 'tool_use',
-              id: `toolu_stream_${Math.random().toString(36).substring(2, 11)}`,
+              id: callId,
               name: part.functionCall.name,
               input: {}
             }

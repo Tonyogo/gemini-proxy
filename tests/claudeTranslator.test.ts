@@ -283,6 +283,7 @@ describe('Gemini to Claude Non-Stream Response Translation', () => {
           parts: [
             {
               functionCall: {
+                id: 'abc123xyz',
                 name: 'TaskCreate',
                 args: {
                   subject: 'Explore project context',
@@ -307,6 +308,7 @@ describe('Gemini to Claude Non-Stream Response Translation', () => {
     // Assert 1: output contains tool_use block directly
     expect(result.content[0].type).toEqual('tool_use');
     expect(result.content[0].name).toEqual('TaskCreate');
+    expect(result.content[0].id).toEqual('toolu_g_abc123xyz');
     expect(result.content[0].input.subject).toEqual('Explore project context');
     expect(result.content[0].input.description).toEqual('Check files, docs, and recent commits to understand transaction logging.');
     expect(result.content[0].id).toBeDefined();
@@ -323,7 +325,7 @@ describe('Gemini to Claude Stream Response Translation', () => {
     const chunk = {
       candidates: [{
         content: {
-          parts: [{ functionCall: { name: 'get_weather', args: { location: 'SF' } } }]
+          parts: [{ functionCall: { id: 'stream123', name: 'get_weather', args: { location: 'SF' } } }]
         }
       }]
     };
@@ -340,6 +342,7 @@ describe('Gemini to Claude Stream Response Translation', () => {
     expect(events[1]).toContain('content_block_start');
     expect(events[1]).toContain('"type":"tool_use"');
     expect(events[1]).toContain('"name":"get_weather"');
+    expect(events[1]).toContain('"id":"toolu_g_stream123"');
     expect(events[1]).toContain('"input":{}');
     expect(events[1]).toContain('"index":0');
 
