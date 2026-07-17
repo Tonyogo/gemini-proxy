@@ -188,13 +188,13 @@ describe('Claude Tools Interaction Roundtrips (Complex and Multi-Turn)', () => {
     expect(userBubble.parts.length).toEqual(3);
 
     expect(userBubble.parts[0].functionResponse!.name).toEqual('get_weather');
-    expect(userBubble.parts[0].functionResponse!.response.content).toEqual('Sunny, 20 degrees');
+    expect(userBubble.parts[0].functionResponse!.response.result).toEqual('Sunny, 20 degrees');
 
     expect(userBubble.parts[1].functionResponse!.name).toEqual('calculate_sum');
-    expect(userBubble.parts[1].functionResponse!.response.content[0].text).toEqual('15');
+    expect(userBubble.parts[1].functionResponse!.response.result[0].text).toEqual('15');
 
     expect(userBubble.parts[2].functionResponse!.name).toEqual('unknown_tool');
-    expect(userBubble.parts[2].functionResponse!.response.content).toEqual('Fallback response');
+    expect(userBubble.parts[2].functionResponse!.response.result).toEqual('Fallback response');
   });
 
   it('substitutes Launching skill tool_result content with subsequent text content (based on log.json)', () => {
@@ -243,7 +243,7 @@ describe('Claude Tools Interaction Roundtrips (Complex and Multi-Turn)', () => {
     // Verify 2: Sibling text block is stripped and merged directly as the response content of the Skill function Response
     expect(userBubble.parts.length).toEqual(1); // Merged into 1 part!
     expect(userBubble.parts[0].functionResponse!.name).toEqual('Skill');
-    expect(userBubble.parts[0].functionResponse!.response.content).toEqual(
+    expect(userBubble.parts[0].functionResponse!.response.result).toEqual(
       'Base directory for this skill: /Users/yogo/... [Complete skill guide instructions here]'
     );
   });

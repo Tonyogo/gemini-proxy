@@ -222,7 +222,7 @@ class ClaudeTranslator {
                 parts.push({
                   functionResponse: {
                     name: matchedName,
-                    response: { content: nextBlock.text } // Substitute text content as tool result!
+                    response: { result: nextBlock.text } // Substitute text content as tool result!
                   }
                 });
                 // Remove the subsequent text block from content array so it is not processed in subsequent loop passes
@@ -231,7 +231,7 @@ class ClaudeTranslator {
                 parts.push({
                   functionResponse: {
                     name: matchedName,
-                    response: { content: block.content }
+                    response: { result: block.content }
                   }
                 });
               }
@@ -301,7 +301,7 @@ class ClaudeTranslator {
           content.push({
             type: 'thinking',
             thinking: part.text,
-            signature: part.thoughtSignature || 'dummy_signature'
+            signature: part.thoughtSignature || 'context_engineering_is_the_way_to_go'
           });
         } else if (part.text) {
           content.push({
@@ -397,7 +397,7 @@ class ClaudeTranslator {
             events.push({
               type: 'content_block_start',
               index: streamState.contentBlockIndex,
-              content_block: { type: 'thinking', thinking: '', signature: part.thoughtSignature || 'dummy' }
+              content_block: { type: 'thinking', thinking: '', signature: part.thoughtSignature || 'context_engineering_is_the_way_to_go' }
             });
             streamState.thinkingBlockStarted = true;
           }
