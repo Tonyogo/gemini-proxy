@@ -156,13 +156,13 @@ class ClaudeTranslator {
     const wrapSystemMessageContent = (content: any): GeminiPart[] => {
       const parts: GeminiPart[] = [];
       if (typeof content === 'string') {
-        parts.push({ text: `<system-reminder>\n${content}\n</system-reminder>` });
+        parts.push({ text: `<system-directive>\n${content}\n</system-directive>` });
       } else if (Array.isArray(content)) {
         for (const block of content) {
           if (block.type === 'text') {
-            parts.push({ text: `<system-reminder>\n${block.text}\n</system-reminder>` });
+            parts.push({ text: `<system-directive>\n${block.text}\n</system-directive>` });
           } else if (block.text) {
-            parts.push({ text: `<system-reminder>\n${block.text}\n</system-reminder>` });
+            parts.push({ text: `<system-directive>\n${block.text}\n</system-directive>` });
           } else {
             parts.push(block);
           }
@@ -242,7 +242,17 @@ class ClaudeTranslator {
       }
     }
 
-    const googleRequest: GeminiRequest = { contents };
+    // Generic consecutive same-role blocks merging to prevent alternating role constraint violations
+    const mergedContents: GeminiContent[] = [];
+    for (const content of contents) {
+      if (mergedContents.length > 0 && mergedContents[mergedContents.length - 1].role === content.role) {
+        mergedContents[mergedContents.length - 1].parts.push(...content.parts);
+      } else {
+        mergedContents.push(content);
+      }
+    }
+
+    const googleRequest: GeminiRequest = { contents: mergedContents };
     if (systemInstruction) {
       googleRequest.systemInstruction = systemInstruction;
     }
@@ -421,6 +431,7 @@ class ClaudeTranslator {
             streamState.textBlockStarted = false;
             streamState.contentBlockIndex++;
           }
+          // 1. Send content_block_start with empty input object
           events.push({
             type: 'content_block_start',
             index: streamState.contentBlockIndex,
@@ -428,9 +439,19 @@ class ClaudeTranslator {
               type: 'tool_use',
               id: `toolu_stream_${Math.random().toString(36).substring(2, 11)}`,
               name: part.functionCall.name,
-              input: part.functionCall.args || {}
+              input: {}
             }
           });
+          // 2. Send content_block_delta with input_json_delta format
+          events.push({
+            type: 'content_block_delta',
+            index: streamState.contentBlockIndex,
+            delta: {
+              type: 'input_json_delta',
+              partial_json: JSON.stringify(part.functionCall.args || {})
+            }
+          });
+          // 3. Send content_block_stop
           events.push({ type: 'content_block_stop', index: streamState.contentBlockIndex });
           streamState.contentBlockIndex++;
         }

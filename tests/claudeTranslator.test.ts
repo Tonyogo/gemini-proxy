@@ -39,18 +39,17 @@ describe('Claude to Gemini Request Translation', () => {
       'This is the main system prompt'
     );
 
-    // Assert 2: The inline system message is converted to role 'user' and wrapped in tags
-    expect(result.googleRequest.contents.length).toEqual(2);
+    // Assert 2: The inline system message is converted to role 'user' and wrapped in tags and merged
+    expect(result.googleRequest.contents.length).toEqual(1);
 
-    // First message (was role: system)
+    // Combined message parts (was role: system merged into next role: user block)
     expect(result.googleRequest.contents[0].role).toEqual('user');
     expect(result.googleRequest.contents[0].parts[0].text).toEqual(
-      '<system-reminder>\nThis is a message system prompt\n</system-reminder>'
+      '<system-directive>\nThis is a message system prompt\n</system-directive>'
     );
 
-    // Second message (was role: user)
-    expect(result.googleRequest.contents[1].role).toEqual('user');
-    expect(result.googleRequest.contents[1].parts[0].text).toEqual('Hello');
+    // Second part of merged message (was role: user)
+    expect(result.googleRequest.contents[0].parts[1].text).toEqual('Hello');
   });
 
   it('translates images', () => {
@@ -313,7 +312,7 @@ describe('Gemini to Claude Non-Stream Response Translation', () => {
 });
 
 describe('Gemini to Claude Stream Response Translation', () => {
-  it('correctly translates functionCall stream chunks without injecting empty text blocks', () => {
+  it('correctly translates functionCall stream chunks to incremental input_json_delta format', () => {
     const streamState: any = {};
     const chunk = {
       candidates: [{
@@ -331,10 +330,37 @@ describe('Gemini to Claude Stream Response Translation', () => {
     // First is message_start
     expect(events[0]).toContain('message_start');
 
-    // Second should be the actual tool_use start directly
+    // Second should be content_block_start with empty input
     expect(events[1]).toContain('content_block_start');
-    expect(events[1]).toContain('tool_use');
-    expect(events[1]).toContain('get_weather');
+    expect(events[1]).toContain('"type":"tool_use"');
+    expect(events[1]).toContain('"name":"get_weather"');
+    expect(events[1]).toContain('"input":{}');
     expect(events[1]).toContain('"index":0');
+
+    // Third should be content_block_delta with input_json_delta type
+    expect(events[2]).toContain('content_block_delta');
+    expect(events[2]).toContain('"type":"input_json_delta"');
+    expect(events[2]).toContain('"partial_json":"{\\"location\\":\\"SF\\"}"');
+    expect(events[2]).toContain('"index":0');
+
+    // Fourth should be content_block_stop
+    expect(events[3]).toContain('content_block_stop');
+    expect(events[3]).toContain('"index":0');
+  });
+
+  it('merges consecutive same-role blocks in contents (user, user)', () => {
+    const claudePayload = {
+      model: 'claude-sonnet-4.6',
+      messages: [
+        { role: 'user', content: 'Hello' },
+        { role: 'user', content: 'World' }
+      ]
+    } as any;
+    const result = translator.translateClaudeToGoogle(claudePayload);
+    expect(result.googleRequest.contents.length).toEqual(1);
+    expect(result.googleRequest.contents[0].role).toEqual('user');
+    expect(result.googleRequest.contents[0].parts.length).toEqual(2);
+    expect(result.googleRequest.contents[0].parts[0].text).toEqual('Hello');
+    expect(result.googleRequest.contents[0].parts[1].text).toEqual('World');
   });
 });
