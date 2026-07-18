@@ -1,5 +1,6 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
+import config from '../../config/default';
 import logger from '../utils/logger';
 
 class PayloadLogger {
@@ -7,7 +8,10 @@ class PayloadLogger {
   private initialized: boolean;
 
   constructor() {
-    this.debugDir = path.join(process.cwd(), 'data', 'debug');
+    const logsDir = config.transactionLogsDir || 'logs';
+    this.debugDir = path.isAbsolute(logsDir)
+      ? logsDir
+      : path.join(process.cwd(), logsDir);
     this.initialized = false;
   }
 

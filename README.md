@@ -256,9 +256,11 @@ curl -X POST http://localhost:3000/v1/messages \
 
 ---
 
-## 🛡️ 交易 payload 审计日志 (`data/debug/`)
+## 🛡️ 交易 payload 审计日志 (`logs/` 或自定义目录)
 
-当您开启 `LOG_LEVEL=debug` 时，系统会自动将完整的请求和响应 lifecycle 交易数据以**绝对异步、非阻塞（0 延迟阻碍）**的形式写入本地文件系统 `data/debug/transaction_{ID}.json`。
+当您开启 `LOG_LEVEL=debug` 时，系统会自动将完整的请求和响应 lifecycle 交易数据以**绝对异步、非阻塞（0 延迟阻碍）**的形式写入本地文件系统。保存路径支持通过环境变量 `TRANSACTION_LOGS_DIR` 进行自定义配置（可以是相对路径或绝对路径），默认输出到当前运行目录下的 `logs/` 文件夹中。
+
+文件生成格式为 `logs/transaction_{ID}.json`。
 
 每条交易日志包含：
 1. `client_req`：客户端发送给代理的原汁原味的 Claude 请求参数。

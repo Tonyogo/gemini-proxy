@@ -1,10 +1,13 @@
 import payloadLogger from '../src/services/payloadLogger';
 import { promises as fs } from 'fs';
 import * as path from 'path';
+import config from '../config/default';
 
 describe('PayloadLogger Service', () => {
   const testId = 'test_transaction_abc123';
-  const filePath = path.join(process.cwd(), 'data', 'debug', `transaction_${testId}.json`);
+  const logsDir = config.transactionLogsDir || 'logs';
+  const resolvedLogsDir = path.isAbsolute(logsDir) ? logsDir : path.join(process.cwd(), logsDir);
+  const filePath = path.join(resolvedLogsDir, `transaction_${testId}.json`);
 
   afterEach(async () => {
     try {
