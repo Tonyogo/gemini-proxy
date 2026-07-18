@@ -75,7 +75,8 @@ class ClaudeController {
       if (isStream) {
         const targetUrl = this._getUpstreamUrl(`/v1beta/models/${cleanModelName}:streamGenerateContent?alt=sse&key=${apiKey}`);
         const safeDisplayUrl = targetUrl.replace(/\?key=.*/, '?key=***');
-        logger.info(`[Request] [Transaction: ${transactionId}] Received ${clientEndpoint} -> Proxying to Gemini: POST ${safeDisplayUrl}`);
+        logger.info(`[Request] [Transaction: ${transactionId}] Received ${clientEndpoint}`);
+        logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini: POST ${safeDisplayUrl}`);
 
         const response = await fetch(targetUrl, {
           method: 'POST',
@@ -160,7 +161,8 @@ class ClaudeController {
       // Non-Streaming generation
       const targetUrl = this._getUpstreamUrl(`/v1beta/models/${cleanModelName}:generateContent?key=${apiKey}`);
       const safeDisplayUrl = targetUrl.replace(/\?key=.*/, '?key=***');
-      logger.info(`[Request] [Transaction: ${transactionId}] Received ${clientEndpoint} -> Proxying to Gemini: POST ${safeDisplayUrl}`);
+      logger.info(`[Request] [Transaction: ${transactionId}] Received ${clientEndpoint}`);
+      logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini: POST ${safeDisplayUrl}`);
 
       const response = await fetch(targetUrl, {
         method: 'POST',
@@ -223,7 +225,8 @@ class ClaudeController {
       const clientEndpoint = `${req.method} ${req.originalUrl || req.path}`;
       const targetUrl = this._getUpstreamUrl(`/v1beta/models/${cleanModelName}:countTokens?key=${apiKey}`);
       const safeDisplayUrl = targetUrl.replace(/\?key=.*/, '?key=***');
-      logger.info(`[Request] [Transaction: ${transactionId}] Received ${clientEndpoint} -> Proxying to Gemini: POST ${safeDisplayUrl}`);
+      logger.info(`[Request] [Transaction: ${transactionId}] Received ${clientEndpoint}`);
+      logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini: POST ${safeDisplayUrl}`);
 
       const response = await fetch(targetUrl, {
         method: 'POST',
