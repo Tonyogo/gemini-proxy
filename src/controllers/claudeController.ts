@@ -62,6 +62,7 @@ class ClaudeController {
             message: 'Access denied. A valid Google Gemini API key was not provided in headers (x-api-key, Authorization Bearer, or x-goog-api-key).'
           }
         };
+        logger.warn(`[Authentication Error] [Transaction: ${transactionId}] Request rejected: API Key is missing or invalid.`);
         payloadLogger.saveTransaction(transactionId, clientReq, null, null, errPayload);
         return res.status(401).json(errPayload);
       }
@@ -74,7 +75,7 @@ class ClaudeController {
       if (isStream) {
         const targetUrl = this._getUpstreamUrl(`/v1beta/models/${cleanModelName}:streamGenerateContent?alt=sse&key=${apiKey}`);
         const safeDisplayUrl = targetUrl.replace(/\?key=.*/, '?key=***');
-        logger.info(`[Request] Received ${clientEndpoint} -> Proxying to Gemini: POST ${safeDisplayUrl}`);
+        logger.info(`[Request] [Transaction: ${transactionId}] Received ${clientEndpoint} -> Proxying to Gemini: POST ${safeDisplayUrl}`);
 
         const response = await fetch(targetUrl, {
           method: 'POST',
@@ -90,6 +91,7 @@ class ClaudeController {
           const errStatus = response.status;
           const normalized = claudeTranslator.normalizeError({ status: errStatus, message: errMessage });
 
+          logger.error(`[Error] [Transaction: ${transactionId}] Stream request failed with status ${errStatus}: ${errMessage}`);
           payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: errMessage }, normalized.payload);
           return res.status(normalized.status).json(normalized.payload);
         }
@@ -130,12 +132,13 @@ class ClaudeController {
         });
 
         response.body!.on('end', () => {
+          logger.info(`[Response] [Transaction: ${transactionId}] Stream generated content finished successfully`);
           payloadLogger.saveTransaction(transactionId, clientReq, gemReq, gemResChunks, claudeResChunks);
           res.end();
         });
 
         response.body!.on('error', (err: any) => {
-          logger.error(`Stream reading error: ${err.message}`);
+          logger.error(`[Error] [Transaction: ${transactionId}] Stream reading error: ${err.message}`);
           const errPayload = {
             type: 'error',
             error: { type: 'api_error', message: 'Downstream connection lost' }
@@ -157,7 +160,7 @@ class ClaudeController {
       // Non-Streaming generation
       const targetUrl = this._getUpstreamUrl(`/v1beta/models/${cleanModelName}:generateContent?key=${apiKey}`);
       const safeDisplayUrl = targetUrl.replace(/\?key=.*/, '?key=***');
-      logger.info(`[Request] Received ${clientEndpoint} -> Proxying to Gemini: POST ${safeDisplayUrl}`);
+      logger.info(`[Request] [Transaction: ${transactionId}] Received ${clientEndpoint} -> Proxying to Gemini: POST ${safeDisplayUrl}`);
 
       const response = await fetch(targetUrl, {
         method: 'POST',
@@ -173,6 +176,7 @@ class ClaudeController {
         const errStatus = response.status;
         const normalized = claudeTranslator.normalizeError({ status: errStatus, message: errMessage });
 
+        logger.error(`[Error] [Transaction: ${transactionId}] Non-stream request failed with status ${errStatus}: ${errMessage}`);
         payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: errMessage }, normalized.payload);
         return res.status(normalized.status).json(normalized.payload);
       }
@@ -180,10 +184,11 @@ class ClaudeController {
       const geminiData = await response.json();
       const translatedResponse = claudeTranslator.convertGoogleToClaudeNonStream(geminiData, cleanModelName);
 
+      logger.info(`[Response] [Transaction: ${transactionId}] Non-stream content successfully returned with 200 OK`);
       payloadLogger.saveTransaction(transactionId, clientReq, gemReq, geminiData, translatedResponse);
       return res.status(200).json(translatedResponse);
     } catch (err: any) {
-      logger.error(`Unhandled error: ${err.message}`);
+      logger.error(`[Error] [Transaction: ${transactionId}] Unhandled error: ${err.message}`);
       const normalized = claudeTranslator.normalizeError(err);
       payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: err.message }, normalized.payload);
       return res.status(normalized.status).json(normalized.payload);
@@ -207,6 +212,7 @@ class ClaudeController {
             message: 'Access denied. A valid Google Gemini API key was not provided in headers (x-api-key, Authorization Bearer, or x-goog-api-key).'
           }
         };
+        logger.warn(`[Authentication Error] [Transaction: ${transactionId}] Token count request rejected: API Key is missing.`);
         payloadLogger.saveTransaction(transactionId, clientReq, null, null, errPayload);
         return res.status(401).json(errPayload);
       }
@@ -217,7 +223,7 @@ class ClaudeController {
       const clientEndpoint = `${req.method} ${req.originalUrl || req.path}`;
       const targetUrl = this._getUpstreamUrl(`/v1beta/models/${cleanModelName}:countTokens?key=${apiKey}`);
       const safeDisplayUrl = targetUrl.replace(/\?key=.*/, '?key=***');
-      logger.info(`[Request] Received ${clientEndpoint} -> Proxying to Gemini: POST ${safeDisplayUrl}`);
+      logger.info(`[Request] [Transaction: ${transactionId}] Received ${clientEndpoint} -> Proxying to Gemini: POST ${safeDisplayUrl}`);
 
       const response = await fetch(targetUrl, {
         method: 'POST',
@@ -233,6 +239,7 @@ class ClaudeController {
         const errStatus = response.status;
         const normalized = claudeTranslator.normalizeError({ status: errStatus, message: errMessage });
 
+        logger.error(`[Error] [Transaction: ${transactionId}] Token count failed with status ${errStatus}: ${errMessage}`);
         payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: errMessage }, normalized.payload);
         return res.status(normalized.status).json(normalized.payload);
       }
@@ -242,10 +249,11 @@ class ClaudeController {
         input_tokens: (geminiData as any).totalTokens || 0
       };
 
+      logger.info(`[Response] [Transaction: ${transactionId}] Token count successfully returned: ${tokenResponse.input_tokens} input tokens`);
       payloadLogger.saveTransaction(transactionId, clientReq, gemReq, geminiData, tokenResponse);
       return res.status(200).json(tokenResponse);
     } catch (err: any) {
-      logger.error(`Unhandled count tokens error: ${err.message}`);
+      logger.error(`[Error] [Transaction: ${transactionId}] Unhandled count tokens error: ${err.message}`);
       const normalized = claudeTranslator.normalizeError(err);
       payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: err.message }, normalized.payload);
       return res.status(normalized.status).json(normalized.payload);
@@ -253,9 +261,12 @@ class ClaudeController {
   }
 
   public async handleListModels(req: Request, res: Response): Promise<any> {
+    const clientEndpoint = `${req.method} ${req.originalUrl || req.path}`;
+    logger.info(`[Request] Received models list query: ${clientEndpoint}`);
     try {
       const apiKey = this._extractClientKey(req);
       if (!apiKey) {
+        logger.warn(`[Authentication Error] Models list request rejected: API Key is missing.`);
         return res.status(401).json({
           type: 'error',
           error: {
@@ -265,6 +276,7 @@ class ClaudeController {
         });
       }
 
+      logger.info(`[Response] Models list query finished successfully: Returning ${SUPPORTED_MODELS.length} configured models`);
       return res.status(200).json({
         data: SUPPORTED_MODELS,
         has_more: false,
@@ -272,16 +284,20 @@ class ClaudeController {
         last_id: SUPPORTED_MODELS[SUPPORTED_MODELS.length - 1].id
       });
     } catch (err: any) {
-      logger.error(`Unhandled list models error: ${err.message}`);
+      logger.error(`[Error] Unhandled list models error: ${err.message}`);
       const normalized = claudeTranslator.normalizeError(err);
       return res.status(normalized.status).json(normalized.payload);
     }
   }
 
   public async handleRetrieveModel(req: Request, res: Response): Promise<any> {
+    const clientEndpoint = `${req.method} ${req.originalUrl || req.path}`;
+    const modelId = req.params.model_id;
+    logger.info(`[Request] Received specific model metadata query: ${clientEndpoint} for ID: '${modelId}'`);
     try {
       const apiKey = this._extractClientKey(req);
       if (!apiKey) {
+        logger.warn(`[Authentication Error] Retrieve model metadata request rejected: API Key is missing.`);
         return res.status(401).json({
           type: 'error',
           error: {
@@ -291,10 +307,10 @@ class ClaudeController {
         });
       }
 
-      const modelId = req.params.model_id;
       const model = SUPPORTED_MODELS.find(m => m.id === modelId);
 
       if (!model) {
+        logger.warn(`[Retrieve Model Error] Requested model '${modelId}' does not exist in configured list`);
         return res.status(404).json({
           type: 'error',
           error: {
@@ -304,6 +320,7 @@ class ClaudeController {
         });
       }
 
+      logger.info(`[Response] Retrieve model metadata finished: Returning specs for '${modelId}'`);
       return res.status(200).json(model);
     } catch (err: any) {
       logger.error(`Unhandled retrieve model error: ${err.message}`);

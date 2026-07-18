@@ -38,6 +38,7 @@ class ClaudeTranslator {
       }
 
       if (!isProperties && unsupportedKeys.includes(key)) {
+        logger.debug(`[Translator] [Schema Sanitization] Stripping unsupported JSON Schema key '${key}' from parameter object.`);
         continue;
       }
 
@@ -241,6 +242,7 @@ class ClaudeTranslator {
               const nextBlock = msg.content[blockIndex + 1];
 
               if (isSkillTool && nextBlock && nextBlock.type === 'text') {
+                logger.info(`[Translator] [Skill Substitution] Active Skill interception applied: Substituting text block content as response result for tool_use_id '${block.tool_use_id}' and skipping redundant text block.`);
                 parts.push({
                   functionResponse: {
                     name: matchedName,
@@ -382,7 +384,8 @@ class ClaudeTranslator {
     let googleResponse;
     try {
       googleResponse = JSON.parse(jsonString);
-    } catch (e) {
+    } catch (e: any) {
+      logger.warn(`[Translator] [Stream Parse Error] Failed to parse raw Gemini streaming chunk JSON: ${e.message}`, { rawChunk: jsonString });
       return null;
     }
 
