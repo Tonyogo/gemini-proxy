@@ -33,8 +33,8 @@ This is a **stateless, zero-persistence API proxy** that translates Anthropic Cl
 
 ### Configuration Files
 
-- `config/models.json`: **Source of truth for model mapping.** Defines the supported Claude model IDs, their display metadata, and their corresponding `gemini_mapping` upstream IDs. *Avoid hardcoding model names in the codebase; update this file instead.*
-- `config/default.ts`: Standard Express app configuration using environment variables from `.env` (`PORT`, `GEMINI_BASE_URL`, `DEFAULT_GEMINI_MODEL`, `LOG_LEVEL`).
+- `config/models.json`: **Source of truth for supported models.** Generated directly from native Gemini API model listings. Modifying this adds transparent pass-through support. *Avoid hardcoding model names in the codebase; update this file instead.*
+- `config/default.ts`: Standard Express app configuration using environment variables from `.env` (`PORT`, `GEMINI_BASE_URL`, `LOG_LEVEL`).
 
 ## Code Style & Guidelines
 

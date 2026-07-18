@@ -1,7 +1,7 @@
 import config from '../../config/default';
 import modelsList from '../../config/models.json';
 import logger from '../utils/logger';
-import { ClaudeRequest, GeminiRequest, GeminiContent, GeminiPart, ModelConfig } from '../types';
+import { ClaudeRequest, GeminiRequest, GeminiContent, GeminiPart, GeminiModelsResponse } from '../types';
 
 const BYPASS_SIGNATURE = 'context_engineering_is_the_way_to_go';
 
@@ -10,8 +10,14 @@ class ClaudeTranslator {
 
   constructor() {
     this.modelMapping = new Map<string, string>();
-    for (const model of modelsList as ModelConfig[]) {
-      this.modelMapping.set(model.id, model.gemini_mapping);
+    const response = modelsList as GeminiModelsResponse;
+    if (response && Array.isArray(response.models)) {
+      for (const model of response.models) {
+        if (model.supportedGenerationMethods && model.supportedGenerationMethods.includes('generateContent')) {
+          const cleanName = model.name.replace(/^models\//, '');
+          this.modelMapping.set(cleanName, cleanName);
+        }
+      }
     }
   }
 
@@ -116,8 +122,16 @@ class ClaudeTranslator {
   }
 
   public translateClaudeToGoogle(claudeBody: ClaudeRequest) {
-    const rawModel = claudeBody.model || config.defaultModel;
-    const cleanModelName = this.modelMapping.get(rawModel) || config.defaultModel;
+    const rawModel = claudeBody.model;
+
+    if (!rawModel) {
+      throw { status: 400, message: "Missing required parameter: 'model'" };
+    }
+
+    const cleanModelName = this.modelMapping.get(rawModel);
+    if (!cleanModelName) {
+      throw { status: 404, message: `Model '${rawModel}' is not supported or not found in configured models.` };
+    }
 
     let systemInstruction: any = null;
 
@@ -158,13 +172,13 @@ class ClaudeTranslator {
     const wrapSystemMessageContent = (content: any): GeminiPart[] => {
       const parts: GeminiPart[] = [];
       if (typeof content === 'string') {
-        parts.push({ text: `<system-directive>\n${content}\n</system-directive>` });
+        parts.push({ text: `<system-reminder>\n${content}\n</system-reminder>` });
       } else if (Array.isArray(content)) {
         for (const block of content) {
           if (block.type === 'text') {
-            parts.push({ text: `<system-directive>\n${block.text}\n</system-directive>` });
+            parts.push({ text: `<system-reminder>\n${block.text}\n</system-reminder>` });
           } else if (block.text) {
-            parts.push({ text: `<system-directive>\n${block.text}\n</system-directive>` });
+            parts.push({ text: `<system-reminder>\n${block.text}\n</system-reminder>` });
           } else {
             parts.push(block);
           }
@@ -214,6 +228,8 @@ class ClaudeTranslator {
               });
             } else if (block.type === 'tool_result') {
               const matchedName = toolIdToNameMap.get(block.tool_use_id) || 'unknown_tool';
+              // Extract Gemini ID if block.tool_use_id starts with "toolu_g_"
+              const geminiResponseId = block.tool_use_id && block.tool_use_id.startsWith('toolu_g_') ? block.tool_use_id.substring(8) : block.tool_use_id;
 
               // SKILL SUBSTITUTION BUGFIX: If we detect the "Skill" tool output being returned,
               // check if it is followed by a text block containing the up-to-date Skill instructions.
@@ -228,7 +244,8 @@ class ClaudeTranslator {
                 parts.push({
                   functionResponse: {
                     name: matchedName,
-                    response: { result: nextBlock.text } // Substitute text content as tool result!
+                    response: { result: nextBlock.text }, // Substitute text content as tool result!
+                    id: geminiResponseId
                   }
                 });
                 // Remove the subsequent text block from content array so it is not processed in subsequent loop passes
@@ -237,7 +254,8 @@ class ClaudeTranslator {
                 parts.push({
                   functionResponse: {
                     name: matchedName,
-                    response: { result: block.content }
+                    response: { result: block.content },
+                    id: geminiResponseId
                   }
                 });
               }
@@ -492,7 +510,7 @@ class ClaudeTranslator {
     logger.error(`API Error: ${error.message || error}`);
     const status = error.status || 500;
     let type = 'api_error';
-    if (status === 400) type = 'invalid_request_error';
+    if (status === 400 || status === 404) type = 'invalid_request_error';
     if (status === 401 || status === 403) type = 'authentication_error';
     if (status === 429) type = 'rate_limit_error';
 

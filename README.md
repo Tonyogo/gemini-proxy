@@ -70,7 +70,7 @@ npm install
 
 ### 2. 配置环境变量
 
-在项目根目录下创建 `.env` 文件（或修改已有的 `.env`），进行以下配置：
+在项目根目录下创建 `.env` 文件（或复制 `.env.example`），进行以下配置：
 
 ```env
 # 代理服务器监听端口
@@ -79,9 +79,6 @@ PORT=3000
 # 自定义 Gemini Upstream API 基础地址 (可选项。用于国内中转、Cloudflare Workers 等自建反代，默认指向官方地址)
 # 支持尾部带斜杠或不带斜杠，代理端会自动进行合并容错处理。
 GEMINI_BASE_URL=https://generativelanguage.googleapis.com
-
-# 当客户端传入 generic 模型 ID 时默认映射的 Gemini 默认模型
-DEFAULT_GEMINI_MODEL=gemini-2.5-flash
 
 # 日志输出级别: error, warn, info, debug
 LOG_LEVEL=info
@@ -110,19 +107,17 @@ npm run dev
 
 ## 🧭 模型配置与映射关系 (`config/models.json`)
 
-系统受支持的模型列表及映射转换关系全部在 **`config/models.json`** 中进行单点维护，目前内置了以下前卫模型及经典模型的到官方最新 Gemini 的映射：
+系统受支持的模型列表在 **`config/models.json`** 中动态生成和读取。所有支持内容生成的 Google 原生模型都可以通过其原生 `id`（去除 `models/` 前缀后）被直接调用：
 
-| 客户端请求的 Claude 模型 (ID) | 内部中转到的 Google 官方模型名 (`gemini_mapping`) | 备注 |
-| :--- | :--- | :--- |
-| **`claude-opus-4-7`** | `gemini-2.5-flash` | 未来前瞻：直接享受 Google 主力 Flash 极速推理 |
-| **`claude-sonnet-4-6`** | `gemini-2.5-flash-lite` | 未来前瞻：直接享受极低成本、超高速 Lite 推理 |
-| `claude-3-5-sonnet` / `claude-3-5-sonnet-20241022` | `gemini-2.5-pro` | 标准映射：谷歌最高智商 2.5 Pro 护航 |
-| `claude-3-5-haiku` / `claude-3-5-haiku-20241022` | `gemini-2.5-flash` | 标准映射 |
-| `claude-3-opus` | `gemini-2.5-pro` | 经典模型转换 |
-| `claude-3-sonnet` / `claude-3-haiku` | `gemini-2.5-flash` | 经典模型转换 |
-| 其它未知模型名 | 默认使用 `DEFAULT_GEMINI_MODEL` | 容错机制 |
+| 客户端请求传入的模型 (ID) | 描述 / 说明 |
+| :--- | :--- |
+| **`gemini-3.5-flash`** | 直接映射并调度最新的 Gemini 3.5 Flash 模型 |
+| **`gemini-2.5-pro`** | 映射至 Google 强大的 2.5 Pro 模型 |
+| **`gemini-2.5-flash`** | 映射至高速 2.5 Flash 推理 |
+| `gemini-flash-latest` | 动态映射至最新可用 Flash |
+| 其它 Gemini 模型名 | 只要是在 models.json 中定义的模型名均支持纯透传调度 |
 
-您只需修改此文件里对应的 `"gemini_mapping"` 的属性，即可瞬间实现动态的负载匹配中转。
+您只需传入目标 Gemini 模型名称，即可实现完全等价的无缝代理转换。
 
 ---
 
@@ -141,27 +136,27 @@ curl http://localhost:3000/v1/models \
      -H "x-api-key: YOUR_GEMINI_API_KEY"
 ```
 
-**响应格式：** (输出已通过数据清洗安全，会自动隐藏内部 `gemini_mapping` 字段)
+**响应格式：**
 ```json
 {
   "data": [
     {
       "type": "model",
-      "id": "claude-opus-4-7",
-      "display_name": "Claude 4.7 Opus (Gemini Flash)",
-      "created_at": "2026-07-10T00:00:00Z"
+      "id": "gemini-3.5-flash",
+      "display_name": "Gemini 3.5 Flash",
+      "created_at": "2026-07-18T00:00:00Z"
     },
     {
       "type": "model",
-      "id": "claude-3-5-sonnet-20241022",
-      "display_name": "Claude 3.5 Sonnet (New)",
-      "created_at": "2024-10-22T00:00:00Z"
+      "id": "gemini-2.5-pro",
+      "display_name": "Gemini 2.5 Pro",
+      "created_at": "2026-07-18T00:00:00Z"
     },
     ...
   ],
   "has_more": false,
-  "first_id": "claude-opus-4-7",
-  "last_id": "claude-3-haiku"
+  "first_id": "gemini-2.5-flash",
+  "last_id": "gemini-embedding-2"
 }
 ```
 
@@ -186,7 +181,7 @@ curl -X POST http://localhost:3000/v1/messages \
      -H "Content-Type: application/json" \
      -H "x-api-key: YOUR_GEMINI_API_KEY" \
      -d '{
-       "model": "claude-3-5-sonnet",
+       "model": "gemini-3.5-flash",
        "max_tokens": 1024,
        "messages": [
          {"role": "user", "content": "你好，请用一句话介绍你自己。"}
@@ -208,7 +203,7 @@ curl -X POST http://localhost:3000/v1/messages \
      -H "Content-Type: application/json" \
      -H "Authorization: Bearer YOUR_GEMINI_API_KEY" \
      -d '{
-       "model": "claude-3-5-sonnet",
+       "model": "gemini-3.5-flash",
        "max_tokens": 1024,
        "stream": true,
        "messages": [
@@ -228,7 +223,7 @@ curl -X POST http://localhost:3000/v1/messages \
 curl -X POST http://localhost:3000/v1/messages/count_tokens \
      -H "x-api-key: YOUR_GEMINI_API_KEY" \
      -d '{
-       "model": "claude-3-5-sonnet",
+       "model": "gemini-3.5-flash",
        "messages": [
          {"role": "user", "content": "测试一下这段文字占用了多少个 Token。"}
        ]
@@ -247,7 +242,7 @@ curl -X POST http://localhost:3000/v1/messages \
      -H "Content-Type: application/json" \
      -H "x-api-key: YOUR_GEMINI_API_KEY" \
      -d '{
-       "model": "claude-3-5-sonnet",
+       "model": "gemini-3.5-flash",
        "max_tokens": 4096,
        "thinking": {
          "type": "enabled",

@@ -26,7 +26,7 @@ export interface GeminiPart {
   text?: string;
   inlineData?: { mimeType: string; data: string };
   functionCall?: { name: string; args: Record<string, any>; id?: string };
-  functionResponse?: { name: string; response: any };
+  functionResponse?: { name: string; response: any; id?: string };
   thoughtSignature?: string;
 }
 
@@ -42,10 +42,28 @@ export interface GeminiRequest {
   tools?: any[];
 }
 
+export interface GeminiModelEntry {
+  name: string;
+  version: string;
+  displayName: string;
+  description: string;
+  inputTokenLimit: number;
+  outputTokenLimit: number;
+  supportedGenerationMethods: string[];
+  temperature: number;
+  topP: number;
+  topK: number;
+  maxTemperature: number;
+  thinking?: boolean;
+}
+
+export interface GeminiModelsResponse {
+  models: GeminiModelEntry[];
+}
+
 export interface ModelConfig {
   type: 'model';
   id: string;
   display_name: string;
   created_at: string;
-  gemini_mapping: string;
 }

@@ -25,7 +25,7 @@ describe('POST /v1/messages (Authentication / Headers)', () => {
       .post('/v1/messages')
       .set('Authorization', 'Bearer client-bearer-key')
       .send({
-        model: 'claude-3-5-sonnet',
+        model: 'gemini-3.5-flash',
         messages: [{ role: 'user', content: 'What is the capital of France?' }]
       });
 
@@ -38,7 +38,7 @@ describe('POST /v1/messages (Authentication / Headers)', () => {
       .post('/v1/messages')
       .set('x-api-key', 'client-anthropic-key')
       .send({
-        model: 'claude-3-5-sonnet',
+        model: 'gemini-3.5-flash',
         messages: [{ role: 'user', content: 'What is the capital of France?' }]
       });
 
@@ -51,7 +51,7 @@ describe('POST /v1/messages (Authentication / Headers)', () => {
       .post('/v1/messages')
       .set('x-goog-api-key', 'client-google-key')
       .send({
-        model: 'claude-3-5-sonnet',
+        model: 'gemini-3.5-flash',
         messages: [{ role: 'user', content: 'What is the capital of France?' }]
       });
 
@@ -63,7 +63,7 @@ describe('POST /v1/messages (Authentication / Headers)', () => {
     const resFail = await request(app)
       .post('/v1/messages')
       .send({
-        model: 'claude-3-5-sonnet',
+        model: 'gemini-3.5-flash',
         messages: [{ role: 'user', content: 'What is the capital of France?' }]
       });
 

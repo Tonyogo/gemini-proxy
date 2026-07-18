@@ -21,7 +21,7 @@ describe('POST /v1/messages (Streaming)', () => {
       .post('/v1/messages')
       .set('Authorization', 'Bearer dummy-key')
       .send({
-        model: 'claude-sonnet-4.6',
+        model: 'gemini-3.5-flash',
         messages: [{ role: 'user', content: 'Tell me a story' }],
         stream: true
       });

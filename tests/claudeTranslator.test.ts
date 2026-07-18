@@ -1,9 +1,24 @@
 import translator from '../src/services/claudeTranslator';
 
 describe('Claude to Gemini Request Translation', () => {
+  it('throws a 400 error when model is completely missing', () => {
+    const claudePayload = {
+      messages: [{ role: 'user', content: 'Hello' }]
+    } as any;
+    expect(() => translator.translateClaudeToGoogle(claudePayload)).toThrow("Missing required parameter: 'model'");
+  });
+
+  it('throws a 404 error when requested model is not found in configured models', () => {
+    const claudePayload = {
+      model: 'invalid-model-name',
+      messages: [{ role: 'user', content: 'Hello' }]
+    } as any;
+    expect(() => translator.translateClaudeToGoogle(claudePayload)).toThrow("Model 'invalid-model-name' is not supported or not found in configured models.");
+  });
+
   it('translates basic message requests', () => {
     const claudePayload = {
-      model: 'claude-sonnet-4.6',
+      model: 'gemini-3.5-flash',
       messages: [{ role: 'user', content: 'Hello' }]
     } as any;
     const result = translator.translateClaudeToGoogle(claudePayload);
@@ -14,7 +29,7 @@ describe('Claude to Gemini Request Translation', () => {
 
   it('translates system prompts', () => {
     const claudePayload = {
-      model: 'claude-sonnet-4.6',
+      model: 'gemini-3.5-flash',
       system: 'You are a helpful assistant',
       messages: [{ role: 'user', content: 'Hi' }]
     } as any;
@@ -24,7 +39,7 @@ describe('Claude to Gemini Request Translation', () => {
 
   it('translates system prompts with role user and combines messages system roles', () => {
     const claudePayload = {
-      model: 'claude-sonnet-4.6',
+      model: 'gemini-3.5-flash',
       system: 'This is the main system prompt',
       messages: [
         { role: 'system', content: 'This is a message system prompt' },
@@ -45,7 +60,7 @@ describe('Claude to Gemini Request Translation', () => {
     // Combined message parts (was role: system merged into next role: user block)
     expect(result.googleRequest.contents[0].role).toEqual('user');
     expect(result.googleRequest.contents[0].parts[0].text).toEqual(
-      '<system-directive>\nThis is a message system prompt\n</system-directive>'
+      '<system-reminder>\nThis is a message system prompt\n</system-reminder>'
     );
 
     // Second part of merged message (was role: user)
@@ -54,7 +69,7 @@ describe('Claude to Gemini Request Translation', () => {
 
   it('translates images', () => {
     const claudePayload = {
-      model: 'claude-haiku-4.5',
+      model: 'gemini-3.1-flash-lite',
       messages: [{
         role: 'user',
         content: [
@@ -82,7 +97,7 @@ describe('Claude to Gemini Request Translation', () => {
 describe('Claude to Gemini Tools Schema Sanitization', () => {
   it('recursively cleans and translates Claude input schemas to Gemini-compliant structures', () => {
     const claudePayload = {
-      model: 'claude-sonnet-4.6',
+      model: 'gemini-3.5-flash',
       messages: [{ role: 'user', content: 'Use the tool.' }],
       tools: [
         {
@@ -131,7 +146,7 @@ describe('Claude to Gemini Tools Schema Sanitization', () => {
 describe('Claude Tools Interaction Roundtrips (Complex and Multi-Turn)', () => {
   it('successfully resolves tool names and translates various types of tool_result content to Gemini', () => {
     const claudePayload = {
-      model: 'claude-sonnet-4.6',
+      model: 'gemini-3.5-flash',
       messages: [
         {
           role: 'assistant',
@@ -195,12 +210,15 @@ describe('Claude Tools Interaction Roundtrips (Complex and Multi-Turn)', () => {
 
     expect(userBubble.parts[0].functionResponse!.name).toEqual('get_weather');
     expect(userBubble.parts[0].functionResponse!.response.result).toEqual('Sunny, 20 degrees');
+    expect(userBubble.parts[0].functionResponse!.id).toEqual('toolu_key_weather_01');
 
     expect(userBubble.parts[1].functionResponse!.name).toEqual('calculate_sum');
     expect(userBubble.parts[1].functionResponse!.response.result[0].text).toEqual('15');
+    expect(userBubble.parts[1].functionResponse!.id).toEqual('toolu_key_calc_02');
 
     expect(userBubble.parts[2].functionResponse!.name).toEqual('unknown_tool');
     expect(userBubble.parts[2].functionResponse!.response.result).toEqual('Fallback response');
+    expect(userBubble.parts[2].functionResponse!.id).toEqual('toolu_key_unmapped_03');
   });
 
   it('substitutes Launching skill tool_result content with subsequent text content (based on log.json)', () => {
@@ -208,7 +226,7 @@ describe('Claude Tools Interaction Roundtrips (Complex and Multi-Turn)', () => {
     // 1. Assistant message with a Skill tool_use block
     // 2. User message containing the Skill tool_result AND the massive instructions text block
     const claudePayload = {
-      model: 'claude-sonnet-4.6',
+      model: 'gemini-3.5-flash',
       messages: [
         {
           role: 'assistant',
@@ -249,6 +267,7 @@ describe('Claude Tools Interaction Roundtrips (Complex and Multi-Turn)', () => {
     // Verify 2: Sibling text block is stripped and merged directly as the response content of the Skill function Response
     expect(userBubble.parts.length).toEqual(1); // Merged into 1 part!
     expect(userBubble.parts[0].functionResponse!.name).toEqual('Skill');
+    expect(userBubble.parts[0].functionResponse!.id).toEqual('using_superpowers'); // Stripped prefix "toolu_g_"
     expect(userBubble.parts[0].functionResponse!.response.result).toEqual(
       'Base directory for this skill: /Users/yogo/... [Complete skill guide instructions here]'
     );
@@ -359,7 +378,7 @@ describe('Gemini to Claude Stream Response Translation', () => {
 
   it('merges consecutive same-role blocks in contents (user, user)', () => {
     const claudePayload = {
-      model: 'claude-sonnet-4.6',
+      model: 'gemini-3.5-flash',
       messages: [
         { role: 'user', content: 'Hello' },
         { role: 'user', content: 'World' }

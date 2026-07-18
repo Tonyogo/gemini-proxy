@@ -29,7 +29,7 @@ describe('ClaudeController Transaction Logging (via Spy)', () => {
       .post('/v1/messages')
       .set('x-api-key', 'test-key-abc')
       .send({
-        model: 'claude-sonnet-4.6',
+        model: 'gemini-3.5-flash',
         messages: [{ role: 'user', content: 'What is 1+1?' }]
       });
 
@@ -40,7 +40,7 @@ describe('ClaudeController Transaction Logging (via Spy)', () => {
     const [transactionId, clientReq, gemReq, gemRes, claudeRes] = logSpy.mock.calls[0];
 
     expect(transactionId).toBeDefined();
-    expect(clientReq.model).toEqual('claude-sonnet-4.6');
+    expect(clientReq.model).toEqual('gemini-3.5-flash');
     expect(gemReq.contents[0].parts[0].text).toEqual('What is 1+1?');
     expect(gemRes.candidates[0].content.parts[0].text).toEqual('Non-streaming response');
 
@@ -64,7 +64,7 @@ describe('ClaudeController Transaction Logging (via Spy)', () => {
       .post('/v1/messages')
       .set('x-api-key', 'test-key-abc')
       .send({
-        model: 'claude-sonnet-4.6',
+        model: 'gemini-3.5-flash',
         messages: [{ role: 'user', content: 'Tell a story' }],
         stream: true
       });
@@ -87,7 +87,7 @@ describe('ClaudeController Transaction Logging (via Spy)', () => {
     const [transactionId, clientReq, gemReq, gemRes, claudeRes] = logSpy.mock.calls[0];
 
     expect(transactionId).toBeDefined();
-    expect(clientReq.model).toEqual('claude-sonnet-4.6');
+    expect(clientReq.model).toEqual('gemini-3.5-flash');
     expect(gemReq.contents[0].parts[0].text).toEqual('Tell a story');
 
     // Verified chunk aggregation

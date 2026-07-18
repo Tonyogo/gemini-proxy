@@ -3,17 +3,22 @@ import { Request, Response } from 'express';
 import fetch from 'node-fetch';
 import config from '../../config/default';
 import modelsList from '../../config/models.json';
-import { ModelConfig } from '../types';
+import { ModelConfig, GeminiModelsResponse } from '../types';
 import claudeTranslator from '../services/claudeTranslator';
 import payloadLogger from '../services/payloadLogger';
 import logger from '../utils/logger';
 
-const sanitizeModel = (model: ModelConfig) => {
-  const { gemini_mapping, ...cleanModel } = model;
-  return cleanModel;
-};
-
-const SUPPORTED_MODELS = (modelsList as ModelConfig[]).map(sanitizeModel);
+const SUPPORTED_MODELS: ModelConfig[] = (modelsList as GeminiModelsResponse).models
+  .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
+  .map(m => {
+    const id = m.name.replace(/^models\//, '');
+    return {
+      type: 'model' as const,
+      id: id,
+      display_name: m.displayName,
+      created_at: '2026-07-18T00:00:00Z'
+    };
+  });
 
 class ClaudeController {
   private _extractClientKey(req: Request): string | null {
