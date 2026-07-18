@@ -2,6 +2,11 @@ import request from 'supertest';
 import app from '../src/app';
 import fetch from 'node-fetch';
 
+// Mock payloadLogger to prevent background async logs and disk I/O side effects during tests
+jest.mock('../src/services/payloadLogger', () => ({
+  saveTransaction: jest.fn().mockResolvedValue(undefined)
+}));
+
 jest.mock('node-fetch');
 
 describe('POST /v1/messages (Streaming)', () => {

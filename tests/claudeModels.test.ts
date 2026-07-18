@@ -1,6 +1,11 @@
 import request from 'supertest';
 import app from '../src/app';
 
+// Mock payloadLogger to prevent background async logs and disk I/O side effects during tests
+jest.mock('../src/services/payloadLogger', () => ({
+  saveTransaction: jest.fn().mockResolvedValue(undefined)
+}));
+
 describe('GET /v1/models (Models API)', () => {
   it('denies access to GET /v1/models without API key', async () => {
     const res = await request(app).get('/v1/models');

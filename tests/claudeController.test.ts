@@ -3,6 +3,11 @@ import app from '../src/app';
 import config from '../config/default';
 import claudeController from '../src/controllers/claudeController';
 
+// Mock payloadLogger to prevent async disk writing side-effects and background log warnings
+jest.mock('../src/services/payloadLogger', () => ({
+  saveTransaction: jest.fn().mockResolvedValue(undefined)
+}));
+
 // Mock node-fetch globally
 jest.mock('node-fetch', () => {
   return jest.fn().mockImplementation(() => {
