@@ -34,9 +34,6 @@
       <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-xs font-semibold">Local Session</span>
     </div>
     <div class="flex items-center gap-4">
-      <button id="toggleSidebarBtn" onclick="toggleSidebar()" class="bg-gray-800 hover:bg-gray-700 text-sm p-1.5 rounded border border-gray-700 transition" title="Toggle Sidebar">
-        <i data-lucide="chevron-left" class="w-4 h-4" id="sidebarToggleIcon"></i>
-      </button>
       <button onclick="loadLogs()" class="bg-gray-800 hover:bg-gray-700 text-sm px-3 py-1.5 rounded flex items-center gap-2 border border-gray-700 transition">
         <i data-lucide="refresh-cw" class="w-4 h-4"></i> Refresh
       </button>
@@ -47,12 +44,15 @@
   <div class="flex flex-1 overflow-hidden">
 
     <!-- Sidebar: Log Items List -->
-    <aside class="w-80 bg-gray-900 border-r border-gray-800 flex flex-col h-full shrink-0">
-      <div class="p-4 border-b border-gray-800">
-        <div class="relative">
-          <input type="text" id="logSearch" oninput="filterLogs()" placeholder="Filter logs..." class="w-full bg-gray-950 text-sm pl-9 pr-4 py-2 rounded border border-gray-800 focus:outline-none focus:border-indigo-500 text-gray-200">
-          <i data-lucide="search" class="absolute left-3 top-2.5 w-4 h-4 text-gray-500"></i>
+    <aside class="w-72 bg-gray-900 border-r border-gray-800 flex flex-col h-full shrink-0">
+      <div class="p-3 border-b border-gray-800 flex gap-2 items-center shrink-0">
+        <div class="relative flex-1">
+          <input type="text" id="logSearch" oninput="filterLogs()" placeholder="Filter logs..." class="w-full bg-gray-950 text-xs pl-8 pr-3 py-1.5 rounded border border-gray-800 focus:outline-none focus:border-indigo-500 text-gray-200">
+          <i data-lucide="search" class="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-gray-500"></i>
         </div>
+        <button id="toggleSidebarBtn" onclick="toggleSidebar()" class="bg-gray-800 hover:bg-gray-700 p-1.5 rounded border border-gray-700 transition" title="Toggle Sidebar">
+          <i data-lucide="chevron-left" class="w-3.5 h-3.5" id="sidebarToggleIcon"></i>
+        </button>
       </div>
       <div id="logsList" class="flex-1 overflow-y-auto divide-y divide-gray-800/50">
         <div class="p-4 text-center text-gray-500 text-sm">Loading logs...</div>
@@ -167,20 +167,36 @@
     function renderLogsList() {
       const container = document.getElementById('logsList');
       if (logsList.length === 0) {
-        container.innerHTML = '<div class="p-6 text-center text-gray-500 text-sm">No transaction logs found</div>';
+        container.innerHTML = '<div class="p-4 text-center text-gray-500 text-xs">No transaction logs found</div>';
         return;
       }
 
-      container.innerHTML = logsList.map(log => `
-        <div onclick="selectLog('${log.id}')" id="log-item-${log.id}" class="p-4 hover:bg-gray-800/40 cursor-pointer border-l-4 border-transparent transition flex flex-col gap-1.5">
-          <div class="flex items-center justify-between">
-            <span class="text-xs text-gray-400 font-mono">${log.time}</span>
-            <span class="text-[10px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">${log.model.split('-').slice(-2).join('-')}</span>
+      container.innerHTML = logsList.map(log => {
+        // Extract HH:MM:SS
+        const timeParts = log.time.split(' ');
+        const displayTime = timeParts[1] || log.time;
+
+        // Short ID (extract segment after underscore)
+        const displayId = log.id.includes('_') ? '_' + log.id.split('_')[1] : log.id.slice(-8);
+
+        // Short model identifier (strip redundant gemini- or gemini-3.1- prefixes)
+        const displayModel = log.model.replace('gemini-3.1-', '').replace('gemini-', '');
+
+        return `
+          <div onclick="selectLog('${log.id}')"
+               id="log-item-${log.id}"
+               title="Time: ${log.time}\nFull ID: ${log.id}\nModel: ${log.model}"
+               class="px-3 py-1.5 hover:bg-gray-800/40 cursor-pointer border-l-2 border-transparent transition flex items-center justify-between text-xs font-mono">
+            <div class="flex items-center gap-2 truncate">
+              <span class="text-gray-500 text-[11px]">${displayTime}</span>
+              <span class="text-gray-300 font-semibold select-all">${displayId}</span>
+            </div>
+            <span class="text-[9px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-1 py-0.2 rounded uppercase font-bold shrink-0">
+              ${displayModel}
+            </span>
           </div>
-          <div class="text-xs font-semibold truncate text-gray-200 font-mono">${log.id}</div>
-          <div class="text-[11px] text-gray-500 truncate font-mono">${log.model}</div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
 
       lucide.createIcons();
       filterLogs();
@@ -211,6 +227,7 @@
       const selectedEl = document.getElementById(`log-item-${id}`);
       if (selectedEl) {
         selectedEl.classList.add('bg-gray-800/60', 'border-indigo-500');
+        selectedEl.classList.remove('border-transparent');
       }
 
       document.getElementById('noSelection').classList.add('hidden');
