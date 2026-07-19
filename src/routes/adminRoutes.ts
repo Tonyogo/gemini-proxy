@@ -1,12 +1,12 @@
 import { Router, Request, Response } from 'express';
 import * as path from 'path';
-import { localhostOnly } from '../middleware/auth';
+import { basicAuth } from '../middleware/auth';
 import adminController from '../controllers/adminController';
 
 const router = Router();
 
-// Secure all admin routes
-router.use(localhostOnly);
+// Secure all admin routes with HTTP Basic Auth
+router.use(basicAuth);
 
 // Static Viewer page delivery
 router.get('/logs-viewer', (req: Request, res: Response) => {
