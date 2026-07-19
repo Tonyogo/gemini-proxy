@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gemini-Proxy Admin Log Viewer 🔍</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    /* Custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #111827;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #374151;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #4b5563;
+    }
+  </style>
+</head>
+<body class="bg-gray-950 text-gray-100 flex flex-col h-screen overflow-hidden font-sans">
+
+  <!-- Header -->
+  <header class="bg-gray-900 border-b border-gray-800 px-6 py-4 flex items-center justify-between shrink-0">
+    <div class="flex items-center gap-3">
+      <i data-lucide="terminal" class="text-indigo-400 w-6 h-6"></i>
+      <h1 class="text-lg font-bold tracking-tight">Gemini-Proxy Log Viewer</h1>
+      <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-xs font-semibold">Local Session</span>
+    </div>
+    <div class="flex items-center gap-4">
+      <button onclick="loadLogs()" class="bg-gray-800 hover:bg-gray-700 text-sm px-3 py-1.5 rounded flex items-center gap-2 border border-gray-700 transition">
+        <i data-lucide="refresh-cw" class="w-4 h-4"></i> Refresh
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Split Layout -->
+  <div class="flex flex-1 overflow-hidden">
+
+    <!-- Sidebar: Log Items List -->
+    <aside class="w-80 bg-gray-900 border-r border-gray-800 flex flex-col h-full shrink-0">
+      <div class="p-4 border-b border-gray-800">
+        <div class="relative">
+          <input type="text" id="logSearch" oninput="filterLogs()" placeholder="Filter logs..." class="w-full bg-gray-950 text-sm pl-9 pr-4 py-2 rounded border border-gray-800 focus:outline-none focus:border-indigo-500 text-gray-200">
+          <i data-lucide="search" class="absolute left-3 top-2.5 w-4 h-4 text-gray-500"></i>
+        </div>
+      </div>
+      <div id="logsList" class="flex-1 overflow-y-auto divide-y divide-gray-800/50">
+        <div class="p-4 text-center text-gray-500 text-sm">Loading logs...</div>
+      </div>
+    </aside>
+
+    <!-- Details View: Chrome DevTools Layout -->
+    <main class="flex-1 flex flex-col bg-gray-950 overflow-hidden">
+      <div id="noSelection" class="flex-1 flex flex-col items-center justify-center text-gray-500 gap-4">
+        <i data-lucide="layers" class="w-12 h-12 text-gray-700 animate-pulse"></i>
+        <p class="text-sm">Select a transaction log from the sidebar to inspect</p>
+      </div>
+
+      <div id="logDetail" class="hidden flex-1 flex flex-col overflow-hidden">
+
+        <!-- Level 1 Tabs: API Selection -->
+        <div class="bg-gray-900 border-b border-gray-800 px-6 flex items-center justify-between select-none shrink-0">
+          <div class="flex gap-4">
+            <button onclick="switchTab('primary', 'claude')" id="tab-primary-claude" class="border-b-2 border-indigo-500 px-1 py-3 text-sm font-semibold text-white">Claude Messages API</button>
+            <button onclick="switchTab('primary', 'gemini')" id="tab-primary-gemini" class="border-b-2 border-transparent px-1 py-3 text-sm font-semibold text-gray-400 hover:text-white hover:border-gray-700 transition">Gemini API</button>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-gray-500" id="currentLogId">ID: null</span>
+          </div>
+        </div>
+
+        <!-- Level 2 Tabs: Req vs Res -->
+        <div class="bg-gray-900/40 border-b border-gray-800/80 px-6 py-2 flex items-center justify-between shrink-0">
+          <div class="flex gap-2 bg-gray-950/80 p-1 rounded-lg border border-gray-800">
+            <button onclick="switchTab('direction', 'req')" id="tab-direction-req" class="bg-gray-800 text-xs px-3 py-1 rounded font-medium text-white shadow-sm transition">Request Payload</button>
+            <button onclick="switchTab('direction', 'res')" id="tab-direction-res" class="text-xs px-3 py-1 rounded font-medium text-gray-400 hover:text-white transition">Response Payload</button>
+          </div>
+
+          <!-- Level 3 Tabs: Preview vs Raw -->
+          <div class="flex gap-1">
+            <button onclick="switchTab('format', 'preview')" id="tab-format-preview" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-2.5 py-1 rounded font-medium transition flex items-center gap-1">
+              <i data-lucide="eye" class="w-3.5 h-3.5"></i> Preview
+            </button>
+            <button onclick="switchTab('format', 'raw')" id="tab-format-raw" class="bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs px-2.5 py-1 rounded font-medium transition flex items-center gap-1">
+              <i data-lucide="code-2" class="w-3.5 h-3.5"></i> Raw
+            </button>
+            <button onclick="copyCurrentPayload()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs px-2.5 py-1 rounded font-medium transition flex items-center gap-1">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy
+            </button>
+          </div>
+        </div>
+
+        <!-- JSON Display Area -->
+        <div class="flex-1 overflow-auto p-6 bg-gray-950 relative">
+          <!-- Loading Overlay -->
+          <div id="detailLoading" class="absolute inset-0 bg-gray-950/80 flex items-center justify-center hidden">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+          </div>
+
+          <!-- Render Container -->
+          <div id="payloadContainer" class="font-mono text-sm leading-relaxed"></div>
+        </div>
+
+      </div>
+    </main>
+
+  </div>
+
+  <script>
+    let logsList = [];
+    let selectedLog = null;
+    let selectedLogData = null;
+
+    // Active Navigation State
+    let activeTabs = {
+      primary: 'claude', // 'claude' or 'gemini'
+      direction: 'req',  // 'req' or 'res'
+      format: 'preview'  // 'preview' or 'raw'
+    };
+
+    // Load initial logs
+    async function loadLogs() {
+      try {
+        const res = await fetch('/admin/api/logs');
+        const json = await res.json();
+        if (json.success) {
+          logsList = json.logs;
+          renderLogsList();
+        }
+      } catch (err) {
+        console.error('Failed to load logs:', err);
+      }
+    }
+
+    function renderLogsList() {
+      const container = document.getElementById('logsList');
+      if (logsList.length === 0) {
+        container.innerHTML = '<div class="p-6 text-center text-gray-500 text-sm">No transaction logs found</div>';
+        return;
+      }
+
+      container.innerHTML = logsList.map(log => `
+        <div onclick="selectLog('${log.id}')" id="log-item-${log.id}" class="p-4 hover:bg-gray-800/40 cursor-pointer border-l-4 border-transparent transition flex flex-col gap-1.5">
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-gray-400 font-mono">${log.time}</span>
+            <span class="text-[10px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">${log.model.split('-').slice(-2).join('-')}</span>
+          </div>
+          <div class="text-xs font-semibold truncate text-gray-200 font-mono">${log.id}</div>
+          <div class="text-[11px] text-gray-500 truncate font-mono">${log.model}</div>
+        </div>
+      `).join('');
+
+      lucide.createIcons();
+      filterLogs();
+    }
+
+    function filterLogs() {
+      const query = document.getElementById('logSearch').value.toLowerCase();
+      logsList.forEach(log => {
+        const element = document.getElementById(`log-item-${log.id}`);
+        if (!element) return;
+        const matches = log.id.toLowerCase().includes(query) || log.model.toLowerCase().includes(query);
+        if (matches) {
+          element.classList.remove('hidden');
+        } else {
+          element.classList.add('hidden');
+        }
+      });
+    }
+
+    async function selectLog(id) {
+      selectedLog = id;
+
+      // Update sidebar visual selection
+      document.querySelectorAll('#logsList > div').forEach(el => {
+        el.classList.remove('bg-gray-800/60', 'border-indigo-500');
+        el.classList.add('border-transparent');
+      });
+      const selectedEl = document.getElementById(`log-item-${id}`);
+      if (selectedEl) {
+        selectedEl.classList.add('bg-gray-800/60', 'border-indigo-500');
+      }
+
+      document.getElementById('noSelection').classList.add('hidden');
+      document.getElementById('logDetail').classList.remove('hidden');
+      document.getElementById('currentLogId').innerText = `ID: ${id}`;
+      document.getElementById('detailLoading').classList.remove('hidden');
+
+      try {
+        const res = await fetch(`/admin/api/logs/${id}`);
+        const json = await res.json();
+        if (json.success) {
+          selectedLogData = json.data;
+          renderPayload();
+        }
+      } catch (err) {
+        console.error('Failed to load log detail:', err);
+      } finally {
+        document.getElementById('detailLoading').classList.add('hidden');
+      }
+    }
+
+    function switchTab(level, target) {
+      activeTabs[level] = target;
+
+      // Update Tabs Style
+      if (level === 'primary') {
+        document.querySelectorAll('[id^="tab-primary-"]').forEach(el => {
+          el.className = 'border-b-2 border-transparent px-1 py-3 text-sm font-semibold text-gray-400 hover:text-white hover:border-gray-700 transition';
+        });
+        document.getElementById(`tab-primary-${target}`).className = 'border-b-2 border-indigo-500 px-1 py-3 text-sm font-semibold text-white';
+      } else if (level === 'direction') {
+        document.querySelectorAll('[id^="tab-direction-"]').forEach(el => {
+          el.className = 'text-xs px-3 py-1 rounded font-medium text-gray-400 hover:text-white transition';
+        });
+        document.getElementById(`tab-direction-${target}`).className = 'bg-gray-800 text-xs px-3 py-1 rounded font-medium text-white shadow-sm transition';
+      } else if (level === 'format') {
+        document.querySelectorAll('[id^="tab-format-"]').forEach(el => {
+          el.className = 'bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs px-2.5 py-1 rounded font-medium transition flex items-center gap-1';
+        });
+        document.getElementById(`tab-format-${target}`).className = 'bg-indigo-600 hover:bg-indigo-700 text-white text-xs px-2.5 py-1 rounded font-medium transition flex items-center gap-1';
+      }
+
+      renderPayload();
+    }
+
+    // Identify which nested payload field matches active controls
+    function getCurrentPayloadObject() {
+      if (!selectedLogData) return null;
+      if (activeTabs.primary === 'claude') {
+        return activeTabs.direction === 'req' ? selectedLogData.client_req : selectedLogData.claude_res;
+      } else {
+        return activeTabs.direction === 'req' ? selectedLogData.gem_req : selectedLogData.gem_res;
+      }
+    }
+
+    function renderPayload() {
+      const container = document.getElementById('payloadContainer');
+      const obj = getCurrentPayloadObject();
+
+      if (!obj) {
+        container.innerHTML = '<div class="text-gray-500 italic py-4">No content recorded for this section</div>';
+        return;
+      }
+
+      if (activeTabs.format === 'raw') {
+        // Raw view
+        container.innerHTML = `<pre class="bg-gray-950 p-4 border border-gray-800 rounded-lg text-gray-300 overflow-x-auto text-xs whitespace-pre">${JSON.stringify(obj, null, 2)}</pre>`;
+      } else {
+        // Interactive Preview view
+        container.innerHTML = '';
+        container.appendChild(createJsonNode(null, obj, true));
+      }
+    }
+
+    // Collapsible JSON tree generator
+    function createJsonNode(key, value, isLast) {
+      const container = document.createElement('div');
+      container.className = 'pl-4 py-0.5 border-l border-gray-900 hover:bg-gray-800/10 transition-colors relative font-mono text-xs text-gray-300';
+
+      const keySpan = key ? `<span class="text-indigo-400">"${key}"</span>: ` : '';
+
+      if (value === null) {
+        container.innerHTML = `${keySpan}<span class="text-gray-500 font-bold">null</span>${isLast ? '' : ','}`;
+      } else if (typeof value === 'object') {
+        const isArray = Array.isArray(value);
+        const size = isArray ? value.length : Object.keys(value).length;
+        const bracketOpen = isArray ? '[' : '{';
+        const bracketClose = isArray ? ']' : '}';
+
+        const summarySpan = document.createElement('span');
+        summarySpan.className = 'cursor-pointer select-none font-semibold hover:text-white flex items-center inline-flex';
+        summarySpan.innerHTML = `
+          <span class="mr-1 text-gray-500 text-[10px] transform transition-transform duration-100 collapse-arrow inline-block">▶</span>
+          ${keySpan}${bracketOpen} <span class="text-[10px] text-gray-500 font-normal ml-1">(${size} ${isArray ? 'items' : 'keys'})</span>
+        `;
+
+        const childrenContainer = document.createElement('div');
+        childrenContainer.className = 'hidden pl-4 border-l border-gray-800/50 mt-0.5 space-y-0.5';
+
+        // Lazy-render children
+        let rendered = false;
+        summarySpan.onclick = () => {
+          const arrow = summarySpan.querySelector('.collapse-arrow');
+          if (childrenContainer.classList.contains('hidden')) {
+            childrenContainer.classList.remove('hidden');
+            arrow.style.transform = 'rotate(90deg)';
+            if (!rendered) {
+              const keys = Object.keys(value);
+              keys.forEach((k, i) => {
+                childrenContainer.appendChild(createJsonNode(isArray ? null : k, value[k], i === keys.length - 1));
+              });
+              rendered = true;
+            }
+          } else {
+            childrenContainer.classList.add('hidden');
+            arrow.style.transform = 'rotate(0deg)';
+          }
+        };
+
+        const closingSpan = document.createElement('div');
+        closingSpan.className = 'text-gray-400';
+        closingSpan.innerHTML = `${bracketClose}${isLast ? '' : ','}`;
+
+        container.appendChild(summarySpan);
+        container.appendChild(childrenContainer);
+        container.appendChild(closingSpan);
+
+      } else {
+        let valSpan = '';
+        if (typeof value === 'string') {
+          valSpan = `<span class="text-emerald-400">"${value.replace(/"/g, '\\"')}"</span>`;
+        } else if (typeof value === 'number') {
+          valSpan = `<span class="text-amber-500">${value}</span>`;
+        } else if (typeof value === 'boolean') {
+          valSpan = `<span class="text-orange-400 font-bold">${value}</span>`;
+        }
+        container.innerHTML = `${keySpan}${valSpan}${isLast ? '' : ','}`;
+      }
+
+      return container;
+    }
+
+    // Utility to copy current JSON
+    function copyCurrentPayload() {
+      const obj = getCurrentPayloadObject();
+      if (!obj) return;
+      navigator.clipboard.writeText(JSON.stringify(obj, null, 2)).then(() => {
+        alert('Copied to clipboard!');
+      });
+    }
+
+    // Init
+    window.onload = () => {
+      loadLogs();
+      lucide.createIcons();
+    };
+  </script>
+</body>
+</html>
