@@ -50,9 +50,6 @@
           <input type="text" id="logSearch" oninput="filterLogs()" placeholder="Filter logs..." class="w-full bg-gray-950 text-xs pl-8 pr-3 py-1.5 rounded border border-gray-800 focus:outline-none focus:border-indigo-500 text-gray-200">
           <i data-lucide="search" class="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-gray-500"></i>
         </div>
-        <button id="toggleSidebarBtn" onclick="toggleSidebar()" class="bg-gray-800 hover:bg-gray-700 p-1.5 rounded border border-gray-700 transition" title="Toggle Sidebar">
-          <i data-lucide="chevron-left" class="w-3.5 h-3.5" id="sidebarToggleIcon"></i>
-        </button>
       </div>
       <div id="logsList" class="flex-1 overflow-y-auto divide-y divide-gray-800/50">
         <div class="p-4 text-center text-gray-500 text-sm">Loading logs...</div>
@@ -70,10 +67,16 @@
 
         <!-- Level 1 Tabs: API Selection -->
         <div class="bg-gray-900 border-b border-gray-800 px-6 flex items-center justify-between select-none shrink-0">
-          <div class="flex gap-4">
-            <button onclick="switchTab('primary', 'claude')" id="tab-primary-claude" class="border-b-2 border-indigo-500 px-1 py-3 text-sm font-semibold text-white">Claude Messages API</button>
-            <button onclick="switchTab('primary', 'gemini')" id="tab-primary-gemini" class="border-b-2 border-transparent px-1 py-3 text-sm font-semibold text-gray-400 hover:text-white hover:border-gray-700 transition">Gemini API</button>
-            <button onclick="switchTab('primary', 'compare')" id="tab-primary-compare" class="border-b-2 border-transparent px-1 py-3 text-sm font-semibold text-gray-400 hover:text-white hover:border-gray-700 transition">Compare / 对比</button>
+          <div class="flex items-center gap-4">
+            <!-- Sidebar toggle button moved here, so it is always visible on the main workspace edge -->
+            <button id="toggleSidebarBtn" onclick="toggleSidebar()" class="bg-gray-800 hover:bg-gray-700 p-1.5 rounded border border-gray-700 transition" title="Toggle Sidebar">
+              <i data-lucide="chevron-left" class="w-3.5 h-3.5" id="sidebarToggleIcon"></i>
+            </button>
+            <div class="flex gap-4">
+              <button onclick="switchTab('primary', 'claude')" id="tab-primary-claude" class="border-b-2 border-indigo-500 px-1 py-3 text-sm font-semibold text-white">Claude Messages API</button>
+              <button onclick="switchTab('primary', 'gemini')" id="tab-primary-gemini" class="border-b-2 border-transparent px-1 py-3 text-sm font-semibold text-gray-400 hover:text-white hover:border-gray-700 transition">Gemini API</button>
+              <button onclick="switchTab('primary', 'compare')" id="tab-primary-compare" class="border-b-2 border-transparent px-1 py-3 text-sm font-semibold text-gray-400 hover:text-white hover:border-gray-700 transition">Compare / 对比</button>
+            </div>
           </div>
           <div class="flex items-center gap-2">
             <span class="text-xs text-gray-500" id="currentLogId">ID: null</span>
