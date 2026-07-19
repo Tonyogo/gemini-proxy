@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import config from '../../config/default';
 
 export function localhostOnly(req: Request, res: Response, next: NextFunction) {
   const ip = req.ip || req.socket.remoteAddress || '';
@@ -17,4 +18,33 @@ export function localhostOnly(req: Request, res: Response, next: NextFunction) {
     return;
   }
   next();
+}
+
+export function basicAuth(req: Request, res: Response, next: NextFunction): void {
+  if (!config.adminCredentials) {
+    res.status(401).json({
+      error: 'Unauthorized',
+      message: 'Admin credentials not configured on server.'
+    });
+    return;
+  }
+
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Basic ')) {
+    res.set('WWW-Authenticate', 'Basic realm="Admin Area"');
+    res.status(401).json({ error: 'Unauthorized', message: 'Authentication required' });
+    return;
+  }
+
+  const b64auth = (authHeader.split(' ')[1] || '');
+  const [user, password] = Buffer.from(b64auth, 'base64').toString().split(':');
+
+  const [expectedUser, expectedPassword] = config.adminCredentials.split(':');
+
+  if (user === expectedUser && password === expectedPassword) {
+    next();
+  } else {
+    res.set('WWW-Authenticate', 'Basic realm="Admin Area"');
+    res.status(401).json({ error: 'Unauthorized', message: 'Invalid credentials' });
+  }
 }
