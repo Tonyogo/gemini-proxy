@@ -34,6 +34,9 @@
       <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-xs font-semibold">Local Session</span>
     </div>
     <div class="flex items-center gap-4">
+      <button id="toggleSidebarBtn" onclick="toggleSidebar()" class="bg-gray-800 hover:bg-gray-700 text-sm p-1.5 rounded border border-gray-700 transition" title="Toggle Sidebar">
+        <i data-lucide="chevron-left" class="w-4 h-4" id="sidebarToggleIcon"></i>
+      </button>
       <button onclick="loadLogs()" class="bg-gray-800 hover:bg-gray-700 text-sm px-3 py-1.5 rounded flex items-center gap-2 border border-gray-700 transition">
         <i data-lucide="refresh-cw" class="w-4 h-4"></i> Refresh
       </button>
@@ -70,6 +73,7 @@
           <div class="flex gap-4">
             <button onclick="switchTab('primary', 'claude')" id="tab-primary-claude" class="border-b-2 border-indigo-500 px-1 py-3 text-sm font-semibold text-white">Claude Messages API</button>
             <button onclick="switchTab('primary', 'gemini')" id="tab-primary-gemini" class="border-b-2 border-transparent px-1 py-3 text-sm font-semibold text-gray-400 hover:text-white hover:border-gray-700 transition">Gemini API</button>
+            <button onclick="switchTab('primary', 'compare')" id="tab-primary-compare" class="border-b-2 border-transparent px-1 py-3 text-sm font-semibold text-gray-400 hover:text-white hover:border-gray-700 transition">Compare / 对比</button>
           </div>
           <div class="flex items-center gap-2">
             <span class="text-xs text-gray-500" id="currentLogId">ID: null</span>
@@ -106,6 +110,27 @@
 
           <!-- Render Container -->
           <div id="payloadContainer" class="font-mono text-sm leading-relaxed"></div>
+
+          <!-- Add Next to it: -->
+          <div id="compareContainer" class="hidden flex-1 grid grid-cols-2 gap-6 h-full overflow-hidden min-h-[500px]">
+            <!-- Left Side: Claude Client Payload -->
+            <div class="flex flex-col border border-gray-800/80 rounded-xl bg-gray-950/40 overflow-hidden h-full">
+              <div class="bg-gray-900/60 px-4 py-2 border-b border-gray-800/80 flex items-center justify-between text-xs text-indigo-400 font-bold uppercase select-none shrink-0">
+                <span>Claude Payload (Client)</span>
+                <span class="text-[10px] text-gray-500 font-mono font-normal">Anthropic Spec</span>
+              </div>
+              <div id="compareLeftBody" class="flex-1 overflow-auto p-4 font-mono text-xs"></div>
+            </div>
+
+            <!-- Right Side: Gemini Upstream Payload -->
+            <div class="flex flex-col border border-gray-800/80 rounded-xl bg-gray-950/40 overflow-hidden h-full">
+              <div class="bg-gray-900/60 px-4 py-2 border-b border-gray-800/80 flex items-center justify-between text-xs text-emerald-400 font-bold uppercase select-none shrink-0">
+                <span>Gemini Payload (Upstream)</span>
+                <span class="text-[10px] text-gray-500 font-mono font-normal">Google Spec</span>
+              </div>
+              <div id="compareRightBody" class="flex-1 overflow-auto p-4 font-mono text-xs"></div>
+            </div>
+          </div>
         </div>
 
       </div>
@@ -231,10 +256,48 @@
       renderPayload();
     }
 
+    // Toggle Sidebar fold/unfold
+    let sidebarCollapsed = false;
+    function toggleSidebar() {
+      const sidebar = document.querySelector('aside');
+      const icon = document.getElementById('sidebarToggleIcon');
+      sidebarCollapsed = !sidebarCollapsed;
+      if (sidebarCollapsed) {
+        sidebar.style.display = 'none';
+        icon.setAttribute('data-lucide', 'chevron-right');
+      } else {
+        sidebar.style.display = 'flex';
+        icon.setAttribute('data-lucide', 'chevron-left');
+      }
+      lucide.createIcons();
+    }
+
+    // Adaptive Dual Pane router
+    function renderDualPane(targetContainer, payloadObj, channelType) {
+      if (!payloadObj) {
+        targetContainer.innerHTML = '<div class="text-gray-500 italic py-4">No content recorded for this section</div>';
+        return;
+      }
+
+      if (activeTabs.format === 'raw') {
+        targetContainer.innerHTML = `<pre class="bg-gray-950 p-4 border border-gray-800 rounded-lg text-gray-300 overflow-x-auto text-[11px] whitespace-pre">${JSON.stringify(payloadObj, null, 2)}</pre>`;
+      } else {
+        const isClaude = isClaudeStream(payloadObj);
+        const isGemini = isGeminiStream(payloadObj);
+
+        if (isClaude || isGemini) {
+          renderStreamView(targetContainer, payloadObj, isClaude);
+        } else {
+          // Pass the channelType to createJsonNode to enable contextual highlights!
+          targetContainer.appendChild(createJsonNode(null, payloadObj, true, channelType));
+        }
+      }
+    }
+
     // Identify which nested payload field matches active controls
     function getCurrentPayloadObject() {
       if (!selectedLogData) return null;
-      if (activeTabs.primary === 'claude') {
+      if (activeTabs.primary === 'claude' || activeTabs.primary === 'compare') {
         return activeTabs.direction === 'req' ? selectedLogData.client_req : selectedLogData.claude_res;
       } else {
         return activeTabs.direction === 'req' ? selectedLogData.gem_req : selectedLogData.gem_res;
@@ -400,7 +463,7 @@
             content.classList.remove('hidden');
             arrow.style.transform = 'rotate(90deg)';
             if (!isRendered) {
-              content.appendChild(createJsonNode(null, frame.payload, true));
+              content.appendChild(createJsonNode(null, frame.payload, true, isClaude ? 'claude' : 'gemini'));
               isRendered = true;
             }
           } else {
@@ -422,38 +485,87 @@
 
     function renderPayload() {
       const container = document.getElementById('payloadContainer');
-      const obj = getCurrentPayloadObject();
+      const compareContainer = document.getElementById('compareContainer');
+      const leftBody = document.getElementById('compareLeftBody');
+      const rightBody = document.getElementById('compareRightBody');
 
-      if (!obj) {
-        container.innerHTML = '<div class="text-gray-500 italic py-4">No content recorded for this section</div>';
-        return;
-      }
+      if (!selectedLogData) return;
 
-      if (activeTabs.format === 'raw') {
-        // Raw view
-        container.innerHTML = `<pre class="bg-gray-950 p-4 border border-gray-800 rounded-lg text-gray-300 overflow-x-auto text-xs whitespace-pre">${JSON.stringify(obj, null, 2)}</pre>`;
+      if (activeTabs.primary === 'compare') {
+        container.classList.add('hidden');
+        compareContainer.classList.remove('hidden');
+
+        leftBody.innerHTML = '';
+        rightBody.innerHTML = '';
+
+        const leftObj = activeTabs.direction === 'req' ? selectedLogData.client_req : selectedLogData.claude_res;
+        const rightObj = activeTabs.direction === 'req' ? selectedLogData.gem_req : selectedLogData.gem_res;
+
+        renderDualPane(leftBody, leftObj, 'claude');
+        renderDualPane(rightBody, rightObj, 'gemini');
       } else {
-        // Interactive Preview view
-        container.innerHTML = '';
+        compareContainer.classList.add('hidden');
+        container.classList.remove('hidden');
 
-        // CHECK IF OBJECT IS STREAM
-        const isClaude = isClaudeStream(obj);
-        const isGemini = isGeminiStream(obj);
+        const obj = getCurrentPayloadObject();
 
-        if (isClaude || isGemini) {
-          renderStreamView(container, obj, isClaude);
+        if (!obj) {
+          container.innerHTML = '<div class="text-gray-500 italic py-4">No content recorded for this section</div>';
+          return;
+        }
+
+        if (activeTabs.format === 'raw') {
+          container.innerHTML = `<pre class="bg-gray-950 p-4 border border-gray-800 rounded-lg text-gray-300 overflow-x-auto text-xs whitespace-pre">${JSON.stringify(obj, null, 2)}</pre>`;
         } else {
-          container.appendChild(createJsonNode(null, obj, true));
+          container.innerHTML = '';
+          const isClaude = isClaudeStream(obj);
+          const isGemini = isGeminiStream(obj);
+
+          if (isClaude || isGemini) {
+            renderStreamView(container, obj, isClaude);
+          } else {
+            // Default single viewer
+            container.appendChild(createJsonNode(null, obj, true, activeTabs.primary));
+          }
         }
       }
     }
 
     // Collapsible JSON tree generator
-    function createJsonNode(key, value, isLast) {
+    function createJsonNode(key, value, isLast, channelType = null) {
       const container = document.createElement('div');
       container.className = 'pl-4 py-0.5 border-l border-gray-900 hover:bg-gray-800/10 transition-colors relative font-mono text-xs text-gray-300';
 
-      const keySpan = key ? `<span class="text-indigo-400">"${key}"</span>: ` : '';
+      // Check special highlight annotations based on Channel (Claude vs Gemini)
+      let highlightClass = '';
+      let badgeHtml = '';
+
+      if (key && channelType) {
+        if (channelType === 'claude') {
+          if (key === 'system') {
+            highlightClass = 'bg-purple-950/10 border-l-2 border-purple-500 pl-1 rounded-r pr-2 py-0.5 shadow-sm shadow-purple-500/10';
+            badgeHtml = ' <span class="bg-purple-500/15 text-purple-300 text-[9px] px-1.5 py-0.5 rounded ml-1 font-sans border border-purple-500/20 font-semibold">→ System Instruction</span>';
+          } else if (key === 'tools') {
+            highlightClass = 'bg-amber-950/10 border-l-2 border-amber-500 pl-1 rounded-r pr-2 py-0.5 shadow-sm shadow-amber-500/10';
+            badgeHtml = ' <span class="bg-amber-500/15 text-amber-300 text-[9px] px-1.5 py-0.5 rounded ml-1 font-sans border border-amber-500/20 font-semibold">→ Tool Definitions</span>';
+          }
+        } else if (channelType === 'gemini') {
+          if (key === 'systemInstruction') {
+            highlightClass = 'bg-purple-950/10 border-l-2 border-purple-500 pl-1 rounded-r pr-2 py-0.5 shadow-sm shadow-purple-500/10';
+            badgeHtml = ' <span class="bg-purple-500/15 text-purple-300 text-[9px] px-1.5 py-0.5 rounded ml-1 font-sans border border-purple-500/20 font-semibold">← System Wrapper</span>';
+          } else if (key === 'functionDeclarations') {
+            highlightClass = 'bg-amber-950/10 border-l-2 border-amber-500 pl-1 rounded-r pr-2 py-0.5 shadow-sm shadow-amber-500/10';
+            badgeHtml = ' <span class="bg-amber-500/15 text-amber-300 text-[9px] px-1.5 py-0.5 rounded ml-1 font-sans border border-amber-500/20 font-semibold">← upperCase Schemas</span>';
+          }
+        }
+      }
+
+      // Add wrapper highlighting class if active
+      if (highlightClass) {
+        container.className += ' ' + highlightClass;
+      }
+
+      const keySpan = key ? `<span class="text-indigo-400">"${key}"</span>${badgeHtml}: ` : '';
 
       if (value === null) {
         container.innerHTML = `${keySpan}<span class="text-gray-500 font-bold">null</span>${isLast ? '' : ','}`;
@@ -483,7 +595,7 @@
             if (!rendered) {
               const keys = Object.keys(value);
               keys.forEach((k, i) => {
-                childrenContainer.appendChild(createJsonNode(isArray ? null : k, value[k], i === keys.length - 1));
+                childrenContainer.appendChild(createJsonNode(isArray ? null : k, value[k], i === keys.length - 1, channelType));
               });
               rendered = true;
             }
@@ -504,7 +616,12 @@
       } else {
         let valSpan = '';
         if (typeof value === 'string') {
-          valSpan = `<span class="text-emerald-400">"${value.replace(/"/g, '\\"')}"</span>`;
+          // Highlight string representation of system-reminder system instruction inside Gemini
+          let stringHighlight = '';
+          if (channelType === 'gemini' && value.includes('<system-reminder>')) {
+            stringHighlight = 'bg-purple-950/20 px-1 py-0.5 rounded border border-purple-800/40 inline-block font-mono text-[11px]';
+          }
+          valSpan = `<span class="text-emerald-400 ${stringHighlight}">"${value.replace(/"/g, '\\"')}"</span>`;
         } else if (typeof value === 'number') {
           valSpan = `<span class="text-amber-500">${value}</span>`;
         } else if (typeof value === 'boolean') {
