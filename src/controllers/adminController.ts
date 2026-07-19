@@ -29,9 +29,10 @@ class AdminController {
           const timestampStr = parts[0];
           const timestamp = parseInt(timestampStr, 10);
 
+          let duration: number | null = null;
           let model = 'unknown';
           try {
-            // Read first 2KB of file to extract requested model quickly without memory overflow
+            // Read first 2KB of file to extract requested model and duration quickly without memory overflow
             const filePath = path.join(logsDir, filename);
             const handle = await fs.open(filePath, 'r');
             const buffer = Buffer.alloc(2048);
@@ -43,6 +44,11 @@ class AdminController {
             if (match && match[1]) {
               model = match[1];
             }
+
+            const durationMatch = partialText.match(/"duration"\s*:\s*(\d+|null)/);
+            if (durationMatch && durationMatch[1] && durationMatch[1] !== 'null') {
+              duration = parseInt(durationMatch[1], 10);
+            }
           } catch (err) {
             logger.error(`[AdminController] Error reading model from ${filename}: ${err}`);
           }
@@ -52,7 +58,8 @@ class AdminController {
             filename,
             timestamp,
             time: new Date(timestamp).toISOString().replace('T', ' ').substring(0, 19),
-            model
+            model,
+            duration
           };
         })
       );

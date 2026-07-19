@@ -30,12 +30,14 @@ class PayloadLogger {
     clientReq: any,
     gemReq: any,
     gemRes: any,
-    claudeRes: any
+    claudeRes: any,
+    duration?: number
   ): Promise<void> {
     try {
       await this._ensureDirectory();
 
       const payload = {
+        duration: duration !== undefined ? duration : null,
         client_req: clientReq || null,
         gem_req: gemReq || null,
         gem_res: gemRes || null,

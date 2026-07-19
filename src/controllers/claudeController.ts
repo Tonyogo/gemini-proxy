@@ -47,6 +47,7 @@ class ClaudeController {
 
   public async handleMessages(req: Request, res: Response): Promise<any> {
     const transactionId = this._generateTransactionId();
+    const startTime = Date.now();
     // Deep clone the client request body immediately upon entry to prevent reference mutations
     const clientReq = JSON.parse(JSON.stringify(req.body));
     let gemReq: any = null;
@@ -62,8 +63,9 @@ class ClaudeController {
             message: 'Access denied. A valid Google Gemini API key was not provided in headers (x-api-key, Authorization Bearer, or x-goog-api-key).'
           }
         };
-        logger.warn(`[Authentication Error] [Transaction: ${transactionId}] Request rejected: API Key is missing or invalid.`);
-        payloadLogger.saveTransaction(transactionId, clientReq, null, null, errPayload);
+        const duration = Date.now() - startTime;
+        logger.warn(`[Authentication Error] [Transaction: ${transactionId}] Request rejected: API Key is missing or invalid. (duration: ${duration}ms)`);
+        payloadLogger.saveTransaction(transactionId, clientReq, null, null, errPayload, duration);
         return res.status(401).json(errPayload);
       }
 
@@ -92,8 +94,9 @@ class ClaudeController {
           const errStatus = response.status;
           const normalized = claudeTranslator.normalizeError({ status: errStatus, message: errMessage });
 
-          logger.error(`[Error] [Transaction: ${transactionId}] Stream request failed with status ${errStatus}: ${errMessage}`);
-          payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: errMessage }, normalized.payload);
+          const duration = Date.now() - startTime;
+          logger.error(`[Error] [Transaction: ${transactionId}] Stream request failed with status ${errStatus}: ${errMessage} (duration: ${duration}ms)`);
+          payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: errMessage }, normalized.payload, duration);
           return res.status(normalized.status).json(normalized.payload);
         }
 
@@ -133,13 +136,15 @@ class ClaudeController {
         });
 
         response.body!.on('end', () => {
-          logger.info(`[Response] [Transaction: ${transactionId}] Stream generated content finished successfully`);
-          payloadLogger.saveTransaction(transactionId, clientReq, gemReq, gemResChunks, claudeResChunks);
+          const duration = Date.now() - startTime;
+          logger.info(`[Response] [Transaction: ${transactionId}] Stream generated content finished successfully (duration: ${duration}ms)`);
+          payloadLogger.saveTransaction(transactionId, clientReq, gemReq, gemResChunks, claudeResChunks, duration);
           res.end();
         });
 
         response.body!.on('error', (err: any) => {
-          logger.error(`[Error] [Transaction: ${transactionId}] Stream reading error: ${err.message}`);
+          const duration = Date.now() - startTime;
+          logger.error(`[Error] [Transaction: ${transactionId}] Stream reading error: ${err.message} (duration: ${duration}ms)`);
           const errPayload = {
             type: 'error',
             error: { type: 'api_error', message: 'Downstream connection lost' }
@@ -150,7 +155,8 @@ class ClaudeController {
             clientReq,
             gemReq,
             { error: err.message, partial_chunks: gemResChunks },
-            { error: err.message, partial_chunks: claudeResChunks }
+            { error: err.message, partial_chunks: claudeResChunks },
+            duration
           );
           res.end();
         });
@@ -178,27 +184,31 @@ class ClaudeController {
         const errStatus = response.status;
         const normalized = claudeTranslator.normalizeError({ status: errStatus, message: errMessage });
 
-        logger.error(`[Error] [Transaction: ${transactionId}] Non-stream request failed with status ${errStatus}: ${errMessage}`);
-        payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: errMessage }, normalized.payload);
+        const duration = Date.now() - startTime;
+        logger.error(`[Error] [Transaction: ${transactionId}] Non-stream request failed with status ${errStatus}: ${errMessage} (duration: ${duration}ms)`);
+        payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: errMessage }, normalized.payload, duration);
         return res.status(normalized.status).json(normalized.payload);
       }
 
       const geminiData = await response.json();
       const translatedResponse = claudeTranslator.convertGoogleToClaudeNonStream(geminiData, cleanModelName);
 
-      logger.info(`[Response] [Transaction: ${transactionId}] Non-stream content successfully returned with 200 OK`);
-      payloadLogger.saveTransaction(transactionId, clientReq, gemReq, geminiData, translatedResponse);
+      const duration = Date.now() - startTime;
+      logger.info(`[Response] [Transaction: ${transactionId}] Non-stream content successfully returned with 200 OK (duration: ${duration}ms)`);
+      payloadLogger.saveTransaction(transactionId, clientReq, gemReq, geminiData, translatedResponse, duration);
       return res.status(200).json(translatedResponse);
     } catch (err: any) {
-      logger.error(`[Error] [Transaction: ${transactionId}] Unhandled error: ${err.message}`);
+      const duration = Date.now() - startTime;
+      logger.error(`[Error] [Transaction: ${transactionId}] Unhandled error: ${err.message} (duration: ${duration}ms)`);
       const normalized = claudeTranslator.normalizeError(err);
-      payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: err.message }, normalized.payload);
+      payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: err.message }, normalized.payload, duration);
       return res.status(normalized.status).json(normalized.payload);
     }
   }
 
   public async handleCountTokens(req: Request, res: Response): Promise<any> {
     const transactionId = this._generateTransactionId();
+    const startTime = Date.now();
     // Deep clone immediately
     const clientReq = JSON.parse(JSON.stringify(req.body));
     let gemReq: any = null;
@@ -214,8 +224,9 @@ class ClaudeController {
             message: 'Access denied. A valid Google Gemini API key was not provided in headers (x-api-key, Authorization Bearer, or x-goog-api-key).'
           }
         };
-        logger.warn(`[Authentication Error] [Transaction: ${transactionId}] Token count request rejected: API Key is missing.`);
-        payloadLogger.saveTransaction(transactionId, clientReq, null, null, errPayload);
+        const duration = Date.now() - startTime;
+        logger.warn(`[Authentication Error] [Transaction: ${transactionId}] Token count request rejected: API Key is missing. (duration: ${duration}ms)`);
+        payloadLogger.saveTransaction(transactionId, clientReq, null, null, errPayload, duration);
         return res.status(401).json(errPayload);
       }
 
@@ -242,8 +253,9 @@ class ClaudeController {
         const errStatus = response.status;
         const normalized = claudeTranslator.normalizeError({ status: errStatus, message: errMessage });
 
-        logger.error(`[Error] [Transaction: ${transactionId}] Token count failed with status ${errStatus}: ${errMessage}`);
-        payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: errMessage }, normalized.payload);
+        const duration = Date.now() - startTime;
+        logger.error(`[Error] [Transaction: ${transactionId}] Token count failed with status ${errStatus}: ${errMessage} (duration: ${duration}ms)`);
+        payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: errMessage }, normalized.payload, duration);
         return res.status(normalized.status).json(normalized.payload);
       }
 
@@ -252,13 +264,15 @@ class ClaudeController {
         input_tokens: (geminiData as any).totalTokens || 0
       };
 
-      logger.info(`[Response] [Transaction: ${transactionId}] Token count successfully returned: ${tokenResponse.input_tokens} input tokens`);
-      payloadLogger.saveTransaction(transactionId, clientReq, gemReq, geminiData, tokenResponse);
+      const duration = Date.now() - startTime;
+      logger.info(`[Response] [Transaction: ${transactionId}] Token count successfully returned: ${tokenResponse.input_tokens} input tokens (duration: ${duration}ms)`);
+      payloadLogger.saveTransaction(transactionId, clientReq, gemReq, geminiData, tokenResponse, duration);
       return res.status(200).json(tokenResponse);
     } catch (err: any) {
-      logger.error(`[Error] [Transaction: ${transactionId}] Unhandled count tokens error: ${err.message}`);
+      const duration = Date.now() - startTime;
+      logger.error(`[Error] [Transaction: ${transactionId}] Unhandled count tokens error: ${err.message} (duration: ${duration}ms)`);
       const normalized = claudeTranslator.normalizeError(err);
-      payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: err.message }, normalized.payload);
+      payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: err.message }, normalized.payload, duration);
       return res.status(normalized.status).json(normalized.payload);
     }
   }

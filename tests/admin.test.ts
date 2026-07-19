@@ -64,7 +64,7 @@ describe('AdminController Methods', () => {
     const mockOpen = fs.open as jest.Mock;
     mockOpen.mockResolvedValue({
       read: jest.fn().mockImplementation((buf: Buffer) => {
-        buf.write('{"client_req": {"model": "gemini-flash-latest"}}');
+        buf.write('{"duration": 450, "client_req": {"model": "gemini-flash-latest"}}');
         return Promise.resolve({ bytesRead: 100 });
       }),
       close: jest.fn().mockResolvedValue(undefined)
@@ -86,6 +86,7 @@ describe('AdminController Methods', () => {
     const logs = (res.json as jest.Mock).mock.calls[0][0].logs;
     expect(logs.length).toBe(1);
     expect(logs[0].model).toBe('gemini-flash-latest');
+    expect(logs[0].duration).toBe(450);
   });
 
   it('should validate malicious ID structures', async () => {

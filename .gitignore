@@ -7,7 +7,7 @@ yarn-error.log*
 pnpm-debug.log*
 
 # Logs and Data
-log/
+logs/
 data/
 debug/
 

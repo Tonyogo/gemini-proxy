@@ -167,6 +167,12 @@
       }
     }
 
+    function formatDuration(ms) {
+      if (ms === null || ms === undefined) return '';
+      if (ms < 1000) return `${ms}ms`;
+      return `${(ms / 1000).toFixed(1)}s`;
+    }
+
     function renderLogsList() {
       const container = document.getElementById('logsList');
       if (logsList.length === 0) {
@@ -194,9 +200,12 @@
               <span class="text-gray-500 text-[11px]">${displayTime}</span>
               <span class="text-gray-300 font-semibold select-all">${displayId}</span>
             </div>
-            <span class="text-[9px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-1 py-0.2 rounded uppercase font-bold shrink-0">
-              ${displayModel}
-            </span>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <span class="text-gray-500 text-[10px] font-normal mr-1">${formatDuration(log.duration)}</span>
+              <span class="text-[9px] bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-1 py-0.2 rounded uppercase font-bold shrink-0">
+                ${displayModel}
+              </span>
+            </div>
           </div>
         `;
       }).join('');
