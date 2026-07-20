@@ -59,4 +59,38 @@ describe('POST /v1/messages (Streaming)', () => {
     expect(res.text).toContain('upon a time');
     expect(res.text).toContain('message_stop');
   });
+
+  it('correctly handles split/fragmented SSE chunks via buffering', async () => {
+    const { Readable } = require('stream');
+    const mockStream = new Readable();
+    mockStream._read = () => {};
+
+    (fetch as unknown as jest.Mock).mockResolvedValue({
+      status: 200,
+      ok: true,
+      body: mockStream
+    });
+
+    const promise = request(app)
+      .post('/v1/messages')
+      .set('Authorization', 'Bearer dummy-key')
+      .send({
+        model: 'gemini-3.5-flash',
+        messages: [{ role: 'user', content: 'Test fragmented stream' }],
+        stream: true
+      });
+
+    // Write a JSON payload split right in the middle across two pushes
+    const part1 = 'data: {"candidates": [{"content": {"parts": [{"text": "Hello ';
+    const part2 = 'World!"}]}}], "usageMetadata": {"promptTokenCount": 5, "candidatesTokenCount": 2}}\n\n';
+
+    mockStream.push(part1);
+    await new Promise(resolve => process.nextTick(resolve));
+    mockStream.push(part2);
+    mockStream.push(null);
+
+    const res = await promise;
+    expect(res.statusCode).toEqual(200);
+    expect(res.text).toContain('Hello World!'); // Verify it correctly parsed and joined the content
+  });
 });

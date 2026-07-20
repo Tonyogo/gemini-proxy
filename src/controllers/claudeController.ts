@@ -108,12 +108,18 @@ class ClaudeController {
         const streamState = {};
         const gemResChunks: any[] = [];
         const claudeResChunks: string[] = [];
+        let streamBuffer = '';
 
         // Read downstream response body stream chunk by chunk
         response.body!.on('data', (buffer: Buffer) => {
-          const text = buffer.toString('utf8');
+          streamBuffer += buffer.toString('utf8');
           // Split multiple SSE chunks separated by newlines
-          const lines = text.split('\n');
+          const lines = streamBuffer.split('\n');
+
+          // The last element is either empty (if the text ended with a newline)
+          // or a partial line (if it didn't). We pop it off and keep it in the buffer.
+          streamBuffer = lines.pop() || '';
+
           for (const line of lines) {
             const trimmed = line.trim();
             if (!trimmed) continue;
@@ -136,6 +142,25 @@ class ClaudeController {
         });
 
         response.body!.on('end', () => {
+          // Process any remaining data in the buffer
+          if (streamBuffer.trim()) {
+            const trimmed = streamBuffer.trim();
+            if (trimmed.startsWith('data: ')) {
+              const jsonStr = trimmed.substring(6).trim();
+              if (jsonStr !== '[DONE]') {
+                try {
+                  gemResChunks.push(JSON.parse(jsonStr));
+                } catch (e) { /* ignore */ }
+              }
+            }
+
+            const translated = claudeTranslator.translateGoogleToClaudeStream(trimmed, cleanModelName, streamState);
+            if (translated) {
+              claudeResChunks.push(translated);
+              res.write(translated);
+            }
+          }
+
           const duration = Date.now() - startTime;
           logger.info(`[Response] [Transaction: ${transactionId}] Stream generated content finished successfully (duration: ${duration}ms)`);
           payloadLogger.saveTransaction(transactionId, clientReq, gemReq, gemResChunks, claudeResChunks, duration);
