@@ -56,7 +56,7 @@ class ClaudeController {
 
       if (isStream) {
         const targetUrl = getUpstreamUrl(`/v1beta/models/${cleanModelName}:streamGenerateContent?alt=sse&key=${apiKey}`);
-        const safeDisplayUrl = targetUrl.replace(/\?key=.*/, '?key=***');
+        const safeDisplayUrl = targetUrl.replace(/([?&]key=)[^&]*/, '$1***');
         logger.info(`[Request] [Transaction: ${transactionId}] Received ${clientEndpoint}`);
         logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini: POST ${safeDisplayUrl}`);
 
@@ -171,7 +171,7 @@ class ClaudeController {
 
       // Non-Streaming generation
       const targetUrl = getUpstreamUrl(`/v1beta/models/${cleanModelName}:generateContent?key=${apiKey}`);
-      const safeDisplayUrl = targetUrl.replace(/\?key=.*/, '?key=***');
+      const safeDisplayUrl = targetUrl.replace(/([?&]key=)[^&]*/, '$1***');
       logger.info(`[Request] [Transaction: ${transactionId}] Received ${clientEndpoint}`);
       logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini: POST ${safeDisplayUrl}`);
 
@@ -240,7 +240,7 @@ class ClaudeController {
 
       const clientEndpoint = `${req.method} ${req.originalUrl || req.path}`;
       const targetUrl = getUpstreamUrl(`/v1beta/models/${cleanModelName}:countTokens?key=${apiKey}`);
-      const safeDisplayUrl = targetUrl.replace(/\?key=.*/, '?key=***');
+      const safeDisplayUrl = targetUrl.replace(/([?&]key=)[^&]*/, '$1***');
       logger.info(`[Request] [Transaction: ${transactionId}] Received ${clientEndpoint}`);
       logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini: POST ${safeDisplayUrl}`);
 
