@@ -6,7 +6,6 @@ export const config = {
   geminiBaseUrl: process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com',
   logLevel: process.env.LOG_LEVEL || 'info',
   transactionLogsDir: process.env.TRANSACTION_LOGS_DIR || 'logs',
-  adminCredentials: process.env.ADMIN_CREDENTIALS,
   allowedKeys: [] as string[]
 };
 
