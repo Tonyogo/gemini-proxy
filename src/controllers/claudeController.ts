@@ -28,6 +28,9 @@ class ClaudeController {
   public async handleMessages(req: Request, res: Response): Promise<any> {
     const transactionId = generateTransactionId();
     const startTime = Date.now();
+    const clientEndpoint = `${req.method} ${req.originalUrl || req.path}`;
+    logger.info(`[Request] [Transaction: ${transactionId}] Received ${clientEndpoint}`);
+
     // Deep clone the client request body immediately upon entry to prevent reference mutations
     const clientReq = JSON.parse(JSON.stringify(req.body));
     let gemReq: any = null;
@@ -52,13 +55,10 @@ class ClaudeController {
       const { googleRequest, cleanModelName, isStream } = claudeTranslator.translateClaudeToGoogle(clientReq);
       gemReq = googleRequest;
 
-      const clientEndpoint = `${req.method} ${req.originalUrl || req.path}`;
-
       if (isStream) {
         const targetPath = `/v1beta/models/${cleanModelName}:streamGenerateContent?alt=sse&key=${apiKey}`;
         const safeDisplayPath = targetPath.replace(/([?&]key=)[^&]*/, '$1***');
         const targetUrl = getUpstreamUrl(targetPath);
-        logger.info(`[Request] [Transaction: ${transactionId}] Received ${clientEndpoint}`);
         logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini: POST ${safeDisplayPath}`);
 
         const response = await fetch(targetUrl, {
@@ -174,7 +174,6 @@ class ClaudeController {
       const targetPath = `/v1beta/models/${cleanModelName}:generateContent?key=${apiKey}`;
       const safeDisplayPath = targetPath.replace(/([?&]key=)[^&]*/, '$1***');
       const targetUrl = getUpstreamUrl(targetPath);
-      logger.info(`[Request] [Transaction: ${transactionId}] Received ${clientEndpoint}`);
       logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini: POST ${safeDisplayPath}`);
 
       const response = await fetch(targetUrl, {
@@ -216,6 +215,9 @@ class ClaudeController {
   public async handleCountTokens(req: Request, res: Response): Promise<any> {
     const transactionId = generateTransactionId();
     const startTime = Date.now();
+    const clientEndpoint = `${req.method} ${req.originalUrl || req.path}`;
+    logger.info(`[Request] [Transaction: ${transactionId}] Received ${clientEndpoint}`);
+
     // Deep clone immediately
     const clientReq = JSON.parse(JSON.stringify(req.body));
     let gemReq: any = null;
@@ -240,11 +242,9 @@ class ClaudeController {
       const { googleRequest, cleanModelName } = claudeTranslator.translateClaudeToGoogle(clientReq);
       gemReq = googleRequest;
 
-      const clientEndpoint = `${req.method} ${req.originalUrl || req.path}`;
       const targetPath = `/v1beta/models/${cleanModelName}:countTokens?key=${apiKey}`;
       const safeDisplayPath = targetPath.replace(/([?&]key=)[^&]*/, '$1***');
       const targetUrl = getUpstreamUrl(targetPath);
-      logger.info(`[Request] [Transaction: ${transactionId}] Received ${clientEndpoint}`);
       logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini: POST ${safeDisplayPath}`);
 
       const response = await fetch(targetUrl, {
