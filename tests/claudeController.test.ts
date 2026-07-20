@@ -2,6 +2,7 @@ import request from 'supertest';
 import app from '../src/app';
 import config from '../config/default';
 import claudeController from '../src/controllers/claudeController';
+import { getUpstreamUrl, extractClientKey, generateTransactionId } from '../src/utils/requestHelper';
 
 // Mock payloadLogger to prevent async disk writing side-effects and background log warnings
 jest.mock('../src/services/payloadLogger', () => ({
@@ -80,13 +81,62 @@ describe('POST /v1/messages (Authentication / Headers)', () => {
 describe('ClaudeController URL helper methods', () => {
   it('correctly normalizes base URLs and path slashes', () => {
     config.geminiBaseUrl = 'https://my-custom-endpoint.com/';
-    // @ts-ignore
-    let url = claudeController._getUpstreamUrl('/v1beta/models');
+    let url = getUpstreamUrl('/v1beta/models');
     expect(url).toEqual('https://my-custom-endpoint.com/v1beta/models');
 
     config.geminiBaseUrl = 'https://my-custom-endpoint.com';
-    // @ts-ignore
-    url = claudeController._getUpstreamUrl('v1beta/models');
+    url = getUpstreamUrl('v1beta/models');
     expect(url).toEqual('https://my-custom-endpoint.com/v1beta/models');
+  });
+});
+
+describe('extractClientKey helper', () => {
+  it('extracts key from x-api-key header', () => {
+    const mockReq = {
+      headers: { 'x-api-key': 'test-key-1' },
+      query: {}
+    } as any;
+    expect(extractClientKey(mockReq)).toEqual('test-key-1');
+  });
+
+  it('extracts key from x-goog-api-key header', () => {
+    const mockReq = {
+      headers: { 'x-goog-api-key': 'test-key-2' },
+      query: {}
+    } as any;
+    expect(extractClientKey(mockReq)).toEqual('test-key-2');
+  });
+
+  it('extracts key from authorization bearer header', () => {
+    const mockReq = {
+      headers: { authorization: 'Bearer test-key-3' },
+      query: {}
+    } as any;
+    expect(extractClientKey(mockReq)).toEqual('test-key-3');
+  });
+
+  it('extracts key from query parameter', () => {
+    const mockReq = {
+      headers: {},
+      query: { key: 'test-key-4' }
+    } as any;
+    expect(extractClientKey(mockReq)).toEqual('test-key-4');
+  });
+
+  it('returns null when no key is provided', () => {
+    const mockReq = {
+      headers: {},
+      query: {}
+    } as any;
+    expect(extractClientKey(mockReq)).toBeNull();
+  });
+});
+
+describe('generateTransactionId helper', () => {
+  it('generates unique transaction IDs containing timestamp and random string', () => {
+    const id1 = generateTransactionId();
+    const id2 = generateTransactionId();
+    expect(id1).not.toEqual(id2);
+    expect(id1).toMatch(/^\d+_[a-z0-9]+$/);
   });
 });
