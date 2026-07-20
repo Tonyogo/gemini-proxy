@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-// @ts-ignore
 import fetch from 'node-fetch';
 import config from '../../config/default';
 import modelsList from '../../config/models.json';
@@ -7,6 +6,11 @@ import { ModelConfig, GeminiModelsResponse } from '../types';
 import claudeTranslator from '../services/claudeTranslator';
 import payloadLogger from '../services/payloadLogger';
 import logger from '../utils/logger';
+import {
+  extractClientKey,
+  getUpstreamUrl,
+  generateTransactionId
+} from '../utils/requestHelper';
 
 const SUPPORTED_MODELS: ModelConfig[] = (modelsList as GeminiModelsResponse).models
   .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
@@ -21,39 +25,15 @@ const SUPPORTED_MODELS: ModelConfig[] = (modelsList as GeminiModelsResponse).mod
   });
 
 class ClaudeController {
-  private _extractClientKey(req: Request): string | null {
-    let clientKey: string | null = null;
-    if (req.headers["x-api-key"]) {
-      clientKey = req.headers["x-api-key"] as string;
-    } else if (req.headers["x-goog-api-key"]) {
-      clientKey = req.headers["x-goog-api-key"] as string;
-    } else if (req.headers.authorization && req.headers.authorization.startsWith("Bearer ")) {
-      clientKey = req.headers.authorization.substring(7).trim();
-    } else if (req.query && req.query.key) {
-      clientKey = req.query.key as string;
-    }
-    return clientKey;
-  }
-
-  private _getUpstreamUrl(pathAndQuery: string): string {
-    const base = config.geminiBaseUrl.replace(/\/+$/, '');
-    const cleanPath = pathAndQuery.replace(/^\/+/, '');
-    return `${base}/${cleanPath}`;
-  }
-
-  private _generateTransactionId(): string {
-    return `${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-  }
-
   public async handleMessages(req: Request, res: Response): Promise<any> {
-    const transactionId = this._generateTransactionId();
+    const transactionId = generateTransactionId();
     const startTime = Date.now();
     // Deep clone the client request body immediately upon entry to prevent reference mutations
     const clientReq = JSON.parse(JSON.stringify(req.body));
     let gemReq: any = null;
 
     try {
-      const apiKey = this._extractClientKey(req);
+      const apiKey = extractClientKey(req);
 
       if (!apiKey) {
         const errPayload = {
@@ -75,7 +55,7 @@ class ClaudeController {
       const clientEndpoint = `${req.method} ${req.originalUrl || req.path}`;
 
       if (isStream) {
-        const targetUrl = this._getUpstreamUrl(`/v1beta/models/${cleanModelName}:streamGenerateContent?alt=sse&key=${apiKey}`);
+        const targetUrl = getUpstreamUrl(`/v1beta/models/${cleanModelName}:streamGenerateContent?alt=sse&key=${apiKey}`);
         const safeDisplayUrl = targetUrl.replace(/\?key=.*/, '?key=***');
         logger.info(`[Request] [Transaction: ${transactionId}] Received ${clientEndpoint}`);
         logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini: POST ${safeDisplayUrl}`);
@@ -190,7 +170,7 @@ class ClaudeController {
       }
 
       // Non-Streaming generation
-      const targetUrl = this._getUpstreamUrl(`/v1beta/models/${cleanModelName}:generateContent?key=${apiKey}`);
+      const targetUrl = getUpstreamUrl(`/v1beta/models/${cleanModelName}:generateContent?key=${apiKey}`);
       const safeDisplayUrl = targetUrl.replace(/\?key=.*/, '?key=***');
       logger.info(`[Request] [Transaction: ${transactionId}] Received ${clientEndpoint}`);
       logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini: POST ${safeDisplayUrl}`);
@@ -232,14 +212,14 @@ class ClaudeController {
   }
 
   public async handleCountTokens(req: Request, res: Response): Promise<any> {
-    const transactionId = this._generateTransactionId();
+    const transactionId = generateTransactionId();
     const startTime = Date.now();
     // Deep clone immediately
     const clientReq = JSON.parse(JSON.stringify(req.body));
     let gemReq: any = null;
 
     try {
-      const apiKey = this._extractClientKey(req);
+      const apiKey = extractClientKey(req);
 
       if (!apiKey) {
         const errPayload = {
@@ -259,7 +239,7 @@ class ClaudeController {
       gemReq = googleRequest;
 
       const clientEndpoint = `${req.method} ${req.originalUrl || req.path}`;
-      const targetUrl = this._getUpstreamUrl(`/v1beta/models/${cleanModelName}:countTokens?key=${apiKey}`);
+      const targetUrl = getUpstreamUrl(`/v1beta/models/${cleanModelName}:countTokens?key=${apiKey}`);
       const safeDisplayUrl = targetUrl.replace(/\?key=.*/, '?key=***');
       logger.info(`[Request] [Transaction: ${transactionId}] Received ${clientEndpoint}`);
       logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini: POST ${safeDisplayUrl}`);
@@ -306,7 +286,7 @@ class ClaudeController {
     const clientEndpoint = `${req.method} ${req.originalUrl || req.path}`;
     logger.info(`[Request] Received models list query: ${clientEndpoint}`);
     try {
-      const apiKey = this._extractClientKey(req);
+      const apiKey = extractClientKey(req);
       if (!apiKey) {
         logger.warn(`[Authentication Error] Models list request rejected: API Key is missing.`);
         return res.status(401).json({
@@ -337,7 +317,7 @@ class ClaudeController {
     const modelId = req.params.model_id;
     logger.info(`[Request] Received specific model metadata query: ${clientEndpoint} for ID: '${modelId}'`);
     try {
-      const apiKey = this._extractClientKey(req);
+      const apiKey = extractClientKey(req);
       if (!apiKey) {
         logger.warn(`[Authentication Error] Retrieve model metadata request rejected: API Key is missing.`);
         return res.status(401).json({
