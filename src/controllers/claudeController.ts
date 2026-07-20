@@ -55,10 +55,11 @@ class ClaudeController {
       const clientEndpoint = `${req.method} ${req.originalUrl || req.path}`;
 
       if (isStream) {
-        const targetUrl = getUpstreamUrl(`/v1beta/models/${cleanModelName}:streamGenerateContent?alt=sse&key=${apiKey}`);
-        const safeDisplayUrl = targetUrl.replace(/([?&]key=)[^&]*/, '$1***');
+        const targetPath = `/v1beta/models/${cleanModelName}:streamGenerateContent?alt=sse&key=${apiKey}`;
+        const safeDisplayPath = targetPath.replace(/([?&]key=)[^&]*/, '$1***');
+        const targetUrl = getUpstreamUrl(targetPath);
         logger.info(`[Request] [Transaction: ${transactionId}] Received ${clientEndpoint}`);
-        logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini: POST ${safeDisplayUrl}`);
+        logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini: POST ${safeDisplayPath}`);
 
         const response = await fetch(targetUrl, {
           method: 'POST',
@@ -170,10 +171,11 @@ class ClaudeController {
       }
 
       // Non-Streaming generation
-      const targetUrl = getUpstreamUrl(`/v1beta/models/${cleanModelName}:generateContent?key=${apiKey}`);
-      const safeDisplayUrl = targetUrl.replace(/([?&]key=)[^&]*/, '$1***');
+      const targetPath = `/v1beta/models/${cleanModelName}:generateContent?key=${apiKey}`;
+      const safeDisplayPath = targetPath.replace(/([?&]key=)[^&]*/, '$1***');
+      const targetUrl = getUpstreamUrl(targetPath);
       logger.info(`[Request] [Transaction: ${transactionId}] Received ${clientEndpoint}`);
-      logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini: POST ${safeDisplayUrl}`);
+      logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini: POST ${safeDisplayPath}`);
 
       const response = await fetch(targetUrl, {
         method: 'POST',
@@ -239,10 +241,11 @@ class ClaudeController {
       gemReq = googleRequest;
 
       const clientEndpoint = `${req.method} ${req.originalUrl || req.path}`;
-      const targetUrl = getUpstreamUrl(`/v1beta/models/${cleanModelName}:countTokens?key=${apiKey}`);
-      const safeDisplayUrl = targetUrl.replace(/([?&]key=)[^&]*/, '$1***');
+      const targetPath = `/v1beta/models/${cleanModelName}:countTokens?key=${apiKey}`;
+      const safeDisplayPath = targetPath.replace(/([?&]key=)[^&]*/, '$1***');
+      const targetUrl = getUpstreamUrl(targetPath);
       logger.info(`[Request] [Transaction: ${transactionId}] Received ${clientEndpoint}`);
-      logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini: POST ${safeDisplayUrl}`);
+      logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini: POST ${safeDisplayPath}`);
 
       const response = await fetch(targetUrl, {
         method: 'POST',

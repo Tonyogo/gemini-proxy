@@ -4,4 +4,5 @@ import logger from './utils/logger';
 
 app.listen(config.port, () => {
   logger.info(`Server is running on port ${config.port}`);
+  logger.info(`Proxying upstream requests to Gemini: ${config.geminiBaseUrl}`);
 });
