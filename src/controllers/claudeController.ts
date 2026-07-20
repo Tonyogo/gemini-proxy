@@ -85,7 +85,7 @@ class ClaudeController {
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Connection', 'keep-alive');
 
-        const streamState = {};
+        const streamState = { tools: clientReq.tools };
         const gemResChunks: any[] = [];
         const claudeResChunks: string[] = [];
         let streamBuffer = '';
@@ -196,7 +196,7 @@ class ClaudeController {
       }
 
       const geminiData = await response.json();
-      const translatedResponse = claudeTranslator.convertGoogleToClaudeNonStream(geminiData, cleanModelName);
+      const translatedResponse = claudeTranslator.convertGoogleToClaudeNonStream(geminiData, cleanModelName, clientReq.tools);
 
       const duration = Date.now() - startTime;
       logger.info(`[Response] [Transaction: ${transactionId}] Non-stream content successfully returned with 200 OK (duration: ${duration}ms)`);

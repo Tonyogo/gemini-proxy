@@ -392,3 +392,65 @@ describe('Gemini to Claude Stream Response Translation', () => {
     expect(result.googleRequest.contents[0].parts[1].text).toEqual('World');
   });
 });
+
+describe('Claude Translator Argument Type Coercion', () => {
+  const mockTools = [
+    {
+      name: 'update_task',
+      description: 'Update task',
+      input_schema: {
+        type: 'object',
+        properties: {
+          taskId: { type: 'string' },
+          percentage: { type: 'number' },
+          active: { type: 'boolean' }
+        }
+      }
+    }
+  ];
+
+  it('coerces numeric or boolean types to strings if schema expects string', () => {
+    const rawArgs = {
+      taskId: 25,
+      active: true
+    };
+    const coerced = translator._coerceArguments('update_task', rawArgs, mockTools);
+    expect(coerced.taskId).toEqual('25');
+    // Ensure active is not converted to string because schema expects boolean
+    expect(coerced.active).toEqual(true);
+  });
+
+  it('coerces stringified numbers to number types if schema expects number/integer', () => {
+    const rawArgs = {
+      percentage: '85.5'
+    };
+    const coerced = translator._coerceArguments('update_task', rawArgs, mockTools);
+    expect(coerced.percentage).toEqual(85.5);
+  });
+
+  it('coerces strings or numbers to boolean if schema expects boolean', () => {
+    const rawArgs = {
+      active: 'true'
+    };
+    const coerced = translator._coerceArguments('update_task', rawArgs, mockTools);
+    expect(coerced.active).toEqual(true);
+
+    const rawArgsBinary = {
+      active: 0
+    };
+    const coercedBinary = translator._coerceArguments('update_task', rawArgsBinary, mockTools);
+    expect(coercedBinary.active).toEqual(false);
+  });
+
+  it('preserves fields if types match or field does not exist in schema properties', () => {
+    const rawArgs = {
+      taskId: '55',
+      percentage: 100,
+      unmappedField: 123
+    };
+    const coerced = translator._coerceArguments('update_task', rawArgs, mockTools);
+    expect(coerced.taskId).toEqual('55');
+    expect(coerced.percentage).toEqual(100);
+    expect(coerced.unmappedField).toEqual(123);
+  });
+});

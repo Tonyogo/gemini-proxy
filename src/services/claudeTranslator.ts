@@ -314,7 +314,82 @@ class ClaudeTranslator {
     };
   }
 
-  public convertGoogleToClaudeNonStream(googleResponse: any, modelName: string) {
+  /**
+   * Coerces Gemini's returned function call arguments to match the types expected
+   * by the client's original JSON schema definition.
+   */
+  public _coerceArguments(toolName: string, args: Record<string, any>, tools?: any[]): Record<string, any> {
+    if (!tools || !Array.isArray(tools) || !args || typeof args !== 'object') {
+      return args;
+    }
+
+    // Find the original tool schema definition
+    const originalTool = tools.find((t: any) => t && t.name === toolName);
+    if (!originalTool || !originalTool.input_schema || typeof originalTool.input_schema !== 'object') {
+      return args;
+    }
+
+    const properties = originalTool.input_schema.properties;
+    if (!properties || typeof properties !== 'object') {
+      return args;
+    }
+
+    const coercedArgs = { ...args };
+
+    for (const propName of Object.keys(properties)) {
+      const propSchema = properties[propName];
+      if (!propSchema || typeof propSchema !== 'object') continue;
+
+      const rawValue = coercedArgs[propName];
+      if (rawValue === undefined || rawValue === null) continue;
+
+      // Get expected types (could be a string or array of strings, e.g. ['string', 'null'])
+      let expectedTypes: string[] = [];
+      if (typeof propSchema.type === 'string') {
+        expectedTypes = [propSchema.type];
+      } else if (Array.isArray(propSchema.type)) {
+        expectedTypes = propSchema.type.filter((t: any) => typeof t === 'string');
+      }
+
+      const actualType = typeof rawValue;
+
+      // Coerce if string is expected but got number or boolean
+      if (expectedTypes.includes('string') && actualType !== 'string') {
+        logger.info(`[Translator] [Coercion] Coercing property '${propName}' of tool '${toolName}' from ${actualType} to string. Value: ${rawValue}`);
+        coercedArgs[propName] = String(rawValue);
+      }
+
+      // Coerce if integer/number is expected but got string
+      else if ((expectedTypes.includes('number') || expectedTypes.includes('integer')) && actualType === 'string') {
+        const parsed = Number(rawValue);
+        if (!isNaN(parsed)) {
+          logger.info(`[Translator] [Coercion] Coercing property '${propName}' of tool '${toolName}' from string to number. Value: '${rawValue}' -> ${parsed}`);
+          coercedArgs[propName] = parsed;
+        }
+      }
+
+      // Coerce if boolean is expected but got string or number
+      else if (expectedTypes.includes('boolean') && actualType !== 'boolean') {
+        let coercedBool: boolean | undefined;
+        if (actualType === 'string') {
+          if (rawValue.toLowerCase() === 'true') coercedBool = true;
+          if (rawValue.toLowerCase() === 'false') coercedBool = false;
+        } else if (actualType === 'number') {
+          if (rawValue === 1) coercedBool = true;
+          if (rawValue === 0) coercedBool = false;
+        }
+
+        if (coercedBool !== undefined) {
+          logger.info(`[Translator] [Coercion] Coercing property '${propName}' of tool '${toolName}' from ${actualType} to boolean. Value: ${rawValue} -> ${coercedBool}`);
+          coercedArgs[propName] = coercedBool;
+        }
+      }
+    }
+
+    return coercedArgs;
+  }
+
+  public convertGoogleToClaudeNonStream(googleResponse: any, modelName: string, tools?: any[]) {
     const candidate = googleResponse.candidates?.[0];
     const usage = googleResponse.usageMetadata || {};
 
@@ -336,11 +411,12 @@ class ClaudeTranslator {
           });
         } else if (part.functionCall) {
           const callId = part.functionCall.id ? `toolu_g_${part.functionCall.id}` : `toolu_fake_${Math.random().toString(36).substring(2, 11)}`;
+          const coercedArgs = this._coerceArguments(part.functionCall.name, part.functionCall.args || {}, tools);
           content.push({
             id: callId,
             type: 'tool_use',
             name: part.functionCall.name,
-            input: part.functionCall.args || {}
+            input: coercedArgs
           });
         }
       }
@@ -374,6 +450,8 @@ class ClaudeTranslator {
 
   public translateGoogleToClaudeStream(googleChunk: string, modelName: string, streamState: any) {
     if (!googleChunk || googleChunk.trim() === '') return null;
+
+    const tools = streamState.tools;
 
     let jsonString = googleChunk;
     if (jsonString.startsWith('data: ')) {
@@ -460,6 +538,7 @@ class ClaudeTranslator {
             streamState.contentBlockIndex++;
           }
           const callId = part.functionCall.id ? `toolu_g_${part.functionCall.id}` : `toolu_stream_${Math.random().toString(36).substring(2, 11)}`;
+          const coercedArgs = this._coerceArguments(part.functionCall.name, part.functionCall.args || {}, tools);
           // 1. Send content_block_start with empty input object
           events.push({
             type: 'content_block_start',
@@ -477,7 +556,7 @@ class ClaudeTranslator {
             index: streamState.contentBlockIndex,
             delta: {
               type: 'input_json_delta',
-              partial_json: JSON.stringify(part.functionCall.args || {})
+              partial_json: JSON.stringify(coercedArgs)
             }
           });
           // 3. Send content_block_stop
