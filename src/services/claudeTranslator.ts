@@ -1,5 +1,4 @@
 import config from '../../config/default';
-import modelsList from '../../config/models.json';
 import logger from '../utils/logger';
 import { ClaudeRequest, GeminiRequest, GeminiContent, GeminiPart, GeminiModelsResponse } from '../types';
 
@@ -10,16 +9,6 @@ class ClaudeTranslator {
 
   constructor() {
     this.modelMapping = new Map<string, string>();
-    const response = modelsList as GeminiModelsResponse;
-    if (response && Array.isArray(response.models)) {
-      for (const model of response.models) {
-        if (model.supportedGenerationMethods && model.supportedGenerationMethods.includes('generateContent')) {
-          const cleanName = model.name.replace(/^models\//, '');
-          this.modelMapping.set(cleanName, cleanName);
-        }
-      }
-    }
-
     // Apply declarative model mappings from configuration
     if (config.modelMappings && typeof config.modelMappings === 'object') {
       for (const [alias, target] of Object.entries(config.modelMappings)) {
@@ -137,9 +126,9 @@ class ClaudeTranslator {
       throw { status: 400, message: "Missing required parameter: 'model'" };
     }
 
-    const cleanModelName = this.modelMapping.get(rawModel);
+    let cleanModelName = this.modelMapping.get(rawModel);
     if (!cleanModelName) {
-      throw { status: 404, message: `Model '${rawModel}' is not supported or not found in configured models.` };
+      cleanModelName = rawModel.replace(/^models\//, '');
     }
 
     let systemInstruction: any = null;

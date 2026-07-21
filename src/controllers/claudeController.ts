@@ -1,7 +1,6 @@
 import { Request, Response } from 'express';
 import fetch from 'node-fetch';
 import config from '../../config/default';
-import modelsList from '../../config/models.json';
 import { ModelConfig, GeminiModelsResponse } from '../types';
 import claudeTranslator from '../services/claudeTranslator';
 import payloadLogger from '../services/payloadLogger';
@@ -12,17 +11,7 @@ import {
   generateTransactionId
 } from '../utils/requestHelper';
 
-const SUPPORTED_MODELS: ModelConfig[] = (modelsList as GeminiModelsResponse).models
-  .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
-  .map(m => {
-    const id = m.name.replace(/^models\//, '');
-    return {
-      type: 'model' as const,
-      id: id,
-      display_name: m.displayName,
-      created_at: '2026-07-18T00:00:00Z'
-    };
-  });
+const SUPPORTED_MODELS: ModelConfig[] = [];
 
 class ClaudeController {
   public async handleMessages(req: Request, res: Response): Promise<any> {
