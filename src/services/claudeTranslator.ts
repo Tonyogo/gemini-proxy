@@ -19,6 +19,14 @@ class ClaudeTranslator {
         }
       }
     }
+
+    // Apply declarative model mappings from configuration
+    if (config.modelMappings && typeof config.modelMappings === 'object') {
+      for (const [alias, target] of Object.entries(config.modelMappings)) {
+        this.modelMapping.set(alias, target);
+        logger.info(`[Translator] [Model Mapping Registered] Alias '${alias}' mapped to target model '${target}'`);
+      }
+    }
   }
 
   public _convertSchemaToGemini(obj: any, isResponseSchema: boolean = false, isProperties: boolean = false): any {
