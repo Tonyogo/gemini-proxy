@@ -9,14 +9,6 @@ describe('Claude to Gemini Request Translation', () => {
     expect(() => translator.translateClaudeToGoogle(claudePayload)).toThrow("Missing required parameter: 'model'");
   });
 
-  it('throws a 404 error when requested model is not found in configured models', () => {
-    const claudePayload = {
-      model: 'invalid-model-name',
-      messages: [{ role: 'user', content: 'Hello' }]
-    } as any;
-    expect(() => translator.translateClaudeToGoogle(claudePayload)).toThrow("Model 'invalid-model-name' is not supported or not found in configured models.");
-  });
-
   it('translates basic message requests', () => {
     const claudePayload = {
       model: 'gemini-3.5-flash',

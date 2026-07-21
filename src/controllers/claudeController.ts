@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import fetch from 'node-fetch';
 import config from '../../config/default';
-import { ModelConfig, GeminiModelsResponse } from '../types';
+import { ModelConfig, GeminiModelsResponse, GeminiModelEntry } from '../types';
 import claudeTranslator from '../services/claudeTranslator';
 import payloadLogger from '../services/payloadLogger';
 import logger from '../utils/logger';
@@ -290,12 +290,42 @@ class ClaudeController {
         });
       }
 
-      logger.info(`[Response] Models list query finished successfully: Returning ${SUPPORTED_MODELS.length} configured models`);
+      const targetUrl = getUpstreamUrl(`/v1beta/models?key=${apiKey}`);
+      const response = await fetch(targetUrl, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorJson;
+        try { errorJson = JSON.parse(errorText); } catch (e) { /* ignore */ }
+        const errMessage = errorJson?.error?.message || errorText || 'Gemini upstream API error';
+        const errStatus = response.status;
+        const normalized = claudeTranslator.normalizeError({ status: errStatus, message: errMessage });
+        return res.status(normalized.status).json(normalized.payload);
+      }
+
+      const geminiData = await response.json() as GeminiModelsResponse;
+
+      const dynamicModels: ModelConfig[] = (geminiData.models || [])
+        .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
+        .map(m => {
+          const id = m.name.replace(/^models\//, '');
+          return {
+            type: 'model' as const,
+            id: id,
+            display_name: m.displayName || id,
+            created_at: '2026-07-18T00:00:00Z'
+          };
+        });
+
+      logger.info(`[Response] Models list query finished successfully: Returning ${dynamicModels.length} dynamic models from Gemini`);
       return res.status(200).json({
-        data: SUPPORTED_MODELS,
+        data: dynamicModels,
         has_more: false,
-        first_id: SUPPORTED_MODELS[0].id,
-        last_id: SUPPORTED_MODELS[SUPPORTED_MODELS.length - 1].id
+        first_id: dynamicModels.length > 0 ? dynamicModels[0].id : '',
+        last_id: dynamicModels.length > 0 ? dynamicModels[dynamicModels.length - 1].id : ''
       });
     } catch (err: any) {
       logger.error(`[Error] Unhandled list models error: ${err.message}`);
@@ -321,10 +351,18 @@ class ClaudeController {
         });
       }
 
-      const model = SUPPORTED_MODELS.find(m => m.id === modelId);
+      // Check if it's an alias configured locally first
+      const cleanModelId = modelId as string;
+      const resolvedModelId = claudeTranslator.modelMapping.get(cleanModelId) || cleanModelId;
 
-      if (!model) {
-        logger.warn(`[Retrieve Model Error] Requested model '${modelId}' does not exist in configured list`);
+      const targetUrl = getUpstreamUrl(`/v1beta/models/${resolvedModelId}?key=${apiKey}`);
+      const response = await fetch(targetUrl, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (!response.ok) {
+        logger.warn(`[Retrieve Model Error] Requested model '${resolvedModelId}' does not exist or fetch failed`);
         return res.status(404).json({
           type: 'error',
           error: {
@@ -334,8 +372,17 @@ class ClaudeController {
         });
       }
 
+      const m = await response.json() as GeminiModelEntry;
+      const cleanId = m.name.replace(/^models\//, '');
+      const mappedModel: ModelConfig = {
+        type: 'model',
+        id: cleanId,
+        display_name: m.displayName || cleanId,
+        created_at: '2026-07-18T00:00:00Z'
+      };
+
       logger.info(`[Response] Retrieve model metadata finished: Returning specs for '${modelId}'`);
-      return res.status(200).json(model);
+      return res.status(200).json(mappedModel);
     } catch (err: any) {
       logger.error(`Unhandled retrieve model error: ${err.message}`);
       const normalized = claudeTranslator.normalizeError(err);

@@ -5,7 +5,7 @@ import { ClaudeRequest, GeminiRequest, GeminiContent, GeminiPart, GeminiModelsRe
 const BYPASS_SIGNATURE = 'context_engineering_is_the_way_to_go';
 
 class ClaudeTranslator {
-  private modelMapping: Map<string, string>;
+  public modelMapping: Map<string, string>;
 
   constructor() {
     this.modelMapping = new Map<string, string>();
