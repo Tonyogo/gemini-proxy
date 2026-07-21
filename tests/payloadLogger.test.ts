@@ -7,11 +7,23 @@ describe('PayloadLogger Service', () => {
   const testId = 'test_transaction_abc123';
   const logsDir = config.transactionLogsDir || 'logs';
   const resolvedLogsDir = path.isAbsolute(logsDir) ? logsDir : path.join(process.cwd(), logsDir);
-  const filePath = path.join(resolvedLogsDir, `transaction_${testId}.json`);
+
+  // Dynamically compute the date/hour subfolder path matching PayloadLogger's formatting
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hour = String(now.getHours()).padStart(2, '0');
+
+  const targetDir = path.join(resolvedLogsDir, `${year}-${month}-${day}`, hour);
+  const filePath = path.join(targetDir, `transaction_${testId}.json`);
 
   afterEach(async () => {
     try {
       await fs.unlink(filePath);
+      // Clean up empty directories created during test run
+      await fs.rmdir(targetDir).catch(() => {});
+      await fs.rmdir(path.dirname(targetDir)).catch(() => {});
     } catch (e) {
       // ignore
     }
