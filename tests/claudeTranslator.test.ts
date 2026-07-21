@@ -1,4 +1,5 @@
 import translator from '../src/services/claudeTranslator';
+import { config } from '../config/default';
 
 describe('Claude to Gemini Request Translation', () => {
   it('throws a 400 error when model is completely missing', () => {
@@ -452,5 +453,34 @@ describe('Claude Translator Argument Type Coercion', () => {
     expect(coerced.taskId).toEqual('55');
     expect(coerced.percentage).toEqual(100);
     expect(coerced.unmappedField).toEqual(123);
+  });
+});
+
+describe('Claude Translator Model Name Mapping', () => {
+  it('correctly maps configured aliases to target models', () => {
+    // 1. Mock/configure modelMappings in the config
+    config.modelMappings = {
+      'gemini-pro-latest': 'gemini-flash-latest',
+      'claude-to-gemini-custom': 'gemini-2.5-pro'
+    };
+
+    // 2. Instantiate a fresh ClaudeTranslator to pick up the updated configuration
+    const translatorWithMapping = new (translator.constructor as any)();
+
+    // 3. Translate Claude request using mapped model 'gemini-pro-latest'
+    const payloadPro = {
+      model: 'gemini-pro-latest',
+      messages: [{ role: 'user', content: 'Hello' }]
+    } as any;
+    const resultPro = translatorWithMapping.translateClaudeToGoogle(payloadPro);
+    expect(resultPro.cleanModelName).toEqual('gemini-flash-latest'); // Mapped to flash-latest!
+
+    // 4. Translate Claude request using custom model 'claude-to-gemini-custom'
+    const payloadCustom = {
+      model: 'claude-to-gemini-custom',
+      messages: [{ role: 'user', content: 'Hello' }]
+    } as any;
+    const resultCustom = translatorWithMapping.translateClaudeToGoogle(payloadCustom);
+    expect(resultCustom.cleanModelName).toEqual('gemini-2.5-pro'); // Mapped to 2.5-pro!
   });
 });
