@@ -20,6 +20,7 @@ export const config = {
   logLevel: process.env.LOG_LEVEL || 'info',
   transactionLogsDir: process.env.TRANSACTION_LOGS_DIR || 'logs',
   modelMappings: parsedModelMappings,
+  customSystemInstruction: process.env.CUSTOM_SYSTEM_INSTRUCTION || '',
   allowedKeys: [] as string[]
 };
 
