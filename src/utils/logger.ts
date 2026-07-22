@@ -4,11 +4,10 @@ const levels: Record<string, number> = { error: 0, warn: 1, info: 2, debug: 3 };
 const currentLevel = levels[config.logLevel] !== undefined ? levels[config.logLevel] : 2;
 
 const isTestEnv = process.env.NODE_ENV === 'test';
-const enableLogsInTest = process.env.ENABLE_LOGS === 'true';
 
 const log = (level: string, message: string, ...meta: any[]) => {
-  // Suppress all console logs during testing unless explicitly enabled
-  if (isTestEnv && !enableLogsInTest) {
+  // Suppress all console logs during testing
+  if (isTestEnv) {
     return;
   }
 
