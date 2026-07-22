@@ -5,6 +5,7 @@ import { ModelConfig, GeminiModelsResponse, GeminiModelEntry } from '../types';
 import claudeTranslator from '../services/claudeTranslator';
 import payloadLogger from '../services/payloadLogger';
 import logger from '../utils/logger';
+import { StreamLifecycleManager } from '../utils/streamLifecycleManager';
 import {
   extractClientKey,
   getUpstreamUrl,
@@ -46,117 +47,136 @@ class ClaudeController {
       gemReq = googleRequest;
 
       if (isStream) {
+        const streamManager = new StreamLifecycleManager({ req, res, transactionId });
         const targetPath = `/v1beta/models/${cleanModelName}:streamGenerateContent?alt=sse`;
         const targetUrl = getUpstreamUrl(targetPath);
         logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini: POST ${targetPath}`);
 
-        const response = await fetch(targetUrl, {
-          method: 'POST',
-          headers: buildUpstreamHeaders(apiKey),
-          body: JSON.stringify(gemReq)
-        });
+        try {
+          const response = await fetch(targetUrl, {
+            method: 'POST',
+            headers: buildUpstreamHeaders(apiKey),
+            body: JSON.stringify(gemReq),
+            signal: streamManager.signal
+          });
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          let errorJson;
-          try { errorJson = JSON.parse(errorText); } catch (e) { /* ignore */ }
-          const errMessage = errorJson?.error?.message || errorText || 'Gemini upstream API error';
-          const errStatus = response.status;
-          const normalized = claudeTranslator.normalizeError({ status: errStatus, message: errMessage });
+          if (!response.ok) {
+            streamManager.markFinished();
+            const errorText = await response.text();
+            let errorJson;
+            try { errorJson = JSON.parse(errorText); } catch (e) { /* ignore */ }
+            const errMessage = errorJson?.error?.message || errorText || 'Gemini upstream API error';
+            const errStatus = response.status;
+            const normalized = claudeTranslator.normalizeError({ status: errStatus, message: errMessage });
 
-          const duration = Date.now() - startTime;
-          logger.error(`[Error] [Transaction: ${transactionId}] Stream request failed with status ${errStatus}: ${errMessage} (duration: ${(duration / 1000).toFixed(2)}s)`);
-          payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: errMessage }, normalized.payload, duration);
-          return res.status(normalized.status).json(normalized.payload);
+            const duration = Date.now() - startTime;
+            logger.error(`[Error] [Transaction: ${transactionId}] Stream request failed with status ${errStatus}: ${errMessage} (duration: ${(duration / 1000).toFixed(2)}s)`);
+            payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: errMessage }, normalized.payload, duration);
+            return res.status(normalized.status).json(normalized.payload);
+          }
+
+          streamManager.attachStream(response.body);
+
+          // Set SSE streaming headers
+          res.setHeader('Content-Type', 'text/event-stream');
+          res.setHeader('Cache-Control', 'no-cache');
+          res.setHeader('Connection', 'keep-alive');
+
+          const streamState = { tools: clientReq.tools };
+          const gemResChunks: any[] = [];
+          const claudeResChunks: string[] = [];
+          let streamBuffer = '';
+
+          response.body!.on('data', (buffer: Buffer) => {
+            if (streamManager.isAborted) return;
+            streamBuffer += buffer.toString('utf8');
+            const lines = streamBuffer.split('\n');
+            streamBuffer = lines.pop() || '';
+
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (!trimmed) continue;
+
+              if (trimmed.startsWith('data: ')) {
+                const jsonStr = trimmed.substring(6).trim();
+                if (jsonStr !== '[DONE]') {
+                  try {
+                    gemResChunks.push(JSON.parse(jsonStr));
+                  } catch (e) { /* ignore */ }
+                }
+              }
+
+              const translated = claudeTranslator.translateGoogleToClaudeStream(trimmed, cleanModelName, streamState);
+              if (translated && !res.writableEnded) {
+                claudeResChunks.push(translated);
+                res.write(translated);
+              }
+            }
+          });
+
+          response.body!.on('end', () => {
+            streamManager.markFinished();
+            if (streamManager.isAborted) return;
+
+            if (streamBuffer.trim()) {
+              const trimmed = streamBuffer.trim();
+              if (trimmed.startsWith('data: ')) {
+                const jsonStr = trimmed.substring(6).trim();
+                if (jsonStr !== '[DONE]') {
+                  try {
+                    gemResChunks.push(JSON.parse(jsonStr));
+                  } catch (e) { /* ignore */ }
+                }
+              }
+
+              const translated = claudeTranslator.translateGoogleToClaudeStream(trimmed, cleanModelName, streamState);
+              if (translated && !res.writableEnded) {
+                claudeResChunks.push(translated);
+                res.write(translated);
+              }
+            }
+
+            const duration = Date.now() - startTime;
+            logger.info(`[Response] [Transaction: ${transactionId}] Stream generated content finished successfully (duration: ${(duration / 1000).toFixed(2)}s)`);
+            payloadLogger.saveTransaction(transactionId, clientReq, gemReq, gemResChunks, claudeResChunks, duration);
+            res.end();
+          });
+
+          response.body!.on('error', (err: any) => {
+            streamManager.markFinished();
+            const duration = Date.now() - startTime;
+            if (streamManager.isAborted || err.name === 'AbortError') {
+              logger.info(`[Client Disconnect] [Transaction: ${transactionId}] Stream aborted due to client disconnect (duration: ${(duration / 1000).toFixed(2)}s)`);
+              return;
+            }
+            logger.error(`[Error] [Transaction: ${transactionId}] Stream reading error: ${err.message} (duration: ${(duration / 1000).toFixed(2)}s)`);
+            const errPayload = {
+              type: 'error',
+              error: { type: 'api_error', message: 'Downstream connection lost' }
+            };
+            if (!res.writableEnded) {
+              res.write(`event: error\ndata: ${JSON.stringify(errPayload)}\n\n`);
+              res.end();
+            }
+            payloadLogger.saveTransaction(
+              transactionId,
+              clientReq,
+              gemReq,
+              { error: err.message, partial_chunks: gemResChunks },
+              { error: err.message, partial_chunks: claudeResChunks },
+              duration
+            );
+          });
+
+          return;
+        } catch (err: any) {
+          streamManager.markFinished();
+          if (err.name === 'AbortError' || streamManager.isAborted) {
+            logger.info(`[Client Disconnect] [Transaction: ${transactionId}] Request fetch aborted due to client disconnect.`);
+            return;
+          }
+          throw err;
         }
-
-        // Set SSE streaming headers
-        res.setHeader('Content-Type', 'text/event-stream');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Connection', 'keep-alive');
-
-        const streamState = { tools: clientReq.tools };
-        const gemResChunks: any[] = [];
-        const claudeResChunks: string[] = [];
-        let streamBuffer = '';
-
-        // Read downstream response body stream chunk by chunk
-        response.body!.on('data', (buffer: Buffer) => {
-          streamBuffer += buffer.toString('utf8');
-          // Split multiple SSE chunks separated by newlines
-          const lines = streamBuffer.split('\n');
-
-          // The last element is either empty (if the text ended with a newline)
-          // or a partial line (if it didn't). We pop it off and keep it in the buffer.
-          streamBuffer = lines.pop() || '';
-
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (!trimmed) continue;
-
-            if (trimmed.startsWith('data: ')) {
-              const jsonStr = trimmed.substring(6).trim();
-              if (jsonStr !== '[DONE]') {
-                try {
-                  gemResChunks.push(JSON.parse(jsonStr));
-                } catch (e) { /* ignore */ }
-              }
-            }
-
-            const translated = claudeTranslator.translateGoogleToClaudeStream(trimmed, cleanModelName, streamState);
-            if (translated) {
-              claudeResChunks.push(translated);
-              res.write(translated);
-            }
-          }
-        });
-
-        response.body!.on('end', () => {
-          // Process any remaining data in the buffer
-          if (streamBuffer.trim()) {
-            const trimmed = streamBuffer.trim();
-            if (trimmed.startsWith('data: ')) {
-              const jsonStr = trimmed.substring(6).trim();
-              if (jsonStr !== '[DONE]') {
-                try {
-                  gemResChunks.push(JSON.parse(jsonStr));
-                } catch (e) { /* ignore */ }
-              }
-            }
-
-            const translated = claudeTranslator.translateGoogleToClaudeStream(trimmed, cleanModelName, streamState);
-            if (translated) {
-              claudeResChunks.push(translated);
-              res.write(translated);
-            }
-          }
-
-          const duration = Date.now() - startTime;
-          logger.info(`[Response] [Transaction: ${transactionId}] Stream generated content finished successfully (duration: ${(duration / 1000).toFixed(2)}s)`);
-          payloadLogger.saveTransaction(transactionId, clientReq, gemReq, gemResChunks, claudeResChunks, duration);
-          res.end();
-        });
-
-        response.body!.on('error', (err: any) => {
-          const duration = Date.now() - startTime;
-          logger.error(`[Error] [Transaction: ${transactionId}] Stream reading error: ${err.message} (duration: ${(duration / 1000).toFixed(2)}s)`);
-          const errPayload = {
-            type: 'error',
-            error: { type: 'api_error', message: 'Downstream connection lost' }
-          };
-          res.write(`event: error\ndata: ${JSON.stringify(errPayload)}\n\n`);
-          payloadLogger.saveTransaction(
-            transactionId,
-            clientReq,
-            gemReq,
-            { error: err.message, partial_chunks: gemResChunks },
-            { error: err.message, partial_chunks: claudeResChunks },
-            duration
-          );
-          res.end();
-        });
-
-        return;
       }
 
       // Non-Streaming generation

@@ -22,14 +22,14 @@ describe('StreamLifecycleManager', () => {
     expect(manager.isAborted).toBe(false);
   });
 
-  it('should abort AbortSignal when req emits close event', () => {
+  it('should abort AbortSignal when res emits close event', () => {
     const manager = new StreamLifecycleManager({
       req: mockReq as Request,
       res: mockRes as Response,
       transactionId: 'test_tx_2'
     });
 
-    mockReq.emit('close');
+    mockRes.emit('close');
 
     expect(manager.signal.aborted).toBe(true);
     expect(manager.isAborted).toBe(true);
@@ -42,12 +42,10 @@ describe('StreamLifecycleManager', () => {
       transactionId: 'test_tx_3'
     });
 
-    expect(mockReq.listenerCount('close')).toBe(1);
     expect(mockRes.listenerCount('close')).toBe(1);
 
     manager.markFinished();
 
-    expect(mockReq.listenerCount('close')).toBe(0);
     expect(mockRes.listenerCount('close')).toBe(0);
   });
 });

@@ -33,7 +33,6 @@ export class StreamLifecycleManager {
     this.res = options.res;
     this.transactionId = options.transactionId;
 
-    this.req.on('close', this.handleClose);
     this.res.on('close', this.handleClose);
   }
 
@@ -55,7 +54,6 @@ export class StreamLifecycleManager {
   }
 
   public cleanup(): void {
-    this.req.off('close', this.handleClose);
     this.res.off('close', this.handleClose);
   }
 }
