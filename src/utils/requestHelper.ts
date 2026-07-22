@@ -35,3 +35,53 @@ export function getUpstreamUrl(pathAndQuery: string): string {
 export function generateTransactionId(): string {
   return `${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 }
+
+/**
+ * Builds standard HTTP headers for proxying requests to Gemini upstream.
+ */
+export function buildUpstreamHeaders(apiKey: string, customHeaders?: Record<string, string>): Record<string, string> {
+  return {
+    'Content-Type': 'application/json',
+    'x-goog-api-key': apiKey,
+    ...customHeaders
+  };
+}
+
+/**
+ * Masks a sensitive API key for safe logging (e.g., "AIzaSy1234567890" -> "AIzaSy***7890").
+ */
+export function maskApiKey(key: string | null | undefined): string {
+  if (!key) return '';
+  if (key.length <= 10) return '***';
+  return `${key.substring(0, 6)}***${key.substring(key.length - 4)}`;
+}
+
+/**
+ * Recursively redacts sensitive API keys and Bearer tokens from objects, strings, or headers.
+ */
+export function sanitizeData(data: any): any {
+  if (!data) return data;
+  if (typeof data === 'string') {
+    return data
+      .replace(/([?&]key=)[^&\s]+/gi, '$1***')
+      .replace(/(bearer\s+)[A-Za-z0-9_\-\.]+/gi, '$1***');
+  }
+  if (typeof data === 'object') {
+    const sanitized = Array.isArray(data) ? [] : {};
+    for (const [k, v] of Object.entries(data)) {
+      if (['key', 'apikey', 'api_key', 'x-goog-api-key'].includes(k.toLowerCase()) && typeof v === 'string') {
+        (sanitized as any)[k] = maskApiKey(v);
+      } else if (k.toLowerCase() === 'authorization' && typeof v === 'string') {
+        if (/^bearer\s+/i.test(v)) {
+          (sanitized as any)[k] = 'Bearer***';
+        } else {
+          (sanitized as any)[k] = sanitizeData(v);
+        }
+      } else {
+        (sanitized as any)[k] = sanitizeData(v);
+      }
+    }
+    return sanitized;
+  }
+  return data;
+}

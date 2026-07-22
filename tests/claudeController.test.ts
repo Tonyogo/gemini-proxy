@@ -2,7 +2,7 @@ import request from 'supertest';
 import app from '../src/app';
 import config from '../config/default';
 import claudeController from '../src/controllers/claudeController';
-import { getUpstreamUrl, extractClientKey, generateTransactionId } from '../src/utils/requestHelper';
+import { getUpstreamUrl, extractClientKey, generateTransactionId, buildUpstreamHeaders, maskApiKey, sanitizeData } from '../src/utils/requestHelper';
 
 // Mock payloadLogger to prevent async disk writing side-effects and background log warnings
 jest.mock('../src/services/payloadLogger', () => ({
@@ -138,5 +138,66 @@ describe('generateTransactionId helper', () => {
     const id2 = generateTransactionId();
     expect(id1).not.toEqual(id2);
     expect(id1).toMatch(/^\d+_[a-z0-9]+$/);
+  });
+});
+
+describe('Security and Request Helpers', () => {
+  describe('buildUpstreamHeaders', () => {
+    it('creates headers with application/json and x-goog-api-key', () => {
+      const headers = buildUpstreamHeaders('my-secret-key');
+      expect(headers).toEqual({
+        'Content-Type': 'application/json',
+        'x-goog-api-key': 'my-secret-key'
+      });
+    });
+
+    it('merges custom headers', () => {
+      const headers = buildUpstreamHeaders('my-secret-key', { 'X-Custom': 'val' });
+      expect(headers).toEqual({
+        'Content-Type': 'application/json',
+        'x-goog-api-key': 'my-secret-key',
+        'X-Custom': 'val'
+      });
+    });
+  });
+
+  describe('maskApiKey', () => {
+    it('masks keys longer than 10 characters', () => {
+      expect(maskApiKey('AIzaSy1234567890')).toEqual('AIzaSy***7890');
+    });
+
+    it('returns *** for short keys', () => {
+      expect(maskApiKey('shortkey')).toEqual('***');
+    });
+
+    it('returns empty string for empty inputs', () => {
+      expect(maskApiKey('')).toEqual('');
+      expect(maskApiKey(null)).toEqual('');
+      expect(maskApiKey(undefined)).toEqual('');
+    });
+  });
+
+  describe('sanitizeData', () => {
+    it('redacts query string keys and Bearer tokens in strings', () => {
+      const input = 'https://api.com/v1?key=secret123 and Authorization: Bearer token456';
+      const result = sanitizeData(input);
+      expect(result).toEqual('https://api.com/v1?key=*** and Authorization: Bearer ***');
+    });
+
+    it('redacts sensitive keys in nested objects', () => {
+      const input = {
+        apiKey: 'AIzaSy1234567890',
+        headers: {
+          'x-goog-api-key': 'AIzaSy1234567890',
+          authorization: 'Bearer token123'
+        },
+        other: 'safe_data'
+      };
+      const result = sanitizeData(input);
+      expect(result.apiKey).toEqual('AIzaSy***7890');
+      expect(result.headers['x-goog-api-key']).toEqual('AIzaSy***7890');
+      expect(result.headers.authorization).toEqual('Bearer***');
+      expect(result.other).toEqual('safe_data');
+    });
   });
 });
