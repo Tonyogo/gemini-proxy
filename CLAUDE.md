@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **Build**: `npm run build` (compiles TypeScript to `dist/`)
 - **Clean**: `npm run clean` (deletes built files in `dist/`)
-- **Start Production**: `npm start` (runs built service from `dist/src/index.js`)
+- **Start Production**: `npm start` (automatically compiles TypeScript via `prestart` before running `dist/src/index.js`)
 - **Dev Mode**: `npm run dev` (starts hot-reloading development server via `ts-node-dev`)
 - **Run All Tests**: `npm test` (runs complete Jest test suite)
 - **Run Single Test**: `npx jest tests/<test-name>.test.ts` (e.g., `npx jest tests/claudeTranslator.test.ts`)
