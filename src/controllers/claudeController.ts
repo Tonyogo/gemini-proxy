@@ -8,7 +8,8 @@ import logger from '../utils/logger';
 import {
   extractClientKey,
   getUpstreamUrl,
-  generateTransactionId
+  generateTransactionId,
+  buildUpstreamHeaders
 } from '../utils/requestHelper';
 
 const SUPPORTED_MODELS: ModelConfig[] = [];
@@ -45,14 +46,13 @@ class ClaudeController {
       gemReq = googleRequest;
 
       if (isStream) {
-        const targetPath = `/v1beta/models/${cleanModelName}:streamGenerateContent?alt=sse&key=${apiKey}`;
-        const safeDisplayPath = targetPath.replace(/([?&]key=)[^&]*/, '$1***');
+        const targetPath = `/v1beta/models/${cleanModelName}:streamGenerateContent?alt=sse`;
         const targetUrl = getUpstreamUrl(targetPath);
-        logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini: POST ${safeDisplayPath}`);
+        logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini: POST ${targetPath}`);
 
         const response = await fetch(targetUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: buildUpstreamHeaders(apiKey),
           body: JSON.stringify(gemReq)
         });
 
@@ -160,14 +160,13 @@ class ClaudeController {
       }
 
       // Non-Streaming generation
-      const targetPath = `/v1beta/models/${cleanModelName}:generateContent?key=${apiKey}`;
-      const safeDisplayPath = targetPath.replace(/([?&]key=)[^&]*/, '$1***');
+      const targetPath = `/v1beta/models/${cleanModelName}:generateContent`;
       const targetUrl = getUpstreamUrl(targetPath);
-      logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini: POST ${safeDisplayPath}`);
+      logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini: POST ${targetPath}`);
 
       const response = await fetch(targetUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildUpstreamHeaders(apiKey),
         body: JSON.stringify(gemReq)
       });
 
@@ -231,14 +230,13 @@ class ClaudeController {
       const { googleRequest, cleanModelName } = claudeTranslator.translateClaudeToGoogle(clientReq);
       gemReq = googleRequest;
 
-      const targetPath = `/v1beta/models/${cleanModelName}:countTokens?key=${apiKey}`;
-      const safeDisplayPath = targetPath.replace(/([?&]key=)[^&]*/, '$1***');
+      const targetPath = `/v1beta/models/${cleanModelName}:countTokens`;
       const targetUrl = getUpstreamUrl(targetPath);
-      logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini: POST ${safeDisplayPath}`);
+      logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini: POST ${targetPath}`);
 
       const response = await fetch(targetUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: buildUpstreamHeaders(apiKey),
         body: JSON.stringify(gemReq)
       });
 
@@ -290,10 +288,10 @@ class ClaudeController {
         });
       }
 
-      const targetUrl = getUpstreamUrl(`/v1beta/models?key=${apiKey}`);
+      const targetUrl = getUpstreamUrl(`/v1beta/models`);
       const response = await fetch(targetUrl, {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
+        headers: buildUpstreamHeaders(apiKey)
       });
 
       if (!response.ok) {
@@ -355,10 +353,10 @@ class ClaudeController {
       const cleanModelId = modelId as string;
       const resolvedModelId = claudeTranslator.modelMapping.get(cleanModelId) || cleanModelId;
 
-      const targetUrl = getUpstreamUrl(`/v1beta/models/${resolvedModelId}?key=${apiKey}`);
+      const targetUrl = getUpstreamUrl(`/v1beta/models/${resolvedModelId}`);
       const response = await fetch(targetUrl, {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
+        headers: buildUpstreamHeaders(apiKey)
       });
 
       if (!response.ok) {
