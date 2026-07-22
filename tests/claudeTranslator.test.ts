@@ -527,3 +527,30 @@ describe('Claude Translator Model Name Mapping', () => {
     expect(resultCustom.cleanModelName).toEqual('gemini-2.5-pro'); // Mapped to 2.5-pro!
   });
 });
+
+describe('Claude Translator Custom System Instruction Injection', () => {
+  it('automatically injects customSystemInstruction when configured', () => {
+    config.customSystemInstruction = 'Always answer concisely in markdown.';
+
+    const claudePayloadNoSystem = {
+      model: 'gemini-3.5-flash',
+      messages: [{ role: 'user', content: 'Hello' }]
+    } as any;
+    const result1 = translator.translateClaudeToGoogle(claudePayloadNoSystem);
+    expect(result1.googleRequest.systemInstruction).toBeDefined();
+    expect(result1.googleRequest.systemInstruction!.parts[0].text).toEqual('Always answer concisely in markdown.');
+
+    const claudePayloadWithSystem = {
+      model: 'gemini-3.5-flash',
+      system: 'You are a code assistant.',
+      messages: [{ role: 'user', content: 'Hello' }]
+    } as any;
+    const result2 = translator.translateClaudeToGoogle(claudePayloadWithSystem);
+    expect(result2.googleRequest.systemInstruction).toBeDefined();
+    expect(result2.googleRequest.systemInstruction!.parts[0].text).toEqual(
+      'Always answer concisely in markdown.\nYou are a code assistant.'
+    );
+
+    config.customSystemInstruction = '';
+  });
+});
