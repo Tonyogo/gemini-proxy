@@ -3,7 +3,7 @@ dotenv.config();
 
 // Parse model mapping env var if provided, or default to standard fallback mappings
 let parsedModelMappings: Record<string, string> = {
-  'gemini-pro-latest': 'gemini-flash-latest' // Default fallback mapping
+  // 'gemini-pro-latest': 'gemini-flash-latest' // Default fallback mapping
 };
 
 if (process.env.MODEL_MAPPINGS) {
