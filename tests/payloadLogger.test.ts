@@ -71,3 +71,26 @@ describe('PayloadLogger Service', () => {
     expect(data.claude_res).toEqual(claudeRes);
   });
 });
+
+describe('PayloadLogger Sanitization', () => {
+  it('sanitizes sensitive client keys in transaction log files', async () => {
+    const spyWriteFile = jest.spyOn(fs, 'writeFile').mockResolvedValue(undefined as any);
+    jest.spyOn(fs, 'mkdir').mockResolvedValue(undefined as any);
+
+    await payloadLogger.saveTransaction(
+      'tx123',
+      { headers: { 'x-api-key': 'AIzaSy1234567890' } },
+      { url: 'https://api.com?key=AIzaSy1234567890' },
+      { status: 'ok' },
+      { type: 'message' },
+      100
+    );
+
+    expect(spyWriteFile).toHaveBeenCalled();
+    const savedContent = JSON.parse(spyWriteFile.mock.calls[0][1] as string);
+    expect(savedContent.client_req.headers['x-api-key']).toEqual('AIzaSy***7890');
+    expect(savedContent.gem_req.url).toEqual('https://api.com?key=***');
+
+    spyWriteFile.mockRestore();
+  });
+});

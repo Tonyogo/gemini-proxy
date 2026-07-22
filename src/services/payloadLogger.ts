@@ -2,6 +2,7 @@ import { promises as fs } from 'fs';
 import * as path from 'path';
 import config from '../../config/default';
 import logger from '../utils/logger';
+import { sanitizeData } from '../utils/requestHelper';
 
 class PayloadLogger {
   private debugDir: string;
@@ -40,10 +41,10 @@ class PayloadLogger {
 
       const payload = {
         duration: duration !== undefined ? duration : null,
-        client_req: clientReq || null,
-        gem_req: gemReq || null,
-        gem_res: gemRes || null,
-        claude_res: claudeRes || null
+        client_req: sanitizeData(clientReq) || null,
+        gem_req: sanitizeData(gemReq) || null,
+        gem_res: sanitizeData(gemRes) || null,
+        claude_res: sanitizeData(claudeRes) || null
       };
 
       const filePath = path.join(targetDir, `transaction_${transactionId}.json`);

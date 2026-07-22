@@ -69,7 +69,7 @@ export function sanitizeData(data: any): any {
   if (typeof data === 'object') {
     const sanitized = Array.isArray(data) ? [] : {};
     for (const [k, v] of Object.entries(data)) {
-      if (['key', 'apikey', 'api_key', 'x-goog-api-key'].includes(k.toLowerCase()) && typeof v === 'string') {
+      if (['key', 'apikey', 'api_key', 'x-goog-api-key', 'x-api-key'].includes(k.toLowerCase()) && typeof v === 'string') {
         (sanitized as any)[k] = maskApiKey(v);
       } else if (k.toLowerCase() === 'authorization' && typeof v === 'string') {
         if (/^bearer\s+/i.test(v)) {
