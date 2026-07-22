@@ -160,12 +160,12 @@ class ClaudeTranslator {
       }
     };
 
-    if (config.customSystemInstruction) {
-      appendSystemContent(config.customSystemInstruction);
-    }
-
     if (claudeBody.system) {
       appendSystemContent(claudeBody.system);
+    }
+
+    if (config.customSystemInstruction) {
+      appendSystemContent(config.customSystemInstruction);
     }
 
     const contents: GeminiContent[] = [];
