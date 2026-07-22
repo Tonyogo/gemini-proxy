@@ -206,7 +206,7 @@ describe('Claude Tools Interaction Roundtrips (Complex and Multi-Turn)', () => {
     expect(userBubble.parts[0].functionResponse!.id).toEqual('toolu_key_weather_01');
 
     expect(userBubble.parts[1].functionResponse!.name).toEqual('calculate_sum');
-    expect(userBubble.parts[1].functionResponse!.response.result[0].text).toEqual('15');
+    expect(userBubble.parts[1].functionResponse!.response.result).toEqual('15');
     expect(userBubble.parts[1].functionResponse!.id).toEqual('toolu_key_calc_02');
 
     expect(userBubble.parts[2].functionResponse!.name).toEqual('unknown_tool');
@@ -264,6 +264,57 @@ describe('Claude Tools Interaction Roundtrips (Complex and Multi-Turn)', () => {
     expect(userBubble.parts[0].functionResponse!.response.result).toEqual(
       'Base directory for this skill: /Users/yogo/... [Complete skill guide instructions here]'
     );
+  });
+
+  it('correctly extracts image blocks inside tool_result to functionResponse.parts as inlineData', () => {
+    const claudePayload = {
+      model: 'gemini-3.5-flash',
+      messages: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool_use',
+              id: 'toolu_g_take_screenshot',
+              name: 'take_screenshot',
+              input: {}
+            }
+          ]
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'toolu_g_take_screenshot',
+              content: [
+                { type: 'text', text: 'Screenshot captured successfully' },
+                {
+                  type: 'image',
+                  source: {
+                    type: 'base64',
+                    media_type: 'image/png',
+                    data: 'iVBORw0KGgoAAAANSUhEUgAA...'
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    } as any;
+
+    const result = translator.translateClaudeToGoogle(claudePayload);
+    const userBubble = result.googleRequest.contents[1];
+    expect(userBubble.role).toEqual('user');
+
+    const funcResp = userBubble.parts[0].functionResponse!;
+    expect(funcResp.name).toEqual('take_screenshot');
+    expect(funcResp.response.result).toEqual('Screenshot captured successfully');
+    expect(funcResp.parts).toBeDefined();
+    expect(funcResp.parts!.length).toEqual(1);
+    expect(funcResp.parts![0].inlineData!.mimeType).toEqual('image/png');
+    expect(funcResp.parts![0].inlineData!.data).toEqual('iVBORw0KGgoAAAANSUhEUgAA...');
   });
 });
 

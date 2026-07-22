@@ -226,38 +226,51 @@ class ClaudeTranslator {
               });
             } else if (block.type === 'tool_result') {
               const matchedName = toolIdToNameMap.get(block.tool_use_id) || 'unknown_tool';
-              // Extract Gemini ID if block.tool_use_id starts with "toolu_g_"
               const geminiResponseId = block.tool_use_id && block.tool_use_id.startsWith('toolu_g_') ? block.tool_use_id.substring(8) : block.tool_use_id;
 
-              // SKILL SUBSTITUTION BUGFIX: If we detect the "Skill" tool output being returned,
-              // check if it is followed by a text block containing the up-to-date Skill instructions.
-              // If so, substitute the text block content directly as the function's return response content,
-              // and skip emitting the redundant text block. This prevents Gemini from receiving confusing
-              // "Launching skill..." placeholder responses followed by a massive disjoint text instruction.
               const isSkillTool = matchedName === 'Skill' || matchedName.endsWith(':Skill');
               const blockIndex = msg.content.indexOf(block);
               const nextBlock = msg.content[blockIndex + 1];
 
+              let resultText: any = block.content;
+              const imageParts: any[] = [];
+
               if (isSkillTool && nextBlock && nextBlock.type === 'text') {
                 logger.info(`[Translator] [Skill Substitution] Active Skill interception applied: Substituting text block content as response result for tool_use_id '${block.tool_use_id}' and skipping redundant text block.`);
-                parts.push({
-                  functionResponse: {
-                    name: matchedName,
-                    response: { result: nextBlock.text }, // Substitute text content as tool result!
-                    id: geminiResponseId
-                  }
-                });
-                // Remove the subsequent text block from content array so it is not processed in subsequent loop passes
+                resultText = nextBlock.text;
                 msg.content.splice(blockIndex + 1, 1);
-              } else {
-                parts.push({
-                  functionResponse: {
-                    name: matchedName,
-                    response: { result: block.content },
-                    id: geminiResponseId
+              } else if (Array.isArray(block.content)) {
+                const textCollector: string[] = [];
+                for (const item of block.content) {
+                  if (typeof item === 'string') {
+                    textCollector.push(item);
+                  } else if (item && item.type === 'text') {
+                    if (item.text) textCollector.push(item.text);
+                  } else if (item && item.type === 'image' && item.source) {
+                    imageParts.push({
+                      inlineData: {
+                        mimeType: item.source.media_type,
+                        data: item.source.data
+                      }
+                    });
                   }
-                });
+                }
+                resultText = textCollector.join('\n');
               }
+
+              const functionResponseObj: any = {
+                name: matchedName,
+                response: { result: resultText },
+                id: geminiResponseId
+              };
+
+              if (imageParts.length > 0) {
+                functionResponseObj.parts = imageParts;
+              }
+
+              parts.push({
+                functionResponse: functionResponseObj
+              });
             }
           }
         }
