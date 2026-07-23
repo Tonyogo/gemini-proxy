@@ -119,6 +119,27 @@ class ClaudeTranslator {
     return result;
   }
 
+  /**
+   * Extracts Gemini inlineData part from a Claude media block (image, document, or base64 source).
+   */
+  private _extractMediaPart(item: any): GeminiPart | null {
+    if (!item || typeof item !== 'object') return null;
+
+    if ((item.type === 'image' || item.type === 'document') && item.source) {
+      const mimeType = item.source.media_type || 'application/octet-stream';
+      const data = item.source.data;
+      if (data) {
+        return { inlineData: { mimeType, data } };
+      }
+    }
+
+    if (item.source && item.source.data && item.source.media_type) {
+      return { inlineData: { mimeType: item.source.media_type, data: item.source.data } };
+    }
+
+    return null;
+  }
+
   public translateClaudeToGoogle(claudeBody: ClaudeRequest) {
     const rawModel = claudeBody.model;
 
@@ -209,13 +230,11 @@ class ClaudeTranslator {
           for (const block of msg.content) {
             if (block.type === 'text') {
               parts.push({ text: block.text });
-            } else if (block.type === 'image') {
-              parts.push({
-                inlineData: {
-                  mimeType: block.source.media_type,
-                  data: block.source.data
-                }
-              });
+            } else if (block.type === 'image' || block.type === 'document') {
+              const mediaPart = this._extractMediaPart(block);
+              if (mediaPart) {
+                parts.push(mediaPart);
+              }
             } else if (block.type === 'tool_use') {
               toolIdToNameMap.set(block.id, block.name);
               // Extract Gemini ID if block.id starts with "toolu_g_"
@@ -250,13 +269,11 @@ class ClaudeTranslator {
                     textCollector.push(item);
                   } else if (item && item.type === 'text') {
                     if (item.text) textCollector.push(item.text);
-                  } else if (item && item.type === 'image' && item.source) {
-                    imageParts.push({
-                      inlineData: {
-                        mimeType: item.source.media_type,
-                        data: item.source.data
-                      }
-                    });
+                  } else {
+                    const mediaPart = this._extractMediaPart(item);
+                    if (mediaPart) {
+                      imageParts.push(mediaPart);
+                    }
                   }
                 }
                 resultText = textCollector.join('\n');
