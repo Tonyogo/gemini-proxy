@@ -21,6 +21,7 @@ export const config = {
   transactionLogsDir: process.env.TRANSACTION_LOGS_DIR || 'logs',
   modelMappings: parsedModelMappings,
   customSystemInstruction: process.env.CUSTOM_SYSTEM_INSTRUCTION || '',
+  systemRoleToInstruction: process.env.SYSTEM_ROLE_TO_INSTRUCTION === 'true',
   upstreamTimeoutMs: parseInt(process.env.UPSTREAM_TIMEOUT_MS || '180000', 10),
   allowedKeys: [] as string[]
 };

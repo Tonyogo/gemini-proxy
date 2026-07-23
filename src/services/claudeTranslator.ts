@@ -140,6 +140,41 @@ class ClaudeTranslator {
     return null;
   }
 
+  /**
+   * Extracts a deduplication key from system message content using the first line or first 50 chars.
+   */
+  private _getSystemMessagePrefixKey(content: any): string {
+    let rawText = '';
+    if (typeof content === 'string') {
+      rawText = content;
+    } else if (Array.isArray(content)) {
+      rawText = content
+        .map((b: any) => (typeof b === 'string' ? b : b && b.text ? b.text : ''))
+        .filter(Boolean)
+        .join('\n');
+    }
+    const lines = rawText.trim().split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length > 0) {
+      return lines[0].substring(0, 50);
+    }
+    return rawText.trim().substring(0, 50);
+  }
+
+  /**
+   * Deduplicates array of system messages by prefix key, retaining only the latest entry for each prefix.
+   */
+  public deduplicateSystemMessages(messages: any[]): any[] {
+    const systemMsgs = messages.filter(m => m && m.role === 'system');
+    const latestByPrefix = new Map<string, any>();
+
+    for (const msg of systemMsgs) {
+      const key = this._getSystemMessagePrefixKey(msg.content);
+      latestByPrefix.set(key, msg);
+    }
+
+    return Array.from(latestByPrefix.values());
+  }
+
   public translateClaudeToGoogle(claudeBody: ClaudeRequest) {
     const rawModel = claudeBody.model;
 
@@ -189,9 +224,6 @@ class ClaudeTranslator {
       appendSystemContent(config.customSystemInstruction);
     }
 
-    const contents: GeminiContent[] = [];
-    const toolIdToNameMap = new Map<string, string>();
-
     const wrapSystemMessageContent = (content: any): GeminiPart[] => {
       const parts: GeminiPart[] = [];
       if (typeof content === 'string') {
@@ -210,10 +242,31 @@ class ClaudeTranslator {
       return parts;
     };
 
+    if (config.systemRoleToInstruction) {
+      const deduplicatedSystemMsgs = this.deduplicateSystemMessages(claudeBody.messages || []);
+      if (deduplicatedSystemMsgs.length > 0) {
+        appendSystemContent('Note: Content enclosed within <runtime-context> tags contains dynamic system instructions, runtime environment state, or client tool guidance.');
+        for (const sysMsg of deduplicatedSystemMsgs) {
+          const wrappedParts = wrapSystemMessageContent(sysMsg.content);
+          const textBlock = wrappedParts.map((p: any) => p.text || '').filter(Boolean).join('\n');
+          if (textBlock) {
+            appendSystemContent(textBlock);
+          }
+        }
+      }
+    }
+
+    const contents: GeminiContent[] = [];
+    const toolIdToNameMap = new Map<string, string>();
+
     if (claudeBody.messages && Array.isArray(claudeBody.messages)) {
       for (const msg of claudeBody.messages) {
         if (msg.role === 'system') {
-          // CLAUDE CODE CLI FIX: Map inline system roles to user role and wrap inside <runtime-context> tags
+          if (config.systemRoleToInstruction) {
+            // Skip inline insertion when systemRoleToInstruction switch is active
+            continue;
+          }
+          // Default behavior: Map inline system roles to user role and wrap inside <runtime-context> tags
           contents.push({
             role: 'user',
             parts: wrapSystemMessageContent(msg.content)

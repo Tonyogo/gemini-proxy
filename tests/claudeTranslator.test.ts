@@ -495,6 +495,10 @@ describe('ClaudeTranslator - SYSTEM_ROLE_TO_INSTRUCTION & Deduplication', () => 
           content: 'User message 1'
         },
         {
+          role: 'assistant',
+          content: 'Assistant reply'
+        },
+        {
           role: 'system',
           content: '# claudeMd\nVersion 2: Updated instruction content'
         },
@@ -512,9 +516,10 @@ describe('ClaudeTranslator - SYSTEM_ROLE_TO_INSTRUCTION & Deduplication', () => 
     const result = translator.translateClaudeToGoogle(claudePayload);
 
     // 1. Verify contents does NOT contain role: 'system' messages converted to user turns
-    expect(result.googleRequest.contents).toHaveLength(2);
+    expect(result.googleRequest.contents).toHaveLength(3);
     expect(result.googleRequest.contents[0].parts[0].text).toEqual('User message 1');
-    expect(result.googleRequest.contents[1].parts[0].text).toEqual('User message 2');
+    expect(result.googleRequest.contents[1].parts[0].text).toEqual('Assistant reply');
+    expect(result.googleRequest.contents[2].parts[0].text).toEqual('User message 2');
 
     // 2. Verify systemInstruction contains main prompt, explanation notice, and deduplicated system messages (Version 2 & customContext)
     expect(result.googleRequest.systemInstruction).toBeDefined();
