@@ -201,3 +201,36 @@ describe('Security and Request Helpers', () => {
     });
   });
 });
+
+describe('POST /v1/messages (Timeout Handling)', () => {
+  it('returns 504 Gateway Timeout when upstream fetch times out', async () => {
+    const fetchMock = require('node-fetch');
+    fetchMock.mockImplementationOnce((url: string, opts: any) => {
+      return new Promise((_, reject) => {
+        const error = new Error('The operation was aborted');
+        error.name = 'AbortError';
+        // Simulate abort signal trigger
+        if (opts && opts.signal) {
+          opts.signal.addEventListener('abort', () => {
+            reject(error);
+          });
+        }
+      });
+    });
+
+    const res = await request(app)
+      .post('/v1/messages')
+      .set('x-api-key', 'test-key')
+      .set('x-timeout-ms', '50')
+      .send({
+        model: 'gemini-3.5-flash',
+        messages: [{ role: 'user', content: 'Hello' }]
+      });
+
+    expect(res.statusCode).toEqual(504);
+    expect(res.body.type).toEqual('error');
+    expect(res.body.error.type).toEqual('timeout_error');
+    expect(res.body.error.message).toContain('timed out after 50ms');
+  });
+});
+

@@ -8,6 +8,7 @@ import logger from '../utils/logger';
 import { StreamLifecycleManager } from '../utils/streamLifecycleManager';
 import {
   extractClientKey,
+  extractTimeoutMs,
   getUpstreamUrl,
   generateTransactionId,
   buildUpstreamHeaders
@@ -28,6 +29,7 @@ class ClaudeController {
 
     try {
       const apiKey = extractClientKey(req);
+      const timeoutMs = extractTimeoutMs(req);
 
       if (!apiKey) {
         const errPayload = {
@@ -47,7 +49,7 @@ class ClaudeController {
       gemReq = googleRequest;
 
       if (isStream) {
-        const streamManager = new StreamLifecycleManager({ req, res, transactionId });
+        const streamManager = new StreamLifecycleManager({ req, res, transactionId, timeoutMs });
         const targetPath = `/v1beta/models/${cleanModelName}:streamGenerateContent?alt=sse`;
         const targetUrl = getUpstreamUrl(targetPath);
         logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini: POST ${targetPath}`);
@@ -146,6 +148,25 @@ class ClaudeController {
             streamManager.markFinished();
             const duration = Date.now() - startTime;
             if (streamManager.isAborted || err.name === 'AbortError') {
+              if (streamManager.reason === 'timeout') {
+                const errPayload = {
+                  type: 'error',
+                  error: {
+                    type: 'timeout_error',
+                    message: `Upstream request to Gemini API timed out after ${timeoutMs}ms`
+                  }
+                };
+                logger.warn(`[Timeout Error] [Transaction: ${transactionId}] Stream request timed out after ${timeoutMs}ms (duration: ${(duration / 1000).toFixed(2)}s)`);
+                payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: 'Timeout' }, errPayload, duration);
+
+                if (!res.headersSent) {
+                  return res.status(504).json(errPayload);
+                } else if (!res.writableEnded) {
+                  res.write(`event: error\ndata: ${JSON.stringify(errPayload)}\n\n`);
+                  res.end();
+                  return;
+                }
+              }
               logger.info(`[Client Disconnect] [Transaction: ${transactionId}] Stream aborted due to client disconnect (duration: ${(duration / 1000).toFixed(2)}s)`);
               return;
             }
@@ -171,7 +192,27 @@ class ClaudeController {
           return;
         } catch (err: any) {
           streamManager.markFinished();
+          const duration = Date.now() - startTime;
           if (err.name === 'AbortError' || streamManager.isAborted) {
+            if (streamManager.reason === 'timeout') {
+              const errPayload = {
+                type: 'error',
+                error: {
+                  type: 'timeout_error',
+                  message: `Upstream request to Gemini API timed out after ${timeoutMs}ms`
+                }
+              };
+              logger.warn(`[Timeout Error] [Transaction: ${transactionId}] Stream request timed out after ${timeoutMs}ms (duration: ${(duration / 1000).toFixed(2)}s)`);
+              payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: 'Timeout' }, errPayload, duration);
+
+              if (!res.headersSent) {
+                return res.status(504).json(errPayload);
+              } else if (!res.writableEnded) {
+                res.write(`event: error\ndata: ${JSON.stringify(errPayload)}\n\n`);
+                res.end();
+                return;
+              }
+            }
             logger.info(`[Client Disconnect] [Transaction: ${transactionId}] Request fetch aborted due to client disconnect.`);
             return;
           }
@@ -180,37 +221,63 @@ class ClaudeController {
       }
 
       // Non-Streaming generation
+      const streamManager = new StreamLifecycleManager({ req, res, transactionId, timeoutMs });
       const targetPath = `/v1beta/models/${cleanModelName}:generateContent`;
       const targetUrl = getUpstreamUrl(targetPath);
       logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini: POST ${targetPath}`);
 
-      const response = await fetch(targetUrl, {
-        method: 'POST',
-        headers: buildUpstreamHeaders(apiKey),
-        body: JSON.stringify(gemReq)
-      });
+      try {
+        const response = await fetch(targetUrl, {
+          method: 'POST',
+          headers: buildUpstreamHeaders(apiKey),
+          body: JSON.stringify(gemReq),
+          signal: streamManager.signal
+        });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        let errorJson;
-        try { errorJson = JSON.parse(errorText); } catch (e) { /* ignore */ }
-        const errMessage = errorJson?.error?.message || errorText || 'Gemini upstream API error';
-        const errStatus = response.status;
-        const normalized = claudeTranslator.normalizeError({ status: errStatus, message: errMessage });
+        streamManager.markFinished();
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          let errorJson;
+          try { errorJson = JSON.parse(errorText); } catch (e) { /* ignore */ }
+          const errMessage = errorJson?.error?.message || errorText || 'Gemini upstream API error';
+          const errStatus = response.status;
+          const normalized = claudeTranslator.normalizeError({ status: errStatus, message: errMessage });
+
+          const duration = Date.now() - startTime;
+          logger.error(`[Error] [Transaction: ${transactionId}] Non-stream request failed with status ${errStatus}: ${errMessage} (duration: ${(duration / 1000).toFixed(2)}s)`);
+          payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: errMessage }, normalized.payload, duration);
+          return res.status(normalized.status).json(normalized.payload);
+        }
+
+        const geminiData = await response.json();
+        const translatedResponse = claudeTranslator.convertGoogleToClaudeNonStream(geminiData, cleanModelName, clientReq.tools);
 
         const duration = Date.now() - startTime;
-        logger.error(`[Error] [Transaction: ${transactionId}] Non-stream request failed with status ${errStatus}: ${errMessage} (duration: ${(duration / 1000).toFixed(2)}s)`);
-        payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: errMessage }, normalized.payload, duration);
-        return res.status(normalized.status).json(normalized.payload);
+        logger.info(`[Response] [Transaction: ${transactionId}] Non-stream content successfully returned with 200 OK (duration: ${(duration / 1000).toFixed(2)}s)`);
+        payloadLogger.saveTransaction(transactionId, clientReq, gemReq, geminiData, translatedResponse, duration);
+        return res.status(200).json(translatedResponse);
+      } catch (err: any) {
+        streamManager.markFinished();
+        const duration = Date.now() - startTime;
+        if (err.name === 'AbortError' || streamManager.isAborted) {
+          if (streamManager.reason === 'timeout') {
+            const errPayload = {
+              type: 'error',
+              error: {
+                type: 'timeout_error',
+                message: `Upstream request to Gemini API timed out after ${timeoutMs}ms`
+              }
+            };
+            logger.warn(`[Timeout Error] [Transaction: ${transactionId}] Request timed out after ${timeoutMs}ms (duration: ${(duration / 1000).toFixed(2)}s)`);
+            payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: 'Timeout' }, errPayload, duration);
+            return res.status(504).json(errPayload);
+          }
+          logger.info(`[Client Disconnect] [Transaction: ${transactionId}] Non-stream request fetch aborted due to client disconnect.`);
+          return;
+        }
+        throw err;
       }
-
-      const geminiData = await response.json();
-      const translatedResponse = claudeTranslator.convertGoogleToClaudeNonStream(geminiData, cleanModelName, clientReq.tools);
-
-      const duration = Date.now() - startTime;
-      logger.info(`[Response] [Transaction: ${transactionId}] Non-stream content successfully returned with 200 OK (duration: ${(duration / 1000).toFixed(2)}s)`);
-      payloadLogger.saveTransaction(transactionId, clientReq, gemReq, geminiData, translatedResponse, duration);
-      return res.status(200).json(translatedResponse);
     } catch (err: any) {
       const duration = Date.now() - startTime;
       logger.error(`[Error] [Transaction: ${transactionId}] Unhandled error: ${err.message} (duration: ${(duration / 1000).toFixed(2)}s)`);
