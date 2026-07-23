@@ -85,6 +85,92 @@ describe('Claude to Gemini Request Translation', () => {
     expect(parts[1].inlineData!.mimeType).toEqual('image/png');
     expect(parts[1].inlineData!.data).toEqual('iVBORw0KGgoAAAANS...');
   });
+
+  it('correctly translates document (PDF) blocks in user messages to Gemini inlineData parts', () => {
+    const claudeReq: any = {
+      model: 'claude-3-5-sonnet-20241022',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Here is a document:' },
+            {
+              type: 'document',
+              source: {
+                type: 'base64',
+                media_type: 'application/pdf',
+                data: 'JVBERi0xLjQK...'
+              }
+            }
+          ]
+        }
+      ]
+    };
+
+    const { googleRequest } = translator.translateClaudeToGoogle(claudeReq);
+    expect(googleRequest.contents).toHaveLength(1);
+    expect(googleRequest.contents[0].parts).toHaveLength(2);
+    expect(googleRequest.contents[0].parts[0]).toEqual({ text: 'Here is a document:' });
+    expect(googleRequest.contents[0].parts[1]).toEqual({
+      inlineData: {
+        mimeType: 'application/pdf',
+        data: 'JVBERi0xLjQK...'
+      }
+    });
+  });
+
+  it('correctly extracts document blocks inside tool_result to functionResponse.parts as inlineData', () => {
+    const claudeReq: any = {
+      model: 'claude-3-5-sonnet-20241022',
+      messages: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool_use',
+              id: 'toolu_123',
+              name: 'fetch_pdf',
+              input: {}
+            }
+          ]
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'toolu_123',
+              content: [
+                { type: 'text', text: 'Fetched file output:' },
+                {
+                  type: 'document',
+                  source: {
+                    type: 'base64',
+                    media_type: 'application/pdf',
+                    data: 'JVBERi0xLjQK...'
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    };
+
+    const { googleRequest } = translator.translateClaudeToGoogle(claudeReq);
+    expect(googleRequest.contents).toHaveLength(2);
+    const userTurn = googleRequest.contents[1];
+    expect(userTurn.parts[0].functionResponse).toBeDefined();
+    expect(userTurn.parts[0].functionResponse?.name).toBe('fetch_pdf');
+    expect(userTurn.parts[0].functionResponse?.response?.result).toBe('Fetched file output:');
+    expect(userTurn.parts[0].functionResponse?.parts).toHaveLength(1);
+    expect(userTurn.parts[0].functionResponse?.parts?.[0]).toEqual({
+      inlineData: {
+        mimeType: 'application/pdf',
+        data: 'JVBERi0xLjQK...'
+      }
+    });
+  });
 });
 
 describe('Claude to Gemini Tools Schema Sanitization', () => {
