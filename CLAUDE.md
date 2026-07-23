@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Clean**: `npm run clean` (deletes built files in `dist/`)
 - **Start Production**: `npm start` (automatically compiles TypeScript via `prestart` before running `dist/src/index.js`)
 - **Dev Mode**: `npm run dev` (starts hot-reloading development server via `ts-node-dev`)
-- **Run All Tests**: `npm test` (runs complete Jest test suite)
+- **Run All Tests**: `npm test` (runs complete Jest test suite; use `npx jest --runInBand` if experiencing SIGSEGV clustering issues)
 - **Run Single Test**: `npx jest tests/<test-name>.test.ts` (e.g., `npx jest tests/claudeTranslator.test.ts`)
 
 ## Architecture & Structure
@@ -22,10 +22,14 @@ This is a **stateless, zero-persistence API proxy** that translates Anthropic Cl
   - Extracts the Gemini API Key from incoming headers (`x-api-key`, `Authorization: Bearer <key>`, `x-goog-api-key`, or `query.key`) and passes it exclusively via the `x-goog-api-key` HTTP header to upstream Gemini endpoints.
   - Automatically filters/sanitizes internal mapping metadata (`gemini_mapping`) when returning available models.
 
+- **Stream Lifecycle & Abort Management (`src/utils/streamLifecycleManager.ts`):**
+  - Manages stream generation timeouts (`upstreamTimeoutMs`) and early client disconnect events using `StreamLifecycleManager`.
+  - Safely propagates abort signals to cancel pending fetch requests upstream and handles `504` Gateway Timeout when responses exceed the limit.
+
 - **Translation Service (`src/services/claudeTranslator.ts`):**
   - **JSON Schema Translation**: Recursively converts Claude tool schemas to Gemini-compatible specifications (handling upper-casing, type transformations, and stripping unsupported features like `$schema`, `additionalProperties`, etc.).
-  - **System Message Mapping**: Handles `system` prompt blocks and wraps inline system history roles as `user` content enclosed in `<system-reminder>` tags to maintain pure chronological turn orders.
-  - **Special Skill Substitution Hook**: Intercepts `Skill` tool uses and substitutes the subsequently received instructions directly into the tool result. This maintains robust behavior under Claude Code workflows, preventing Gemini empty responses.
+  - **System Message Mapping**: Handles `system` prompt blocks and wraps inline system history roles as `user` content enclosed in `<runtime-context>` tags to maintain pure chronological turn orders.
+  - **Multimodal and Document Support**: Automatically extracts images and document blocks (`type === 'document'` / PDF base64 payloads) from prompts or `tool_result` content lists into Gemini `inlineData` parts.
   - **Thinking Mode Mapping**: Maps Claude's `thinking` parameters to Gemini's thinking budget and includes thoughts token usage calculations in response token counts.
 
 - **Payload Debug Logger (`src/services/payloadLogger.ts`):**
