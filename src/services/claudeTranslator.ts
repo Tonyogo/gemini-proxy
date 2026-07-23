@@ -251,18 +251,25 @@ class ClaudeTranslator {
               const matchedName = toolIdToNameMap.get(block.tool_use_id) || 'unknown_tool';
               const geminiResponseId = block.tool_use_id && block.tool_use_id.startsWith('toolu_g_') ? block.tool_use_id.substring(8) : block.tool_use_id;
 
-              const isSkillTool = matchedName === 'Skill' || matchedName.endsWith(':Skill');
-              const blockIndex = msg.content.indexOf(block);
-              const nextBlock = msg.content[blockIndex + 1];
+              /*
+               * NOTE ON MULTI-TURN TOOL CALLING & SYSTEM INSTRUCTIONS (e.g. Claude Code "Skill" tool):
+               *
+               * Historically, some clients (like Claude Code CLI) emitted a "Skill" tool result followed by
+               * a disconnected user text block containing massive instructions. Translators used to
+               * perform lookahead splicing here to merge them to prevent Gemini empty-response (NATURAL_STOP) issues.
+               *
+               * To maintain a pure, stateless translation layer without mutating request payload structures
+               * or introducing leaky abstractions for specific tool suites, we translate blocks exactly as received.
+               *
+               * If you experience empty responses during skill execution, ensure that the client tool returns
+               * the complete instructional content directly inside the tool_result content payload, rather than
+               * split across disjoint sibling text blocks.
+               */
 
               let resultText: any = block.content;
               const imageParts: any[] = [];
 
-              if (isSkillTool && nextBlock && nextBlock.type === 'text') {
-                logger.info(`[Translator] [Skill Substitution] Active Skill interception applied: Substituting text block content as response result for tool_use_id '${block.tool_use_id}' and skipping redundant text block.`);
-                resultText = nextBlock.text;
-                msg.content.splice(blockIndex + 1, 1);
-              } else if (Array.isArray(block.content)) {
+              if (Array.isArray(block.content)) {
                 const textCollector: string[] = [];
                 for (const item of block.content) {
                   if (typeof item === 'string') {
