@@ -28,7 +28,7 @@ This is a **stateless, zero-persistence API proxy** that translates Anthropic Cl
 
 - **Translation Service (`src/services/claudeTranslator.ts`):**
   - **JSON Schema Translation**: Recursively converts Claude tool schemas to Gemini-compatible specifications (handling upper-casing, type transformations, and stripping unsupported features like `$schema`, `additionalProperties`, etc.).
-  - **System Message Mapping**: Handles `system` prompt blocks and wraps inline system history roles as `user` content enclosed in `<runtime-context>` tags to maintain pure chronological turn orders.
+  - **System Message Mapping**: Handles `system` prompt blocks, converts inline system message history roles into user/systemInstruction depending on `SYSTEM_ROLE_TO_INSTRUCTION`, and wraps inline system contexts in customizable tags defined by `RUNTIME_CONTEXT_TAG` (default `<runtime-context>`). Includes prefix-based deduplication (`deduplicateSystemMessages`).
   - **Multimodal and Document Support**: Automatically extracts images and document blocks (`type === 'document'` / PDF base64 payloads) from prompts or `tool_result` content lists into Gemini `inlineData` parts.
   - **Thinking Mode Mapping**: Maps Claude's `thinking` parameters to Gemini's thinking budget and includes thoughts token usage calculations in response token counts.
 
@@ -44,6 +44,9 @@ This is a **stateless, zero-persistence API proxy** that translates Anthropic Cl
   - `GEMINI_BASE_URL`: Base upstream URL (default `https://generativelanguage.googleapis.com`).
   - `LOG_LEVEL`: Console logging verbosity (`error`, `warn`, `info`, `debug`).
   - `TRANSACTION_LOGS_DIR`: Partitioned log directory path.
+  - `SYSTEM_ROLE_TO_INSTRUCTION`: Boolean switch (`true`/`false`) to route inline `role: 'system'` messages to `systemInstruction` with deduplication instead of inserting user turns into `contents`.
+  - `RUNTIME_CONTEXT_TAG`: Configurable wrapper tag name (default `runtime-context`).
+  - `UPSTREAM_TIMEOUT_MS`: Timeout for upstream Gemini requests in milliseconds (default `180000`).
   - `CUSTOM_SYSTEM_INSTRUCTION`: Optional custom system instructions injected as supplementary constraints into all upstream calls.
   - `MODEL_MAPPINGS`: Optional JSON mapping dictionary to alias or redirect model requests.
 
