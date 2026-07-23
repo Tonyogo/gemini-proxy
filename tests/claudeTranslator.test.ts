@@ -468,6 +468,66 @@ describe('Gemini to Claude Non-Stream Response Translation', () => {
   });
 });
 
+describe('ClaudeTranslator - SYSTEM_ROLE_TO_INSTRUCTION & Deduplication', () => {
+  let originalSwitchValue: boolean;
+
+  beforeEach(() => {
+    originalSwitchValue = config.systemRoleToInstruction;
+  });
+
+  afterEach(() => {
+    config.systemRoleToInstruction = originalSwitchValue;
+  });
+
+  it('routes system messages to systemInstruction and deduplicates when systemRoleToInstruction is enabled', () => {
+    config.systemRoleToInstruction = true;
+
+    const claudePayload: any = {
+      model: 'gemini-3.5-flash',
+      system: 'Main system instruction',
+      messages: [
+        {
+          role: 'system',
+          content: '# claudeMd\nVersion 1: Old instruction content'
+        },
+        {
+          role: 'user',
+          content: 'User message 1'
+        },
+        {
+          role: 'system',
+          content: '# claudeMd\nVersion 2: Updated instruction content'
+        },
+        {
+          role: 'system',
+          content: '# customContext\nUnique context content'
+        },
+        {
+          role: 'user',
+          content: 'User message 2'
+        }
+      ]
+    };
+
+    const result = translator.translateClaudeToGoogle(claudePayload);
+
+    // 1. Verify contents does NOT contain role: 'system' messages converted to user turns
+    expect(result.googleRequest.contents).toHaveLength(2);
+    expect(result.googleRequest.contents[0].parts[0].text).toEqual('User message 1');
+    expect(result.googleRequest.contents[1].parts[0].text).toEqual('User message 2');
+
+    // 2. Verify systemInstruction contains main prompt, explanation notice, and deduplicated system messages (Version 2 & customContext)
+    expect(result.googleRequest.systemInstruction).toBeDefined();
+    const systemText = result.googleRequest.systemInstruction!.parts[0].text;
+
+    expect(systemText).toContain('Main system instruction');
+    expect(systemText).toContain('Note: Content enclosed within <runtime-context> tags');
+    expect(systemText).toContain('<runtime-context>\n# claudeMd\nVersion 2: Updated instruction content\n</runtime-context>');
+    expect(systemText).toContain('<runtime-context>\n# customContext\nUnique context content\n</runtime-context>');
+    expect(systemText).not.toContain('Version 1');
+  });
+});
+
 describe('Gemini to Claude Stream Response Translation', () => {
   it('correctly translates functionCall stream chunks to incremental input_json_delta format', () => {
     const streamState: any = {};
