@@ -22,6 +22,7 @@ export const config = {
   modelMappings: parsedModelMappings,
   customSystemInstruction: process.env.CUSTOM_SYSTEM_INSTRUCTION || '',
   systemRoleToInstruction: process.env.SYSTEM_ROLE_TO_INSTRUCTION === 'true',
+  runtimeContextTag: process.env.RUNTIME_CONTEXT_TAG || 'runtime-context',
   upstreamTimeoutMs: parseInt(process.env.UPSTREAM_TIMEOUT_MS || '180000', 10),
   allowedKeys: [] as string[]
 };

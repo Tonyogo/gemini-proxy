@@ -224,16 +224,18 @@ class ClaudeTranslator {
       appendSystemContent(config.customSystemInstruction);
     }
 
+    const tag = config.runtimeContextTag || 'runtime-context';
+
     const wrapSystemMessageContent = (content: any): GeminiPart[] => {
       const parts: GeminiPart[] = [];
       if (typeof content === 'string') {
-        parts.push({ text: `<runtime-context>\n${content}\n</runtime-context>` });
+        parts.push({ text: `<${tag}>\n${content}\n</${tag}>` });
       } else if (Array.isArray(content)) {
         for (const block of content) {
           if (block.type === 'text') {
-            parts.push({ text: `<runtime-context>\n${block.text}\n</runtime-context>` });
+            parts.push({ text: `<${tag}>\n${block.text}\n</${tag}>` });
           } else if (block.text) {
-            parts.push({ text: `<runtime-context>\n${block.text}\n</runtime-context>` });
+            parts.push({ text: `<${tag}>\n${block.text}\n</${tag}>` });
           } else {
             parts.push(block);
           }
@@ -245,7 +247,7 @@ class ClaudeTranslator {
     if (config.systemRoleToInstruction) {
       const deduplicatedSystemMsgs = this.deduplicateSystemMessages(claudeBody.messages || []);
       if (deduplicatedSystemMsgs.length > 0) {
-        appendSystemContent('Note: Content enclosed within <runtime-context> tags contains dynamic system instructions, runtime environment state, or client tool guidance.');
+        appendSystemContent(`Note: Content enclosed within <${tag}> tags contains dynamic system instructions, runtime environment state, or client tool guidance.`);
         for (const sysMsg of deduplicatedSystemMsgs) {
           const wrappedParts = wrapSystemMessageContent(sysMsg.content);
           const textBlock = wrappedParts.map((p: any) => p.text || '').filter(Boolean).join('\n');
