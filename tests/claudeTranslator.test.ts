@@ -53,7 +53,7 @@ describe('Claude to Gemini Request Translation', () => {
     // Combined message parts (was role: system merged into next role: user block)
     expect(result.googleRequest.contents[0].role).toEqual('user');
     expect(result.googleRequest.contents[0].parts[0].text).toEqual(
-      '<system-reminder>\nThis is a message system prompt\n</system-reminder>'
+      '<runtime-context>\nThis is a message system prompt\n</runtime-context>'
     );
 
     // Second part of merged message (was role: user)

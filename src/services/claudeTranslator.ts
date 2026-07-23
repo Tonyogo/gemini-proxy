@@ -195,13 +195,13 @@ class ClaudeTranslator {
     const wrapSystemMessageContent = (content: any): GeminiPart[] => {
       const parts: GeminiPart[] = [];
       if (typeof content === 'string') {
-        parts.push({ text: `<system-reminder>\n${content}\n</system-reminder>` });
+        parts.push({ text: `<runtime-context>\n${content}\n</runtime-context>` });
       } else if (Array.isArray(content)) {
         for (const block of content) {
           if (block.type === 'text') {
-            parts.push({ text: `<system-reminder>\n${block.text}\n</system-reminder>` });
+            parts.push({ text: `<runtime-context>\n${block.text}\n</runtime-context>` });
           } else if (block.text) {
-            parts.push({ text: `<system-reminder>\n${block.text}\n</system-reminder>` });
+            parts.push({ text: `<runtime-context>\n${block.text}\n</runtime-context>` });
           } else {
             parts.push(block);
           }
@@ -213,7 +213,7 @@ class ClaudeTranslator {
     if (claudeBody.messages && Array.isArray(claudeBody.messages)) {
       for (const msg of claudeBody.messages) {
         if (msg.role === 'system') {
-          // CLAUDE CODE CLI FIX: Map inline system roles to user role and wrap inside <system-reminder> tags
+          // CLAUDE CODE CLI FIX: Map inline system roles to user role and wrap inside <runtime-context> tags
           contents.push({
             role: 'user',
             parts: wrapSystemMessageContent(msg.content)
