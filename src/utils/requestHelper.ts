@@ -21,6 +21,21 @@ export function extractClientKey(req: Request): string | null {
 }
 
 /**
+ * Extracts per-request timeout in milliseconds from 'x-timeout-ms' header,
+ * falling back to default config.upstreamTimeoutMs.
+ */
+export function extractTimeoutMs(req: Request): number {
+  const headerValue = req.headers['x-timeout-ms'];
+  if (headerValue !== undefined && headerValue !== null) {
+    const parsed = parseInt(String(headerValue), 10);
+    if (!isNaN(parsed) && parsed >= 0) {
+      return parsed;
+    }
+  }
+  return config.upstreamTimeoutMs;
+}
+
+/**
  * Normalizes and builds the absolute upstream Gemini URL for proxying.
  */
 export function getUpstreamUrl(pathAndQuery: string): string {
