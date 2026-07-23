@@ -402,6 +402,35 @@ describe('Claude Tools Interaction Roundtrips (Complex and Multi-Turn)', () => {
     expect(funcResp.parts![0].inlineData!.mimeType).toEqual('image/png');
     expect(funcResp.parts![0].inlineData!.data).toEqual('iVBORw0KGgoAAAANSUhEUgAA...');
   });
+
+  it('supports custom runtimeContextTag configuration overriding', () => {
+    const originalTag = config.runtimeContextTag;
+    try {
+      config.runtimeContextTag = 'custom-system-wrapper';
+
+      const claudePayload: any = {
+        model: 'gemini-3.5-flash',
+        messages: [
+          {
+            role: 'system',
+            content: 'Custom tagged system message'
+          },
+          {
+            role: 'user',
+            content: 'User message'
+          }
+        ]
+      };
+
+      const result = translator.translateClaudeToGoogle(claudePayload);
+
+      expect(result.googleRequest.contents[0].parts[0].text).toEqual(
+        '<custom-system-wrapper>\nCustom tagged system message\n</custom-system-wrapper>'
+      );
+    } finally {
+      config.runtimeContextTag = originalTag;
+    }
+  });
 });
 
 describe('Gemini to Claude Non-Stream Response Translation', () => {
