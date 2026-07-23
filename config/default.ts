@@ -24,7 +24,9 @@ export const config = {
   systemRoleToInstruction: process.env.SYSTEM_ROLE_TO_INSTRUCTION === 'true',
   runtimeContextTag: process.env.RUNTIME_CONTEXT_TAG || 'runtime-context',
   upstreamTimeoutMs: parseInt(process.env.UPSTREAM_TIMEOUT_MS || '180000', 10),
-  allowedKeys: [] as string[]
+  allowedKeys: [] as string[],
+  adminSecretKey: process.env.ADMIN_SECRET_KEY || '',
+  enableUi: process.env.ENABLE_UI !== 'false'
 };
 
 export default config;
