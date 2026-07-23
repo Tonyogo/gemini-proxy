@@ -5,9 +5,12 @@
   "main": "dist/src/index.js",
   "type": "commonjs",
   "scripts": {
-    "build": "tsc",
+    "build:frontend": "cd frontend && npm install && npm run build",
+    "build:backend": "tsc",
+    "build": "npm run build:frontend && npm run build:backend",
     "prestart": "npm run build",
     "start": "node dist/src/index.js",
+    "dev:frontend": "cd frontend && npm run dev",
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "test": "jest",
     "clean": "rm -rf dist"
