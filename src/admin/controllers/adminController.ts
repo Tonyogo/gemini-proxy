@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import * as path from 'path';
 import { promises as fs } from 'fs';
-import config from '../../../config/default';
+import config, { updateConfig } from '../../../config/default';
 import logService from '../services/logService';
 
 class AdminController {
@@ -61,6 +61,28 @@ class AdminController {
   public async getStats(req: Request, res: Response): Promise<void> {
     const stats = await logService.getStats();
     res.json(stats);
+  }
+
+  public async updateConfig(req: Request, res: Response): Promise<void> {
+    try {
+      const newConfig = req.body;
+      await updateConfig(newConfig);
+      res.json({
+        status: 'ok',
+        message: 'Configuration updated successfully',
+        config: {
+          logLevel: config.logLevel,
+          systemRoleToInstruction: config.systemRoleToInstruction,
+          runtimeContextTag: config.runtimeContextTag,
+          upstreamTimeoutMs: config.upstreamTimeoutMs,
+          customSystemInstruction: config.customSystemInstruction,
+          modelMappings: config.modelMappings,
+          timeZone: config.timeZone
+        }
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: `Failed to update configuration: ${err.message}` });
+    }
   }
 }
 

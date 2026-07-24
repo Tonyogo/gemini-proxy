@@ -39,4 +39,17 @@ describe('Admin API Endpoints', () => {
     expect(res.body).toHaveProperty('tree');
     expect(typeof res.body.tree).toBe('object');
   });
+
+  test('POST /api/admin/config updates configuration', async () => {
+    const res = await request(app)
+      .post('/api/admin/config')
+      .send({
+        runtimeContextTag: 'admin-test-tag',
+        systemRoleToInstruction: true
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('ok');
+    expect(res.body.config.runtimeContextTag).toBe('admin-test-tag');
+    expect(res.body.config.systemRoleToInstruction).toBe(true);
+  });
 });
