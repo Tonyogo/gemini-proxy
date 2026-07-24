@@ -15,7 +15,8 @@ class AdminController {
         systemRoleToInstruction: config.systemRoleToInstruction,
         runtimeContextTag: config.runtimeContextTag,
         upstreamTimeoutMs: config.upstreamTimeoutMs,
-        enableUi: config.enableUi
+        enableUi: config.enableUi,
+        timeZone: config.timeZone
       }
     });
   }

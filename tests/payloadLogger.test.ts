@@ -8,12 +8,25 @@ describe('PayloadLogger Service', () => {
   const logsDir = config.transactionLogsDir || 'logs';
   const resolvedLogsDir = path.isAbsolute(logsDir) ? logsDir : path.join(process.cwd(), logsDir);
 
-  // Dynamically compute the date/hour subfolder path matching PayloadLogger's formatting
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  const hour = String(now.getHours()).padStart(2, '0');
+  // Dynamically compute target directory matching Intl TIME_ZONE
+  const timeZone = config.timeZone || 'Asia/Shanghai';
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    hourCycle: 'h23'
+  });
+
+  const parts = formatter.formatToParts(new Date());
+  const getPart = (type: string) => parts.find(p => p.type === type)?.value || '00';
+
+  const year = getPart('year');
+  const month = getPart('month');
+  const day = getPart('day');
+  let hour = getPart('hour');
+  if (hour === '24') hour = '00';
 
   const targetDir = path.join(resolvedLogsDir, `${year}-${month}-${day}`, hour);
   const filePath = path.join(targetDir, `transaction_${testId}.json`);
@@ -21,7 +34,6 @@ describe('PayloadLogger Service', () => {
   afterEach(async () => {
     try {
       await fs.unlink(filePath);
-      // Clean up empty directories created during test run
       await fs.rmdir(targetDir).catch(() => {});
       await fs.rmdir(path.dirname(targetDir)).catch(() => {});
     } catch (e) {
@@ -29,7 +41,7 @@ describe('PayloadLogger Service', () => {
     }
   });
 
-  it('correctly creates the directory and writes pretty-printed json payload with 4 keys', async () => {
+  it('correctly creates the directory and writes json payload', async () => {
     const clientReq = { messages: [{ role: 'user', content: 'Hi' }] };
     const gemReq = { contents: [{ role: 'user', parts: [{ text: 'Hi' }] }] };
     const gemRes = { candidates: [{ content: { parts: [{ text: 'Hello' }] } }] };

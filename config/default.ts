@@ -26,7 +26,8 @@ export const config = {
   upstreamTimeoutMs: parseInt(process.env.UPSTREAM_TIMEOUT_MS || '180000', 10),
   allowedKeys: [] as string[],
   adminSecretKey: process.env.ADMIN_SECRET_KEY || '',
-  enableUi: process.env.ENABLE_UI !== 'false'
+  enableUi: process.env.ENABLE_UI !== 'false',
+  timeZone: process.env.TIME_ZONE || process.env.TZ || 'Asia/Shanghai'
 };
 
 export default config;

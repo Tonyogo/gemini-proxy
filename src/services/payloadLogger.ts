@@ -15,14 +15,27 @@ class PayloadLogger {
   }
 
   /**
-   * Computes the target partition subdirectory based on the current date and hour.
+   * Computes the target partition subdirectory based on configured TIME_ZONE.
    */
   private _getTargetDir(): string {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    const hour = String(now.getHours()).padStart(2, '0');
+    const timeZone = config.timeZone || 'Asia/Shanghai';
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      hourCycle: 'h23'
+    });
+
+    const parts = formatter.formatToParts(new Date());
+    const getPart = (type: string) => parts.find(p => p.type === type)?.value || '00';
+
+    const year = getPart('year');
+    const month = getPart('month');
+    const day = getPart('day');
+    let hour = getPart('hour');
+    if (hour === '24') hour = '00';
 
     return path.join(this.debugDir, `${year}-${month}-${day}`, hour);
   }
@@ -50,7 +63,7 @@ class PayloadLogger {
 
       const filePath = path.join(targetDir, `transaction_${transactionId}.json`);
       await fs.writeFile(filePath, JSON.stringify(payload, null, 2), 'utf8');
-      logger.debug(`[PayloadLogger] Saved transaction log: ${path.join(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`, String(new Date().getHours()).padStart(2, '0'), `transaction_${transactionId}.json`)}`);
+      logger.debug(`[PayloadLogger] Saved transaction log: ${filePath}`);
     } catch (err: any) {
       logger.error(`[PayloadLogger] Failed to write transaction file: ${err.message}`);
     }
