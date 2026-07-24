@@ -573,31 +573,25 @@ describe('Gemini to Claude Stream Response Translation', () => {
       }]
     };
 
-    const eventString = translator.translateGoogleToClaudeStream(JSON.stringify(chunk), 'gemini-3.5-flash', streamState);
+    const events = translator.translateGoogleToClaudeStream(JSON.stringify(chunk), 'gemini-3.5-flash', streamState);
 
-    // Split events by double newline to parse individual SSE blocks
-    const events = eventString!.split('\n\n').filter(Boolean);
-
-    // First is message_start
-    expect(events[0]).toContain('message_start');
+    expect(Array.isArray(events)).toBe(true);
+    expect(events![0].type).toBe('message_start');
 
     // Second should be content_block_start with empty input
-    expect(events[1]).toContain('content_block_start');
-    expect(events[1]).toContain('"type":"tool_use"');
-    expect(events[1]).toContain('"name":"get_weather"');
-    expect(events[1]).toContain('"id":"toolu_g_stream123"');
-    expect(events[1]).toContain('"input":{}');
-    expect(events[1]).toContain('"index":0');
+    expect(events![1].type).toBe('content_block_start');
+    expect(events![1].content_block.type).toBe('tool_use');
+    expect(events![1].content_block.name).toBe('get_weather');
+    expect(events![1].content_block.id).toBe('toolu_g_stream123');
+    expect(events![1].content_block.input).toEqual({});
 
     // Third should be content_block_delta with input_json_delta type
-    expect(events[2]).toContain('content_block_delta');
-    expect(events[2]).toContain('"type":"input_json_delta"');
-    expect(events[2]).toContain('"partial_json":"{\\"location\\":\\"SF\\"}"');
-    expect(events[2]).toContain('"index":0');
+    expect(events![2].type).toBe('content_block_delta');
+    expect(events![2].delta.type).toBe('input_json_delta');
+    expect(events![2].delta.partial_json).toBe('{"location":"SF"}');
 
     // Fourth should be content_block_stop
-    expect(events[3]).toContain('content_block_stop');
-    expect(events[3]).toContain('"index":0');
+    expect(events![3].type).toBe('content_block_stop');
   });
 
   it('merges consecutive same-role blocks in contents (user, user)', () => {

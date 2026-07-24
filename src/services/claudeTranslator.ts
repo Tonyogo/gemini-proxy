@@ -678,7 +678,7 @@ class ClaudeTranslator {
 
     if (events.length === 0) return null;
 
-    return events.map((ev: any) => `event: ${ev.type}\ndata: ${JSON.stringify(ev)}\n\n`).join('');
+    return events;
   }
 
   public normalizeError(error: any) {
