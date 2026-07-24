@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Editor from '@monaco-editor/react';
 import JsonTreeView from './JsonTreeView';
 import SseStreamPreview from './SseStreamPreview';
+import { defineGeminiProxyTheme } from '../utils/monacoTheme';
 
 const defaultRequestBody = {
   model: "gemini-flash-lite-latest",
@@ -185,7 +186,8 @@ export default function PlaygroundView() {
             <Editor
               height="100%"
               language="json"
-              theme="vs-dark"
+              theme="gemini-proxy-dark"
+              beforeMount={defineGeminiProxyTheme}
               value={requestBody}
               onChange={(val) => setRequestBody(val || '')}
               options={{
@@ -239,7 +241,8 @@ export default function PlaygroundView() {
               <Editor
                 height="100%"
                 language={responseRaw.startsWith('{') ? 'json' : 'plaintext'}
-                theme="vs-dark"
+                theme="gemini-proxy-dark"
+                beforeMount={defineGeminiProxyTheme}
                 value={responseRaw}
                 options={{
                   readOnly: true,

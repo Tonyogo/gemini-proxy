@@ -2,6 +2,10 @@ import translator from '../src/services/claudeTranslator';
 import { config } from '../config/default';
 
 describe('Claude to Gemini Request Translation', () => {
+  beforeEach(() => {
+    config.customSystemInstruction = '';
+  });
+
   it('throws a 400 error when model is completely missing', () => {
     const claudePayload = {
       messages: [{ role: 'user', content: 'Hello' }]

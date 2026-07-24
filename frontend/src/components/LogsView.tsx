@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import Editor from '@monaco-editor/react';
 import JsonTreeView from './JsonTreeView';
 import SseStreamPreview from './SseStreamPreview';
+import { defineGeminiProxyTheme } from '../utils/monacoTheme';
 
 export default function LogsView({ adminKey }: { adminKey: string }) {
   const [logs, setLogs] = useState<any[]>([]);
@@ -237,9 +239,24 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                   {viewMode === 'preview' ? (
                     <JsonTreeView data={selectedLog.client_req} />
                   ) : (
-                    <pre className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-xs font-mono text-slate-300 overflow-auto max-h-[680px]">
-                      {JSON.stringify(selectedLog.client_req, null, 2)}
-                    </pre>
+                    <div className="rounded-xl overflow-hidden border border-slate-800">
+                      <Editor
+                        height="680px"
+                        language="json"
+                        theme="gemini-proxy-dark"
+                        beforeMount={defineGeminiProxyTheme}
+                        value={JSON.stringify(selectedLog.client_req, null, 2)}
+                        options={{
+                          readOnly: true,
+                          minimap: { enabled: false },
+                          fontSize: 12,
+                          scrollBeyondLastLine: false,
+                          lineNumbers: 'on',
+                          folding: true,
+                          automaticLayout: true
+                        }}
+                      />
+                    </div>
                   )}
                 </div>
 
@@ -248,9 +265,24 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                   {viewMode === 'preview' ? (
                     <JsonTreeView data={selectedLog.gem_req} />
                   ) : (
-                    <pre className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-xs font-mono text-slate-300 overflow-auto max-h-[680px]">
-                      {JSON.stringify(selectedLog.gem_req, null, 2)}
-                    </pre>
+                    <div className="rounded-xl overflow-hidden border border-slate-800">
+                      <Editor
+                        height="680px"
+                        language="json"
+                        theme="gemini-proxy-dark"
+                        beforeMount={defineGeminiProxyTheme}
+                        value={JSON.stringify(selectedLog.gem_req, null, 2)}
+                        options={{
+                          readOnly: true,
+                          minimap: { enabled: false },
+                          fontSize: 12,
+                          scrollBeyondLastLine: false,
+                          lineNumbers: 'on',
+                          folding: true,
+                          automaticLayout: true
+                        }}
+                      />
+                    </div>
                   )}
                 </div>
               </div>
@@ -275,9 +307,24 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                       <JsonTreeView data={selectedLog.claude_res} />
                     )
                   ) : (
-                    <pre className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-xs font-mono text-slate-300 overflow-auto max-h-[680px]">
-                      {JSON.stringify(selectedLog.claude_res, null, 2)}
-                    </pre>
+                    <div className="rounded-xl overflow-hidden border border-slate-800">
+                      <Editor
+                        height="680px"
+                        language="json"
+                        theme="gemini-proxy-dark"
+                        beforeMount={defineGeminiProxyTheme}
+                        value={JSON.stringify(selectedLog.claude_res, null, 2)}
+                        options={{
+                          readOnly: true,
+                          minimap: { enabled: false },
+                          fontSize: 12,
+                          scrollBeyondLastLine: false,
+                          lineNumbers: 'on',
+                          folding: true,
+                          automaticLayout: true
+                        }}
+                      />
+                    </div>
                   )}
                 </div>
 
@@ -297,9 +344,24 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                       <JsonTreeView data={selectedLog.gem_res} />
                     )
                   ) : (
-                    <pre className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-xs font-mono text-slate-300 overflow-auto max-h-[680px]">
-                      {JSON.stringify(selectedLog.gem_res, null, 2)}
-                    </pre>
+                    <div className="rounded-xl overflow-hidden border border-slate-800">
+                      <Editor
+                        height="680px"
+                        language="json"
+                        theme="gemini-proxy-dark"
+                        beforeMount={defineGeminiProxyTheme}
+                        value={JSON.stringify(selectedLog.gem_res, null, 2)}
+                        options={{
+                          readOnly: true,
+                          minimap: { enabled: false },
+                          fontSize: 12,
+                          scrollBeyondLastLine: false,
+                          lineNumbers: 'on',
+                          folding: true,
+                          automaticLayout: true
+                        }}
+                      />
+                    </div>
                   )}
                 </div>
               </div>
