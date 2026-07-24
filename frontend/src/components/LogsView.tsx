@@ -17,6 +17,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
   // Chrome DevTools States (Removed 'all')
   const [activeTab, setActiveTab] = useState<'payload' | 'response'>('payload');
   const [viewMode, setViewMode] = useState<'preview' | 'raw'>('preview');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
 
   const fetchLogs = () => {
     setLoading(true);
@@ -93,83 +94,105 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
-      {/* Left Sidebar */}
-      <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl p-4 shadow-md flex flex-col h-[820px]">
-        <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-700/60">
-          <h3 className="font-bold text-slate-100 text-xs uppercase tracking-wider">Transaction Logs</h3>
-          <button
-            onClick={fetchLogs}
-            className="text-[10px] bg-slate-700 hover:bg-slate-600 text-slate-200 px-2 py-1 rounded transition-colors flex items-center space-x-1"
-          >
-            <span>↻</span>
-            <span>Refresh</span>
-          </button>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2 mb-3">
-          <div>
-            <label className="text-[10px] font-semibold text-slate-400 block mb-1">Date</label>
-            <select
-              value={selectedDate}
-              onChange={(e) => handleDateChange(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-lg p-1.5 text-xs text-slate-100 font-mono focus:outline-none focus:border-blue-500"
-            >
-              {Object.keys(tree).map(d => (
-                <option key={d} value={d}>📅 {d}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="text-[10px] font-semibold text-slate-400 block mb-1">Hour</label>
-            <select
-              value={selectedHour}
-              onChange={(e) => setSelectedHour(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-lg p-1.5 text-xs text-slate-100 font-mono focus:outline-none focus:border-blue-500"
-            >
-              <option value="all">🕒 All Hours</option>
-              {availableHours.map(h => (
-                <option key={h} value={h}>🕒 {h}:00 ({tree[selectedDate][h]})</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto space-y-2 pr-1 text-xs border-t border-slate-700/40 pt-2">
-          {loading ? (
-            <div className="flex items-center justify-center h-32 text-slate-400 text-xs">Loading logs...</div>
-          ) : filteredLogs.length === 0 ? (
-            <div className="flex items-center justify-center h-32 text-slate-500 text-xs text-center p-4">
-              No logs found for selected date/hour.
+    <div className="flex gap-6 max-w-7xl mx-auto items-start">
+      {/* Left Sidebar (Collapsible) */}
+      {sidebarCollapsed ? (
+        <button
+          onClick={() => setSidebarCollapsed(false)}
+          className="bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700 p-3 rounded-xl shadow-md text-xs font-semibold text-slate-300 flex flex-col items-center space-y-2 cursor-pointer transition-all h-[820px] justify-start pt-6"
+          title="Expand Sidebar"
+        >
+          <span className="text-blue-400">▶</span>
+          <span className="writing-mode-vertical uppercase tracking-widest text-[10px] text-slate-400 font-mono">
+            Logs ({filteredLogs.length})
+          </span>
+        </button>
+      ) : (
+        <div className="w-80 shrink-0 bg-slate-800/80 border border-slate-700/60 rounded-xl p-4 shadow-md flex flex-col h-[820px] transition-all">
+          <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-700/60">
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setSidebarCollapsed(true)}
+                className="text-slate-400 hover:text-white text-xs bg-slate-900 border border-slate-700 px-1.5 py-0.5 rounded"
+                title="Collapse Sidebar"
+              >
+                ◀
+              </button>
+              <h3 className="font-bold text-slate-100 text-xs uppercase tracking-wider">Transaction Logs</h3>
             </div>
-          ) : (
-            filteredLogs.map((log, idx) => {
-              const isSelected = selectedFile === log.path;
-              return (
-                <div
-                  key={idx}
-                  onClick={() => loadDetail(log)}
-                  className={`p-3 rounded-xl cursor-pointer transition-all border ${
-                    isSelected
-                      ? 'bg-blue-600/20 border-blue-500/80 text-blue-200 shadow-md'
-                      : 'bg-slate-900/60 border-slate-700/40 hover:border-slate-600 text-slate-300'
-                  }`}
-                >
-                  <div className="font-mono text-[11px] truncate font-semibold">{log.filename}</div>
-                  <div className="text-[10px] text-slate-400 mt-1.5 flex items-center justify-between font-mono">
-                    <span>{log.date}</span>
-                    <span className="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700/60">{log.hour}:00</span>
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-      </div>
+            <button
+              onClick={fetchLogs}
+              className="text-[10px] bg-slate-700 hover:bg-slate-600 text-slate-200 px-2 py-1 rounded transition-colors flex items-center space-x-1"
+            >
+              <span>↻</span>
+              <span>Refresh</span>
+            </button>
+          </div>
 
-      {/* Main Inspector Column */}
-      <div className="lg:col-span-3 bg-slate-800/80 border border-slate-700/60 rounded-xl p-5 shadow-md flex flex-col h-[820px]">
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            <div>
+              <label className="text-[10px] font-semibold text-slate-400 block mb-1">Date</label>
+              <select
+                value={selectedDate}
+                onChange={(e) => handleDateChange(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-1.5 text-xs text-slate-100 font-mono focus:outline-none focus:border-blue-500"
+              >
+                {Object.keys(tree).map(d => (
+                  <option key={d} value={d}>📅 {d}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-[10px] font-semibold text-slate-400 block mb-1">Hour</label>
+              <select
+                value={selectedHour}
+                onChange={(e) => setSelectedHour(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-1.5 text-xs text-slate-100 font-mono focus:outline-none focus:border-blue-500"
+              >
+                <option value="all">🕒 All Hours</option>
+                {availableHours.map(h => (
+                  <option key={h} value={h}>🕒 {h}:00 ({tree[selectedDate][h]})</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto space-y-2 pr-1 text-xs border-t border-slate-700/40 pt-2">
+            {loading ? (
+              <div className="flex items-center justify-center h-32 text-slate-400 text-xs">Loading logs...</div>
+            ) : filteredLogs.length === 0 ? (
+              <div className="flex items-center justify-center h-32 text-slate-500 text-xs text-center p-4">
+                No logs found for selected date/hour.
+              </div>
+            ) : (
+              filteredLogs.map((log, idx) => {
+                const isSelected = selectedFile === log.path;
+                return (
+                  <div
+                    key={idx}
+                    onClick={() => loadDetail(log)}
+                    className={`p-3 rounded-xl cursor-pointer transition-all border ${
+                      isSelected
+                        ? 'bg-blue-600/20 border-blue-500/80 text-blue-200 shadow-md'
+                        : 'bg-slate-900/60 border-slate-700/40 hover:border-slate-600 text-slate-300'
+                    }`}
+                  >
+                    <div className="font-mono text-[11px] truncate font-semibold">{log.filename}</div>
+                    <div className="text-[10px] text-slate-400 mt-1.5 flex items-center justify-between font-mono">
+                      <span>{log.date}</span>
+                      <span className="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700/60">{log.hour}:00</span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Main Inspector Column (Expands to 100% when sidebar is collapsed) */}
+      <div className="flex-1 min-w-0 bg-slate-800/80 border border-slate-700/60 rounded-xl p-5 shadow-md flex flex-col h-[820px]">
         {/* Navigation Bar */}
         <div className="flex flex-wrap items-center justify-between pb-3 mb-4 border-b border-slate-700/60 gap-3">
           <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs font-semibold">
