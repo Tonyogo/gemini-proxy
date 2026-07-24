@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Editor from '@monaco-editor/react';
 
 const defaultRequestBody = {
-  model: "claude-3-5-sonnet-20241022",
+  model: "gemini-flash-lite-latest",
   max_tokens: 1024,
   messages: [
     { role: "user", content: "Hello! Who are you?" }
