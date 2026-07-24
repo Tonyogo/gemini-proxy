@@ -1,7 +1,7 @@
 import request from 'supertest';
 import express from 'express';
 import adminRoutes from '../src/admin/routes/adminRoutes';
-import config from '../config/default';
+import config, { updateConfig } from '../config/default';
 
 const app = express();
 app.use(express.json());
@@ -10,6 +10,13 @@ app.use('/api/admin', adminRoutes);
 describe('Admin API Endpoints', () => {
   beforeEach(() => {
     config.adminSecretKey = '';
+  });
+
+  afterAll(async () => {
+    await updateConfig({
+      runtimeContextTag: 'runtime-context',
+      systemRoleToInstruction: false
+    });
   });
 
   test('GET /api/admin/status returns server configuration and status', async () => {

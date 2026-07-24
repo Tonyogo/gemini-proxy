@@ -11,6 +11,10 @@ describe('Runtime Config Store', () => {
     } catch {
       // ignore
     }
+    await updateConfig({
+      runtimeContextTag: 'runtime-context',
+      systemRoleToInstruction: false
+    });
   });
 
   test('updateConfig mutates config in memory and writes to runtime.json', async () => {
