@@ -3,6 +3,7 @@ import * as path from 'path';
 import config from '../../config/default';
 import logger from '../utils/logger';
 import { sanitizeData } from '../utils/requestHelper';
+import metricsService from '../admin/services/metricsService';
 
 class PayloadLogger {
   private debugDir: string;
@@ -64,6 +65,9 @@ class PayloadLogger {
       const filePath = path.join(targetDir, `transaction_${transactionId}.json`);
       await fs.writeFile(filePath, JSON.stringify(payload, null, 2), 'utf8');
       logger.debug(`[PayloadLogger] Saved transaction log: ${filePath}`);
+
+      const isError = Boolean(claudeRes && claudeRes.error);
+      metricsService.record(isError, duration);
     } catch (err: any) {
       logger.error(`[PayloadLogger] Failed to write transaction file: ${err.message}`);
     }

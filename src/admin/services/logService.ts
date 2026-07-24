@@ -1,6 +1,7 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import config from '../../../config/default';
+import metricsService from './metricsService';
 
 export interface LogItem {
   date: string;
@@ -73,36 +74,7 @@ class LogService {
   }
 
   public async getStats(): Promise<any> {
-    const { logs, total } = await this.listLogs(1, 100);
-    let successCount = 0;
-    let errorCount = 0;
-    let totalDuration = 0;
-    let durationCount = 0;
-
-    for (const item of logs) {
-      try {
-        const detail = await this.getLogDetail(item.date, item.hour, item.filename);
-        if (detail.duration) {
-          totalDuration += detail.duration;
-          durationCount++;
-        }
-        if (detail.claude_res && detail.claude_res.error) {
-          errorCount++;
-        } else {
-          successCount++;
-        }
-      } catch {
-        // Ignore single parse error
-      }
-    }
-
-    return {
-      totalLogs: total,
-      sampleSize: logs.length,
-      successCount,
-      errorCount,
-      avgDurationMs: durationCount > 0 ? Math.round(totalDuration / durationCount) : 0
-    };
+    return metricsService.getStats();
   }
 }
 
