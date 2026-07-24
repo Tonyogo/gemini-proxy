@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import Editor from '@monaco-editor/react';
 import JsonTreeView from './JsonTreeView';
+import SseStreamPreview from './SseStreamPreview';
 
 export default function LogsView({ adminKey }: { adminKey: string }) {
   const [logs, setLogs] = useState<any[]>([]);
@@ -12,8 +12,8 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
   const [loading, setLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
 
-  // Chrome DevTools States
-  const [activeTab, setActiveTab] = useState<'payload' | 'response' | 'all'>('payload');
+  // Chrome DevTools States (Removed 'all')
+  const [activeTab, setActiveTab] = useState<'payload' | 'response'>('payload');
   const [viewMode, setViewMode] = useState<'preview' | 'raw'>('preview');
 
   const fetchLogs = () => {
@@ -79,20 +79,16 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
 
   const availableHours = selectedDate && tree[selectedDate] ? Object.keys(tree[selectedDate]) : [];
 
-  const editorOptions = {
-    readOnly: true,
-    minimap: { enabled: false },
-    folding: true,
-    foldingStrategy: 'auto' as const,
-    scrollBeyondLastLine: false,
-    fontSize: 11,
-    lineNumbers: 'on' as const,
-    renderIndentGuides: true,
-    wordWrap: 'on' as const,
-    automaticLayout: true
+  // Helper to detect if payload is streaming SSE data
+  const isStreamPayload = (payload: any) => {
+    if (Array.isArray(payload) && payload.length > 0 && (payload[0]?.type || payload[0]?.candidates)) {
+      return true;
+    }
+    if (typeof payload === 'string' && payload.includes('data: ')) {
+      return true;
+    }
+    return false;
   };
-
-  const editorHeight = activeTab === 'all' ? '320px' : '680px';
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
@@ -170,39 +166,31 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
         </div>
       </div>
 
-      {/* Main Inspector Column (3/4 width) */}
+      {/* Main Inspector Column */}
       <div className="lg:col-span-3 bg-slate-800/80 border border-slate-700/60 rounded-xl p-5 shadow-md flex flex-col h-[820px]">
-        {/* Chrome DevTools Style Navigation Bar */}
+        {/* Navigation Bar */}
         <div className="flex flex-wrap items-center justify-between pb-3 mb-4 border-b border-slate-700/60 gap-3">
-          {/* Left: Tab Selectors */}
           <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs font-semibold">
             <button
               onClick={() => setActiveTab('payload')}
-              className={`px-3 py-1.5 rounded-md transition-all ${
+              className={`px-3 py-1.5 rounded-md transition-all flex items-center space-x-1.5 ${
                 activeTab === 'payload' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              Payload (Request)
+              <span>📤</span>
+              <span>Payload (Request)</span>
             </button>
             <button
               onClick={() => setActiveTab('response')}
-              className={`px-3 py-1.5 rounded-md transition-all ${
+              className={`px-3 py-1.5 rounded-md transition-all flex items-center space-x-1.5 ${
                 activeTab === 'response' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              Response
-            </button>
-            <button
-              onClick={() => setActiveTab('all')}
-              className={`px-3 py-1.5 rounded-md transition-all ${
-                activeTab === 'all' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              All-in-One
+              <span>📥</span>
+              <span>Response</span>
             </button>
           </div>
 
-          {/* Right: View Mode Toggle & Latency */}
           <div className="flex items-center space-x-3">
             <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
               <button
@@ -211,7 +199,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                   viewMode === 'preview' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                👁 Preview (JSON Tree)
+                👁 Preview Mode
               </button>
               <button
                 onClick={() => setViewMode('raw')}
@@ -219,7 +207,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                   viewMode === 'raw' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                💻 Raw Monaco Editor
+                💻 Raw JSON
               </button>
             </div>
 
@@ -236,88 +224,78 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
           <div className="flex items-center justify-center flex-1 text-slate-400 text-xs">Loading transaction log...</div>
         ) : selectedLog ? (
           <div className="flex-1 overflow-y-auto space-y-4 pr-1">
-            {/* Payload View Mode */}
-            {(activeTab === 'payload' || activeTab === 'all') && (
-              <div>
-                <div className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center justify-between">
-                  <span>Request Payload Comparison</span>
+            {/* Payload Tab */}
+            {activeTab === 'payload' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex flex-col">
+                  <div className="text-[11px] font-semibold text-blue-400 mb-1.5">Claude Client Request (client_req)</div>
+                  {viewMode === 'preview' ? (
+                    <JsonTreeView data={selectedLog.client_req} />
+                  ) : (
+                    <pre className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-xs font-mono text-slate-300 overflow-auto max-h-[680px]">
+                      {JSON.stringify(selectedLog.client_req, null, 2)}
+                    </pre>
+                  )}
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex flex-col">
-                    <div className="text-[11px] font-semibold text-blue-400 mb-1">Claude Client Request (client_req)</div>
-                    {viewMode === 'preview' ? (
-                      <JsonTreeView data={selectedLog.client_req} />
-                    ) : (
-                      <div className="rounded-xl overflow-hidden border border-slate-800">
-                        <Editor
-                          height={editorHeight}
-                          language="json"
-                          theme="vs-dark"
-                          value={JSON.stringify(selectedLog.client_req, null, 2)}
-                          options={editorOptions}
-                        />
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex flex-col">
-                    <div className="text-[11px] font-semibold text-emerald-400 mb-1">Gemini Upstream Request (gem_req)</div>
-                    {viewMode === 'preview' ? (
-                      <JsonTreeView data={selectedLog.gem_req} />
-                    ) : (
-                      <div className="rounded-xl overflow-hidden border border-slate-800">
-                        <Editor
-                          height={editorHeight}
-                          language="json"
-                          theme="vs-dark"
-                          value={JSON.stringify(selectedLog.gem_req, null, 2)}
-                          options={editorOptions}
-                        />
-                      </div>
-                    )}
-                  </div>
+
+                <div className="flex flex-col">
+                  <div className="text-[11px] font-semibold text-emerald-400 mb-1.5">Gemini Upstream Request (gem_req)</div>
+                  {viewMode === 'preview' ? (
+                    <JsonTreeView data={selectedLog.gem_req} />
+                  ) : (
+                    <pre className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-xs font-mono text-slate-300 overflow-auto max-h-[680px]">
+                      {JSON.stringify(selectedLog.gem_req, null, 2)}
+                    </pre>
+                  )}
                 </div>
               </div>
             )}
 
-            {/* Response View Mode */}
-            {(activeTab === 'response' || activeTab === 'all') && (
-              <div className={activeTab === 'all' ? 'pt-4 border-t border-slate-700/60' : ''}>
-                <div className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center justify-between">
-                  <span>Response Payload Comparison</span>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex flex-col">
-                    <div className="text-[11px] font-semibold text-amber-400 mb-1">Claude Final Response (claude_res)</div>
-                    {viewMode === 'preview' ? (
+            {/* Response Tab */}
+            {activeTab === 'response' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex flex-col">
+                  <div className="text-[11px] font-semibold text-amber-400 mb-1.5 flex items-center justify-between">
+                    <span>Claude Final Response (claude_res)</span>
+                    {isStreamPayload(selectedLog.claude_res) && (
+                      <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/30">
+                        SSE Stream
+                      </span>
+                    )}
+                  </div>
+                  {viewMode === 'preview' ? (
+                    isStreamPayload(selectedLog.claude_res) ? (
+                      <SseStreamPreview streamData={selectedLog.claude_res} />
+                    ) : (
                       <JsonTreeView data={selectedLog.claude_res} />
-                    ) : (
-                      <div className="rounded-xl overflow-hidden border border-slate-800">
-                        <Editor
-                          height={editorHeight}
-                          language="json"
-                          theme="vs-dark"
-                          value={JSON.stringify(selectedLog.claude_res, null, 2)}
-                          options={editorOptions}
-                        />
-                      </div>
+                    )
+                  ) : (
+                    <pre className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-xs font-mono text-slate-300 overflow-auto max-h-[680px]">
+                      {JSON.stringify(selectedLog.claude_res, null, 2)}
+                    </pre>
+                  )}
+                </div>
+
+                <div className="flex flex-col">
+                  <div className="text-[11px] font-semibold text-purple-400 mb-1.5 flex items-center justify-between">
+                    <span>Gemini Upstream Response (gem_res)</span>
+                    {isStreamPayload(selectedLog.gem_res) && (
+                      <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/30">
+                        SSE Stream
+                      </span>
                     )}
                   </div>
-                  <div className="flex flex-col">
-                    <div className="text-[11px] font-semibold text-purple-400 mb-1">Gemini Upstream Response (gem_res)</div>
-                    {viewMode === 'preview' ? (
+                  {viewMode === 'preview' ? (
+                    isStreamPayload(selectedLog.gem_res) ? (
+                      <SseStreamPreview streamData={selectedLog.gem_res} />
+                    ) : (
                       <JsonTreeView data={selectedLog.gem_res} />
-                    ) : (
-                      <div className="rounded-xl overflow-hidden border border-slate-800">
-                        <Editor
-                          height={editorHeight}
-                          language="json"
-                          theme="vs-dark"
-                          value={JSON.stringify(selectedLog.gem_res, null, 2)}
-                          options={editorOptions}
-                        />
-                      </div>
-                    )}
-                  </div>
+                    )
+                  ) : (
+                    <pre className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-xs font-mono text-slate-300 overflow-auto max-h-[680px]">
+                      {JSON.stringify(selectedLog.gem_res, null, 2)}
+                    </pre>
+                  )}
                 </div>
               </div>
             )}
