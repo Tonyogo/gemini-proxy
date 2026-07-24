@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import Editor from '@monaco-editor/react';
+import JsonTreeView from './JsonTreeView';
+import SseStreamPreview from './SseStreamPreview';
 
 const defaultRequestBody = {
   model: "gemini-flash-lite-latest",
@@ -13,9 +15,14 @@ const defaultRequestBody = {
 export default function PlaygroundView() {
   const [apiKey, setApiKey] = useState(localStorage.getItem('geminiApiKey') || '');
   const [requestBody, setRequestBody] = useState<string>(JSON.stringify(defaultRequestBody, null, 2));
-  const [response, setResponse] = useState<string>('// API response will appear here...');
+  const [responseRaw, setResponseRaw] = useState<string>('// API response will appear here...');
+  const [responseJson, setResponseJson] = useState<any>(null);
+  const [responseStreamChunks, setResponseStreamChunks] = useState<any[]>([]);
+  const [isStreamingActive, setIsStreamingActive] = useState<boolean>(false);
+
   const [loading, setLoading] = useState(false);
   const [latency, setLatency] = useState<number | null>(null);
+  const [viewMode, setViewMode] = useState<'preview' | 'raw'>('preview');
 
   const handleKeyChange = (val: string) => {
     setApiKey(val);
@@ -37,7 +44,10 @@ export default function PlaygroundView() {
     }
 
     setLoading(true);
-    setResponse('Connecting and sending request to /v1/messages...');
+    setResponseRaw('Connecting and sending request to /v1/messages...');
+    setResponseJson(null);
+    setResponseStreamChunks([]);
+    setIsStreamingActive(false);
     setLatency(null);
 
     const startTime = Date.now();
@@ -57,18 +67,22 @@ export default function PlaygroundView() {
 
       if (!res.ok) {
         const errText = await res.text();
-        setResponse(`HTTP Error (Status ${res.status}):\n${errText}`);
+        const errorMsg = `HTTP Error (Status ${res.status}):\n${errText}`;
+        setResponseRaw(errorMsg);
+        setResponseJson({ error: `HTTP ${res.status}`, details: errText });
         setLoading(false);
         return;
       }
 
       if (isStream) {
-        // Live Typewriter Chunk Reader
+        setIsStreamingActive(true);
         const reader = res.body?.getReader();
         const decoder = new TextDecoder('utf-8');
         let buffer = '';
         let fullStreamOutput = '';
-        setResponse('Connected. Streaming events...\n\n');
+        const accumulatedChunks: any[] = [];
+
+        setResponseRaw('Connected. Streaming events...\n\n');
 
         if (reader) {
           while (true) {
@@ -83,28 +97,17 @@ export default function PlaygroundView() {
               const trimmed = line.trim();
               if (trimmed.startsWith('data: ')) {
                 const rawJson = trimmed.substring(6).trim();
-                if (rawJson === '[DONE]') {
-                  fullStreamOutput += '\n\n[DONE]';
-                  setResponse(fullStreamOutput);
-                  continue;
-                }
+                fullStreamOutput += trimmed + '\n';
+                setResponseRaw(fullStreamOutput);
+
+                if (rawJson === '[DONE]') continue;
                 try {
                   const chunk = JSON.parse(rawJson);
-
-                  // Extract text or thinking delta
-                  if (chunk.type === 'content_block_delta') {
-                    if (chunk.delta?.type === 'text_delta') {
-                      fullStreamOutput += chunk.delta.text || '';
-                    } else if (chunk.delta?.type === 'thinking_delta') {
-                      fullStreamOutput += chunk.delta.thinking || '';
-                    }
-                  }
-
-                  setResponse(fullStreamOutput || JSON.stringify(chunk));
+                  accumulatedChunks.push(chunk);
+                  // Update reactive array of JSON objects for SseStreamPreview
+                  setResponseStreamChunks([...accumulatedChunks]);
                 } catch {
-                  // Fallback to show raw line if parsing fails
-                  fullStreamOutput += trimmed + '\n';
-                  setResponse(fullStreamOutput);
+                  // ignore chunk parse errors
                 }
               }
             }
@@ -113,17 +116,19 @@ export default function PlaygroundView() {
       } else {
         // Non-stream response
         const data = await res.json();
-        setResponse(JSON.stringify(data, null, 2));
+        setResponseJson(data);
+        setResponseRaw(JSON.stringify(data, null, 2));
       }
     } catch (err: any) {
-      setResponse(`Connection Error:\n${err.message}`);
+      setResponseRaw(`Connection Error:\n${err.message}`);
+      setResponseJson({ error: 'Connection Error', details: err.message });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-4 h-[760px] flex flex-col font-sans">
+    <div className="max-w-7xl mx-auto space-y-4 h-[780px] flex flex-col font-sans">
       {/* Top Controls Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/60 p-4 rounded-xl border border-slate-700/40">
         <div className="flex items-center space-x-3">
@@ -157,7 +162,7 @@ export default function PlaygroundView() {
           <button
             onClick={handleSend}
             disabled={loading}
-            className="px-5 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 rounded-lg font-bold text-xs text-white transition-colors shadow-md"
+            className="px-5 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 rounded-lg font-bold text-xs text-white transition-colors shadow-md animate-pulse"
           >
             {loading ? 'Sending Stream...' : 'Send API Request'}
           </button>
@@ -201,25 +206,52 @@ export default function PlaygroundView() {
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
               <span>HTTP Response Output</span>
             </span>
-            <span className="text-[10px] text-slate-500 font-mono">SSE / JSON</span>
+
+            {/* View Mode Selectors */}
+            <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
+              <button
+                onClick={() => setViewMode('preview')}
+                className={`px-3 py-1 rounded-md font-semibold transition-all ${
+                  viewMode === 'preview' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                👁 Preview
+              </button>
+              <button
+                onClick={() => setViewMode('raw')}
+                className={`px-3 py-1 rounded-md font-semibold transition-all ${
+                  viewMode === 'raw' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                💻 Raw Text
+              </button>
+            </div>
           </div>
 
-          <div className="flex-1 rounded-xl overflow-hidden border border-slate-800">
-            <Editor
-              height="100%"
-              language={response.startsWith('{') ? 'json' : 'plaintext'}
-              theme="vs-dark"
-              value={response}
-              options={{
-                readOnly: true,
-                minimap: { enabled: false },
-                fontSize: 12,
-                scrollBeyondLastLine: false,
-                lineNumbers: 'on',
-                wordWrap: 'on',
-                automaticLayout: true
-              }}
-            />
+          <div className="flex-1 rounded-xl overflow-hidden border border-slate-800 overflow-y-auto">
+            {viewMode === 'preview' ? (
+              isStreamingActive ? (
+                <SseStreamPreview streamData={responseStreamChunks} />
+              ) : (
+                <JsonTreeView data={responseJson} />
+              )
+            ) : (
+              <Editor
+                height="100%"
+                language={responseRaw.startsWith('{') ? 'json' : 'plaintext'}
+                theme="vs-dark"
+                value={responseRaw}
+                options={{
+                  readOnly: true,
+                  minimap: { enabled: false },
+                  fontSize: 12,
+                  scrollBeyondLastLine: false,
+                  lineNumbers: 'on',
+                  wordWrap: 'on',
+                  automaticLayout: true
+                }}
+              />
+            )}
           </div>
         </div>
       </div>
