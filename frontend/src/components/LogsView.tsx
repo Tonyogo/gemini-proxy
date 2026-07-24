@@ -3,9 +3,8 @@ import React, { useEffect, useState } from 'react';
 export default function LogsView({ adminKey }: { adminKey: string }) {
   const [logs, setLogs] = useState<any[]>([]);
   const [tree, setTree] = useState<Record<string, Record<string, number>>>({});
-  const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [selectedHour, setSelectedHour] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [selectedHour, setSelectedHour] = useState<string>('');
   const [selectedLog, setSelectedLog] = useState<any>(null);
   const [selectedFile, setSelectedFile] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -17,13 +16,21 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
     fetch('/api/admin/logs?limit=100', { headers })
       .then(r => r.json())
       .then(data => {
+        const logTree = data.tree || {};
         setLogs(data.logs || []);
-        setTree(data.tree || {});
+        setTree(logTree);
 
-        // Default expand first date
-        const dateKeys = Object.keys(data.tree || {});
-        if (dateKeys.length > 0) {
-          setExpandedDates(prev => ({ ...prev, [dateKeys[0]]: true }));
+        // Auto-select latest date & latest hour if not set
+        const dates = Object.keys(logTree);
+        if (dates.length > 0) {
+          const latestDate = dates[0];
+          setSelectedDate(prev => prev || latestDate);
+
+          const hours = Object.keys(logTree[latestDate] || {});
+          if (hours.length > 0) {
+            const latestHour = hours[0];
+            setSelectedHour(prev => prev || latestHour);
+          }
         }
 
         if (data.logs && data.logs.length > 0 && !selectedFile) {
@@ -49,89 +56,96 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
       .finally(() => setDetailLoading(false));
   };
 
-  const toggleDate = (date: string) => {
-    setExpandedDates(prev => ({ ...prev, [date]: !prev[date] }));
-    if (selectedDate === date && selectedHour === null) {
-      setSelectedDate(null);
-    } else {
-      setSelectedDate(date);
-      setSelectedHour(null);
-    }
-  };
-
-  const selectHourFilter = (date: string, hour: string) => {
+  const handleDateChange = (date: string) => {
     setSelectedDate(date);
-    setSelectedHour(hour);
+    const hours = Object.keys(tree[date] || {});
+    if (hours.length > 0) {
+      setSelectedHour(hours[0]);
+    } else {
+      setSelectedHour('');
+    }
   };
 
   const filteredLogs = logs.filter(log => {
     if (selectedDate && log.date !== selectedDate) return false;
-    if (selectedHour && log.hour !== selectedHour) return false;
+    if (selectedHour && selectedHour !== 'all' && log.hour !== selectedHour) return false;
     return true;
   });
 
+  const availableHours = selectedDate && tree[selectedDate] ? Object.keys(tree[selectedDate]) : [];
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
-      {/* Date & Hour Tree Filter Panel */}
-      <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl p-4 shadow-md flex flex-col h-[750px]">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
+      {/* Left Sidebar (1/3 width): Filter Controls + Log Card List */}
+      <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl p-4 shadow-md flex flex-col h-[780px]">
+        {/* Top Header & Refresh */}
         <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-700/60">
-          <h3 className="font-bold text-slate-100 text-xs uppercase tracking-wider">Date History</h3>
+          <h3 className="font-bold text-slate-100 text-xs uppercase tracking-wider">Transaction Logs</h3>
           <button
             onClick={fetchLogs}
-            className="text-[10px] bg-slate-700/80 hover:bg-slate-700 text-slate-200 px-2 py-1 rounded transition-colors"
+            className="text-[10px] bg-slate-700 hover:bg-slate-600 text-slate-200 px-2 py-1 rounded transition-colors flex items-center space-x-1"
           >
-            Refresh
+            <span>↻</span>
+            <span>Refresh</span>
           </button>
         </div>
 
-        <div className="overflow-y-auto space-y-1.5 flex-1 pr-1 text-xs">
-          {Object.keys(tree).length === 0 ? (
-            <div className="text-slate-500 text-center py-6 text-xs">No historical dates</div>
+        {/* Date & Hour Dropdown Selector Bar */}
+        <div className="grid grid-cols-2 gap-2 mb-3">
+          <div>
+            <label className="text-[10px] font-semibold text-slate-400 block mb-1">Date</label>
+            <select
+              value={selectedDate}
+              onChange={(e) => handleDateChange(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-700 rounded-lg p-1.5 text-xs text-slate-100 font-mono focus:outline-none focus:border-blue-500"
+            >
+              {Object.keys(tree).map(d => (
+                <option key={d} value={d}>📅 {d}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-[10px] font-semibold text-slate-400 block mb-1">Hour</label>
+            <select
+              value={selectedHour}
+              onChange={(e) => setSelectedHour(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-700 rounded-lg p-1.5 text-xs text-slate-100 font-mono focus:outline-none focus:border-blue-500"
+            >
+              <option value="all">🕒 All Hours</option>
+              {availableHours.map(h => (
+                <option key={h} value={h}>🕒 {h}:00 ({tree[selectedDate][h]})</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Log File Cards List */}
+        <div className="flex-1 overflow-y-auto space-y-2 pr-1 text-xs border-t border-slate-700/40 pt-2">
+          {loading ? (
+            <div className="flex items-center justify-center h-32 text-slate-400 text-xs">Loading logs...</div>
+          ) : filteredLogs.length === 0 ? (
+            <div className="flex items-center justify-center h-32 text-slate-500 text-xs text-center p-4">
+              No transaction logs found for selected filter.
+            </div>
           ) : (
-            Object.keys(tree).map(date => {
-              const isExpanded = expandedDates[date];
-              const hours = tree[date];
-              const totalForDate = Object.values(hours).reduce((a, b) => a + b, 0);
-
+            filteredLogs.map((log, idx) => {
+              const isSelected = selectedFile === log.path;
               return (
-                <div key={date} className="space-y-1">
-                  <div
-                    onClick={() => toggleDate(date)}
-                    className={`flex items-center justify-between p-2 rounded-lg cursor-pointer font-mono font-semibold transition-colors ${
-                      selectedDate === date && !selectedHour ? 'bg-blue-600/30 text-blue-300' : 'hover:bg-slate-700/50 text-slate-200'
-                    }`}
-                  >
-                    <span className="flex items-center space-x-1.5">
-                      <span className="text-[10px]">{isExpanded ? '▼' : '▶'}</span>
-                      <span>📅 {date}</span>
-                    </span>
-                    <span className="text-[10px] bg-slate-900 px-1.5 py-0.5 rounded text-slate-400 font-normal">{totalForDate}</span>
+                <div
+                  key={idx}
+                  onClick={() => loadDetail(log)}
+                  className={`p-3 rounded-xl cursor-pointer transition-all border ${
+                    isSelected
+                      ? 'bg-blue-600/20 border-blue-500/80 text-blue-200 shadow-md'
+                      : 'bg-slate-900/60 border-slate-700/40 hover:border-slate-600 text-slate-300'
+                  }`}
+                >
+                  <div className="font-mono text-[11px] truncate font-semibold">{log.filename}</div>
+                  <div className="text-[10px] text-slate-400 mt-1.5 flex items-center justify-between font-mono">
+                    <span>{log.date}</span>
+                    <span className="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700/60">{log.hour}:00</span>
                   </div>
-
-                  {isExpanded && (
-                    <div className="pl-4 space-y-1 border-l border-slate-700/60 ml-2">
-                      <div
-                        onClick={() => { setSelectedDate(date); setSelectedHour(null); }}
-                        className={`p-1.5 rounded cursor-pointer text-[11px] font-mono ${
-                          selectedDate === date && !selectedHour ? 'text-blue-400 font-bold' : 'text-slate-400 hover:text-slate-200'
-                        }`}
-                      >
-                        • All Hours
-                      </div>
-                      {Object.keys(hours).map(hour => (
-                        <div
-                          key={hour}
-                          onClick={() => selectHourFilter(date, hour)}
-                          className={`flex items-center justify-between p-1.5 rounded cursor-pointer text-[11px] font-mono ${
-                            selectedDate === date && selectedHour === hour ? 'bg-blue-500/20 text-blue-300 font-bold' : 'text-slate-400 hover:text-slate-200'
-                          }`}
-                        >
-                          <span>🕒 {hour}:00</span>
-                          <span className="text-[10px] text-slate-500">{hours[hour]}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
               );
             })
@@ -139,58 +153,19 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
         </div>
       </div>
 
-      {/* Log Files Panel */}
-      <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl p-4 shadow-md flex flex-col h-[750px]">
-        <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-700/60">
-          <h3 className="font-bold text-slate-100 text-xs uppercase tracking-wider">Log Entries</h3>
-          <span className="text-xs bg-slate-700/60 text-slate-300 px-2 py-0.5 rounded-full">{filteredLogs.length}</span>
-        </div>
-
-        {loading ? (
-          <div className="flex items-center justify-center flex-1 text-slate-400 text-xs">Loading...</div>
-        ) : filteredLogs.length === 0 ? (
-          <div className="flex items-center justify-center flex-1 text-slate-500 text-xs text-center p-4">
-            No transaction logs found for selected filter.
-          </div>
-        ) : (
-          <div className="overflow-y-auto space-y-2 pr-1 flex-1 text-xs">
-            {filteredLogs.map((log, idx) => {
-              const isSelected = selectedFile === log.path;
-              return (
-                <div
-                  key={idx}
-                  onClick={() => loadDetail(log)}
-                  className={`p-2.5 rounded-lg cursor-pointer transition-all border ${
-                    isSelected
-                      ? 'bg-blue-600/20 border-blue-500/80 text-blue-200'
-                      : 'bg-slate-900/60 border-slate-700/40 hover:border-slate-600 text-slate-300'
-                  }`}
-                >
-                  <div className="font-mono text-[11px] truncate font-semibold">{log.filename}</div>
-                  <div className="text-[10px] text-slate-400 mt-1 flex items-center justify-between">
-                    <span>{log.date}</span>
-                    <span>{log.hour}:00</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Detail Payload Inspector Panel */}
-      <div className="lg:col-span-2 bg-slate-800/80 border border-slate-700/60 rounded-xl p-5 shadow-md flex flex-col h-[750px]">
+      {/* Right Main Column (2/3 width): Payload Inspector */}
+      <div className="lg:col-span-2 bg-slate-800/80 border border-slate-700/60 rounded-xl p-5 shadow-md flex flex-col h-[780px]">
         <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-700/60">
           <h3 className="font-bold text-slate-100 text-xs uppercase tracking-wider">Payload Inspector</h3>
           {selectedLog?.duration && (
-            <span className="text-xs font-mono bg-purple-500/20 text-purple-300 border border-purple-500/40 px-2.5 py-0.5 rounded-full">
+            <span className="text-xs font-mono bg-purple-500/20 text-purple-300 border border-purple-500/40 px-3 py-1 rounded-full">
               Latency: {selectedLog.duration}ms
             </span>
           )}
         </div>
 
         {detailLoading ? (
-          <div className="flex items-center justify-center flex-1 text-slate-400 text-xs">Loading payload...</div>
+          <div className="flex items-center justify-center flex-1 text-slate-400 text-xs">Loading payload details...</div>
         ) : selectedLog ? (
           <div className="flex-1 overflow-y-auto space-y-4 font-mono text-xs pr-1">
             <div>
@@ -198,7 +173,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                 <span className="bg-blue-500/20 px-2 py-0.5 rounded text-[10px] uppercase mr-2 border border-blue-500/30">Client Req</span>
                 Incoming Claude API Payload
               </div>
-              <pre className="bg-slate-950 p-3 rounded-lg border border-slate-800 text-slate-300 overflow-x-auto max-h-44">
+              <pre className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-slate-300 overflow-x-auto max-h-48 leading-relaxed">
                 {JSON.stringify(selectedLog.client_req, null, 2)}
               </pre>
             </div>
@@ -208,7 +183,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                 <span className="bg-emerald-500/20 px-2 py-0.5 rounded text-[10px] uppercase mr-2 border border-emerald-500/30">Translated</span>
                 Upstream Gemini Request Payload
               </div>
-              <pre className="bg-slate-950 p-3 rounded-lg border border-slate-800 text-slate-300 overflow-x-auto max-h-44">
+              <pre className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-slate-300 overflow-x-auto max-h-48 leading-relaxed">
                 {JSON.stringify(selectedLog.gem_req, null, 2)}
               </pre>
             </div>
@@ -218,14 +193,14 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                 <span className="bg-amber-500/20 px-2 py-0.5 rounded text-[10px] uppercase mr-2 border border-amber-500/30">Claude Res</span>
                 Final Response Payload
               </div>
-              <pre className="bg-slate-950 p-3 rounded-lg border border-slate-800 text-slate-300 overflow-x-auto max-h-44">
+              <pre className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-slate-300 overflow-x-auto max-h-48 leading-relaxed">
                 {JSON.stringify(selectedLog.claude_res, null, 2)}
               </pre>
             </div>
           </div>
         ) : (
           <div className="flex items-center justify-center flex-1 text-slate-500 text-xs">
-            Select a transaction log entry to inspect translated payloads.
+            Select a transaction log entry from the left list to inspect translated payloads.
           </div>
         )}
       </div>
