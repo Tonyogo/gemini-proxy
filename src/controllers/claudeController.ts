@@ -86,7 +86,7 @@ class ClaudeController {
 
           const streamState = { tools: clientReq.tools };
           const gemResChunks: any[] = [];
-          const claudeResChunks: string[] = [];
+          const claudeResChunks: any[] = [];
           let streamBuffer = '';
 
           response.body!.on('data', (buffer: Buffer) => {
@@ -108,10 +108,13 @@ class ClaudeController {
                 }
               }
 
-              const translated = claudeTranslator.translateGoogleToClaudeStream(trimmed, cleanModelName, streamState);
-              if (translated && !res.writableEnded) {
-                claudeResChunks.push(translated);
-                res.write(translated);
+              const events = claudeTranslator.translateGoogleToClaudeStream(trimmed, cleanModelName, streamState);
+              if (events && events.length > 0) {
+                claudeResChunks.push(...events);
+                if (!res.writableEnded) {
+                  const sseText = events.map((ev: any) => `event: ${ev.type}\ndata: ${JSON.stringify(ev)}\n\n`).join('');
+                  res.write(sseText);
+                }
               }
             }
           });
@@ -131,10 +134,13 @@ class ClaudeController {
                 }
               }
 
-              const translated = claudeTranslator.translateGoogleToClaudeStream(trimmed, cleanModelName, streamState);
-              if (translated && !res.writableEnded) {
-                claudeResChunks.push(translated);
-                res.write(translated);
+              const events = claudeTranslator.translateGoogleToClaudeStream(trimmed, cleanModelName, streamState);
+              if (events && events.length > 0) {
+                claudeResChunks.push(...events);
+                if (!res.writableEnded) {
+                  const sseText = events.map((ev: any) => `event: ${ev.type}\ndata: ${JSON.stringify(ev)}\n\n`).join('');
+                  res.write(sseText);
+                }
               }
             }
 

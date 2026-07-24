@@ -99,6 +99,6 @@ describe('ClaudeController Transaction Logging (via Spy)', () => {
     // Verified Claude responses array
     expect(claudeRes).toBeInstanceOf(Array);
     expect(claudeRes.length).toBeGreaterThan(0);
-    expect(claudeRes[0]).toContain('message_start');
+    expect(claudeRes[0].type).toEqual('message_start');
   });
 });
