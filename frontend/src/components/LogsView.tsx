@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import Editor from '@monaco-editor/react';
 import JsonTreeView from './JsonTreeView';
 
 export default function LogsView({ adminKey }: { adminKey: string }) {
@@ -78,8 +79,20 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
 
   const availableHours = selectedDate && tree[selectedDate] ? Object.keys(tree[selectedDate]) : [];
 
-  // Responsive max height for raw text depending on active tab
-  const rawBoxHeightClass = activeTab === 'all' ? 'max-h-[320px]' : 'max-h-[680px] h-[680px]';
+  const editorOptions = {
+    readOnly: true,
+    minimap: { enabled: false },
+    folding: true,
+    foldingStrategy: 'auto' as const,
+    scrollBeyondLastLine: false,
+    fontSize: 11,
+    lineNumbers: 'on' as const,
+    renderIndentGuides: true,
+    wordWrap: 'on' as const,
+    automaticLayout: true
+  };
+
+  const editorHeight = activeTab === 'all' ? '320px' : '680px';
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
@@ -206,7 +219,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                   viewMode === 'raw' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                💻 Raw Text
+                💻 Raw Monaco Editor
               </button>
             </div>
 
@@ -235,9 +248,15 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                     {viewMode === 'preview' ? (
                       <JsonTreeView data={selectedLog.client_req} />
                     ) : (
-                      <pre className={`bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-xs font-mono text-slate-300 overflow-auto ${rawBoxHeightClass}`}>
-                        {JSON.stringify(selectedLog.client_req, null, 2)}
-                      </pre>
+                      <div className="rounded-xl overflow-hidden border border-slate-800">
+                        <Editor
+                          height={editorHeight}
+                          language="json"
+                          theme="vs-dark"
+                          value={JSON.stringify(selectedLog.client_req, null, 2)}
+                          options={editorOptions}
+                        />
+                      </div>
                     )}
                   </div>
                   <div className="flex flex-col">
@@ -245,9 +264,15 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                     {viewMode === 'preview' ? (
                       <JsonTreeView data={selectedLog.gem_req} />
                     ) : (
-                      <pre className={`bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-xs font-mono text-slate-300 overflow-auto ${rawBoxHeightClass}`}>
-                        {JSON.stringify(selectedLog.gem_req, null, 2)}
-                      </pre>
+                      <div className="rounded-xl overflow-hidden border border-slate-800">
+                        <Editor
+                          height={editorHeight}
+                          language="json"
+                          theme="vs-dark"
+                          value={JSON.stringify(selectedLog.gem_req, null, 2)}
+                          options={editorOptions}
+                        />
+                      </div>
                     )}
                   </div>
                 </div>
@@ -266,9 +291,15 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                     {viewMode === 'preview' ? (
                       <JsonTreeView data={selectedLog.claude_res} />
                     ) : (
-                      <pre className={`bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-xs font-mono text-slate-300 overflow-auto ${rawBoxHeightClass}`}>
-                        {JSON.stringify(selectedLog.claude_res, null, 2)}
-                      </pre>
+                      <div className="rounded-xl overflow-hidden border border-slate-800">
+                        <Editor
+                          height={editorHeight}
+                          language="json"
+                          theme="vs-dark"
+                          value={JSON.stringify(selectedLog.claude_res, null, 2)}
+                          options={editorOptions}
+                        />
+                      </div>
                     )}
                   </div>
                   <div className="flex flex-col">
@@ -276,9 +307,15 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                     {viewMode === 'preview' ? (
                       <JsonTreeView data={selectedLog.gem_res} />
                     ) : (
-                      <pre className={`bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-xs font-mono text-slate-300 overflow-auto ${rawBoxHeightClass}`}>
-                        {JSON.stringify(selectedLog.gem_res, null, 2)}
-                      </pre>
+                      <div className="rounded-xl overflow-hidden border border-slate-800">
+                        <Editor
+                          height={editorHeight}
+                          language="json"
+                          theme="vs-dark"
+                          value={JSON.stringify(selectedLog.gem_res, null, 2)}
+                          options={editorOptions}
+                        />
+                      </div>
                     )}
                   </div>
                 </div>
