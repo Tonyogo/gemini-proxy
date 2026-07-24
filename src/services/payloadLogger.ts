@@ -40,6 +40,7 @@ class PayloadLogger {
       await fs.mkdir(targetDir, { recursive: true });
 
       const payload = {
+        timestamp: new Date().toISOString(),
         duration: duration !== undefined ? duration : null,
         client_req: sanitizeData(clientReq) || null,
         gem_req: sanitizeData(gemReq) || null,

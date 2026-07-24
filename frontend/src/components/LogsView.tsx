@@ -216,6 +216,11 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                 Latency: {selectedLog.duration}ms
               </span>
             )}
+            {selectedLog?.timestamp && (
+              <span className="text-xs font-mono bg-blue-500/20 text-blue-300 border border-blue-500/40 px-3 py-1 rounded-full">
+                {new Date(selectedLog.timestamp).toLocaleString()}
+              </span>
+            )}
           </div>
         </div>
 
