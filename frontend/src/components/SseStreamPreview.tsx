@@ -233,7 +233,7 @@ export default function SseStreamPreview({ streamData }: { streamData: any }) {
 
                 {isSelected && (
                   <div className="pl-3 py-1">
-                    <JsonTreeView data={chunk} initialExpandedDepth={2} />
+                    <JsonTreeView data={chunk} initialExpandedDepth={1} />
                   </div>
                 )}
               </div>

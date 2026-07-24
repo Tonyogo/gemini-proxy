@@ -12,7 +12,7 @@ export function JsonNode({
   name,
   value,
   depth = 0,
-  initialExpandedDepth = 2,
+  initialExpandedDepth = 1,
   isLast = true
 }: JsonNodeProps) {
   const [expanded, setExpanded] = useState<boolean>(depth < initialExpandedDepth);
@@ -86,7 +86,7 @@ export function JsonNode({
   );
 }
 
-export default function JsonTreeView({ data, initialExpandedDepth = 2 }: { data: any; initialExpandedDepth?: number }) {
+export default function JsonTreeView({ data, initialExpandedDepth = 1 }: { data: any; initialExpandedDepth?: number }) {
   if (data === undefined || data === null) {
     return <div className="text-slate-500 text-xs italic font-mono p-2">null</div>;
   }
