@@ -5,6 +5,25 @@ const currentLevel = levels[config.logLevel] !== undefined ? levels[config.logLe
 
 const isTestEnv = process.env.NODE_ENV === 'test';
 
+const getFormattedTimestamp = (): string => {
+  try {
+    const timeZone = config.timeZone || 'Asia/Shanghai';
+    const formatter = new Intl.DateTimeFormat('sv-SE', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hourCycle: 'h23'
+    });
+    return formatter.format(new Date());
+  } catch {
+    return new Date().toISOString();
+  }
+};
+
 const log = (level: string, message: string, ...meta: any[]) => {
   // Suppress all console logs during testing
   if (isTestEnv) {
@@ -12,7 +31,7 @@ const log = (level: string, message: string, ...meta: any[]) => {
   }
 
   if (levels[level] <= currentLevel) {
-    const timestamp = new Date().toISOString();
+    const timestamp = getFormattedTimestamp();
     const formattedMeta = meta.length
       ? ' ' + meta.map(m => typeof m === 'object' ? JSON.stringify(m) : m).join(' ')
       : '';
