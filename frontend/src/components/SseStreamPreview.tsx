@@ -49,13 +49,115 @@ export default function SseStreamPreview({ streamData }: { streamData: any }) {
     // Gemini Stream format
     if (chunk.candidates && chunk.candidates[0]?.content?.parts) {
       for (const part of chunk.candidates[0].content.parts) {
-        if (part.text) fullText += part.text;
+        if (part.text) {
+          fullText += part.text;
+        } else if (part.thought) {
+          fullThinking += part.thought;
+        }
       }
     }
     if (chunk.usageMetadata) {
       usage = chunk.usageMetadata;
     }
   }
+
+  // Helper to extract clean type and preview for each event chunk
+  const getChunkAbstract = (chunk: any) => {
+    // Claude format classification
+    if (chunk.type) {
+      switch (chunk.type) {
+        case 'message_start':
+          return {
+            type: 'message_start',
+            badgeColor: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
+            summary: `Model: ${chunk.message?.model || 'unknown'} (starts message)`
+          };
+        case 'content_block_start':
+          return {
+            type: 'content_block_start',
+            badgeColor: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
+            summary: `Block Start (type: ${chunk.content_block?.type || 'text'})`
+          };
+        case 'content_block_delta':
+          if (chunk.delta?.type === 'text_delta') {
+            return {
+              type: 'text_delta',
+              badgeColor: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
+              summary: `Text: "${chunk.delta.text}"`
+            };
+          }
+          if (chunk.delta?.type === 'thinking_delta') {
+            return {
+              type: 'thinking_delta',
+              badgeColor: 'bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/30',
+              summary: `Thinking: "${chunk.delta.thinking}"`
+            };
+          }
+          return {
+            type: 'content_block_delta',
+            badgeColor: 'bg-slate-500/10 text-slate-400 border-slate-500/30',
+            summary: 'Block Delta update'
+          };
+        case 'content_block_stop':
+          return {
+            type: 'content_block_stop',
+            badgeColor: 'bg-slate-700/30 text-slate-400 border-slate-700/40',
+            summary: 'Block End'
+          };
+        case 'message_delta':
+          return {
+            type: 'message_delta',
+            badgeColor: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
+            summary: `Stop Reason: ${chunk.delta?.stop_reason || 'none'} | Output: ${chunk.usage?.output_tokens || 0} tokens`
+          };
+        case 'message_stop':
+          return {
+            type: 'message_stop',
+            badgeColor: 'bg-rose-500/10 text-rose-400 border-rose-500/30',
+            summary: 'Stream Ended'
+          };
+        default:
+          return {
+            type: chunk.type,
+            badgeColor: 'bg-slate-500/10 text-slate-400 border-slate-500/30',
+            summary: JSON.stringify(chunk)
+          };
+      }
+    }
+
+    // Gemini format classification
+    if (chunk.candidates && chunk.candidates[0]?.content?.parts) {
+      const part = chunk.candidates[0].content.parts[0];
+      if (part.text) {
+        return {
+          type: 'text_chunk',
+          badgeColor: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
+          summary: `Text: "${part.text}"`
+        };
+      }
+      if (part.thought) {
+        return {
+          type: 'thinking_chunk',
+          badgeColor: 'bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/30',
+          summary: `Thought: "${part.thought}"`
+        };
+      }
+      if (part.functionCall) {
+        return {
+          type: 'function_call',
+          badgeColor: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
+          summary: `Call: ${part.functionCall.name}`
+        };
+      }
+    }
+
+    // Fallback classification
+    return {
+      type: 'stream_chunk',
+      badgeColor: 'bg-slate-500/10 text-slate-400 border-slate-500/30',
+      summary: JSON.stringify(chunk)
+    };
+  };
 
   return (
     <div className="space-y-4 text-xs font-sans">
@@ -105,7 +207,7 @@ export default function SseStreamPreview({ streamData }: { streamData: any }) {
         <div className="space-y-1 max-h-64 overflow-y-auto pr-1">
           {chunks.map((chunk, idx) => {
             const isSelected = selectedChunkIndex === idx;
-            const eventType = chunk.type || (chunk.candidates ? 'candidate_chunk' : 'sse_chunk');
+            const abstract = getChunkAbstract(chunk);
 
             return (
               <div key={idx} className="space-y-1">
@@ -119,11 +221,11 @@ export default function SseStreamPreview({ streamData }: { streamData: any }) {
                 >
                   <span className="flex items-center space-x-2 truncate">
                     <span className="text-slate-500 font-normal">#{idx + 1}</span>
-                    <span className="bg-slate-800 px-1.5 py-0.5 rounded text-blue-400 border border-slate-700">
-                      {eventType}
+                    <span className={`px-2 py-0.5 rounded border text-[9px] font-bold tracking-wide uppercase ${abstract.badgeColor}`}>
+                      {abstract.type}
                     </span>
-                    <span className="truncate text-slate-400">
-                      {chunk.delta?.text || chunk.candidates?.[0]?.content?.parts?.[0]?.text || JSON.stringify(chunk)}
+                    <span className="truncate text-slate-400 font-sans font-medium">
+                      {abstract.summary}
                     </span>
                   </span>
                   <span className="text-slate-500 text-[9px]">{isSelected ? '▲' : '▼'}</span>
