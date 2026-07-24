@@ -78,6 +78,9 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
 
   const availableHours = selectedDate && tree[selectedDate] ? Object.keys(tree[selectedDate]) : [];
 
+  // Responsive max height for raw text depending on active tab
+  const rawBoxHeightClass = activeTab === 'all' ? 'max-h-[320px]' : 'max-h-[680px] h-[680px]';
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
       {/* Left Sidebar */}
@@ -227,22 +230,22 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                   <span>Request Payload Comparison</span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
+                  <div className="flex flex-col">
                     <div className="text-[11px] font-semibold text-blue-400 mb-1">Claude Client Request (client_req)</div>
                     {viewMode === 'preview' ? (
                       <JsonTreeView data={selectedLog.client_req} />
                     ) : (
-                      <pre className="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs font-mono text-slate-300 overflow-x-auto max-h-96">
+                      <pre className={`bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-xs font-mono text-slate-300 overflow-auto ${rawBoxHeightClass}`}>
                         {JSON.stringify(selectedLog.client_req, null, 2)}
                       </pre>
                     )}
                   </div>
-                  <div>
+                  <div className="flex flex-col">
                     <div className="text-[11px] font-semibold text-emerald-400 mb-1">Gemini Upstream Request (gem_req)</div>
                     {viewMode === 'preview' ? (
                       <JsonTreeView data={selectedLog.gem_req} />
                     ) : (
-                      <pre className="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs font-mono text-slate-300 overflow-x-auto max-h-96">
+                      <pre className={`bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-xs font-mono text-slate-300 overflow-auto ${rawBoxHeightClass}`}>
                         {JSON.stringify(selectedLog.gem_req, null, 2)}
                       </pre>
                     )}
@@ -258,22 +261,22 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                   <span>Response Payload Comparison</span>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
+                  <div className="flex flex-col">
                     <div className="text-[11px] font-semibold text-amber-400 mb-1">Claude Final Response (claude_res)</div>
                     {viewMode === 'preview' ? (
                       <JsonTreeView data={selectedLog.claude_res} />
                     ) : (
-                      <pre className="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs font-mono text-slate-300 overflow-x-auto max-h-96">
+                      <pre className={`bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-xs font-mono text-slate-300 overflow-auto ${rawBoxHeightClass}`}>
                         {JSON.stringify(selectedLog.claude_res, null, 2)}
                       </pre>
                     )}
                   </div>
-                  <div>
+                  <div className="flex flex-col">
                     <div className="text-[11px] font-semibold text-purple-400 mb-1">Gemini Upstream Response (gem_res)</div>
                     {viewMode === 'preview' ? (
                       <JsonTreeView data={selectedLog.gem_res} />
                     ) : (
-                      <pre className="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs font-mono text-slate-300 overflow-x-auto max-h-96">
+                      <pre className={`bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-xs font-mono text-slate-300 overflow-auto ${rawBoxHeightClass}`}>
                         {JSON.stringify(selectedLog.gem_res, null, 2)}
                       </pre>
                     )}
