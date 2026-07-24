@@ -9,15 +9,22 @@ export interface LogItem {
   path: string;
 }
 
+export interface LogTreeStructure {
+  [date: string]: {
+    [hour: string]: number;
+  };
+}
+
 class LogService {
   private getDebugDir(): string {
     const logsDir = config.transactionLogsDir || 'logs';
     return path.isAbsolute(logsDir) ? logsDir : path.join(process.cwd(), logsDir);
   }
 
-  public async listLogs(page = 1, limit = 20): Promise<{ logs: LogItem[]; total: number }> {
+  public async listLogs(page = 1, limit = 50): Promise<{ tree: LogTreeStructure; logs: LogItem[]; total: number }> {
     const debugDir = this.getDebugDir();
     const items: LogItem[] = [];
+    const tree: LogTreeStructure = {};
 
     try {
       const dates = await fs.readdir(debugDir);
@@ -26,6 +33,7 @@ class LogService {
         const dateStat = await fs.stat(dateDir).catch(() => null);
         if (!dateStat || !dateStat.isDirectory()) continue;
 
+        tree[date] = tree[date] || {};
         const hours = await fs.readdir(dateDir);
         for (const hour of hours.sort().reverse()) {
           const hourDir = path.join(dateDir, hour);
@@ -33,15 +41,16 @@ class LogService {
           if (!hourStat || !hourStat.isDirectory()) continue;
 
           const files = await fs.readdir(hourDir);
-          for (const file of files.sort().reverse()) {
-            if (file.endsWith('.json')) {
-              items.push({
-                date,
-                hour,
-                filename: file,
-                path: path.join(date, hour, file)
-              });
-            }
+          const jsonFiles = files.filter(f => f.endsWith('.json'));
+          tree[date][hour] = jsonFiles.length;
+
+          for (const file of jsonFiles.sort().reverse()) {
+            items.push({
+              date,
+              hour,
+              filename: file,
+              path: path.join(date, hour, file)
+            });
           }
         }
       }
@@ -51,6 +60,7 @@ class LogService {
 
     const start = (page - 1) * limit;
     return {
+      tree,
       logs: items.slice(start, start + limit),
       total: items.length
     };

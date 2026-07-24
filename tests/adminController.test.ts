@@ -32,4 +32,11 @@ describe('Admin API Endpoints', () => {
     expect(res.body).toHaveProperty('logs');
     expect(res.body).toHaveProperty('total');
   });
+
+  test('GET /api/admin/logs returns tree hierarchy metadata', async () => {
+    const res = await request(app).get('/api/admin/logs');
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('tree');
+    expect(typeof res.body.tree).toBe('object');
+  });
 });
