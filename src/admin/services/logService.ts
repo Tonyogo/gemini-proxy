@@ -22,7 +22,12 @@ class LogService {
     return path.isAbsolute(logsDir) ? logsDir : path.join(process.cwd(), logsDir);
   }
 
-  public async listLogs(page = 1, limit = 50): Promise<{ tree: LogTreeStructure; logs: LogItem[]; total: number }> {
+  public async listLogs(
+    page = 1,
+    limit = 50,
+    filterDate?: string,
+    filterHour?: string
+  ): Promise<{ tree: LogTreeStructure; logs: LogItem[]; total: number }> {
     const debugDir = this.getDebugDir();
     const items: LogItem[] = [];
     const tree: LogTreeStructure = {};
@@ -44,6 +49,10 @@ class LogService {
           const files = await fs.readdir(hourDir);
           const jsonFiles = files.filter(f => f.endsWith('.json'));
           tree[date][hour] = jsonFiles.length;
+
+          // Skip adding to items list if filterDate or filterHour don't match
+          if (filterDate && date !== filterDate) continue;
+          if (filterHour && filterHour !== 'all' && hour !== filterHour) continue;
 
           for (const file of jsonFiles.sort().reverse()) {
             items.push({

@@ -42,6 +42,16 @@ describe('Admin API Endpoints', () => {
     expect(res.body).toHaveProperty('total');
   });
 
+  test('GET /api/admin/logs filters by date and hour query parameters', async () => {
+    const res = await request(app).get('/api/admin/logs?date=2026-07-22&hour=15');
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('logs');
+    if (res.body.logs.length > 0) {
+      expect(res.body.logs[0].date).toBe('2026-07-22');
+      expect(res.body.logs[0].hour).toBe('15');
+    }
+  });
+
   test('GET /api/admin/logs returns tree hierarchy metadata', async () => {
     const res = await request(app).get('/api/admin/logs');
     expect(res.status).toBe(200);
