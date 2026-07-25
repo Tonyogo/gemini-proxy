@@ -2,14 +2,11 @@ import config, { updateConfig } from '../config/default';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 
-describe('Runtime Config Store', () => {
+describe('Explicit Overrides Runtime Config', () => {
   const runtimeJsonPath = path.join(process.cwd(), 'config', 'runtime.json');
 
   afterEach(async () => {
-    await updateConfig({
-      runtimeContextTag: 'runtime-context',
-      systemRoleToInstruction: false
-    });
+    await updateConfig({}, { resetToEnv: true });
     try {
       await fs.unlink(runtimeJsonPath);
     } catch {
@@ -17,19 +14,20 @@ describe('Runtime Config Store', () => {
     }
   });
 
-  test('updateConfig mutates config in memory and writes to runtime.json', async () => {
-    await updateConfig({
-      runtimeContextTag: 'custom-tag-test',
-      systemRoleToInstruction: true
-    });
+  test('updateConfig only writes explicit keys and resets cleanly', async () => {
+    // 1. Update only runtimeContextTag
+    await updateConfig({ runtimeContextTag: 'explicit-tag-override' });
 
-    expect(config.runtimeContextTag).toBe('custom-tag-test');
-    expect(config.systemRoleToInstruction).toBe(true);
+    expect(config.runtimeContextTag).toBe('explicit-tag-override');
 
+    const rawData = JSON.parse(await fs.readFile(runtimeJsonPath, 'utf8'));
+    // Should contain runtimeContextTag and only explicit keys
+    expect(rawData).toHaveProperty('runtimeContextTag');
+    expect(Object.keys(rawData)).toEqual(['runtimeContextTag']);
+
+    // 2. Reset to env
+    await updateConfig({}, { resetToEnv: true });
     const exists = await fs.access(runtimeJsonPath).then(() => true).catch(() => false);
-    expect(exists).toBe(true);
-
-    const data = JSON.parse(await fs.readFile(runtimeJsonPath, 'utf8'));
-    expect(data.runtimeContextTag).toBe('custom-tag-test');
+    expect(exists).toBe(false);
   });
 });
