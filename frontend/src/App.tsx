@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import DashboardView from './components/DashboardView';
 import LogsView from './components/LogsView';
 import PlaygroundView from './components/PlaygroundView';
+import ConfigModal from './components/ConfigModal';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'logs' | 'playground'>('dashboard');
@@ -11,7 +12,10 @@ export default function App() {
   const [authError, setAuthError] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
 
-  // Validate admin key against /api/admin/status
+  // Modal State
+  const [isConfigModalOpen, setIsConfigModalOpen] = useState<boolean>(false);
+  const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
+
   const verifyAuth = async (keyToTest: string) => {
     setLoading(true);
     setAuthError('');
@@ -27,7 +31,6 @@ export default function App() {
         setIsAuthenticated(false);
         setAuthError('Invalid Admin Secret Key. Access Denied (401).');
       } else {
-        // Other server error or unexpected response
         setIsAuthenticated(false);
         setAuthError(`Authentication failed: Server returned ${res.status}`);
       }
@@ -55,7 +58,6 @@ export default function App() {
     setIsAuthenticated(false);
   };
 
-  // Loading state during initial verification
   if (loading && isAuthenticated === null) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-slate-950 text-slate-300 font-mono text-xs">
@@ -65,7 +67,6 @@ export default function App() {
     );
   }
 
-  // Render Fullscreen Login Gate if not authenticated
   if (!isAuthenticated) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-slate-950 p-4">
@@ -115,7 +116,6 @@ export default function App() {
     );
   }
 
-  // Render Full Dashboard Interface when Authenticated
   return (
     <div className="flex flex-col min-h-screen bg-slate-950 text-slate-100 font-sans">
       <header className="bg-slate-900/90 backdrop-blur border-b border-slate-800/80 px-6 py-3.5 flex items-center justify-between sticky top-0 z-50">
@@ -145,22 +145,46 @@ export default function App() {
           ))}
         </nav>
 
-        <button
-          onClick={handleLogout}
-          className="px-3 py-1.5 bg-slate-800/80 hover:bg-rose-600/20 hover:border-rose-500/40 border border-slate-700/60 rounded-lg text-xs text-slate-300 hover:text-rose-300 transition-all flex items-center space-x-1.5"
-        >
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          </svg>
-          <span>Lock Console</span>
-        </button>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setIsConfigModalOpen(true)}
+            className="px-3 py-1.5 bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 rounded-lg text-xs text-slate-300 hover:text-white transition-all flex items-center space-x-1.5"
+            title="Configure Proxy Settings"
+          >
+            <span>⚙️</span>
+            <span>Settings</span>
+          </button>
+
+          <button
+            onClick={handleLogout}
+            className="px-3 py-1.5 bg-slate-800/80 hover:bg-rose-600/20 hover:border-rose-500/40 border border-slate-700/60 rounded-lg text-xs text-slate-300 hover:text-rose-300 transition-all flex items-center space-x-1.5"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            <span>Lock Console</span>
+          </button>
+        </div>
       </header>
 
       <main className="flex-1 p-6">
-        {activeTab === 'dashboard' && <DashboardView adminKey={adminKey} />}
+        {activeTab === 'dashboard' && (
+          <DashboardView
+            key={refreshTrigger}
+            adminKey={adminKey}
+            onOpenSettings={() => setIsConfigModalOpen(true)}
+          />
+        )}
         {activeTab === 'logs' && <LogsView adminKey={adminKey} />}
         {activeTab === 'playground' && <PlaygroundView />}
       </main>
+
+      <ConfigModal
+        isOpen={isConfigModalOpen}
+        onClose={() => setIsConfigModalOpen(false)}
+        adminKey={adminKey}
+        onSaved={() => setRefreshTrigger(prev => prev + 1)}
+      />
     </div>
   );
 }
