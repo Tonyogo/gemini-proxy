@@ -14,43 +14,75 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
   const [loading, setLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
 
-  // Chrome DevTools & Sidebar States
   const [activeTab, setActiveTab] = useState<'payload' | 'response'>('payload');
   const [viewMode, setViewMode] = useState<'preview' | 'raw'>('preview');
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
 
-  const fetchLogs = () => {
+  const fetchLogs = (forceAutoJump = false, customDate?: string, customHour?: string) => {
     setLoading(true);
     const headers: Record<string, string> = adminKey ? { 'x-admin-key': adminKey } : {};
-    fetch('/api/admin/logs?limit=100', { headers })
+
+    const targetDate = customDate !== undefined ? customDate : selectedDate;
+    const targetHour = customHour !== undefined ? customHour : selectedHour;
+
+    let query = '/api/admin/logs?limit=100';
+    if (!forceAutoJump) {
+      if (targetDate) query += `&date=${targetDate}`;
+      if (targetHour) query += `&hour=${targetHour}`;
+    }
+
+    fetch(query, { headers })
       .then(r => r.json())
       .then(data => {
         const logTree = data.tree || {};
-        setLogs(data.logs || []);
         setTree(logTree);
+        setLogs(data.logs || []);
 
         const dates = Object.keys(logTree);
         if (dates.length > 0) {
-          const latestDate = dates[0];
-          setSelectedDate(prev => prev || latestDate);
+          if (forceAutoJump || !targetDate || !logTree[targetDate]) {
+            const latestDate = dates[0];
+            setSelectedDate(latestDate);
 
-          const hours = Object.keys(logTree[latestDate] || {});
-          if (hours.length > 0) {
-            const latestHour = hours[0];
-            setSelectedHour(prev => prev || latestHour);
+            const hours = Object.keys(logTree[latestDate] || {});
+            if (hours.length > 0) {
+              const latestHour = hours[0];
+              setSelectedHour(latestHour);
+              // Refetch specifically for the auto-jumped date and hour
+              fetchSpecificLogs(latestDate, latestHour);
+              return;
+            }
           }
         }
 
-        if (data.logs && data.logs.length > 0 && !selectedFile) {
+        if (data.logs && data.logs.length > 0) {
           loadDetail(data.logs[0]);
+        } else {
+          setSelectedLog(null);
+          setSelectedFile('');
         }
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   };
 
+  const fetchSpecificLogs = (d: string, h: string) => {
+    const headers: Record<string, string> = adminKey ? { 'x-admin-key': adminKey } : {};
+    fetch(`/api/admin/logs?limit=100&date=${d}&hour=${h}`, { headers })
+      .then(r => r.json())
+      .then(data => {
+        setLogs(data.logs || []);
+        if (data.logs && data.logs.length > 0) {
+          loadDetail(data.logs[0]);
+        } else {
+          setSelectedLog(null);
+          setSelectedFile('');
+        }
+      });
+  };
+
   useEffect(() => {
-    fetchLogs();
+    fetchLogs(true);
   }, [adminKey]);
 
   const loadDetail = (log: any) => {
@@ -67,18 +99,15 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
   const handleDateChange = (date: string) => {
     setSelectedDate(date);
     const hours = Object.keys(tree[date] || {});
-    if (hours.length > 0) {
-      setSelectedHour(hours[0]);
-    } else {
-      setSelectedHour('');
-    }
+    const newHour = hours.length > 0 ? hours[0] : '';
+    setSelectedHour(newHour);
+    fetchLogs(false, date, newHour);
   };
 
-  const filteredLogs = logs.filter(log => {
-    if (selectedDate && log.date !== selectedDate) return false;
-    if (selectedHour && selectedHour !== 'all' && log.hour !== selectedHour) return false;
-    return true;
-  });
+  const handleHourChange = (hour: string) => {
+    setSelectedHour(hour);
+    fetchLogs(false, selectedDate, hour);
+  };
 
   const availableHours = selectedDate && tree[selectedDate] ? Object.keys(tree[selectedDate]) : [];
 
@@ -94,13 +123,13 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
 
   return (
     <div className="flex gap-6 max-w-7xl mx-auto items-start">
-      {/* Left Sidebar (VS Code Style Complete Hiding) */}
+      {/* Left Sidebar */}
       {!sidebarCollapsed && (
         <div className="w-80 shrink-0 bg-slate-800/80 border border-slate-700/60 rounded-xl p-4 shadow-md flex flex-col h-[820px] transition-all">
           <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-700/60">
             <h3 className="font-bold text-slate-100 text-xs uppercase tracking-wider">Transaction Logs</h3>
             <button
-              onClick={fetchLogs}
+              onClick={() => fetchLogs(true)}
               className="text-[10px] bg-slate-700 hover:bg-slate-600 text-slate-200 px-2 py-1 rounded transition-colors flex items-center space-x-1"
             >
               <span>↻</span>
@@ -126,7 +155,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
               <label className="text-[10px] font-semibold text-slate-400 block mb-1">Hour</label>
               <select
                 value={selectedHour}
-                onChange={(e) => setSelectedHour(e.target.value)}
+                onChange={(e) => handleHourChange(e.target.value)}
                 className="w-full bg-slate-900 border border-slate-700 rounded-lg p-1.5 text-xs text-slate-100 font-mono focus:outline-none focus:border-blue-500"
               >
                 <option value="all">🕒 All Hours</option>
@@ -140,12 +169,12 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
           <div className="flex-1 overflow-y-auto space-y-2 pr-1 text-xs border-t border-slate-700/40 pt-2">
             {loading ? (
               <div className="flex items-center justify-center h-32 text-slate-400 text-xs">Loading logs...</div>
-            ) : filteredLogs.length === 0 ? (
+            ) : logs.length === 0 ? (
               <div className="flex items-center justify-center h-32 text-slate-500 text-xs text-center p-4">
                 No logs found for selected date/hour.
               </div>
             ) : (
-              filteredLogs.map((log, idx) => {
+              logs.map((log, idx) => {
                 const isSelected = selectedFile === log.path;
                 return (
                   <div
@@ -172,10 +201,9 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
 
       {/* Main Inspector Column */}
       <div className="flex-1 min-w-0 bg-slate-800/80 border border-slate-700/60 rounded-xl p-5 shadow-md flex flex-col h-[820px]">
-        {/* Navigation Bar with VS Code Sidebar Toggle Icon */}
+        {/* Navigation Bar */}
         <div className="flex flex-wrap items-center justify-between pb-3 mb-4 border-b border-slate-700/60 gap-3">
           <div className="flex items-center space-x-3">
-            {/* VS Code Style Sidebar Toggle Button */}
             <button
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
               className={`p-1.5 rounded-lg border text-xs transition-colors flex items-center justify-center ${
@@ -250,7 +278,6 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
           <div className="flex items-center justify-center flex-1 text-slate-400 text-xs">Loading transaction log...</div>
         ) : selectedLog ? (
           <div className="flex-1 overflow-y-auto space-y-4 pr-1">
-            {/* Payload Tab */}
             {activeTab === 'payload' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex flex-col">
@@ -307,7 +334,6 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
               </div>
             )}
 
-            {/* Response Tab */}
             {activeTab === 'response' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex flex-col">
