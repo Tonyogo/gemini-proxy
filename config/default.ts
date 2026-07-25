@@ -39,7 +39,6 @@ export const config = {
   port: process.env.PORT || 3000,
   geminiBaseUrl: process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com',
   transactionLogsDir: process.env.TRANSACTION_LOGS_DIR || 'logs',
-  allowedKeys: [] as string[],
   adminSecretKey: process.env.ADMIN_SECRET_KEY || '',
   enableUi: process.env.ENABLE_UI !== 'false',
 

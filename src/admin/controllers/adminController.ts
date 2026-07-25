@@ -24,20 +24,9 @@ class AdminController {
   }
 
   public async getModels(req: Request, res: Response): Promise<void> {
-    try {
-      const modelsPath = path.join(process.cwd(), 'config', 'models.json');
-      const data = await fs.readFile(modelsPath, 'utf8');
-      const modelsJson = JSON.parse(data);
-      res.json({
-        models: modelsJson,
-        mappings: config.modelMappings
-      });
-    } catch (err) {
-      res.json({
-        models: {},
-        mappings: config.modelMappings
-      });
-    }
+    res.json({
+      mappings: config.modelMappings
+    });
   }
 
   public async getLogs(req: Request, res: Response): Promise<void> {

@@ -29,10 +29,10 @@ describe('Admin API Endpoints', () => {
     expect(res.body.config).toHaveProperty('modelMappings');
   });
 
-  test('GET /api/admin/models returns list of configured models', async () => {
+  test('GET /api/admin/models returns list of configured model mappings', async () => {
     const res = await request(app).get('/api/admin/models');
     expect(res.status).toBe(200);
-    expect(res.body).toHaveProperty('models');
+    expect(res.body).toHaveProperty('mappings');
   });
 
   test('GET /api/admin/logs returns paginated list', async () => {

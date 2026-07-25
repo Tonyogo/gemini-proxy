@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react';
 export default function DashboardView({ adminKey }: { adminKey: string }) {
   const [status, setStatus] = useState<any>(null);
   const [stats, setStats] = useState<any>(null);
-  const [models, setModels] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   const loadData = () => {
@@ -12,11 +11,9 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
     Promise.all([
       fetch('/api/admin/status', { headers }).then(r => r.json()).catch(() => null),
       fetch('/api/admin/stats', { headers }).then(r => r.json()).catch(() => null),
-      fetch('/api/admin/models', { headers }).then(r => r.json()).catch(() => null),
-    ]).then(([statusData, statsData, modelsData]) => {
+    ]).then(([statusData, statsData]) => {
       setStatus(statusData);
       setStats(statsData);
-      setModels(modelsData);
       setLoading(false);
     });
   };
@@ -162,22 +159,14 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
       {/* Category 3: Model Routing & Mappings */}
       <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl p-6 shadow-md space-y-4">
         <h3 className="text-md font-bold text-slate-200 uppercase tracking-wider text-xs">
-          3. Supported Models & Active Mappings
+          3. Active Model Mappings (MODEL_MAPPINGS)
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <div className="text-xs font-semibold text-slate-400 mb-1.5 uppercase font-mono">Declared Model Mappings</div>
-            <pre className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-xs font-mono text-amber-300 overflow-auto max-h-60 leading-relaxed">
-              {JSON.stringify(cfg.modelMappings || {}, null, 2)}
-            </pre>
-          </div>
-          <div>
-            <div className="text-xs font-semibold text-slate-400 mb-1.5 uppercase font-mono">Supported Models Definition (models.json)</div>
-            <pre className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-xs font-mono text-slate-300 overflow-auto max-h-60 leading-relaxed">
-              {JSON.stringify(models?.models || {}, null, 2)}
-            </pre>
-          </div>
-        </div>
+        <p className="text-xs text-slate-400">
+          Declarative model aliasing rules that transparently redirect requests to target models
+        </p>
+        <pre className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-xs font-mono text-amber-300 overflow-auto max-h-60 leading-relaxed">
+          {JSON.stringify(cfg.modelMappings || {}, null, 2)}
+        </pre>
       </div>
     </div>
   );
