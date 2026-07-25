@@ -6,15 +6,15 @@ describe('Runtime Config Store', () => {
   const runtimeJsonPath = path.join(process.cwd(), 'config', 'runtime.json');
 
   afterEach(async () => {
+    await updateConfig({
+      runtimeContextTag: 'runtime-context',
+      systemRoleToInstruction: false
+    });
     try {
       await fs.unlink(runtimeJsonPath);
     } catch {
       // ignore
     }
-    await updateConfig({
-      runtimeContextTag: 'runtime-context',
-      systemRoleToInstruction: false
-    });
   });
 
   test('updateConfig mutates config in memory and writes to runtime.json', async () => {
