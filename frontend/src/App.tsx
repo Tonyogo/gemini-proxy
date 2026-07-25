@@ -74,7 +74,7 @@ export default function App() {
           <div className="text-center space-y-2">
             <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400 mb-2">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 002-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 002-2H6a2 2 0 0-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
             </div>
             <h1 className="text-xl font-bold text-slate-100 tracking-tight">Gemini Proxy Console</h1>
@@ -172,7 +172,6 @@ export default function App() {
           <DashboardView
             key={refreshTrigger}
             adminKey={adminKey}
-            onOpenSettings={() => setIsConfigModalOpen(true)}
           />
         )}
         {activeTab === 'logs' && <LogsView adminKey={adminKey} />}

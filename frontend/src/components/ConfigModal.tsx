@@ -13,6 +13,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
   const [customSystemInstruction, setCustomSystemInstruction] = useState<string>('');
   const [upstreamTimeoutMs, setUpstreamTimeoutMs] = useState<number>(180000);
   const [logLevel, setLogLevel] = useState<string>('info');
+  const [modelMappingsRaw, setModelMappingsRaw] = useState<string>('{}');
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -31,6 +32,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
           setCustomSystemInstruction(data.config.customSystemInstruction || '');
           setUpstreamTimeoutMs(data.config.upstreamTimeoutMs || 180000);
           setLogLevel(data.config.logLevel || 'info');
+          setModelMappingsRaw(JSON.stringify(data.config.modelMappings || {}, null, 2));
         }
       })
       .catch(() => {})
@@ -41,6 +43,15 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    let parsedMappings = {};
+    try {
+      parsedMappings = JSON.parse(modelMappingsRaw);
+    } catch (err: any) {
+      alert(`Invalid MODEL_MAPPINGS JSON syntax: ${err.message}`);
+      return;
+    }
+
     setSaving(true);
     setToast('');
 
@@ -58,7 +69,8 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
           runtimeContextTag,
           customSystemInstruction,
           upstreamTimeoutMs,
-          logLevel
+          logLevel,
+          modelMappings: parsedMappings
         })
       });
 
@@ -80,7 +92,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 font-sans">
       <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-slate-800 bg-slate-900/50">
@@ -89,7 +101,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
               <span>⚙️</span>
               <span>Proxy Runtime Configuration</span>
             </h2>
-            <p className="text-[11px] text-slate-400 mt-0.5">Tweak transformation rules and timeouts on the fly without server restart</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">Tweak transformation rules, timeouts, and model mappings live</p>
           </div>
           <button
             onClick={onClose}
@@ -111,16 +123,20 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-1.5">
-                <label className="flex items-center justify-between cursor-pointer">
+              {/* Boolean Switch */}
+              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-slate-200">SYSTEM_ROLE_TO_INSTRUCTION</span>
-                  <input
-                    type="checkbox"
-                    checked={systemRoleToInstruction}
-                    onChange={(e) => setSystemRoleToInstruction(e.target.checked)}
-                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 accent-blue-500 bg-slate-900"
-                  />
-                </label>
+                  <button
+                    type="button"
+                    onClick={() => setSystemRoleToInstruction(!systemRoleToInstruction)}
+                    className={`w-12 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${
+                      systemRoleToInstruction ? 'bg-emerald-600' : 'bg-slate-900 border border-slate-700'
+                    }`}
+                  >
+                    <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${systemRoleToInstruction ? 'translate-x-6' : ''}`}></div>
+                  </button>
+                </div>
                 <p className="text-[10px] text-slate-400">Convert inline system messages into systemInstruction.</p>
               </div>
 
@@ -159,6 +175,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
               </div>
             </div>
 
+            {/* Custom System Instruction */}
             <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-1.5">
               <label className="text-xs font-semibold text-slate-200 block">CUSTOM_SYSTEM_INSTRUCTION</label>
               <textarea
@@ -167,6 +184,18 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                 onChange={(e) => setCustomSystemInstruction(e.target.value)}
                 placeholder="Supplementary instructions injected into all upstream calls..."
                 className="w-full bg-slate-900 border border-slate-700/80 rounded-lg p-2.5 text-xs text-slate-100 font-mono focus:outline-none focus:border-blue-500 leading-relaxed"
+              />
+            </div>
+
+            {/* Model Mappings Editor */}
+            <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-1.5">
+              <label className="text-xs font-semibold text-slate-200 block">MODEL_MAPPINGS (JSON Dictionary)</label>
+              <textarea
+                rows={3}
+                value={modelMappingsRaw}
+                onChange={(e) => setModelMappingsRaw(e.target.value)}
+                placeholder='{ "gemini-pro-latest": "gemini-flash-latest" }'
+                className="w-full bg-slate-900 border border-slate-700/80 rounded-lg p-2.5 text-xs text-amber-300 font-mono focus:outline-none focus:border-blue-500 leading-relaxed"
               />
             </div>
 

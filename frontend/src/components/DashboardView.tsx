@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-export default function DashboardView({ adminKey, onOpenSettings }: { adminKey: string; onOpenSettings?: () => void }) {
+export default function DashboardView({ adminKey }: { adminKey: string }) {
   const [status, setStatus] = useState<any>(null);
   const [stats, setStats] = useState<any>(null);
   const [models, setModels] = useState<any>(null);
@@ -40,19 +40,7 @@ export default function DashboardView({ adminKey, onOpenSettings }: { adminKey: 
     <div className="space-y-8 max-w-7xl mx-auto font-sans">
       {/* Top Banner: Status & Metrics */}
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-slate-100 tracking-tight">Proxy System Overview</h2>
-          {onOpenSettings && (
-            <button
-              onClick={onOpenSettings}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-xl text-xs font-bold text-white transition-colors shadow flex items-center space-x-2"
-            >
-              <span>⚙️</span>
-              <span>Edit Configuration</span>
-            </button>
-          )}
-        </div>
-
+        <h2 className="text-xl font-bold text-slate-100 mb-4 tracking-tight">Proxy System Overview</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           <div className="bg-slate-800/80 backdrop-blur border border-slate-700/60 p-5 rounded-xl shadow-lg">
             <div className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2">Server Status</div>
