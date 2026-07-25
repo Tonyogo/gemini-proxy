@@ -5,17 +5,17 @@ import { ClaudeRequest, GeminiRequest, GeminiContent, GeminiPart, GeminiModelsRe
 const BYPASS_SIGNATURE = 'context_engineering_is_the_way_to_go';
 
 class ClaudeTranslator {
-  public modelMapping: Map<string, string>;
-
-  constructor() {
-    this.modelMapping = new Map<string, string>();
-    // Apply declarative model mappings from configuration
+  /**
+   * Dynamically resolves raw model aliases against config.modelMappings
+   */
+  public getCleanModelName(rawModel: string): string {
+    if (!rawModel) return rawModel;
     if (config.modelMappings && typeof config.modelMappings === 'object') {
-      for (const [alias, target] of Object.entries(config.modelMappings)) {
-        this.modelMapping.set(alias, target);
-        logger.info(`[Translator] [Model Mapping Registered] Alias '${alias}' mapped to target model '${target}'`);
+      if (config.modelMappings[rawModel]) {
+        return config.modelMappings[rawModel];
       }
     }
+    return rawModel.replace(/^models\//, '');
   }
 
   public _convertSchemaToGemini(obj: any, isResponseSchema: boolean = false, isProperties: boolean = false): any {
@@ -182,7 +182,7 @@ class ClaudeTranslator {
       throw { status: 400, message: "Missing required parameter: 'model'" };
     }
 
-    let cleanModelName = this.modelMapping.get(rawModel);
+    let cleanModelName = this.getCleanModelName(rawModel);
     if (!cleanModelName) {
       cleanModelName = rawModel.replace(/^models\//, '');
     }

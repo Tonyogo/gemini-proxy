@@ -444,7 +444,7 @@ class ClaudeController {
 
       // Check if it's an alias configured locally first
       const cleanModelId = modelId as string;
-      const resolvedModelId = claudeTranslator.modelMapping.get(cleanModelId) || cleanModelId;
+      const resolvedModelId = claudeTranslator.getCleanModelName(cleanModelId);
 
       const targetUrl = getUpstreamUrl(`/v1beta/models/${resolvedModelId}`);
       const response = await fetch(targetUrl, {
