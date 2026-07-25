@@ -71,4 +71,15 @@ describe('Admin API Endpoints', () => {
     expect(res.body.config.runtimeContextTag).toBe('admin-test-tag');
     expect(res.body.config.systemRoleToInstruction).toBe(true);
   });
+
+  test('POST /api/admin/config with resetToEnv resets configuration to .env defaults', async () => {
+    const res = await request(app)
+      .post('/api/admin/config')
+      .send({
+        resetToEnv: true
+      });
+    expect(res.status).toBe(200);
+    expect(res.body.status).toBe('ok');
+    expect(res.body.config.runtimeContextTag).toBe('runtime-context');
+  });
 });

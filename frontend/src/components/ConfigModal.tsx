@@ -199,21 +199,61 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
               />
             </div>
 
-            <div className="flex items-center justify-end space-x-3 pt-3 border-t border-slate-800">
+            <div className="flex items-center justify-between pt-3 border-t border-slate-800">
               <button
                 type="button"
-                onClick={onClose}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-semibold text-slate-300 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
+                onClick={async () => {
+                  if (window.confirm('Are you sure you want to reset all configurations to .env defaults?')) {
+                    setSaving(true);
+                    setToast('');
+                    const headers: Record<string, string> = {
+                      'content-type': 'application/json',
+                      ...(adminKey ? { 'x-admin-key': adminKey } : {})
+                    };
+                    try {
+                      const res = await fetch('/api/admin/config', {
+                        method: 'POST',
+                        headers,
+                        body: JSON.stringify({ resetToEnv: true })
+                      });
+                      if (res.ok) {
+                        setToast('✓ Reset to .env defaults!');
+                        setTimeout(() => {
+                          setToast('');
+                          if (onSaved) onSaved();
+                          onClose();
+                        }, 1000);
+                      } else {
+                        alert('Failed to reset configuration');
+                      }
+                    } catch (err: any) {
+                      alert(`Error resetting configuration: ${err.message}`);
+                    } finally {
+                      setSaving(false);
+                    }
+                  }
+                }}
                 disabled={saving}
-                className="px-5 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 rounded-xl font-bold text-xs text-white transition-colors shadow-md"
+                className="px-4 py-2 bg-rose-950/40 hover:bg-rose-900/50 border border-rose-800/50 text-rose-300 rounded-xl font-semibold text-xs transition-colors disabled:opacity-50"
               >
-                {saving ? 'Applying...' : 'Save & Apply Live'}
+                Reset to .env Defaults
               </button>
+              <div className="flex items-center space-x-3">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-semibold text-slate-300 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 rounded-xl font-bold text-xs text-white transition-colors shadow-md"
+                >
+                  {saving ? 'Applying...' : 'Save & Apply Live'}
+                </button>
+              </div>
             </div>
           </form>
         )}

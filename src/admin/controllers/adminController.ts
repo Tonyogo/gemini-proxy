@@ -71,7 +71,7 @@ class AdminController {
   public async updateConfig(req: Request, res: Response): Promise<void> {
     try {
       const newConfig = req.body;
-      await updateConfig(newConfig);
+      await updateConfig(newConfig, { resetToEnv: Boolean(req.body.resetToEnv) });
       res.json({
         status: 'ok',
         message: 'Configuration updated successfully',

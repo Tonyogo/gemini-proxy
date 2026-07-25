@@ -5,6 +5,10 @@ import * as path from 'path';
 describe('Explicit Overrides Runtime Config', () => {
   const runtimeJsonPath = path.join(process.cwd(), 'config', 'runtime.json');
 
+  beforeEach(async () => {
+    await updateConfig({}, { resetToEnv: true });
+  });
+
   afterEach(async () => {
     await updateConfig({}, { resetToEnv: true });
     try {
