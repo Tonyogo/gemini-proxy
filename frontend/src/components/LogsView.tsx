@@ -14,7 +14,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
   const [loading, setLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
 
-  // Chrome DevTools States (Removed 'all')
+  // Chrome DevTools & Sidebar States
   const [activeTab, setActiveTab] = useState<'payload' | 'response'>('payload');
   const [viewMode, setViewMode] = useState<'preview' | 'raw'>('preview');
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
@@ -82,7 +82,6 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
 
   const availableHours = selectedDate && tree[selectedDate] ? Object.keys(tree[selectedDate]) : [];
 
-  // Helper to detect if payload is streaming SSE data
   const isStreamPayload = (payload: any) => {
     if (Array.isArray(payload) && payload.length > 0 && (payload[0]?.type || payload[0]?.candidates)) {
       return true;
@@ -95,31 +94,11 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
 
   return (
     <div className="flex gap-6 max-w-7xl mx-auto items-start">
-      {/* Left Sidebar (Collapsible) */}
-      {sidebarCollapsed ? (
-        <button
-          onClick={() => setSidebarCollapsed(false)}
-          className="bg-slate-800/90 border border-slate-700/60 hover:bg-slate-700 p-3 rounded-xl shadow-md text-xs font-semibold text-slate-300 flex flex-col items-center space-y-2 cursor-pointer transition-all h-[820px] justify-start pt-6"
-          title="Expand Sidebar"
-        >
-          <span className="text-blue-400">▶</span>
-          <span className="writing-mode-vertical uppercase tracking-widest text-[10px] text-slate-400 font-mono">
-            Logs ({filteredLogs.length})
-          </span>
-        </button>
-      ) : (
+      {/* Left Sidebar (VS Code Style Complete Hiding) */}
+      {!sidebarCollapsed && (
         <div className="w-80 shrink-0 bg-slate-800/80 border border-slate-700/60 rounded-xl p-4 shadow-md flex flex-col h-[820px] transition-all">
           <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-700/60">
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setSidebarCollapsed(true)}
-                className="text-slate-400 hover:text-white text-xs bg-slate-900 border border-slate-700 px-1.5 py-0.5 rounded"
-                title="Collapse Sidebar"
-              >
-                ◀
-              </button>
-              <h3 className="font-bold text-slate-100 text-xs uppercase tracking-wider">Transaction Logs</h3>
-            </div>
+            <h3 className="font-bold text-slate-100 text-xs uppercase tracking-wider">Transaction Logs</h3>
             <button
               onClick={fetchLogs}
               className="text-[10px] bg-slate-700 hover:bg-slate-600 text-slate-200 px-2 py-1 rounded transition-colors flex items-center space-x-1"
@@ -191,29 +170,46 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
         </div>
       )}
 
-      {/* Main Inspector Column (Expands to 100% when sidebar is collapsed) */}
+      {/* Main Inspector Column */}
       <div className="flex-1 min-w-0 bg-slate-800/80 border border-slate-700/60 rounded-xl p-5 shadow-md flex flex-col h-[820px]">
-        {/* Navigation Bar */}
+        {/* Navigation Bar with VS Code Sidebar Toggle Icon */}
         <div className="flex flex-wrap items-center justify-between pb-3 mb-4 border-b border-slate-700/60 gap-3">
-          <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs font-semibold">
+          <div className="flex items-center space-x-3">
+            {/* VS Code Style Sidebar Toggle Button */}
             <button
-              onClick={() => setActiveTab('payload')}
-              className={`px-3 py-1.5 rounded-md transition-all flex items-center space-x-1.5 ${
-                activeTab === 'payload' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className={`p-1.5 rounded-lg border text-xs transition-colors flex items-center justify-center ${
+                sidebarCollapsed
+                  ? 'bg-blue-600/20 border-blue-500/80 text-blue-300'
+                  : 'bg-slate-900 border-slate-700/80 text-slate-400 hover:text-slate-200'
               }`}
+              title={sidebarCollapsed ? "Show Sidebar" : "Hide Sidebar"}
             >
-              <span>📤</span>
-              <span>Payload (Request)</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h8m-8 6h16" />
+              </svg>
             </button>
-            <button
-              onClick={() => setActiveTab('response')}
-              className={`px-3 py-1.5 rounded-md transition-all flex items-center space-x-1.5 ${
-                activeTab === 'response' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <span>📥</span>
-              <span>Response</span>
-            </button>
+
+            <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs font-semibold">
+              <button
+                onClick={() => setActiveTab('payload')}
+                className={`px-3 py-1.5 rounded-md transition-all flex items-center space-x-1.5 ${
+                  activeTab === 'payload' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <span>📤</span>
+                <span>Payload (Request)</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('response')}
+                className={`px-3 py-1.5 rounded-md transition-all flex items-center space-x-1.5 ${
+                  activeTab === 'response' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <span>📥</span>
+                <span>Response</span>
+              </button>
+            </div>
           </div>
 
           <div className="flex items-center space-x-3">
