@@ -1,9 +1,11 @@
 import config from '../../config/default';
 
 const levels: Record<string, number> = { error: 0, warn: 1, info: 2, debug: 3 };
-const currentLevel = levels[config.logLevel] !== undefined ? levels[config.logLevel] : 2;
 
-const isTestEnv = process.env.NODE_ENV === 'test';
+const getCurrentLevel = (): number => {
+  const current = config.logLevel;
+  return levels[current] !== undefined ? levels[current] : 2;
+};
 
 const getFormattedTimestamp = (): string => {
   try {
@@ -26,11 +28,11 @@ const getFormattedTimestamp = (): string => {
 
 const log = (level: string, message: string, ...meta: any[]) => {
   // Suppress all console logs during testing
-  if (isTestEnv) {
+  if (process.env.NODE_ENV === 'test') {
     return;
   }
 
-  if (levels[level] <= currentLevel) {
+  if (levels[level] <= getCurrentLevel()) {
     const timestamp = getFormattedTimestamp();
     const formattedMeta = meta.length
       ? ' ' + meta.map(m => typeof m === 'object' ? JSON.stringify(m) : m).join(' ')
