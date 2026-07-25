@@ -15,6 +15,8 @@ class AdminController {
         systemRoleToInstruction: config.systemRoleToInstruction,
         runtimeContextTag: config.runtimeContextTag,
         upstreamTimeoutMs: config.upstreamTimeoutMs,
+        customSystemInstruction: config.customSystemInstruction,
+        modelMappings: config.modelMappings,
         enableUi: config.enableUi,
         timeZone: config.timeZone
       }

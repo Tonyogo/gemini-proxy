@@ -25,6 +25,8 @@ describe('Admin API Endpoints', () => {
     expect(res.body).toHaveProperty('uptime');
     expect(res.body).toHaveProperty('config');
     expect(res.body.config).toHaveProperty('systemRoleToInstruction');
+    expect(res.body.config).toHaveProperty('customSystemInstruction');
+    expect(res.body.config).toHaveProperty('modelMappings');
   });
 
   test('GET /api/admin/models returns list of configured models', async () => {
