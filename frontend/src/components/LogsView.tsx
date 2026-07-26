@@ -99,7 +99,8 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
 
   const handleDateChange = (date: string) => {
     setSelectedDate(date);
-    const hours = Object.keys(tree[date] || {});
+    const hours = Object.keys(tree[date] || {})
+      .sort((a, b) => parseInt(b, 10) - parseInt(a, 10));
     const newHour = hours.length > 0 ? hours[0] : '';
     setSelectedHour(newHour);
     fetchLogs(false, date, newHour);
