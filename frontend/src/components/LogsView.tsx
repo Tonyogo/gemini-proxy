@@ -111,7 +111,9 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
     fetchLogs(false, selectedDate, hour);
   };
 
-  const availableHours = selectedDate && tree[selectedDate] ? Object.keys(tree[selectedDate]) : [];
+  const availableHours = selectedDate && tree[selectedDate]
+    ? Object.keys(tree[selectedDate]).sort((a, b) => parseInt(b, 10) - parseInt(a, 10))
+    : [];
 
   const isStreamPayload = (payload: any) => {
     if (Array.isArray(payload) && payload.length > 0 && (payload[0]?.type || payload[0]?.candidates)) {
@@ -147,7 +149,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                 onChange={(e) => handleDateChange(e.target.value)}
                 className="w-full bg-slate-900 border border-slate-700 rounded-lg p-1.5 text-xs text-slate-100 font-mono focus:outline-none focus:border-blue-500"
               >
-                {Object.keys(tree).map(d => (
+                {Object.keys(tree).sort((a, b) => b.localeCompare(a)).map(d => (
                   <option key={d} value={d}>📅 {d}</option>
                 ))}
               </select>
