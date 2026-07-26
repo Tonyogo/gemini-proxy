@@ -38,13 +38,14 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
         setTree(logTree);
         setLogs(data.logs || []);
 
-        const dates = Object.keys(logTree);
+        const dates = Object.keys(logTree).sort((a, b) => b.localeCompare(a));
         if (dates.length > 0) {
           if (forceAutoJump || !targetDate || !logTree[targetDate]) {
             const latestDate = dates[0];
             setSelectedDate(latestDate);
 
-            const hours = Object.keys(logTree[latestDate] || {});
+            const hours = Object.keys(logTree[latestDate] || {})
+              .sort((a, b) => parseInt(b, 10) - parseInt(a, 10));
             if (hours.length > 0) {
               const latestHour = hours[0];
               setSelectedHour(latestHour);
