@@ -20,33 +20,58 @@ class MetricsService {
     this.isInitialized = true;
 
     const debugDir = this.getDebugDir();
+    const candidatePaths: string[] = [];
+
     try {
       const dates = await fs.readdir(debugDir);
-      for (const date of dates) {
+      for (const date of dates.sort().reverse()) {
         const dateDir = path.join(debugDir, date);
         const dateStat = await fs.stat(dateDir).catch(() => null);
         if (!dateStat || !dateStat.isDirectory()) continue;
 
         const hours = await fs.readdir(dateDir);
-        for (const hour of hours) {
+        for (const hour of hours.sort().reverse()) {
           const hourDir = path.join(dateDir, hour);
           const hourStat = await fs.stat(hourDir).catch(() => null);
           if (!hourStat || !hourStat.isDirectory()) continue;
 
           const files = await fs.readdir(hourDir);
-          for (const file of files) {
-            if (!file.endsWith('.json')) continue;
-            try {
-              const content = await fs.readFile(path.join(hourDir, file), 'utf8');
-              const data = JSON.parse(content);
-              const isError = Boolean(data.claude_res?.error);
-              this.record(isError, data.duration);
-            } catch {
-              // Ignore single file parse errors during startup scan
+          const jsonFiles = files.filter(f => f.endsWith('.json')).sort().reverse();
+
+          // 1. Fast metadata count (O(1) filesystem metadata lookup)
+          this.totalLogs += jsonFiles.length;
+
+          // 2. Collect candidate files until limit of 1000
+          for (const file of jsonFiles) {
+            if (candidatePaths.length < 1000) {
+              candidatePaths.push(path.join(hourDir, file));
             }
           }
         }
       }
+
+      // 3. Concurrently read and parse bounded candidate files
+      const filePromises = candidatePaths.map(filePath =>
+        fs.readFile(filePath, 'utf8')
+          .then(content => {
+            const data = JSON.parse(content);
+            const isError = Boolean(data.claude_res?.error);
+            if (isError) {
+              this.errorCount++;
+            } else {
+              this.successCount++;
+            }
+            if (data.duration !== undefined && data.duration !== null && typeof data.duration === 'number') {
+              this.totalDurationMs += data.duration;
+              this.durationCount++;
+            }
+          })
+          .catch(() => {
+            // Ignore single file parse errors
+          })
+      );
+
+      await Promise.all(filePromises);
     } catch {
       // Directory may not exist yet
     }
@@ -69,7 +94,7 @@ class MetricsService {
   public getStats() {
     return {
       totalLogs: this.totalLogs,
-      sampleSize: this.totalLogs,
+      sampleSize: this.durationCount,
       successCount: this.successCount,
       errorCount: this.errorCount,
       avgDurationMs: this.durationCount > 0 ? Math.round(this.totalDurationMs / this.durationCount) : 0
