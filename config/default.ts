@@ -34,7 +34,8 @@ const getEnvConfig = () => ({
   systemRoleToInstruction: (process.env.SYSTEM_ROLE_TO_INSTRUCTION === 'true') as boolean,
   runtimeContextTag: (process.env.RUNTIME_CONTEXT_TAG || 'runtime-context') as string,
   upstreamTimeoutMs: parseInt(process.env.UPSTREAM_TIMEOUT_MS || '180000', 10) as number,
-  timeZone: (process.env.TIME_ZONE || process.env.TZ || 'Asia/Shanghai') as string
+  timeZone: (process.env.TIME_ZONE || process.env.TZ || 'Asia/Shanghai') as string,
+  logRetentionDays: parseInt(process.env.LOG_RETENTION_DAYS || '3', 10) as number
 });
 
 export const config = {

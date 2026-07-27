@@ -41,6 +41,42 @@ class PayloadLogger {
     return path.join(this.debugDir, `${year}-${month}-${day}`, hour);
   }
 
+  public async cleanupExpiredLogs(): Promise<void> {
+    const retentionDays = config.logRetentionDays;
+    if (!retentionDays || retentionDays <= 0) return;
+
+    const debugDir = this.debugDir;
+    try {
+      const timeZone = config.timeZone || 'Asia/Shanghai';
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
+
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+
+      const parts = formatter.formatToParts(cutoffDate);
+      const getPart = (type: string) => parts.find(p => p.type === type)?.value || '00';
+      const cutoffStr = `${getPart('year')}-${getPart('month')}-${getPart('day')}`;
+
+      const dates = await fs.readdir(debugDir);
+      for (const dateFolder of dates) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dateFolder)) continue;
+
+        if (dateFolder < cutoffStr) {
+          const fullPath = path.join(debugDir, dateFolder);
+          await fs.rm(fullPath, { recursive: true, force: true }).catch(() => {});
+          logger.info(`[PayloadLogger] Pruned expired log directory: ${dateFolder} (older than ${retentionDays} days)`);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+
   public async saveTransaction(
     transactionId: string,
     clientReq: any,
@@ -50,6 +86,8 @@ class PayloadLogger {
     duration?: number
   ): Promise<void> {
     try {
+      this.cleanupExpiredLogs().catch(() => {});
+
       const targetDir = this._getTargetDir();
       await fs.mkdir(targetDir, { recursive: true });
 
