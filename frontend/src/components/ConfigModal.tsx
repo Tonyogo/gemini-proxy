@@ -13,6 +13,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
   const [customSystemInstruction, setCustomSystemInstruction] = useState<string>('');
   const [upstreamTimeoutMs, setUpstreamTimeoutMs] = useState<number>(180000);
   const [logLevel, setLogLevel] = useState<string>('info');
+  const [logRetentionDays, setLogRetentionDays] = useState<number>(3);
   const [modelMappingsRaw, setModelMappingsRaw] = useState<string>('{}');
 
   const [loading, setLoading] = useState(false);
@@ -32,6 +33,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
           setCustomSystemInstruction(data.config.customSystemInstruction || '');
           setUpstreamTimeoutMs(data.config.upstreamTimeoutMs || 180000);
           setLogLevel(data.config.logLevel || 'info');
+          setLogRetentionDays(data.config.logRetentionDays || 3);
           setModelMappingsRaw(JSON.stringify(data.config.modelMappings || {}, null, 2));
         }
       })
@@ -70,6 +72,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
           customSystemInstruction,
           upstreamTimeoutMs,
           logLevel,
+          logRetentionDays,
           modelMappings: parsedMappings
         })
       });
@@ -172,6 +175,17 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                   <option value="info">info</option>
                   <option value="debug">debug</option>
                 </select>
+              </div>
+
+              <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-1.5">
+                <label className="text-xs font-semibold text-slate-200 block">LOG_RETENTION_DAYS</label>
+                <input
+                  type="number"
+                  value={logRetentionDays}
+                  onChange={(e) => setLogRetentionDays(parseInt(e.target.value, 10))}
+                  className="w-full bg-slate-900 border border-slate-700/80 rounded-lg p-2 text-xs text-slate-100 font-mono focus:outline-none focus:border-blue-500"
+                />
+                <p className="text-[10px] text-slate-400">Days to keep log files before auto-deletion (0 to disable).</p>
               </div>
             </div>
 

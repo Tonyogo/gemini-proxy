@@ -109,6 +109,11 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                 <span className="text-slate-400 block mb-1 text-[10px] uppercase font-bold">ENABLE_UI</span>
                 <span className="text-emerald-400 font-semibold">{String(cfg.enableUi !== false)}</span>
               </div>
+
+              <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+                <span className="text-slate-400 block mb-1 text-[10px] uppercase font-bold">LOG_RETENTION_DAYS</span>
+                <span className="text-purple-400 font-semibold">{cfg.logRetentionDays || 3} Days</span>
+              </div>
             </div>
           </div>
 

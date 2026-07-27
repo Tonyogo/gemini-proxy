@@ -27,6 +27,7 @@ describe('Admin API Endpoints', () => {
     expect(res.body.config).toHaveProperty('systemRoleToInstruction');
     expect(res.body.config).toHaveProperty('customSystemInstruction');
     expect(res.body.config).toHaveProperty('modelMappings');
+    expect(res.body.config).toHaveProperty('logRetentionDays');
   });
 
   test('GET /api/admin/models returns list of configured model mappings', async () => {
