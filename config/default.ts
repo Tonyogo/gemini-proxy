@@ -13,7 +13,9 @@ if (process.env.MODEL_MAPPINGS) {
   }
 }
 
-const runtimeJsonPath = path.join(process.cwd(), 'config', 'runtime.json');
+const isTestEnv = process.env.NODE_ENV === 'test';
+const runtimeFileName = isTestEnv ? 'runtime.test.json' : 'runtime.json';
+const runtimeJsonPath = path.join(process.cwd(), 'config', runtimeFileName);
 let runtimeOverrides: Record<string, any> = {};
 
 if (existsSync(runtimeJsonPath)) {

@@ -3,7 +3,7 @@ import { promises as fs } from 'fs';
 import * as path from 'path';
 
 describe('Explicit Overrides Runtime Config', () => {
-  const runtimeJsonPath = path.join(process.cwd(), 'config', 'runtime.json');
+  const runtimeJsonPath = path.join(process.cwd(), 'config', 'runtime.test.json');
 
   beforeEach(async () => {
     await updateConfig({}, { resetToEnv: true });
