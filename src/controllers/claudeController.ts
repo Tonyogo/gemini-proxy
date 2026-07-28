@@ -334,7 +334,10 @@ class ClaudeController {
       }
 
       const countTokensPayload = {
-        generateContentRequest: googleRequest
+        generateContentRequest: {
+          model: `models/${cleanModelName}`,
+          ...googleRequest
+        }
       };
       gemReq = countTokensPayload;
 

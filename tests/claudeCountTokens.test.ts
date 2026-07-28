@@ -36,6 +36,7 @@ describe('POST /v1/messages/count_tokens', () => {
     // Verify generateContentRequest wrapping
     expect(sentBody).toHaveProperty('generateContentRequest');
     expect(sentBody.generateContentRequest).toHaveProperty('contents');
+    expect(sentBody.generateContentRequest.model).toEqual('models/gemini-3.5-flash');
     // Verify generationConfig maxOutputTokens was cleaned
     if (sentBody.generateContentRequest.generationConfig) {
       expect(sentBody.generateContentRequest.generationConfig).not.toHaveProperty('maxOutputTokens');
