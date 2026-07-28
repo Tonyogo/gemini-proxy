@@ -14,6 +14,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
   const [upstreamTimeoutMs, setUpstreamTimeoutMs] = useState<number>(180000);
   const [logLevel, setLogLevel] = useState<string>('info');
   const [logRetentionDays, setLogRetentionDays] = useState<number>(3);
+  const [countTokensModel, setCountTokensModel] = useState<string>('');
   const [modelMappingsRaw, setModelMappingsRaw] = useState<string>('{}');
 
   const [loading, setLoading] = useState(false);
@@ -34,6 +35,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
           setUpstreamTimeoutMs(data.config.upstreamTimeoutMs || 180000);
           setLogLevel(data.config.logLevel || 'info');
           setLogRetentionDays(data.config.logRetentionDays || 3);
+          setCountTokensModel(data.config.countTokensModel || '');
           setModelMappingsRaw(JSON.stringify(data.config.modelMappings || {}, null, 2));
         }
       })
@@ -73,6 +75,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
           upstreamTimeoutMs,
           logLevel,
           logRetentionDays,
+          countTokensModel,
           modelMappings: parsedMappings
         })
       });
@@ -187,6 +190,19 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                 />
                 <p className="text-[10px] text-slate-400">Days to keep log files before auto-deletion (0 to disable).</p>
               </div>
+            </div>
+
+            {/* Custom System Instruction */}
+            <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-1.5">
+              <label className="text-xs font-semibold text-slate-200 block">COUNT_TOKENS_MODEL</label>
+              <input
+                type="text"
+                value={countTokensModel}
+                onChange={(e) => setCountTokensModel(e.target.value)}
+                placeholder="e.g. gemini-2.5-flash (Leave blank to use request model)"
+                className="w-full bg-slate-900 border border-slate-700/80 rounded-lg p-2.5 text-xs text-slate-100 font-mono focus:outline-none focus:border-blue-500"
+              />
+              <p className="text-[10px] text-slate-400">Fixed model override to use specifically for /v1/messages/count_tokens requests.</p>
             </div>
 
             {/* Custom System Instruction */}

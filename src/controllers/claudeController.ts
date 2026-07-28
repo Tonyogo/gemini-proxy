@@ -323,7 +323,11 @@ class ClaudeController {
         return res.status(401).json(errPayload);
       }
 
-      const { googleRequest, cleanModelName } = claudeTranslator.translateClaudeToGoogle(clientReq);
+      let { googleRequest, cleanModelName } = claudeTranslator.translateClaudeToGoogle(clientReq);
+
+      if (config.countTokensModel && config.countTokensModel.trim()) {
+        cleanModelName = claudeTranslator.getCleanModelName(config.countTokensModel.trim());
+      }
 
       // Clean generationConfig maxOutputTokens if present as countTokens only evaluates input
       if (googleRequest.generationConfig) {

@@ -19,7 +19,8 @@ class AdminController {
         modelMappings: config.modelMappings,
         enableUi: config.enableUi,
         timeZone: config.timeZone,
-        logRetentionDays: config.logRetentionDays
+        logRetentionDays: config.logRetentionDays,
+        countTokensModel: config.countTokensModel
       }
     });
   }
@@ -73,7 +74,8 @@ class AdminController {
           customSystemInstruction: config.customSystemInstruction,
           modelMappings: config.modelMappings,
           timeZone: config.timeZone,
-          logRetentionDays: config.logRetentionDays
+          logRetentionDays: config.logRetentionDays,
+          countTokensModel: config.countTokensModel
         }
       });
     } catch (err: any) {
