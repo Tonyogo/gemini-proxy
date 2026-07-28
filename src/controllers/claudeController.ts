@@ -20,8 +20,7 @@ class ClaudeController {
   public async handleMessages(req: Request, res: Response): Promise<any> {
     const transactionId = generateTransactionId();
     const startTime = Date.now();
-    const requestPath = req.originalUrl || req.path;
-    const clientEndpoint = `${req.method} ${requestPath}`;
+    const clientEndpoint = `${req.method} ${req.originalUrl || req.path}`;
     logger.info(`[Request] [Transaction: ${transactionId}] Received ${clientEndpoint}`);
 
     // Deep clone the client request body immediately upon entry to prevent reference mutations
@@ -42,7 +41,7 @@ class ClaudeController {
         };
         const duration = Date.now() - startTime;
         logger.warn(`[Authentication Error] [Transaction: ${transactionId}] Request rejected: API Key is missing or invalid. (duration: ${(duration / 1000).toFixed(2)}s)`);
-        payloadLogger.saveTransaction(transactionId, clientReq, null, null, errPayload, duration, requestPath);
+        payloadLogger.saveTransaction(transactionId, clientReq, null, null, errPayload, duration);
         return res.status(401).json(errPayload);
       }
 
@@ -74,7 +73,7 @@ class ClaudeController {
 
             const duration = Date.now() - startTime;
             logger.error(`[Error] [Transaction: ${transactionId}] Stream request failed with status ${errStatus}: ${errMessage} (duration: ${(duration / 1000).toFixed(2)}s)`);
-            payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: errMessage }, normalized.payload, duration, requestPath);
+            payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: errMessage }, normalized.payload, duration);
             return res.status(normalized.status).json(normalized.payload);
           }
 
@@ -147,7 +146,7 @@ class ClaudeController {
 
             const duration = Date.now() - startTime;
             logger.info(`[Response] [Transaction: ${transactionId}] Stream generated content finished successfully (duration: ${(duration / 1000).toFixed(2)}s)`);
-            payloadLogger.saveTransaction(transactionId, clientReq, gemReq, gemResChunks, claudeResChunks, duration, requestPath);
+            payloadLogger.saveTransaction(transactionId, clientReq, gemReq, gemResChunks, claudeResChunks, duration);
             res.end();
           });
 
@@ -164,7 +163,7 @@ class ClaudeController {
                   }
                 };
                 logger.warn(`[Timeout Error] [Transaction: ${transactionId}] Stream request timed out after ${timeoutMs}ms (duration: ${(duration / 1000).toFixed(2)}s)`);
-                payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: 'Timeout' }, errPayload, duration, requestPath);
+                payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: 'Timeout' }, errPayload, duration);
 
                 if (!res.headersSent) {
                   return res.status(504).json(errPayload);
@@ -192,8 +191,7 @@ class ClaudeController {
               gemReq,
               { error: err.message, partial_chunks: gemResChunks },
               { error: err.message, partial_chunks: claudeResChunks },
-              duration,
-              requestPath
+              duration
             );
           });
 
@@ -211,7 +209,7 @@ class ClaudeController {
                 }
               };
               logger.warn(`[Timeout Error] [Transaction: ${transactionId}] Stream request timed out after ${timeoutMs}ms (duration: ${(duration / 1000).toFixed(2)}s)`);
-              payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: 'Timeout' }, errPayload, duration, requestPath);
+              payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: 'Timeout' }, errPayload, duration);
 
               if (!res.headersSent) {
                 return res.status(504).json(errPayload);
@@ -254,7 +252,7 @@ class ClaudeController {
 
           const duration = Date.now() - startTime;
           logger.error(`[Error] [Transaction: ${transactionId}] Non-stream request failed with status ${errStatus}: ${errMessage} (duration: ${(duration / 1000).toFixed(2)}s)`);
-          payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: errMessage }, normalized.payload, duration, requestPath);
+          payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: errMessage }, normalized.payload, duration);
           return res.status(normalized.status).json(normalized.payload);
         }
 
@@ -263,7 +261,7 @@ class ClaudeController {
 
         const duration = Date.now() - startTime;
         logger.info(`[Response] [Transaction: ${transactionId}] Non-stream content successfully returned with 200 OK (duration: ${(duration / 1000).toFixed(2)}s)`);
-        payloadLogger.saveTransaction(transactionId, clientReq, gemReq, geminiData, translatedResponse, duration, requestPath);
+        payloadLogger.saveTransaction(transactionId, clientReq, gemReq, geminiData, translatedResponse, duration);
         return res.status(200).json(translatedResponse);
       } catch (err: any) {
         streamManager.markFinished();
@@ -278,7 +276,7 @@ class ClaudeController {
               }
             };
             logger.warn(`[Timeout Error] [Transaction: ${transactionId}] Request timed out after ${timeoutMs}ms (duration: ${(duration / 1000).toFixed(2)}s)`);
-            payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: 'Timeout' }, errPayload, duration, requestPath);
+            payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: 'Timeout' }, errPayload, duration);
             return res.status(504).json(errPayload);
           }
           logger.info(`[Client Disconnect] [Transaction: ${transactionId}] Non-stream request fetch aborted due to client disconnect.`);
@@ -290,7 +288,7 @@ class ClaudeController {
       const duration = Date.now() - startTime;
       logger.error(`[Error] [Transaction: ${transactionId}] Unhandled error: ${err.message} (duration: ${(duration / 1000).toFixed(2)}s)`);
       const normalized = claudeTranslator.normalizeError(err);
-      payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: err.message }, normalized.payload, duration, requestPath);
+      payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: err.message }, normalized.payload, duration);
       return res.status(normalized.status).json(normalized.payload);
     }
   }
@@ -298,8 +296,7 @@ class ClaudeController {
   public async handleCountTokens(req: Request, res: Response): Promise<any> {
     const transactionId = generateTransactionId();
     const startTime = Date.now();
-    const requestPath = req.originalUrl || req.path;
-    const clientEndpoint = `${req.method} ${requestPath}`;
+    const clientEndpoint = `${req.method} ${req.originalUrl || req.path}`;
     logger.info(`[Request] [Transaction: ${transactionId}] Received ${clientEndpoint}`);
 
     // Deep clone immediately
@@ -317,6 +314,7 @@ class ClaudeController {
             message: 'Access denied. A valid Google Gemini API key was not provided in headers (x-api-key, Authorization Bearer, or x-goog-api-key).'
           }
         };
+        const requestPath = req.originalUrl || req.path;
         const duration = Date.now() - startTime;
         logger.warn(`[Authentication Error] [Transaction: ${transactionId}] Token count request rejected: API Key is missing. (duration: ${(duration / 1000).toFixed(2)}s)`);
         payloadLogger.saveTransaction(transactionId, clientReq, null, null, errPayload, duration, requestPath);
@@ -324,7 +322,19 @@ class ClaudeController {
       }
 
       const { googleRequest, cleanModelName } = claudeTranslator.translateClaudeToGoogle(clientReq);
-      gemReq = googleRequest;
+
+      // Clean generationConfig maxOutputTokens if present as countTokens only evaluates input
+      if (googleRequest.generationConfig) {
+        delete googleRequest.generationConfig.maxOutputTokens;
+        if (Object.keys(googleRequest.generationConfig).length === 0) {
+          delete googleRequest.generationConfig;
+        }
+      }
+
+      const countTokensPayload = {
+        generateContentRequest: googleRequest
+      };
+      gemReq = countTokensPayload;
 
       const targetPath = `/v1beta/models/${cleanModelName}:countTokens`;
       const targetUrl = getUpstreamUrl(targetPath);
@@ -333,8 +343,10 @@ class ClaudeController {
       const response = await fetch(targetUrl, {
         method: 'POST',
         headers: buildUpstreamHeaders(apiKey),
-        body: JSON.stringify(gemReq)
+        body: JSON.stringify(countTokensPayload)
       });
+
+      const requestPath = req.originalUrl || req.path;
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -363,6 +375,7 @@ class ClaudeController {
       const duration = Date.now() - startTime;
       logger.error(`[Error] [Transaction: ${transactionId}] Unhandled count tokens error: ${err.message} (duration: ${(duration / 1000).toFixed(2)}s)`);
       const normalized = claudeTranslator.normalizeError(err);
+      const requestPath = req.originalUrl || req.path;
       payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: err.message }, normalized.payload, duration, requestPath);
       return res.status(normalized.status).json(normalized.payload);
     }
