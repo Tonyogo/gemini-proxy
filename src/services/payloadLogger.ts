@@ -6,11 +6,9 @@ import { sanitizeData } from '../utils/requestHelper';
 import metricsService from '../admin/services/metricsService';
 
 class PayloadLogger {
-  private debugDir: string;
-
-  constructor() {
+  private getDebugDir(): string {
     const logsDir = config.transactionLogsDir || 'logs';
-    this.debugDir = path.isAbsolute(logsDir)
+    return path.isAbsolute(logsDir)
       ? logsDir
       : path.join(process.cwd(), logsDir);
   }
@@ -38,14 +36,14 @@ class PayloadLogger {
     let hour = getPart('hour');
     if (hour === '24') hour = '00';
 
-    return path.join(this.debugDir, `${year}-${month}-${day}`, hour);
+    return path.join(this.getDebugDir(), `${year}-${month}-${day}`, hour);
   }
 
   public async cleanupExpiredLogs(): Promise<void> {
     const retentionDays = config.logRetentionDays;
     if (!retentionDays || retentionDays <= 0) return;
 
-    const debugDir = this.debugDir;
+    const debugDir = this.getDebugDir();
     try {
       const timeZone = config.timeZone || 'Asia/Shanghai';
       const cutoffDate = new Date();

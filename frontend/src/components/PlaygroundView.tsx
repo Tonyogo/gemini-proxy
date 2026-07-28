@@ -4,18 +4,38 @@ import JsonTreeView from './JsonTreeView';
 import SseStreamPreview from './SseStreamPreview';
 import { defineGeminiProxyTheme } from '../utils/monacoTheme';
 
-const defaultRequestBody = {
-  model: "gemini-flash-lite-latest",
-  max_tokens: 1024,
-  messages: [
-    { role: "user", content: "Hello! Who are you?" }
-  ],
-  stream: true
+type EndpointOption = 'messages' | 'count_tokens' | 'custom';
+
+const DEFAULT_PRESETS: Record<EndpointOption, any> = {
+  messages: {
+    model: "gemini-flash-lite-latest",
+    max_tokens: 1024,
+    messages: [
+      { role: "user", content: "Hello! Who are you?" }
+    ],
+    stream: true
+  },
+  count_tokens: {
+    model: "gemini-flash-lite-latest",
+    messages: [
+      { role: "user", content: "Hello! Count the tokens in this message." }
+    ]
+  },
+  custom: {
+    model: "gemini-flash-lite-latest",
+    messages: [
+      { role: "user", content: "Test custom endpoint payload" }
+    ]
+  }
 };
 
 export default function PlaygroundView() {
   const [apiKey, setApiKey] = useState(localStorage.getItem('geminiApiKey') || '');
-  const [requestBody, setRequestBody] = useState<string>(JSON.stringify(defaultRequestBody, null, 2));
+  const [endpointOption, setEndpointOption] = useState<EndpointOption>('messages');
+  const [customMethod, setCustomMethod] = useState<string>('POST');
+  const [customPath, setCustomPath] = useState<string>('/v1/models');
+
+  const [requestBody, setRequestBody] = useState<string>(JSON.stringify(DEFAULT_PRESETS.messages, null, 2));
   const [responseRaw, setResponseRaw] = useState<string>('// API response will appear here...');
   const [responseJson, setResponseJson] = useState<any>(null);
   const [responseStreamChunks, setResponseStreamChunks] = useState<any[]>([]);
@@ -30,39 +50,64 @@ export default function PlaygroundView() {
     localStorage.setItem('geminiApiKey', val);
   };
 
+  const handleEndpointOptionChange = (option: EndpointOption) => {
+    setEndpointOption(option);
+    if (option === 'messages' || option === 'count_tokens') {
+      setRequestBody(JSON.stringify(DEFAULT_PRESETS[option], null, 2));
+    }
+  };
+
   const handleSend = async () => {
     if (!apiKey) {
       alert('Please enter your Gemini API Key first.');
       return;
     }
 
-    let parsedPayload: any;
+    let parsedPayload: any = null;
     try {
-      parsedPayload = JSON.parse(requestBody);
+      if (requestBody.trim()) {
+        parsedPayload = JSON.parse(requestBody);
+      }
     } catch (err: any) {
       alert(`Invalid Request JSON Body: ${err.message}`);
       return;
     }
 
+    let targetUrl = '/v1/messages';
+    let targetMethod = 'POST';
+
+    if (endpointOption === 'count_tokens') {
+      targetUrl = '/v1/messages/count_tokens';
+      targetMethod = 'POST';
+    } else if (endpointOption === 'custom') {
+      targetUrl = customPath.startsWith('/') ? customPath : `/${customPath}`;
+      targetMethod = customMethod;
+    }
+
     setLoading(true);
-    setResponseRaw('Connecting and sending request to /v1/messages...');
+    setResponseRaw(`Connecting and sending request to ${targetMethod} ${targetUrl}...`);
     setResponseJson(null);
     setResponseStreamChunks([]);
     setIsStreamingActive(false);
     setLatency(null);
 
     const startTime = Date.now();
-    const isStream = parsedPayload.stream === true;
+    const isStream = targetMethod === 'POST' && parsedPayload && parsedPayload.stream === true;
 
     try {
-      const res = await fetch('/v1/messages', {
-        method: 'POST',
+      const fetchOptions: RequestInit = {
+        method: targetMethod,
         headers: {
           'content-type': 'application/json',
           'x-api-key': apiKey
-        },
-        body: JSON.stringify(parsedPayload)
-      });
+        }
+      };
+
+      if (targetMethod !== 'GET' && targetMethod !== 'HEAD' && parsedPayload !== null) {
+        fetchOptions.body = JSON.stringify(parsedPayload);
+      }
+
+      const res = await fetch(targetUrl, fetchOptions);
 
       setLatency(Date.now() - startTime);
 
@@ -138,7 +183,7 @@ export default function PlaygroundView() {
           </div>
           <div>
             <h2 className="text-sm font-bold text-slate-100 uppercase tracking-wider">Raw Request Debugger</h2>
-            <p className="text-[10px] text-slate-400">Post custom payloads directly to local proxy /v1/messages</p>
+            <p className="text-[10px] text-slate-400">Post custom payloads directly to local proxy endpoints</p>
           </div>
         </div>
 
@@ -154,6 +199,42 @@ export default function PlaygroundView() {
             />
           </div>
 
+          <div className="flex items-center space-x-2">
+            <span className="text-[10px] text-slate-400 uppercase font-semibold">Endpoint:</span>
+            <select
+              value={endpointOption}
+              onChange={(e) => handleEndpointOptionChange(e.target.value as EndpointOption)}
+              className="bg-slate-950 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-blue-500 font-mono"
+            >
+              <option value="messages">POST /v1/messages</option>
+              <option value="count_tokens">POST /v1/messages/count_tokens</option>
+              <option value="custom">Custom Endpoint...</option>
+            </select>
+
+            {endpointOption === 'custom' && (
+              <>
+                <select
+                  value={customMethod}
+                  onChange={(e) => setCustomMethod(e.target.value)}
+                  className="bg-slate-950 border border-slate-700/80 rounded-lg px-2 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-blue-500 font-mono"
+                >
+                  <option value="POST">POST</option>
+                  <option value="GET">GET</option>
+                  <option value="PUT">PUT</option>
+                  <option value="DELETE">DELETE</option>
+                </select>
+
+                <input
+                  type="text"
+                  value={customPath}
+                  onChange={(e) => setCustomPath(e.target.value)}
+                  placeholder="/v1/..."
+                  className="bg-slate-950 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-blue-500 font-mono w-36"
+                />
+              </>
+            )}
+          </div>
+
           {latency !== null && (
             <span className="text-[10px] font-mono bg-purple-500/10 text-purple-300 border border-purple-500/20 px-2.5 py-1 rounded-full">
               Latency: {latency} ms
@@ -165,7 +246,7 @@ export default function PlaygroundView() {
             disabled={loading}
             className="px-5 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 rounded-lg font-bold text-xs text-white transition-colors shadow-md animate-pulse"
           >
-            {loading ? 'Sending Stream...' : 'Send API Request'}
+            {loading ? 'Sending Request...' : 'Send API Request'}
           </button>
         </div>
       </div>
@@ -179,7 +260,11 @@ export default function PlaygroundView() {
               <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
               <span>Raw JSON Request Body</span>
             </span>
-            <span className="text-[10px] text-slate-500 font-mono">POST /v1/messages</span>
+            <span className="text-[10px] text-slate-500 font-mono">
+              {endpointOption === 'messages' && 'POST /v1/messages'}
+              {endpointOption === 'count_tokens' && 'POST /v1/messages/count_tokens'}
+              {endpointOption === 'custom' && `${customMethod} ${customPath}`}
+            </span>
           </div>
 
           <div className="flex-1 rounded-xl overflow-hidden border border-slate-800">
