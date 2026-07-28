@@ -180,6 +180,35 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
             ) : (
               logs.map((log, idx) => {
                 const isSelected = selectedFile === log.path;
+
+                // Helper to format exact local time from timestamp
+                let formattedTime = `${log.hour}:00`;
+                if (log.timestamp) {
+                  try {
+                    const d = new Date(log.timestamp);
+                    formattedTime = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+                  } catch (e) { /* ignore */ }
+                }
+
+                // Parse human-friendly route name from reqPath (e.g. "/v1/messages" -> "/messages")
+                let pathLabel = '';
+                let pathBadgeColor = 'bg-slate-800 text-slate-300 border-slate-700/60';
+                if (log.reqPath) {
+                  const rawPath = log.reqPath.split('?')[0]; // strip query params
+                  if (rawPath.endsWith('/messages')) {
+                    pathLabel = '/messages';
+                    pathBadgeColor = 'bg-blue-500/10 text-blue-300 border-blue-500/20';
+                  } else if (rawPath.endsWith('/count_tokens')) {
+                    pathLabel = '/count_tokens';
+                    pathBadgeColor = 'bg-amber-500/10 text-amber-300 border-amber-500/20';
+                  } else if (rawPath.endsWith('/models')) {
+                    pathLabel = '/models';
+                    pathBadgeColor = 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20';
+                  } else {
+                    pathLabel = rawPath.substring(rawPath.lastIndexOf('/'));
+                  }
+                }
+
                 return (
                   <div
                     key={idx}
@@ -193,7 +222,14 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                     <div className="font-mono text-[11px] truncate font-semibold">{log.filename}</div>
                     <div className="text-[10px] text-slate-400 mt-1.5 flex items-center justify-between font-mono">
                       <span>{log.date}</span>
-                      <span className="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700/60">{log.hour}:00</span>
+                      <div className="flex items-center space-x-1.5">
+                        {pathLabel && (
+                          <span className={`px-1.5 py-0.5 rounded border text-[9px] font-semibold ${pathBadgeColor}`}>
+                            {pathLabel}
+                          </span>
+                        )}
+                        <span className="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700/60 font-semibold">{formattedTime}</span>
+                      </div>
                     </div>
                   </div>
                 );
@@ -264,6 +300,11 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
               </button>
             </div>
 
+            {selectedLog?.path && (
+              <span className="text-xs font-mono bg-blue-500/10 text-blue-300 border border-blue-500/20 px-3 py-1 rounded-full font-semibold">
+                Path: {selectedLog.path}
+              </span>
+            )}
             {selectedLog?.duration && (
               <span className="text-xs font-mono bg-purple-500/20 text-purple-300 border border-purple-500/40 px-3 py-1 rounded-full">
                 Latency: {selectedLog.duration}ms

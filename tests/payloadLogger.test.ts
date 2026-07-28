@@ -47,7 +47,7 @@ describe('PayloadLogger Service', () => {
     const gemRes = { candidates: [{ content: { parts: [{ text: 'Hello' }] } }] };
     const claudeRes = { content: [{ type: 'text', text: 'Hello' }] };
 
-    await payloadLogger.saveTransaction(testId, clientReq, gemReq, gemRes, claudeRes);
+    await payloadLogger.saveTransaction(testId, clientReq, gemReq, gemRes, claudeRes, undefined, '/v1/messages');
 
     const exists = await fs.access(filePath).then(() => true).catch(() => false);
     expect(exists).toBe(true);
@@ -56,6 +56,7 @@ describe('PayloadLogger Service', () => {
     const data = JSON.parse(dataText);
 
     expect(data.duration).toBeNull();
+    expect(data.path).toBe('/v1/messages');
     expect(data.client_req).toEqual(clientReq);
     expect(data.gem_req).toEqual(gemReq);
     expect(data.gem_res).toEqual(gemRes);

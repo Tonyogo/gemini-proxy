@@ -83,7 +83,8 @@ class PayloadLogger {
     gemReq: any,
     gemRes: any,
     claudeRes: any,
-    duration?: number
+    duration?: number,
+    reqPath?: string
   ): Promise<void> {
     try {
       this.cleanupExpiredLogs().catch(() => {});
@@ -94,6 +95,7 @@ class PayloadLogger {
       const payload = {
         timestamp: new Date().toISOString(),
         duration: duration !== undefined ? duration : null,
+        path: reqPath || null,
         client_req: sanitizeData(clientReq) || null,
         gem_req: sanitizeData(gemReq) || null,
         gem_res: sanitizeData(gemRes) || null,

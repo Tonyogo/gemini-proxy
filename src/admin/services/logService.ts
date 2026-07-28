@@ -8,6 +8,8 @@ export interface LogItem {
   hour: string;
   filename: string;
   path: string;
+  reqPath?: string;
+  timestamp?: string;
 }
 
 export interface LogTreeStructure {
@@ -69,9 +71,40 @@ class LogService {
     }
 
     const start = (page - 1) * limit;
+    const slicedItems = items.slice(start, start + limit);
+
+    // Dynamic extraction of metadata (timestamp, path) from log JSON files for the current page slice
+    const enrichedLogs = await Promise.all(
+      slicedItems.map(async item => {
+        try {
+          const fullPath = path.join(debugDir, item.date, item.hour, item.filename);
+          const content = await fs.readFile(fullPath, 'utf8');
+          const parsed = JSON.parse(content);
+          return {
+            ...item,
+            reqPath: parsed.path || null,
+            timestamp: parsed.timestamp || null
+          };
+        } catch (e) {
+          // If reading or parsing JSON fails, fall back to file stats
+          try {
+            const fullPath = path.join(debugDir, item.date, item.hour, item.filename);
+            const stats = await fs.stat(fullPath);
+            return {
+              ...item,
+              timestamp: stats.mtime.toISOString(),
+              reqPath: null
+            };
+          } catch {
+            return item;
+          }
+        }
+      })
+    );
+
     return {
       tree,
-      logs: items.slice(start, start + limit),
+      logs: enrichedLogs,
       total: items.length
     };
   }
