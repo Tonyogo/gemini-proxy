@@ -221,14 +221,31 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                   >
                     <div className="font-mono text-[11px] truncate font-semibold">{log.filename}</div>
                     <div className="text-[10px] text-slate-400 mt-1.5 flex items-center justify-between font-mono">
-                      <span>{log.date}</span>
+                      <div className="flex items-center space-x-1.5">
+                        {log.status !== null && (
+                          <span className={`px-1.5 py-0.5 rounded border text-[9px] font-bold ${
+                            log.status >= 200 && log.status < 300 ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20' :
+                            log.status >= 400 && log.status < 500 ? 'bg-amber-500/10 text-amber-300 border-amber-500/20' :
+                            'bg-rose-500/10 text-rose-300 border-rose-500/20'
+                          }`}>
+                            {log.status}
+                          </span>
+                        )}
+                        {log.isStream && (
+                          <span className="px-1.5 py-0.5 rounded border text-[9px] font-bold bg-blue-500/10 text-blue-300 border-blue-500/20">
+                            STREAM
+                          </span>
+                        )}
+                      </div>
                       <div className="flex items-center space-x-1.5">
                         {pathLabel && (
                           <span className={`px-1.5 py-0.5 rounded border text-[9px] font-semibold ${pathBadgeColor}`}>
                             {pathLabel}
                           </span>
                         )}
-                        <span className="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700/60 font-semibold">{formattedTime}</span>
+                        <span className="px-1.5 py-0.5 rounded border border-slate-700/60 bg-slate-800/80 text-slate-300 font-mono">
+                          {formattedTime}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -303,6 +320,20 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
             {selectedLog?.path && (
               <span className="text-xs font-mono bg-blue-500/10 text-blue-300 border border-blue-500/20 px-3 py-1 rounded-full font-semibold">
                 Path: {selectedLog.path}
+              </span>
+            )}
+            {selectedLog?.status !== null && (
+              <span className={`text-xs font-mono px-3 py-1 rounded-full font-bold border ${
+                selectedLog.status >= 200 && selectedLog.status < 300 ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20' :
+                selectedLog.status >= 400 && selectedLog.status < 500 ? 'bg-amber-500/10 text-amber-300 border-amber-500/20' :
+                'bg-rose-500/10 text-rose-300 border-rose-500/20'
+              }`}>
+                {selectedLog.status}
+              </span>
+            )}
+            {selectedLog?.isStream && (
+              <span className="text-xs font-mono bg-blue-500/10 text-blue-300 border border-blue-500/20 px-3 py-1 rounded-full font-bold">
+                STREAM
               </span>
             )}
             {selectedLog?.duration && (
