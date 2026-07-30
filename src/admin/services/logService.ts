@@ -82,12 +82,30 @@ class LogService {
           const fullPath = path.join(debugDir, item.date, item.hour, item.filename);
           const content = await fs.readFile(fullPath, 'utf8');
           const parsed = JSON.parse(content);
+          let fallbackStatus: number | null = null;
+          if (parsed.status !== undefined && parsed.status !== null) {
+            fallbackStatus = parsed.status;
+          } else if (parsed.claude_res?.error) {
+            fallbackStatus = 500;
+          } else if (parsed.claude_res) {
+            fallbackStatus = 200;
+          }
+
+          let fallbackIsStream = false;
+          if (parsed.is_stream !== undefined && parsed.is_stream !== null) {
+            fallbackIsStream = Boolean(parsed.is_stream);
+          } else if (parsed.client_req?.stream === true) {
+            fallbackIsStream = true;
+          } else if (Array.isArray(parsed.claude_res) && parsed.claude_res.length > 0 && parsed.claude_res[0]?.type) {
+            fallbackIsStream = true;
+          }
+
           return {
             ...item,
             reqPath: parsed.path || null,
             timestamp: parsed.timestamp || null,
-            status: parsed.status !== undefined ? parsed.status : null,
-            isStream: parsed.is_stream !== undefined ? parsed.is_stream : false
+            status: fallbackStatus,
+            isStream: fallbackIsStream
           };
         } catch (e) {
           // If reading or parsing JSON fails, fall back to file stats
