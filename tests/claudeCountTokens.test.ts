@@ -11,6 +11,10 @@ jest.mock('../src/services/payloadLogger', () => ({
 jest.mock('node-fetch');
 
 describe('POST /v1/messages/count_tokens', () => {
+  beforeEach(async () => {
+    await updateConfig({ countTokensModel: '' });
+  });
+
   afterEach(async () => {
     await updateConfig({ countTokensModel: '' });
   });
