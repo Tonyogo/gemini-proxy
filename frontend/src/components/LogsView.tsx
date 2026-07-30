@@ -222,7 +222,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                     <div className="font-mono text-[11px] truncate font-semibold">{log.filename}</div>
                     <div className="text-[10px] text-slate-400 mt-1.5 flex items-center justify-between font-mono">
                       <div className="flex items-center space-x-1.5">
-                        {log.status !== null && (
+                        {log.status !== null && log.status !== undefined && (
                           <span className={`px-1.5 py-0.5 rounded border text-[9px] font-bold ${
                             log.status >= 200 && log.status < 300 ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20' :
                             log.status >= 400 && log.status < 500 ? 'bg-amber-500/10 text-amber-300 border-amber-500/20' :
@@ -322,7 +322,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                 Path: {selectedLog.path}
               </span>
             )}
-            {selectedLog?.status !== null && (
+            {selectedLog && selectedLog.status !== null && selectedLog.status !== undefined && (
               <span className={`text-xs font-mono px-3 py-1 rounded-full font-bold border ${
                 selectedLog.status >= 200 && selectedLog.status < 300 ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20' :
                 selectedLog.status >= 400 && selectedLog.status < 500 ? 'bg-amber-500/10 text-amber-300 border-amber-500/20' :
