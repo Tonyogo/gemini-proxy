@@ -10,6 +10,8 @@ export interface LogItem {
   path: string;
   reqPath?: string;
   timestamp?: string;
+  status?: number | null;
+  isStream?: boolean;
 }
 
 export interface LogTreeStructure {
@@ -73,7 +75,7 @@ class LogService {
     const start = (page - 1) * limit;
     const slicedItems = items.slice(start, start + limit);
 
-    // Dynamic extraction of metadata (timestamp, path) from log JSON files for the current page slice
+    // Dynamic extraction of metadata (timestamp, path, status, is_stream) from log JSON files for the current page slice
     const enrichedLogs = await Promise.all(
       slicedItems.map(async item => {
         try {
@@ -83,7 +85,9 @@ class LogService {
           return {
             ...item,
             reqPath: parsed.path || null,
-            timestamp: parsed.timestamp || null
+            timestamp: parsed.timestamp || null,
+            status: parsed.status !== undefined ? parsed.status : null,
+            isStream: parsed.is_stream !== undefined ? parsed.is_stream : false
           };
         } catch (e) {
           // If reading or parsing JSON fails, fall back to file stats
@@ -93,10 +97,16 @@ class LogService {
             return {
               ...item,
               timestamp: stats.mtime.toISOString(),
-              reqPath: null
+              reqPath: null,
+              status: null,
+              isStream: false
             };
           } catch {
-            return item;
+            return {
+              ...item,
+              status: null,
+              isStream: false
+            };
           }
         }
       })

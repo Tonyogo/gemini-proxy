@@ -42,12 +42,12 @@ describe('PayloadLogger Service', () => {
   });
 
   it('correctly creates the directory and writes json payload', async () => {
-    const clientReq = { messages: [{ role: 'user', content: 'Hi' }] };
+    const clientReq = { messages: [{ role: 'user', content: 'Hi' }], stream: true };
     const gemReq = { contents: [{ role: 'user', parts: [{ text: 'Hi' }] }] };
     const gemRes = { candidates: [{ content: { parts: [{ text: 'Hello' }] } }] };
     const claudeRes = { content: [{ type: 'text', text: 'Hello' }] };
 
-    await payloadLogger.saveTransaction(testId, clientReq, gemReq, gemRes, claudeRes, undefined, '/v1/messages');
+    await payloadLogger.saveTransaction(testId, clientReq, gemReq, gemRes, claudeRes, undefined, '/v1/messages', 200, true);
 
     const exists = await fs.access(filePath).then(() => true).catch(() => false);
     expect(exists).toBe(true);
@@ -57,6 +57,8 @@ describe('PayloadLogger Service', () => {
 
     expect(data.duration).toBeNull();
     expect(data.path).toBe('/v1/messages');
+    expect(data.status).toBe(200);
+    expect(data.is_stream).toBe(true);
     expect(data.client_req).toEqual(clientReq);
     expect(data.gem_req).toEqual(gemReq);
     expect(data.gem_res).toEqual(gemRes);
@@ -69,7 +71,7 @@ describe('PayloadLogger Service', () => {
     const gemRes = { candidates: [{ content: { parts: [{ text: 'Hello' }] } }] };
     const claudeRes = { content: [{ type: 'text', text: 'Hello' }] };
 
-    await payloadLogger.saveTransaction(testId, clientReq, gemReq, gemRes, claudeRes, 350);
+    await payloadLogger.saveTransaction(testId, clientReq, gemReq, gemRes, claudeRes, 350, '/v1/messages', 200, false);
 
     const exists = await fs.access(filePath).then(() => true).catch(() => false);
     expect(exists).toBe(true);
@@ -78,6 +80,8 @@ describe('PayloadLogger Service', () => {
     const data = JSON.parse(dataText);
 
     expect(data.duration).toBe(350);
+    expect(data.status).toBe(200);
+    expect(data.is_stream).toBe(false);
     expect(data.client_req).toEqual(clientReq);
     expect(data.gem_req).toEqual(gemReq);
     expect(data.gem_res).toEqual(gemRes);

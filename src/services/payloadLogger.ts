@@ -82,7 +82,9 @@ class PayloadLogger {
     gemRes: any,
     claudeRes: any,
     duration?: number,
-    reqPath?: string
+    reqPath?: string,
+    status?: number,
+    isStream?: boolean
   ): Promise<void> {
     try {
       this.cleanupExpiredLogs().catch(() => {});
@@ -90,10 +92,20 @@ class PayloadLogger {
       const targetDir = this._getTargetDir();
       await fs.mkdir(targetDir, { recursive: true });
 
+      const resolvedStatus = status !== undefined
+        ? status
+        : (claudeRes && (claudeRes.error || claudeRes.type === 'error') ? 500 : 200);
+
+      const resolvedIsStream = isStream !== undefined
+        ? isStream
+        : Boolean(clientReq && clientReq.stream);
+
       const payload = {
         timestamp: new Date().toISOString(),
         duration: duration !== undefined ? duration : null,
         path: reqPath || null,
+        status: resolvedStatus,
+        is_stream: resolvedIsStream,
         client_req: sanitizeData(clientReq) || null,
         gem_req: sanitizeData(gemReq) || null,
         gem_res: sanitizeData(gemRes) || null,
