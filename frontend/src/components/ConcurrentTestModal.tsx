@@ -28,7 +28,7 @@ export default function ConcurrentTestModal({
   const [concurrency, setConcurrency] = useState<number>(5);
   const [totalRequests, setTotalRequests] = useState<number>(10);
 
-  const [testing, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
   const [completedCount, setCompletedCount] = useState<number>(0);
   const [results, setResults] = useState<RequestResult[]>([]);
   const [totalDuration, setTotalDuration] = useState<number | null>(null);
@@ -36,7 +36,7 @@ export default function ConcurrentTestModal({
   if (!isOpen) return null;
 
   const runTest = async () => {
-    setSaving(true);
+    setTesting(true);
     setCompletedCount(0);
     setResults([]);
     setTotalDuration(null);
@@ -114,7 +114,7 @@ export default function ConcurrentTestModal({
 
     const elapsed = Date.now() - startTime;
     setTotalDuration(elapsed);
-    setSaving(false);
+    setTesting(false);
   };
 
   const successCount = results.filter(r => r.success).length;
