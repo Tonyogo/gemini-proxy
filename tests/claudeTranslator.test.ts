@@ -598,6 +598,21 @@ describe('Gemini to Claude Stream Response Translation', () => {
     expect(events![3].type).toBe('content_block_stop');
   });
 
+  it('handles SSE chunk strings starting with data: with or without spaces', () => {
+    const rawDataWithSpace = `data: {"candidates":[{"content":{"parts":[{"text":"Hello!"}],"role":"model"},"index":0}]}`;
+    const rawDataNoSpace = `data:{"candidates":[{"content":{"parts":[{"text":"Hello!"}],"role":"model"},"index":0}]}`;
+
+    const streamState1: any = {};
+    const events1 = translator.translateGoogleToClaudeStream(rawDataWithSpace, 'gemini-3.5-flash', streamState1);
+    expect(events1).not.toBeNull();
+    expect(events1!.length).toBeGreaterThan(0);
+
+    const streamState2: any = {};
+    const events2 = translator.translateGoogleToClaudeStream(rawDataNoSpace, 'gemini-3.5-flash', streamState2);
+    expect(events2).not.toBeNull();
+    expect(events2!.length).toBeGreaterThan(0);
+  });
+
   it('merges consecutive same-role blocks in contents (user, user)', () => {
     const claudePayload = {
       model: 'gemini-3.5-flash',

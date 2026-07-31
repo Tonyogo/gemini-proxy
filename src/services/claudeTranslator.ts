@@ -547,8 +547,8 @@ class ClaudeTranslator {
     const tools = streamState.tools;
 
     let jsonString = googleChunk;
-    if (jsonString.startsWith('data: ')) {
-      jsonString = jsonString.substring(6).trim();
+    if (jsonString.startsWith('data:')) {
+      jsonString = jsonString.substring(5).trim();
     }
     if (jsonString === '[DONE]') return null;
 

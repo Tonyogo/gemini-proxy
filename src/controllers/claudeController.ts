@@ -100,8 +100,8 @@ class ClaudeController {
               const trimmed = line.trim();
               if (!trimmed) continue;
 
-              if (trimmed.startsWith('data: ')) {
-                const jsonStr = trimmed.substring(6).trim();
+              if (trimmed.startsWith('data:')) {
+                const jsonStr = trimmed.substring(5).trim();
                 if (jsonStr !== '[DONE]') {
                   try {
                     gemResChunks.push(JSON.parse(jsonStr));
@@ -126,8 +126,8 @@ class ClaudeController {
 
             if (streamBuffer.trim()) {
               const trimmed = streamBuffer.trim();
-              if (trimmed.startsWith('data: ')) {
-                const jsonStr = trimmed.substring(6).trim();
+              if (trimmed.startsWith('data:')) {
+                const jsonStr = trimmed.substring(5).trim();
                 if (jsonStr !== '[DONE]') {
                   try {
                     gemResChunks.push(JSON.parse(jsonStr));
