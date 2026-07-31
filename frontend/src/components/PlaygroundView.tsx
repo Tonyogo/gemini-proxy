@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Editor from '@monaco-editor/react';
 import JsonTreeView from './JsonTreeView';
 import SseStreamPreview from './SseStreamPreview';
+import ConcurrentTestModal from './ConcurrentTestModal';
 import { defineGeminiProxyTheme } from '../utils/monacoTheme';
 
 type EndpointOption = 'messages' | 'count_tokens' | 'custom';
@@ -44,6 +45,40 @@ export default function PlaygroundView() {
   const [loading, setLoading] = useState(false);
   const [latency, setLatency] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<'preview' | 'raw'>('preview');
+  const [copied, setCopied] = useState<boolean>(false);
+  const [showConcurrentModal, setShowConcurrentModal] = useState<boolean>(false);
+
+  const handleCopyCurl = () => {
+    const origin = window.location.origin;
+    let targetUrl = `${origin}/v1/messages`;
+    let targetMethod = 'POST';
+
+    if (endpointOption === 'count_tokens') {
+      targetUrl = `${origin}/v1/messages/count_tokens`;
+      targetMethod = 'POST';
+    } else if (endpointOption === 'custom') {
+      const cleanPath = customPath.startsWith('/') ? customPath : `/${customPath}`;
+      targetUrl = `${origin}${cleanPath}`;
+      targetMethod = customMethod;
+    }
+
+    const headers = [
+      `-H "x-api-key: ${apiKey || 'YOUR_API_KEY'}"`,
+      `-H "Content-Type: application/json"`
+    ];
+
+    let bodyFlag = '';
+    if (targetMethod !== 'GET' && targetMethod !== 'HEAD' && requestBody.trim()) {
+      const sanitizedBody = requestBody.replace(/'/g, "'\\''");
+      bodyFlag = `-d '${sanitizedBody}'`;
+    }
+
+    const curlCmd = `curl -X ${targetMethod} "${targetUrl}" \\\n  ${headers.join(' \\\n  ')}${bodyFlag ? ` \\\n  ${bodyFlag}` : ''}`;
+
+    navigator.clipboard.writeText(curlCmd);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const handleKeyChange = (val: string) => {
     setApiKey(val);
@@ -242,6 +277,29 @@ export default function PlaygroundView() {
           )}
 
           <button
+            onClick={handleCopyCurl}
+            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700/80 rounded-lg font-semibold text-xs text-slate-200 transition-colors flex items-center space-x-1.5"
+            title="Copy as cURL command"
+          >
+            <span>📋</span>
+            <span>{copied ? 'Copied!' : 'Copy cURL'}</span>
+          </button>
+
+          <button
+            onClick={() => {
+              if (!apiKey) {
+                alert('Please enter your Gemini API Key first.');
+                return;
+              }
+              setShowConcurrentModal(true);
+            }}
+            className="px-3 py-1.5 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/40 rounded-lg font-semibold text-xs text-purple-300 transition-colors flex items-center space-x-1.5"
+          >
+            <span>⚡</span>
+            <span>Concurrent Test</span>
+          </button>
+
+          <button
             onClick={handleSend}
             disabled={loading}
             className="px-5 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 rounded-lg font-bold text-xs text-white transition-colors shadow-md animate-pulse"
@@ -343,6 +401,15 @@ export default function PlaygroundView() {
           </div>
         </div>
       </div>
+
+      <ConcurrentTestModal
+        isOpen={showConcurrentModal}
+        onClose={() => setShowConcurrentModal(false)}
+        targetUrl={endpointOption === 'count_tokens' ? '/v1/messages/count_tokens' : endpointOption === 'custom' ? (customPath.startsWith('/') ? customPath : `/${customPath}`) : '/v1/messages'}
+        targetMethod={endpointOption === 'custom' ? customMethod : 'POST'}
+        parsedPayload={requestBody.trim() ? (() => { try { return JSON.parse(requestBody); } catch { return null; } })() : null}
+        apiKey={apiKey}
+      />
     </div>
   );
 }
