@@ -38,38 +38,82 @@ class LogService {
 
     try {
       const dates = await fs.readdir(debugDir);
-      for (const date of dates.sort().reverse()) {
+      const sortedDates = dates.sort().reverse();
+
+      // Populate tree high-level overview
+      for (const date of sortedDates) {
         const dateDir = path.join(debugDir, date);
         const dateStat = await fs.stat(dateDir).catch(() => null);
         if (!dateStat || !dateStat.isDirectory()) continue;
 
         tree[date] = tree[date] || {};
         const hours = await fs.readdir(dateDir);
-        for (const hour of hours.sort().reverse()) {
+        for (const hour of hours) {
           const hourDir = path.join(dateDir, hour);
           const hourStat = await fs.stat(hourDir).catch(() => null);
           if (!hourStat || !hourStat.isDirectory()) continue;
 
+          // Estimate/read files count for tree
           const files = await fs.readdir(hourDir);
-          const jsonFiles = files.filter(f => f.endsWith('.json'));
-          tree[date][hour] = jsonFiles.length;
+          tree[date][hour] = files.filter(f => f.endsWith('.json')).length;
+        }
+      }
 
-          // Skip adding to items list if filterDate or filterHour don't match
+      // Fast-path: Specific date & hour filtering
+      if (filterDate && filterHour && filterHour !== 'all') {
+        const hourDir = path.join(debugDir, filterDate, filterHour);
+        const files = await fs.readdir(hourDir).catch(() => []);
+        const jsonFiles = files.filter(f => f.endsWith('.json')).sort().reverse();
+        for (const file of jsonFiles) {
+          items.push({
+            date: filterDate,
+            hour: filterHour,
+            filename: file,
+            path: path.join(filterDate, filterHour, file)
+          });
+        }
+      } else {
+        // Collect items until target count reached
+        const targetCount = page * limit;
+        for (const date of sortedDates) {
           if (filterDate && date !== filterDate) continue;
-          if (filterHour && filterHour !== 'all' && hour !== filterHour) continue;
 
-          for (const file of jsonFiles.sort().reverse()) {
-            items.push({
-              date,
-              hour,
-              filename: file,
-              path: path.join(date, hour, file)
-            });
+          const dateDir = path.join(debugDir, date);
+          const hours = (await fs.readdir(dateDir).catch(() => [])).sort().reverse();
+
+          for (const hour of hours) {
+            if (filterHour && filterHour !== 'all' && hour !== filterHour) continue;
+
+            const hourDir = path.join(dateDir, hour);
+            const files = await fs.readdir(hourDir).catch(() => []);
+            const jsonFiles = files.filter(f => f.endsWith('.json')).sort().reverse();
+
+            for (const file of jsonFiles) {
+              items.push({
+                date,
+                hour,
+                filename: file,
+                path: path.join(date, hour, file)
+              });
+            }
+
+            if (items.length >= targetCount) break;
           }
+          if (items.length >= targetCount) break;
         }
       }
     } catch {
       // Directory may not exist yet
+    }
+
+    // Calculate total matching logs using the tree counts
+    let total = 0;
+    for (const d of Object.keys(tree)) {
+      if (filterDate && d !== filterDate) continue;
+      for (const h of Object.keys(tree[d])) {
+        if (filterHour && filterHour !== 'all' && h !== filterHour) continue;
+        total += tree[d][h];
+      }
     }
 
     const start = (page - 1) * limit;
@@ -122,6 +166,8 @@ class LogService {
           } catch {
             return {
               ...item,
+              timestamp: null,
+              reqPath: null,
               status: null,
               isStream: false
             };
@@ -133,7 +179,7 @@ class LogService {
     return {
       tree,
       logs: enrichedLogs,
-      total: items.length
+      total
     };
   }
 

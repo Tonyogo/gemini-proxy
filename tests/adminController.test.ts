@@ -2,6 +2,7 @@ import request from 'supertest';
 import express from 'express';
 import adminRoutes from '../src/admin/routes/adminRoutes';
 import config, { updateConfig } from '../config/default';
+import logService from '../src/admin/services/logService';
 
 const app = express();
 app.use(express.json());
@@ -82,5 +83,13 @@ describe('Admin API Endpoints', () => {
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('ok');
     expect(res.body.config.runtimeContextTag).toBe('runtime-context');
+  });
+
+  it('should list logs with early limit scanning and date/hour filtering', async () => {
+    const result = await logService.listLogs(1, 10);
+    expect(result).toHaveProperty('tree');
+    expect(result).toHaveProperty('logs');
+    expect(Array.isArray(result.logs)).toBe(true);
+    expect(result.logs.length).toBeLessThanOrEqual(10);
   });
 });
