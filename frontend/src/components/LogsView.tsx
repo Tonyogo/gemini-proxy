@@ -25,7 +25,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
     const targetDate = customDate !== undefined ? customDate : selectedDate;
     const targetHour = customHour !== undefined ? customHour : selectedHour;
 
-    let query = '/api/admin/logs?limit=100';
+    let query = '/api/admin/logs?limit=30';
     if (!forceAutoJump) {
       if (targetDate) query += `&date=${targetDate}`;
       if (targetHour) query += `&hour=${targetHour}`;
@@ -36,28 +36,14 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
       .then(data => {
         const logTree = data.tree || {};
         setTree(logTree);
-        setLogs(data.logs || []);
+        const fetchedLogs = data.logs || [];
+        setLogs(fetchedLogs);
 
-        const dates = Object.keys(logTree).sort((a, b) => b.localeCompare(a));
-        if (dates.length > 0) {
-          if (forceAutoJump || !targetDate || !logTree[targetDate]) {
-            const latestDate = dates[0];
-            setSelectedDate(latestDate);
-
-            const hours = Object.keys(logTree[latestDate] || {})
-              .sort((a, b) => parseInt(b, 10) - parseInt(a, 10));
-            if (hours.length > 0) {
-              const latestHour = hours[0];
-              setSelectedHour(latestHour);
-              // Refetch specifically for the auto-jumped date and hour
-              fetchSpecificLogs(latestDate, latestHour);
-              return;
-            }
-          }
-        }
-
-        if (data.logs && data.logs.length > 0) {
-          loadDetail(data.logs[0]);
+        if (fetchedLogs.length > 0) {
+          // Sync dropdowns to the top log without secondary refetch
+          setSelectedDate(fetchedLogs[0].date);
+          setSelectedHour(fetchedLogs[0].hour);
+          loadDetail(fetchedLogs[0]);
         } else {
           setSelectedLog(null);
           setSelectedFile('');
@@ -65,21 +51,6 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  };
-
-  const fetchSpecificLogs = (d: string, h: string) => {
-    const headers: Record<string, string> = adminKey ? { 'x-admin-key': adminKey } : {};
-    fetch(`/api/admin/logs?limit=100&date=${d}&hour=${h}`, { headers })
-      .then(r => r.json())
-      .then(data => {
-        setLogs(data.logs || []);
-        if (data.logs && data.logs.length > 0) {
-          loadDetail(data.logs[0]);
-        } else {
-          setSelectedLog(null);
-          setSelectedFile('');
-        }
-      });
   };
 
   useEffect(() => {
