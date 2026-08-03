@@ -8,7 +8,7 @@ export default function adminAuthMiddleware(req: Request, res: Response, next: N
     return next();
   }
 
-  const providedKey = req.headers['x-admin-key'];
+  const providedKey = req.headers['x-admin-key'] || req.query['x-admin-key'] || req.query.key;
   if (providedKey !== secretKey) {
     res.status(401).json({ error: 'Unauthorized: Invalid x-admin-key' });
     return;

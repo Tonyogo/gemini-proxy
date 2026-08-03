@@ -37,4 +37,12 @@ describe('adminAuthMiddleware', () => {
     adminAuthMiddleware(req as Request, res as Response, next);
     expect(next).toHaveBeenCalled();
   });
+
+  test('passes next() when x-admin-key query param matches ADMIN_SECRET_KEY for EventSource SSE', () => {
+    config.adminSecretKey = 'secret123';
+    req.headers = {};
+    req.query = { 'x-admin-key': 'secret123' };
+    adminAuthMiddleware(req as Request, res as Response, next);
+    expect(next).toHaveBeenCalled();
+  });
 });
