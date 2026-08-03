@@ -3,7 +3,7 @@ import { Translations } from './en';
 export const zh: Translations = {
   nav: {
     dashboard: "控制台概览",
-    logs: "交易日志",
+    logs: "请求日志",
     terminal: "终端日志",
     playground: "API 调试器",
     adminKeyPlaceholder: "管理员密钥",
@@ -38,7 +38,7 @@ export const zh: Translations = {
     noData: "该时间段内暂无趋势数据。"
   },
   logs: {
-    title: "交易日志列表",
+    title: "请求日志列表",
     refresh: "刷新",
     dateLabel: "日期",
     hourLabel: "小时",
@@ -56,7 +56,7 @@ export const zh: Translations = {
     response: "响应数据 (Response)",
     previewMode: "👁 预览模式",
     rawJsonTab: "💻 原始 JSON",
-    loadingDetail: "正在加载交易日志详情...",
+    loadingDetail: "正在加载请求日志详情...",
     claudeClientReq: "Claude 客户端请求 (client_req)",
     geminiUpstreamReq: "Gemini 上游请求 (gem_req)",
     claudeFinalRes: "Claude 最终响应 (claude_res)",

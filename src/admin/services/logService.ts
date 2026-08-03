@@ -8,10 +8,11 @@ export interface LogItem {
   hour: string;
   filename: string;
   path: string;
-  reqPath?: string;
-  timestamp?: string;
+  reqPath?: string | null;
+  timestamp?: string | null;
   status?: number | null;
   isStream?: boolean;
+  duration?: number | null;
 }
 
 export interface LogTreeStructure {
@@ -149,7 +150,8 @@ class LogService {
             reqPath: parsed.path || null,
             timestamp: parsed.timestamp || null,
             status: fallbackStatus,
-            isStream: fallbackIsStream
+            isStream: fallbackIsStream,
+            duration: parsed.duration !== undefined ? parsed.duration : null
           };
         } catch (e) {
           // If reading or parsing JSON fails, fall back to file stats

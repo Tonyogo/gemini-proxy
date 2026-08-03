@@ -221,6 +221,11 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                             STREAM
                           </span>
                         )}
+                        {log.duration !== null && log.duration !== undefined && (
+                          <span className="px-1.5 py-0.5 rounded border text-[9px] font-mono font-semibold bg-purple-500/10 text-purple-300 border-purple-500/20">
+                            {log.duration}ms
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center space-x-1.5">
                         {pathLabel && (

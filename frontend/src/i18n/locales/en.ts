@@ -1,7 +1,7 @@
 export const en = {
   nav: {
     dashboard: "Dashboard",
-    logs: "Transaction Logs",
+    logs: "Request Logs",
     terminal: "Terminal Logs",
     playground: "Playground",
     adminKeyPlaceholder: "Admin Secret Key",
@@ -36,7 +36,7 @@ export const en = {
     noData: "No trend data available for this period."
   },
   logs: {
-    title: "Transaction Logs",
+    title: "Request Logs",
     refresh: "Refresh",
     dateLabel: "Date",
     hourLabel: "Hour",
@@ -54,7 +54,7 @@ export const en = {
     response: "Response",
     previewMode: "👁 Preview Mode",
     rawJsonTab: "💻 Raw JSON",
-    loadingDetail: "Loading transaction log...",
+    loadingDetail: "Loading request log...",
     claudeClientReq: "Claude Client Request (client_req)",
     geminiUpstreamReq: "Gemini Upstream Request (gem_req)",
     claudeFinalRes: "Claude Final Response (claude_res)",
