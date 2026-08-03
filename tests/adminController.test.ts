@@ -85,6 +85,18 @@ describe('Admin API Endpoints', () => {
     expect(res.body.config.runtimeContextTag).toBe('runtime-context');
   });
 
+  it('GET /api/admin/logs/:date/:hour/:filename sets 1-hour immutable Cache-Control header', async () => {
+    const spy = jest.spyOn(logService, 'getLogDetail').mockResolvedValue({ dummy: 'log data' });
+
+    const res = await request(app).get('/api/admin/logs/2026-08-03/10/test-log.json');
+
+    expect(res.status).toBe(200);
+    expect(res.headers['cache-control']).toBe('public, max-age=3600, immutable');
+    expect(res.body).toEqual({ dummy: 'log data' });
+
+    spy.mockRestore();
+  });
+
   it('should list logs with early limit scanning and date/hour filtering', async () => {
     const result = await logService.listLogs(1, 10);
     expect(result).toHaveProperty('tree');

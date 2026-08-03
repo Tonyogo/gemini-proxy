@@ -48,6 +48,7 @@ class AdminController {
 
     try {
       const detail = await logService.getLogDetail(date, hour, filename);
+      res.setHeader('Cache-Control', 'public, max-age=3600, immutable');
       res.json(detail);
     } catch (err) {
       res.status(404).json({ error: 'Log file not found' });
