@@ -11,6 +11,7 @@ router.get('/models', (req, res) => adminController.getModels(req, res));
 router.get('/logs', (req, res) => adminController.getLogs(req, res));
 router.get('/logs/:date/:hour/:filename', (req, res) => adminController.getLogDetail(req, res));
 router.get('/stats', (req, res) => adminController.getStats(req, res));
+router.get('/terminal-logs', (req, res) => adminController.getTerminalLogs(req, res));
 router.post('/config', (req, res) => adminController.updateConfig(req, res));
 
 export default router;

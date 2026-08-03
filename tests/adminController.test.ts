@@ -104,4 +104,14 @@ describe('Admin API Endpoints', () => {
     expect(Array.isArray(result.logs)).toBe(true);
     expect(result.logs.length).toBeLessThanOrEqual(10);
   });
+
+  it('GET /api/admin/terminal-logs returns history log entries', async () => {
+    const res = await request(app)
+      .get('/api/admin/terminal-logs')
+      .set('x-admin-key', 'test-secret-key');
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('logs');
+    expect(Array.isArray(res.body.logs)).toBe(true);
+  });
 });
