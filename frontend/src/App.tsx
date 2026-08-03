@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import DashboardView from './components/DashboardView';
 import LogsView from './components/LogsView';
 import PlaygroundView from './components/PlaygroundView';
+import TerminalLogsView from './components/TerminalLogsView';
 import ConfigModal from './components/ConfigModal';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'logs' | 'playground'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'logs' | 'terminal' | 'playground'>('dashboard');
   const [adminKey, setAdminKey] = useState(localStorage.getItem('adminKey') || '');
   const [inputKey, setInputKey] = useState(localStorage.getItem('adminKey') || '');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -130,7 +131,7 @@ export default function App() {
         </div>
 
         <nav className="flex space-x-2 bg-slate-950/60 p-1 rounded-xl border border-slate-800/80">
-          {(['dashboard', 'logs', 'playground'] as const).map((tab) => (
+          {(['dashboard', 'logs', 'terminal', 'playground'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -140,7 +141,7 @@ export default function App() {
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
               }`}
             >
-              {tab}
+              {tab === 'terminal' ? 'Terminal Logs' : tab}
             </button>
           ))}
         </nav>
@@ -175,6 +176,7 @@ export default function App() {
           />
         )}
         {activeTab === 'logs' && <LogsView adminKey={adminKey} />}
+        {activeTab === 'terminal' && <TerminalLogsView adminKey={adminKey} />}
         {activeTab === 'playground' && <PlaygroundView />}
       </main>
 
