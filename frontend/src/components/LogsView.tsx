@@ -3,8 +3,10 @@ import Editor from '@monaco-editor/react';
 import JsonTreeView from './JsonTreeView';
 import SseStreamPreview from './SseStreamPreview';
 import { defineGeminiProxyTheme } from '../utils/monacoTheme';
+import { useTranslation } from '../i18n/LanguageContext';
 
 export default function LogsView({ adminKey }: { adminKey: string }) {
+  const { t } = useTranslation();
   const detailCacheRef = useRef<Map<string, any>>(new Map());
   const [logs, setLogs] = useState<any[]>([]);
   const [tree, setTree] = useState<Record<string, Record<string, number>>>({});
@@ -111,7 +113,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
       {!sidebarCollapsed && (
         <div className="w-80 shrink-0 bg-slate-800/80 border border-slate-700/60 rounded-xl p-4 shadow-md flex flex-col h-[820px] transition-all">
           <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-700/60">
-            <h3 className="font-bold text-slate-100 text-xs uppercase tracking-wider">Transaction Logs</h3>
+            <h3 className="font-bold text-slate-100 text-xs uppercase tracking-wider">{t('logs.title')}</h3>
             <button
               onClick={() => {
                 detailCacheRef.current.clear();
@@ -120,13 +122,13 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
               className="text-[10px] bg-slate-700 hover:bg-slate-600 text-slate-200 px-2 py-1 rounded transition-colors flex items-center space-x-1"
             >
               <span>↻</span>
-              <span>Refresh</span>
+              <span>{t('logs.refresh')}</span>
             </button>
           </div>
 
           <div className="grid grid-cols-2 gap-2 mb-3">
             <div>
-              <label className="text-[10px] font-semibold text-slate-400 block mb-1">Date</label>
+              <label className="text-[10px] font-semibold text-slate-400 block mb-1">{t('logs.dateLabel')}</label>
               <select
                 value={selectedDate}
                 onChange={(e) => handleDateChange(e.target.value)}
@@ -139,13 +141,13 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
             </div>
 
             <div>
-              <label className="text-[10px] font-semibold text-slate-400 block mb-1">Hour</label>
+              <label className="text-[10px] font-semibold text-slate-400 block mb-1">{t('logs.hourLabel')}</label>
               <select
                 value={selectedHour}
                 onChange={(e) => handleHourChange(e.target.value)}
                 className="w-full bg-slate-900 border border-slate-700 rounded-lg p-1.5 text-xs text-slate-100 font-mono focus:outline-none focus:border-blue-500"
               >
-                <option value="all">🕒 All Hours</option>
+                <option value="all">🕒 {t('logs.allHours')}</option>
                 {availableHours.map(h => (
                   <option key={h} value={h}>🕒 {h}:00 ({tree[selectedDate][h]})</option>
                 ))}
@@ -155,10 +157,10 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
 
           <div className="flex-1 overflow-y-auto space-y-2 pr-1 text-xs border-t border-slate-700/40 pt-2">
             {loading ? (
-              <div className="flex items-center justify-center h-32 text-slate-400 text-xs">Loading logs...</div>
+              <div className="flex items-center justify-center h-32 text-slate-400 text-xs">{t('logs.loadingLogs')}</div>
             ) : logs.length === 0 ? (
               <div className="flex items-center justify-center h-32 text-slate-500 text-xs text-center p-4">
-                No logs found for selected date/hour.
+                {t('logs.noLogsFound')}
               </div>
             ) : (
               logs.map((log, idx) => {
@@ -266,7 +268,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                 }`}
               >
                 <span>📤</span>
-                <span>Payload (Request)</span>
+                <span>{t('logs.payloadRequest')}</span>
               </button>
               <button
                 onClick={() => setActiveTab('response')}
@@ -275,7 +277,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                 }`}
               >
                 <span>📥</span>
-                <span>Response</span>
+                <span>{t('logs.response')}</span>
               </button>
             </div>
           </div>
@@ -288,7 +290,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                   viewMode === 'preview' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                👁 Preview Mode
+                {t('logs.previewMode')}
               </button>
               <button
                 onClick={() => setViewMode('raw')}
@@ -296,7 +298,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                   viewMode === 'raw' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                💻 Raw JSON
+                {t('logs.rawJsonTab')}
               </button>
             </div>
 
@@ -334,13 +336,13 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
 
         {/* Content Panel */}
         {detailLoading ? (
-          <div className="flex items-center justify-center flex-1 text-slate-400 text-xs">Loading transaction log...</div>
+          <div className="flex items-center justify-center flex-1 text-slate-400 text-xs">{t('logs.loadingDetail')}</div>
         ) : selectedLog ? (
           <div className="flex-1 overflow-y-auto space-y-4 pr-1">
             {activeTab === 'payload' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex flex-col">
-                  <div className="text-[11px] font-semibold text-blue-400 mb-1.5">Claude Client Request (client_req)</div>
+                  <div className="text-[11px] font-semibold text-blue-400 mb-1.5">{t('logs.claudeClientReq')}</div>
                   {viewMode === 'preview' ? (
                     <JsonTreeView data={selectedLog.client_req} />
                   ) : (
@@ -366,7 +368,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                 </div>
 
                 <div className="flex flex-col">
-                  <div className="text-[11px] font-semibold text-emerald-400 mb-1.5">Gemini Upstream Request (gem_req)</div>
+                  <div className="text-[11px] font-semibold text-emerald-400 mb-1.5">{t('logs.geminiUpstreamReq')}</div>
                   {viewMode === 'preview' ? (
                     <JsonTreeView data={selectedLog.gem_req} />
                   ) : (
@@ -397,7 +399,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex flex-col">
                   <div className="text-[11px] font-semibold text-amber-400 mb-1.5 flex items-center justify-between">
-                    <span>Claude Final Response (claude_res)</span>
+                    <span>{t('logs.claudeFinalRes')}</span>
                     {isStreamPayload(selectedLog.claude_res) && (
                       <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/30">
                         SSE Stream
@@ -434,7 +436,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
 
                 <div className="flex flex-col">
                   <div className="text-[11px] font-semibold text-purple-400 mb-1.5 flex items-center justify-between">
-                    <span>Gemini Upstream Response (gem_res)</span>
+                    <span>{t('logs.geminiUpstreamRes')}</span>
                     {isStreamPayload(selectedLog.gem_res) && (
                       <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/30">
                         SSE Stream
@@ -473,7 +475,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
           </div>
         ) : (
           <div className="flex items-center justify-center flex-1 text-slate-500 text-xs">
-            Select a log entry on the left to inspect side-by-side JSON payloads.
+            {t('logs.selectPrompt')}
           </div>
         )}
       </div>

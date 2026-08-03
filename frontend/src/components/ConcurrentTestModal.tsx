@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from '../i18n/LanguageContext';
 
 interface ConcurrentTestModalProps {
   isOpen: boolean;
@@ -25,6 +26,7 @@ export default function ConcurrentTestModal({
   parsedPayload,
   apiKey
 }: ConcurrentTestModalProps) {
+  const { t } = useTranslation();
   const [concurrency, setConcurrency] = useState<number>(5);
   const [totalRequests, setTotalRequests] = useState<number>(10);
 
@@ -132,8 +134,8 @@ export default function ConcurrentTestModal({
           <div className="flex items-center space-x-2">
             <span className="text-xl">⚡</span>
             <div>
-              <h3 className="text-base font-bold text-slate-100">Concurrency Load Test</h3>
-              <p className="text-xs text-slate-400">Dispatch parallel requests to {targetMethod} {targetUrl}</p>
+              <h3 className="text-base font-bold text-slate-100">{t('concurrentTest.title')}</h3>
+              <p className="text-xs text-slate-400">{t('concurrentTest.sub').replace('{method}', targetMethod).replace('{url}', targetUrl)}</p>
             </div>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-200 text-lg font-mono">✕</button>
@@ -142,7 +144,7 @@ export default function ConcurrentTestModal({
         {/* Configuration Controls */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-950 p-4 rounded-xl border border-slate-800">
           <div>
-            <label className="text-xs font-semibold text-slate-300 block mb-1">Concurrency (Parallel)</label>
+            <label className="text-xs font-semibold text-slate-300 block mb-1">{t('concurrentTest.concurrencyLabel')}</label>
             <input
               type="number"
               min={1}
@@ -155,7 +157,7 @@ export default function ConcurrentTestModal({
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-slate-300 block mb-1">Total Requests</label>
+            <label className="text-xs font-semibold text-slate-300 block mb-1">{t('concurrentTest.totalRequestsLabel')}</label>
             <input
               type="number"
               min={1}
@@ -173,7 +175,7 @@ export default function ConcurrentTestModal({
               disabled={testing}
               className="w-full py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 rounded-lg font-bold text-xs text-white transition-colors shadow-md flex items-center justify-center space-x-1.5"
             >
-              <span>{testing ? 'Testing...' : '▶ Run Test'}</span>
+              <span>{testing ? t('concurrentTest.testingButton') : t('concurrentTest.runButton')}</span>
             </button>
           </div>
         </div>
@@ -184,7 +186,7 @@ export default function ConcurrentTestModal({
             {/* Progress bar */}
             <div>
               <div className="flex justify-between text-xs text-slate-400 mb-1 font-mono">
-                <span>Progress</span>
+                <span>{t('concurrentTest.progress')}</span>
                 <span>{completedCount} / {totalRequests} ({Math.round((completedCount / totalRequests) * 100)}%)</span>
               </div>
               <div className="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
@@ -198,24 +200,24 @@ export default function ConcurrentTestModal({
             {/* KPI Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
               <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
-                <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Success / Failed</div>
+                <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">{t('concurrentTest.successFailed')}</div>
                 <div className="text-sm font-bold font-mono mt-1">
                   <span className="text-emerald-400">{successCount}</span> / <span className="text-rose-400">{failedCount}</span>
                 </div>
               </div>
 
               <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
-                <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Avg Latency</div>
+                <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">{t('concurrentTest.avgLatency')}</div>
                 <div className="text-sm font-bold font-mono mt-1 text-purple-300">{avgLatency} ms</div>
               </div>
 
               <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
-                <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Min / Max Latency</div>
+                <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">{t('concurrentTest.minMaxLatency')}</div>
                 <div className="text-xs font-bold font-mono mt-1 text-slate-200">{minLatency}ms / {maxLatency}ms</div>
               </div>
 
               <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
-                <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">QPS / Total Time</div>
+                <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">{t('concurrentTest.qpsTotalTime')}</div>
                 <div className="text-xs font-bold font-mono mt-1 text-amber-300">
                   {qps} req/s <span className="text-slate-500">({totalDuration ? (totalDuration / 1000).toFixed(1) : 0}s)</span>
                 </div>
@@ -227,10 +229,10 @@ export default function ConcurrentTestModal({
               <table className="w-full text-left text-xs font-mono">
                 <thead className="bg-slate-900 border-b border-slate-800 text-slate-400 sticky top-0">
                   <tr>
-                    <th className="p-2.5">Req #</th>
-                    <th className="p-2.5">Status</th>
-                    <th className="p-2.5">Latency</th>
-                    <th className="p-2.5">Details</th>
+                    <th className="p-2.5">{t('concurrentTest.reqHeader')}</th>
+                    <th className="p-2.5">{t('concurrentTest.statusHeader')}</th>
+                    <th className="p-2.5">{t('concurrentTest.latencyHeader')}</th>
+                    <th className="p-2.5">{t('concurrentTest.detailsHeader')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60">

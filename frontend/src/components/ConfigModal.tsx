@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from '../i18n/LanguageContext';
 
 interface ConfigModalProps {
   isOpen: boolean;
@@ -8,6 +9,7 @@ interface ConfigModalProps {
 }
 
 export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: ConfigModalProps) {
+  const { t } = useTranslation();
   const [systemRoleToInstruction, setSystemRoleToInstruction] = useState<boolean>(false);
   const [runtimeContextTag, setRuntimeContextTag] = useState<string>('runtime-context');
   const [customSystemInstruction, setCustomSystemInstruction] = useState<string>('');
@@ -52,7 +54,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
     try {
       parsedMappings = JSON.parse(modelMappingsRaw);
     } catch (err: any) {
-      alert(`Invalid MODEL_MAPPINGS JSON syntax: ${err.message}`);
+      alert(`${t('config.alertInvalidJson')}${err.message}`);
       return;
     }
 
@@ -81,17 +83,17 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
       });
 
       if (res.ok) {
-        setToast('✓ Configuration updated live!');
+        setToast(t('config.toastSaved'));
         setTimeout(() => {
           setToast('');
           if (onSaved) onSaved();
           onClose();
         }, 1000);
       } else {
-        alert('Failed to update configuration');
+        alert(t('config.alertSaveFail'));
       }
     } catch (err: any) {
-      alert(`Error updating configuration: ${err.message}`);
+      alert(`${t('config.alertSaveError')}${err.message}`);
     } finally {
       setSaving(false);
     }
@@ -105,9 +107,9 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
           <div>
             <h2 className="text-base font-bold text-slate-100 flex items-center space-x-2">
               <span>⚙️</span>
-              <span>Proxy Runtime Configuration</span>
+              <span>{t('config.modalTitle')}</span>
             </h2>
-            <p className="text-[11px] text-slate-400 mt-0.5">Tweak transformation rules, timeouts, and model mappings live</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">{t('config.modalSub')}</p>
           </div>
           <button
             onClick={onClose}
@@ -119,7 +121,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
 
         {/* Modal Form */}
         {loading ? (
-          <div className="p-12 text-center text-slate-400 text-xs">Loading current settings...</div>
+          <div className="p-12 text-center text-slate-400 text-xs">{t('config.loading')}</div>
         ) : (
           <form onSubmit={handleSave} className="p-6 overflow-y-auto space-y-5">
             {toast && (
@@ -143,7 +145,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                     <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${systemRoleToInstruction ? 'translate-x-6' : ''}`}></div>
                   </button>
                 </div>
-                <p className="text-[10px] text-slate-400">Convert inline system messages into systemInstruction.</p>
+                <p className="text-[10px] text-slate-400">{t('config.systemRoleDesc')}</p>
               </div>
 
               <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-1.5">
@@ -188,7 +190,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                   onChange={(e) => setLogRetentionDays(parseInt(e.target.value, 10))}
                   className="w-full bg-slate-900 border border-slate-700/80 rounded-lg p-2 text-xs text-slate-100 font-mono focus:outline-none focus:border-blue-500"
                 />
-                <p className="text-[10px] text-slate-400">Days to keep log files before auto-deletion (0 to disable).</p>
+                <p className="text-[10px] text-slate-400">{t('config.logRetentionDesc')}</p>
               </div>
             </div>
 
@@ -202,7 +204,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                 placeholder="e.g. gemini-2.5-flash (Leave blank to use request model)"
                 className="w-full bg-slate-900 border border-slate-700/80 rounded-lg p-2.5 text-xs text-slate-100 font-mono focus:outline-none focus:border-blue-500"
               />
-              <p className="text-[10px] text-slate-400">Fixed model override to use specifically for /v1/messages/count_tokens requests.</p>
+              <p className="text-[10px] text-slate-400">{t('config.countTokensDesc')}</p>
             </div>
 
             {/* Custom System Instruction */}
@@ -212,7 +214,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                 rows={3}
                 value={customSystemInstruction}
                 onChange={(e) => setCustomSystemInstruction(e.target.value)}
-                placeholder="Supplementary instructions injected into all upstream calls..."
+                placeholder={t('config.customInstructionPlaceholder')}
                 className="w-full bg-slate-900 border border-slate-700/80 rounded-lg p-2.5 text-xs text-slate-100 font-mono focus:outline-none focus:border-blue-500 leading-relaxed"
               />
             </div>
@@ -224,7 +226,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                 rows={3}
                 value={modelMappingsRaw}
                 onChange={(e) => setModelMappingsRaw(e.target.value)}
-                placeholder='{ "gemini-pro-latest": "gemini-flash-latest" }'
+                placeholder={t('config.mappingsPlaceholder')}
                 className="w-full bg-slate-900 border border-slate-700/80 rounded-lg p-2.5 text-xs text-amber-300 font-mono focus:outline-none focus:border-blue-500 leading-relaxed"
               />
             </div>
@@ -233,7 +235,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
               <button
                 type="button"
                 onClick={async () => {
-                  if (window.confirm('Are you sure you want to reset all configurations to .env defaults?')) {
+                  if (window.confirm(t('config.confirmReset'))) {
                     setSaving(true);
                     setToast('');
                     const headers: Record<string, string> = {
@@ -247,17 +249,17 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                         body: JSON.stringify({ resetToEnv: true })
                       });
                       if (res.ok) {
-                        setToast('✓ Reset to .env defaults!');
+                        setToast(t('config.toastReset'));
                         setTimeout(() => {
                           setToast('');
                           if (onSaved) onSaved();
                           onClose();
                         }, 1000);
                       } else {
-                        alert('Failed to reset configuration');
+                        alert(t('config.alertResetFail'));
                       }
                     } catch (err: any) {
-                      alert(`Error resetting configuration: ${err.message}`);
+                      alert(`${t('config.alertResetError')}${err.message}`);
                     } finally {
                       setSaving(false);
                     }
@@ -266,7 +268,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                 disabled={saving}
                 className="px-4 py-2 bg-rose-950/40 hover:bg-rose-900/50 border border-rose-800/50 text-rose-300 rounded-xl font-semibold text-xs transition-colors disabled:opacity-50"
               >
-                Reset to .env Defaults
+                {t('config.resetDefault')}
               </button>
               <div className="flex items-center space-x-3">
                 <button
@@ -274,14 +276,14 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                   onClick={onClose}
                   className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-semibold text-slate-300 transition-colors"
                 >
-                  Cancel
+                  {t('config.cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
                   className="px-5 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 rounded-xl font-bold text-xs text-white transition-colors shadow-md"
                 >
-                  {saving ? 'Applying...' : 'Save & Apply Live'}
+                  {saving ? t('config.applying') : t('config.save')}
                 </button>
               </div>
             </div>

@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { useTranslation } from '../i18n/LanguageContext';
 
 export default function TerminalLogsView({ adminKey }: { adminKey: string }) {
+  const { t } = useTranslation();
   const [logs, setLogs] = useState<any[]>([]);
   const [levelFilter, setLevelFilter] = useState<string>('ALL');
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -74,11 +76,11 @@ export default function TerminalLogsView({ adminKey }: { adminKey: string }) {
             <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
             <div className="w-3 h-3 rounded-full bg-green-500/80" />
           </div>
-          <span className="font-bold text-slate-200 tracking-wider uppercase text-[11px]">Server Terminal Output</span>
+          <span className="font-bold text-slate-200 tracking-wider uppercase text-[11px]">{t('terminal.title')}</span>
           <div className="flex items-center space-x-1.5 ml-2 bg-slate-950/60 px-2.5 py-1 rounded-full text-[10px]">
             <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`} />
             <span className={isConnected ? 'text-emerald-300' : 'text-red-300'}>
-              {isConnected ? 'LIVE' : 'DISCONNECTED'}
+              {isConnected ? t('terminal.live') : t('terminal.disconnected')}
             </span>
           </div>
         </div>
@@ -86,7 +88,7 @@ export default function TerminalLogsView({ adminKey }: { adminKey: string }) {
         <div className="flex items-center space-x-3">
           <input
             type="text"
-            placeholder="Search logs..."
+            placeholder={t('terminal.searchPlaceholder')}
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             className="bg-slate-950/80 border border-slate-700/80 text-slate-200 text-xs rounded px-2.5 py-1 focus:outline-none focus:border-cyan-500"
@@ -97,7 +99,7 @@ export default function TerminalLogsView({ adminKey }: { adminKey: string }) {
             onChange={e => setLevelFilter(e.target.value)}
             className="bg-slate-950/80 border border-slate-700/80 text-slate-200 text-xs rounded px-2 py-1 focus:outline-none focus:border-cyan-500"
           >
-            <option value="ALL">ALL LEVELS</option>
+            <option value="ALL">{t('terminal.allLevels')}</option>
             <option value="INFO">INFO</option>
             <option value="WARN">WARN</option>
             <option value="ERROR">ERROR</option>
@@ -111,14 +113,14 @@ export default function TerminalLogsView({ adminKey }: { adminKey: string }) {
               onChange={e => setAutoScroll(e.target.checked)}
               className="rounded bg-slate-950 border-slate-700 text-cyan-500 focus:ring-0"
             />
-            <span>Auto-scroll</span>
+            <span>{t('terminal.autoScroll')}</span>
           </label>
 
           <button
             onClick={() => setLogs([])}
             className="bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs px-2.5 py-1 rounded transition-colors"
           >
-            Clear
+            {t('terminal.clear')}
           </button>
         </div>
       </div>
@@ -129,7 +131,7 @@ export default function TerminalLogsView({ adminKey }: { adminKey: string }) {
         className="flex-1 p-4 overflow-y-auto space-y-1 bg-slate-950/90 selection:bg-cyan-500/30 selection:text-cyan-200"
       >
         {filteredLogs.length === 0 ? (
-          <div className="text-slate-500 italic py-8 text-center">No terminal logs recorded.</div>
+          <div className="text-slate-500 italic py-8 text-center">{t('terminal.noLogsRecorded')}</div>
         ) : (
           filteredLogs.map((log) => (
             <div key={log.id} className="leading-relaxed break-all flex items-start space-x-2 hover:bg-slate-800/40 px-1 py-0.5 rounded">

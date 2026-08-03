@@ -4,6 +4,7 @@ import JsonTreeView from './JsonTreeView';
 import SseStreamPreview from './SseStreamPreview';
 import ConcurrentTestModal from './ConcurrentTestModal';
 import { defineGeminiProxyTheme } from '../utils/monacoTheme';
+import { useTranslation } from '../i18n/LanguageContext';
 
 type EndpointOption = 'messages' | 'count_tokens' | 'custom';
 
@@ -31,13 +32,14 @@ const DEFAULT_PRESETS: Record<EndpointOption, any> = {
 };
 
 export default function PlaygroundView() {
+  const { t } = useTranslation();
   const [apiKey, setApiKey] = useState(localStorage.getItem('geminiApiKey') || '');
   const [endpointOption, setEndpointOption] = useState<EndpointOption>('messages');
   const [customMethod, setCustomMethod] = useState<string>('POST');
   const [customPath, setCustomPath] = useState<string>('/v1/models');
 
   const [requestBody, setRequestBody] = useState<string>(JSON.stringify(DEFAULT_PRESETS.messages, null, 2));
-  const [responseRaw, setResponseRaw] = useState<string>('// API response will appear here...');
+  const [responseRaw, setResponseRaw] = useState<string>(() => t('playground.initialResponse'));
   const [responseJson, setResponseJson] = useState<any>(null);
   const [responseStreamChunks, setResponseStreamChunks] = useState<any[]>([]);
   const [isStreamingActive, setIsStreamingActive] = useState<boolean>(false);
@@ -94,7 +96,7 @@ export default function PlaygroundView() {
 
   const handleSend = async () => {
     if (!apiKey) {
-      alert('Please enter your Gemini API Key first.');
+      alert(t('playground.alertKeyRequired'));
       return;
     }
 
@@ -104,7 +106,7 @@ export default function PlaygroundView() {
         parsedPayload = JSON.parse(requestBody);
       }
     } catch (err: any) {
-      alert(`Invalid Request JSON Body: ${err.message}`);
+      alert(`${t('playground.alertInvalidJson')}${err.message}`);
       return;
     }
 
@@ -120,7 +122,7 @@ export default function PlaygroundView() {
     }
 
     setLoading(true);
-    setResponseRaw(`Connecting and sending request to ${targetMethod} ${targetUrl}...`);
+    setResponseRaw(t('playground.connecting').replace('{method}', targetMethod).replace('{url}', targetUrl));
     setResponseJson(null);
     setResponseStreamChunks([]);
     setIsStreamingActive(false);
@@ -163,7 +165,7 @@ export default function PlaygroundView() {
         let fullStreamOutput = '';
         const accumulatedChunks: any[] = [];
 
-        setResponseRaw('Connected. Streaming events...\n\n');
+        setResponseRaw(t('playground.connectedStreaming'));
 
         if (reader) {
           while (true) {
@@ -217,25 +219,25 @@ export default function PlaygroundView() {
             PG
           </div>
           <div>
-            <h2 className="text-sm font-bold text-slate-100 uppercase tracking-wider">Raw Request Debugger</h2>
-            <p className="text-[10px] text-slate-400">Post custom payloads directly to local proxy endpoints</p>
+            <h2 className="text-sm font-bold text-slate-100 uppercase tracking-wider">{t('playground.title')}</h2>
+            <p className="text-[10px] text-slate-400">{t('playground.subtitle')}</p>
           </div>
         </div>
 
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
-            <span className="text-[10px] text-slate-400 uppercase font-semibold">Gemini Key:</span>
+            <span className="text-[10px] text-slate-400 uppercase font-semibold">{t('playground.geminiApiKey')}</span>
             <input
               type="password"
               value={apiKey}
               onChange={(e) => handleKeyChange(e.target.value)}
-              placeholder="AIzaSy..."
+              placeholder={t('playground.apiKeyPlaceholder')}
               className="bg-slate-950 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-blue-500 font-mono w-44"
             />
           </div>
 
           <div className="flex items-center space-x-2">
-            <span className="text-[10px] text-slate-400 uppercase font-semibold">Endpoint:</span>
+            <span className="text-[10px] text-slate-400 uppercase font-semibold">{t('playground.endpoint')}</span>
             <select
               value={endpointOption}
               onChange={(e) => handleEndpointOptionChange(e.target.value as EndpointOption)}
@@ -243,7 +245,7 @@ export default function PlaygroundView() {
             >
               <option value="messages">POST /v1/messages</option>
               <option value="count_tokens">POST /v1/messages/count_tokens</option>
-              <option value="custom">Custom Endpoint...</option>
+              <option value="custom">{t('playground.customEndpoint')}</option>
             </select>
 
             {endpointOption === 'custom' && (
@@ -272,7 +274,7 @@ export default function PlaygroundView() {
 
           {latency !== null && (
             <span className="text-[10px] font-mono bg-purple-500/10 text-purple-300 border border-purple-500/20 px-2.5 py-1 rounded-full">
-              Latency: {latency} ms
+              {t('playground.latency').replace('{ms}', String(latency))}
             </span>
           )}
 
@@ -282,13 +284,13 @@ export default function PlaygroundView() {
             title="Copy as cURL command"
           >
             <span>📋</span>
-            <span>{copied ? 'Copied!' : 'Copy cURL'}</span>
+            <span>{copied ? t('playground.copied') : t('playground.copyCurl')}</span>
           </button>
 
           <button
             onClick={() => {
               if (!apiKey) {
-                alert('Please enter your Gemini API Key first.');
+                alert(t('playground.alertKeyRequired'));
                 return;
               }
               setShowConcurrentModal(true);
@@ -296,7 +298,7 @@ export default function PlaygroundView() {
             className="px-3 py-1.5 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/40 rounded-lg font-semibold text-xs text-purple-300 transition-colors flex items-center space-x-1.5"
           >
             <span>⚡</span>
-            <span>Concurrent Test</span>
+            <span>{t('playground.concurrentTest')}</span>
           </button>
 
           <button
@@ -304,7 +306,7 @@ export default function PlaygroundView() {
             disabled={loading}
             className="px-5 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 rounded-lg font-bold text-xs text-white transition-colors shadow-md animate-pulse"
           >
-            {loading ? 'Sending Request...' : 'Send API Request'}
+            {loading ? t('playground.sending') : t('playground.runTest')}
           </button>
         </div>
       </div>
@@ -316,7 +318,7 @@ export default function PlaygroundView() {
           <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-800">
             <span className="font-bold text-blue-400 text-xs uppercase flex items-center space-x-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-              <span>Raw JSON Request Body</span>
+              <span>{t('playground.rawJsonRequest')}</span>
             </span>
             <span className="text-[10px] text-slate-500 font-mono">
               {endpointOption === 'messages' && 'POST /v1/messages'}
@@ -349,7 +351,7 @@ export default function PlaygroundView() {
           <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-800">
             <span className="font-bold text-emerald-400 text-xs uppercase flex items-center space-x-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-              <span>HTTP Response Output</span>
+              <span>{t('playground.responseOutput')}</span>
             </span>
 
             {/* View Mode Selectors */}
@@ -360,7 +362,7 @@ export default function PlaygroundView() {
                   viewMode === 'preview' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                👁 Preview
+                {t('playground.preview')}
               </button>
               <button
                 onClick={() => setViewMode('raw')}
@@ -368,7 +370,7 @@ export default function PlaygroundView() {
                   viewMode === 'raw' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                💻 Raw Text
+                {t('playground.rawText')}
               </button>
             </div>
           </div>
