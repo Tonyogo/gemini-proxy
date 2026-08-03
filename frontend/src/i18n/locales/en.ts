@@ -29,7 +29,11 @@ export const en = {
     noCustomInstruction: "No custom system instructions specified.",
     modelMappingsTitle: "3. Active Model Mappings (MODEL_MAPPINGS)",
     modelMappingsSub: "Declarative model aliasing rules that transparently redirect requests to target models",
-    days: "Days"
+    days: "Days",
+    volumeChartTitle: "Hourly Request Volume Trend",
+    latencyChartTitle: "Hourly Average Latency (ms) Trend",
+    successErrorChartTitle: "Hourly Success vs Error Distribution",
+    noData: "No trend data available for this period."
   },
   logs: {
     title: "Transaction Logs",

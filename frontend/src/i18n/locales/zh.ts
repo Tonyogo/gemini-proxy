@@ -31,7 +31,11 @@ export const zh: Translations = {
     noCustomInstruction: "未指定自定义系统指令。",
     modelMappingsTitle: "3. 活动模型映射 (MODEL_MAPPINGS)",
     modelMappingsSub: "声明式模型别名规则，透明地重定向请求到目标模型",
-    days: "天"
+    days: "天",
+    volumeChartTitle: "每小时请求量趋势",
+    latencyChartTitle: "每小时平均延迟 (ms) 趋势",
+    successErrorChartTitle: "每小时成功与错误分布",
+    noData: "该时间段内暂无趋势数据。"
   },
   logs: {
     title: "交易日志列表",

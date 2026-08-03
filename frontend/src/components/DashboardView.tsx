@@ -1,11 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from '../i18n/LanguageContext';
 
+interface TimeSeriesPoint {
+  time: string;
+  total: number;
+  success: number;
+  error: number;
+  avgDurationMs: number;
+}
+
 export default function DashboardView({ adminKey }: { adminKey: string }) {
   const { t } = useTranslation();
   const [status, setStatus] = useState<any>(null);
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
   const loadData = () => {
     setLoading(true);
@@ -34,6 +43,143 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
   }
 
   const cfg = status?.config || {};
+  const timeSeries: TimeSeriesPoint[] = stats?.timeSeries || [];
+  const N = timeSeries.length;
+
+  // SVG dimensions & margins
+  const svgWidth = 600;
+  const svgHeight = 220;
+  const paddingLeft = 50;
+  const paddingRight = 15;
+  const paddingTop = 20;
+  const paddingBottom = 35;
+  const plottingWidth = svgWidth - paddingLeft - paddingRight;
+  const plottingHeight = svgHeight - paddingTop - paddingBottom;
+  const yMin = paddingTop;
+  const yMax = svgHeight - paddingBottom;
+
+  // Helper: Get X coordinate for a timeSeries index
+  const getX = (index: number) => {
+    if (N <= 1) return paddingLeft + plottingWidth / 2;
+    return paddingLeft + (index / (N - 1)) * plottingWidth;
+  };
+
+  // Synchronized hover calculations
+  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (N === 0) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const svgX = (mouseX / rect.width) * svgWidth;
+    const relativeX = svgX - paddingLeft;
+
+    if (relativeX < 0) {
+      setHoveredIndex(0);
+    } else if (relativeX > plottingWidth) {
+      setHoveredIndex(N - 1);
+    } else {
+      const idx = Math.round((relativeX / plottingWidth) * (N - 1));
+      setHoveredIndex(Math.max(0, Math.min(N - 1, idx)));
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setHoveredIndex(null);
+  };
+
+  // Determine which X-axis labels to display
+  const getXLabelIndices = () => {
+    if (N <= 6) return Array.from({ length: N }, (_, i) => i);
+    // Select 4-6 evenly spaced indices including 0 and N-1
+    const step = Math.max(1, Math.floor(N / 4));
+    const indices: number[] = [];
+    for (let i = 0; i < N; i += step) {
+      indices.push(i);
+    }
+    if (indices[indices.length - 1] !== N - 1) {
+      indices.push(N - 1);
+    }
+    return Array.from(new Set(indices)).sort((a, b) => a - b);
+  };
+
+  const labelIndices = getXLabelIndices();
+
+  // Volume Chart calculations
+  const maxVolume = Math.max(...timeSeries.map(p => p.total), 0);
+  const volumeLimit = maxVolume === 0 ? 10 : Math.ceil(maxVolume * 1.15);
+  const getYVolume = (v: number) => yMax - (v / volumeLimit) * plottingHeight;
+
+  // Latency Chart calculations
+  const maxLatency = Math.max(...timeSeries.map(p => p.avgDurationMs), 0);
+  const latencyLimit = maxLatency === 0 ? 100 : Math.ceil(maxLatency * 1.15);
+  const getYLatency = (v: number) => yMax - (v / latencyLimit) * plottingHeight;
+
+  // Success vs Error Chart calculations
+  const maxStacked = Math.max(...timeSeries.map(p => p.total), 0);
+  const stackedLimit = maxStacked === 0 ? 10 : Math.ceil(maxStacked * 1.15);
+  const getYStacked = (v: number) => yMax - (v / stackedLimit) * plottingHeight;
+
+  // Stacked column top-rounded path generator
+  const getRoundedTopBarPath = (x: number, y: number, w: number, h: number, r: number) => {
+    if (h <= 0) return '';
+    const radius = Math.min(r, h, w / 2);
+    if (radius <= 0) {
+      return `M ${x} ${y + h} L ${x} ${y} L ${x + w} ${y} L ${x + w} ${y + h} Z`;
+    }
+    return `
+      M ${x} ${y + h}
+      L ${x} ${y + radius}
+      A ${radius} ${radius} 0 0 1 ${x + radius} ${y}
+      L ${x + w - radius} ${y}
+      A ${radius} ${radius} 0 0 1 ${x + w} ${y + radius}
+      L ${x + w} ${y + h}
+      Z
+    `.replace(/\s+/g, ' ').trim();
+  };
+
+  // Helper for rendering horizontal grid lines
+  const renderGridLines = (limit: number, formatVal?: (v: number) => string) => {
+    const ticks = [0, limit / 2, limit];
+    return ticks.map((tick, i) => {
+      const y = yMax - (tick / limit) * plottingHeight;
+      const formatted = formatVal ? formatVal(Math.round(tick)) : Math.round(tick);
+      return (
+        <g key={i} className="opacity-40">
+          <line
+            x1={paddingLeft}
+            y1={y}
+            x2={svgWidth - paddingRight}
+            y2={y}
+            stroke="#1e293b"
+            strokeWidth="1"
+          />
+          <text
+            x={paddingLeft - 8}
+            y={y + 3}
+            textAnchor="end"
+            className="text-[10px] fill-slate-400 font-mono select-none"
+          >
+            {formatted}
+          </text>
+        </g>
+      );
+    });
+  };
+
+  // Build Area and Line paths for Volume
+  let volumeAreaPath = '';
+  let volumeLinePath = '';
+  if (N > 0) {
+    const points = timeSeries.map((p, i) => `${getX(i)},${getYVolume(p.total)}`);
+    volumeLinePath = `M ${points.join(' L ')}`;
+    volumeAreaPath = `M ${getX(0)},${yMax} L ${points.join(' L ')} L ${getX(N - 1)},${yMax} Z`;
+  }
+
+  // Build Line path for Latency
+  let latencyLinePath = '';
+  if (N > 0) {
+    const points = timeSeries.map((p, i) => `${getX(i)},${getYLatency(p.avgDurationMs)}`);
+    latencyLinePath = `M ${points.join(' L ')}`;
+  }
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto font-sans">
@@ -41,6 +187,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
       <div>
         <h2 className="text-xl font-bold text-slate-100 mb-4 tracking-tight">{t('dashboard.title')}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {/* Status Card */}
           <div className="bg-slate-800/80 backdrop-blur border border-slate-700/60 p-5 rounded-xl shadow-lg">
             <div className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2">{t('dashboard.statusCard')}</div>
             <div className="flex items-center space-x-2">
@@ -53,18 +200,21 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
             <div className="text-xs text-slate-500 mt-2">{t('dashboard.uptime')}: {status ? `${Math.floor(status.uptime)}s` : 'N/A'}</div>
           </div>
 
+          {/* Total Transactions */}
           <div className="bg-slate-800/80 backdrop-blur border border-slate-700/60 p-5 rounded-xl shadow-lg">
             <div className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2">{t('dashboard.totalTransactions')}</div>
             <div className="text-2xl font-extrabold text-blue-400">{stats ? stats.totalLogs : 0}</div>
             <div className="text-xs text-slate-500 mt-2">{t('dashboard.sampledRequests').replace('{count}', String(stats ? stats.sampleSize : 0))}</div>
           </div>
 
+          {/* Average Latency */}
           <div className="bg-slate-800/80 backdrop-blur border border-slate-700/60 p-5 rounded-xl shadow-lg">
             <div className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2">{t('dashboard.averageLatency')}</div>
             <div className="text-2xl font-extrabold text-purple-400">{stats ? `${stats.avgDurationMs}` : 0} <span className="text-sm font-normal text-slate-400">ms</span></div>
             <div className="text-xs text-slate-500 mt-2">{t('dashboard.upstreamTimeoutLimit').replace('{limit}', String(cfg.upstreamTimeoutMs || 180000))}</div>
           </div>
 
+          {/* Success vs Errors */}
           <div className="bg-slate-800/80 backdrop-blur border border-slate-700/60 p-5 rounded-xl shadow-lg">
             <div className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2">{t('dashboard.successVsErrors')}</div>
             <div className="flex items-center space-x-3 mt-1">
@@ -77,103 +227,409 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
         </div>
       </div>
 
-      {/* Categorized Config Cards */}
-      <div className="space-y-6">
-        <h3 className="text-md font-bold text-slate-200 border-b border-slate-700/60 pb-2 uppercase tracking-wider text-xs">
-          {t('dashboard.configTitle')}
-        </h3>
+      {/* SVG Trend Charts Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Chart 1: Volume Trend */}
+        <div className="bg-slate-800/80 backdrop-blur border border-slate-700/60 rounded-xl p-5 shadow-lg relative flex flex-col h-[320px]">
+          <h3 className="text-sm font-bold text-slate-200 mb-4 tracking-wide uppercase text-xs flex items-center justify-between">
+            <span>{t('dashboard.volumeChartTitle')}</span>
+            {hoveredIndex !== null && timeSeries[hoveredIndex] && (
+              <span className="text-cyan-400 font-mono text-xs lowercase">
+                {timeSeries[hoveredIndex].total} reqs
+              </span>
+            )}
+          </h3>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Category 1: System & Server Base Settings */}
-          <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl p-5 shadow-lg space-y-4">
-            <h4 className="text-xs font-bold text-blue-400 uppercase tracking-wider flex items-center space-x-2">
-              <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-              <span>{t('dashboard.systemCoreSettings')}</span>
-            </h4>
-
-            <div className="grid grid-cols-2 gap-3 text-xs font-mono">
-              <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
-                <span className="text-slate-400 block mb-1 text-[10px] uppercase font-bold">LOG_LEVEL</span>
-                <span className="text-amber-400 font-semibold uppercase">{cfg.logLevel || 'info'}</span>
-              </div>
-
-              <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
-                <span className="text-slate-400 block mb-1 text-[10px] uppercase font-bold">TIME_ZONE</span>
-                <span className="text-blue-300 font-semibold">{cfg.timeZone || 'Asia/Shanghai'}</span>
-              </div>
-
-              <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
-                <span className="text-slate-400 block mb-1 text-[10px] uppercase font-bold">UPSTREAM_TIMEOUT_MS</span>
-                <span className="text-purple-300 font-semibold">{cfg.upstreamTimeoutMs || 180000} ms</span>
-              </div>
-
-              <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
-                <span className="text-slate-400 block mb-1 text-[10px] uppercase font-bold">ENABLE_UI</span>
-                <span className="text-emerald-400 font-semibold">{String(cfg.enableUi !== false)}</span>
-              </div>
-
-              <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
-                <span className="text-slate-400 block mb-1 text-[10px] uppercase font-bold">LOG_RETENTION_DAYS</span>
-                <span className="text-purple-400 font-semibold">{cfg.logRetentionDays || 3} {t('dashboard.days')}</span>
-              </div>
+          {N === 0 ? (
+            <div className="flex-1 flex items-center justify-center text-slate-500 text-xs italic bg-slate-900/40 rounded-lg border border-slate-800/60">
+              {t('dashboard.noData')}
             </div>
-          </div>
-
-          {/* Category 2: Translation & Context Strategy */}
-          <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl p-5 shadow-lg space-y-4">
-            <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center space-x-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-              <span>{t('dashboard.translationRules')}</span>
-            </h4>
-
-            <div className="grid grid-cols-2 gap-3 text-xs font-mono">
-              <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
-                <span className="text-slate-400 block mb-1 text-[10px] uppercase font-bold">SYSTEM_ROLE_TO_INSTRUCTION</span>
-                <span className={`px-2 py-0.5 rounded font-bold text-[11px] ${cfg.systemRoleToInstruction ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-800 text-slate-400'}`}>
-                  {String(Boolean(cfg.systemRoleToInstruction))}
-                </span>
-              </div>
-
-              <div className="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
-                <span className="text-slate-400 block mb-1 text-[10px] uppercase font-bold">RUNTIME_CONTEXT_TAG</span>
-                <span className="text-blue-400 font-semibold">&lt;{cfg.runtimeContextTag || 'runtime-context'}&gt;</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Category 2.1: Custom System Instruction */}
-        <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl p-5 shadow-lg space-y-2 font-mono text-xs">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-700/40">
-            <span className="text-xs font-bold text-purple-400 uppercase tracking-wider">
-              {t('dashboard.customSystemInstruction')}
-            </span>
-            <span className="text-[10px] text-slate-500 font-sans">{t('dashboard.customInstructionSub')}</span>
-          </div>
-
-          {cfg.customSystemInstruction ? (
-            <pre className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-slate-200 text-xs whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
-              {cfg.customSystemInstruction}
-            </pre>
           ) : (
-            <div className="text-slate-500 text-xs italic p-2 bg-slate-950/60 rounded-lg border border-slate-900">
-              {t('dashboard.noCustomInstruction')}
+            <div className="relative flex-1">
+              <svg
+                viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+                className="w-full h-full overflow-visible"
+                onMouseMove={handleMouseMove}
+                onMouseLeave={handleMouseLeave}
+              >
+                <defs>
+                  <linearGradient id="volumeAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.22" />
+                    <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.00" />
+                  </linearGradient>
+                </defs>
+
+                {/* Gridlines */}
+                {renderGridLines(volumeLimit)}
+
+                {/* X-axis baseline */}
+                <line
+                  x1={paddingLeft}
+                  y1={yMax}
+                  x2={svgWidth - paddingRight}
+                  y2={yMax}
+                  stroke="#334155"
+                  strokeWidth="1.5"
+                />
+
+                {/* Area under curve */}
+                {volumeAreaPath && (
+                  <path d={volumeAreaPath} fill="url(#volumeAreaGrad)" />
+                )}
+
+                {/* Polyline */}
+                {volumeLinePath && (
+                  <path
+                    d={volumeLinePath}
+                    fill="none"
+                    stroke="#06b6d4"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                )}
+
+                {/* X-axis labels */}
+                {labelIndices.map(idx => (
+                  <text
+                    key={idx}
+                    x={getX(idx)}
+                    y={yMax + 16}
+                    textAnchor="middle"
+                    className="text-[10px] fill-slate-400 font-mono select-none"
+                  >
+                    {timeSeries[idx].time}
+                  </text>
+                ))}
+
+                {/* Active Hover Crosshair Line */}
+                {hoveredIndex !== null && (
+                  <line
+                    x1={getX(hoveredIndex)}
+                    y1={yMin}
+                    x2={getX(hoveredIndex)}
+                    y2={yMax}
+                    stroke="#06b6d4"
+                    strokeWidth="1"
+                    strokeDasharray="3 3"
+                    className="opacity-80"
+                  />
+                )}
+
+                {/* Active Hover Dot */}
+                {hoveredIndex !== null && timeSeries[hoveredIndex] && (
+                  <circle
+                    cx={getX(hoveredIndex)}
+                    cy={getYVolume(timeSeries[hoveredIndex].total)}
+                    r="5"
+                    fill="#06b6d4"
+                    stroke="#1e293b"
+                    strokeWidth="2"
+                    className="animate-pulse"
+                  />
+                )}
+              </svg>
+
+              {/* Synchronized Hover Tooltip Overlay */}
+              {hoveredIndex !== null && timeSeries[hoveredIndex] && (
+                <div
+                  className="absolute z-10 bg-slate-900/95 border border-slate-700/80 text-[11px] p-2 rounded-lg shadow-xl pointer-events-none space-y-1 backdrop-blur-sm"
+                  style={{
+                    left: `${((getX(hoveredIndex) - paddingLeft) / plottingWidth) * 85 + 8}%`,
+                    top: '15%',
+                    transform: hoveredIndex > N / 2 ? 'translateX(-105%)' : 'translateX(5%)',
+                  }}
+                >
+                  <div className="font-bold text-slate-300 font-mono border-b border-slate-800 pb-0.5 mb-1 text-center">
+                    {timeSeries[hoveredIndex].time}
+                  </div>
+                  <div className="flex justify-between space-x-4">
+                    <span className="text-slate-400">Total:</span>
+                    <span className="font-bold text-cyan-400 font-mono">{timeSeries[hoveredIndex].total}</span>
+                  </div>
+                  <div className="flex justify-between space-x-4">
+                    <span className="text-slate-400">Success:</span>
+                    <span className="font-bold text-emerald-400 font-mono">{timeSeries[hoveredIndex].success}</span>
+                  </div>
+                  <div className="flex justify-between space-x-4">
+                    <span className="text-slate-400">Error:</span>
+                    <span className="font-bold text-rose-400 font-mono">{timeSeries[hoveredIndex].error}</span>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
-      </div>
 
-      {/* Category 3: Model Routing & Mappings */}
-      <div className="bg-slate-800/80 border border-slate-700/60 rounded-xl p-6 shadow-md space-y-4">
-        <h3 className="text-md font-bold text-slate-200 uppercase tracking-wider text-xs">
-          {t('dashboard.modelMappingsTitle')}
-        </h3>
-        <p className="text-xs text-slate-400">
-          {t('dashboard.modelMappingsSub')}
-        </p>
-        <pre className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-xs font-mono text-amber-300 overflow-auto max-h-60 leading-relaxed">
-          {JSON.stringify(cfg.modelMappings || {}, null, 2)}
-        </pre>
+        {/* Chart 2: Average Latency Trend */}
+        <div className="bg-slate-800/80 backdrop-blur border border-slate-700/60 rounded-xl p-5 shadow-lg relative flex flex-col h-[320px]">
+          <h3 className="text-sm font-bold text-slate-200 mb-4 tracking-wide uppercase text-xs flex items-center justify-between">
+            <span>{t('dashboard.latencyChartTitle')}</span>
+            {hoveredIndex !== null && timeSeries[hoveredIndex] && (
+              <span className="text-purple-400 font-mono text-xs lowercase">
+                {timeSeries[hoveredIndex].avgDurationMs} ms
+              </span>
+            )}
+          </h3>
+
+          {N === 0 ? (
+            <div className="flex-1 flex items-center justify-center text-slate-500 text-xs italic bg-slate-900/40 rounded-lg border border-slate-800/60">
+              {t('dashboard.noData')}
+            </div>
+          ) : (
+            <div className="relative flex-1">
+              <svg
+                viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+                className="w-full h-full overflow-visible"
+                onMouseMove={handleMouseMove}
+                onMouseLeave={handleMouseLeave}
+              >
+                <defs>
+                  <linearGradient id="latencyLineGrad" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#8b5cf6" />
+                    <stop offset="100%" stopColor="#f59e0b" />
+                  </linearGradient>
+                </defs>
+
+                {/* Gridlines */}
+                {renderGridLines(latencyLimit, v => `${v}ms`)}
+
+                {/* X-axis baseline */}
+                <line
+                  x1={paddingLeft}
+                  y1={yMax}
+                  x2={svgWidth - paddingRight}
+                  y2={yMax}
+                  stroke="#334155"
+                  strokeWidth="1.5"
+                />
+
+                {/* Polyline */}
+                {latencyLinePath && (
+                  <path
+                    d={latencyLinePath}
+                    fill="none"
+                    stroke="url(#latencyLineGrad)"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                )}
+
+                {/* All Node points (amber color with gap ring) */}
+                {timeSeries.map((p, i) => (
+                  <circle
+                    key={i}
+                    cx={getX(i)}
+                    cy={getYLatency(p.avgDurationMs)}
+                    r="3.5"
+                    fill="#f59e0b"
+                    stroke="#1e293b"
+                    strokeWidth="1.5"
+                  />
+                ))}
+
+                {/* X-axis labels */}
+                {labelIndices.map(idx => (
+                  <text
+                    key={idx}
+                    x={getX(idx)}
+                    y={yMax + 16}
+                    textAnchor="middle"
+                    className="text-[10px] fill-slate-400 font-mono select-none"
+                  >
+                    {timeSeries[idx].time}
+                  </text>
+                ))}
+
+                {/* Active Hover Crosshair Line */}
+                {hoveredIndex !== null && (
+                  <line
+                    x1={getX(hoveredIndex)}
+                    y1={yMin}
+                    x2={getX(hoveredIndex)}
+                    y2={yMax}
+                    stroke="#a855f7"
+                    strokeWidth="1"
+                    strokeDasharray="3 3"
+                    className="opacity-80"
+                  />
+                )}
+
+                {/* Highlighted active node dot */}
+                {hoveredIndex !== null && timeSeries[hoveredIndex] && (
+                  <circle
+                    cx={getX(hoveredIndex)}
+                    cy={getYLatency(timeSeries[hoveredIndex].avgDurationMs)}
+                    r="5.5"
+                    fill="#f59e0b"
+                    stroke="#1e293b"
+                    strokeWidth="2"
+                    className="animate-pulse"
+                  />
+                )}
+              </svg>
+
+              {/* Synchronized Hover Tooltip Overlay */}
+              {hoveredIndex !== null && timeSeries[hoveredIndex] && (
+                <div
+                  className="absolute z-10 bg-slate-900/95 border border-slate-700/80 text-[11px] p-2 rounded-lg shadow-xl pointer-events-none space-y-1 backdrop-blur-sm"
+                  style={{
+                    left: `${((getX(hoveredIndex) - paddingLeft) / plottingWidth) * 85 + 8}%`,
+                    top: '15%',
+                    transform: hoveredIndex > N / 2 ? 'translateX(-105%)' : 'translateX(5%)',
+                  }}
+                >
+                  <div className="font-bold text-slate-300 font-mono border-b border-slate-800 pb-0.5 mb-1 text-center">
+                    {timeSeries[hoveredIndex].time}
+                  </div>
+                  <div className="flex justify-between space-x-4">
+                    <span className="text-slate-400">Avg Latency:</span>
+                    <span className="font-bold text-amber-400 font-mono">{timeSeries[hoveredIndex].avgDurationMs} ms</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Chart 3: Success vs Error Distribution */}
+        <div className="bg-slate-800/80 backdrop-blur border border-slate-700/60 rounded-xl p-5 shadow-lg relative flex flex-col h-[320px]">
+          <h3 className="text-sm font-bold text-slate-200 mb-4 tracking-wide uppercase text-xs flex items-center justify-between">
+            <span>{t('dashboard.successErrorChartTitle')}</span>
+            {hoveredIndex !== null && timeSeries[hoveredIndex] && (
+              <span className="text-emerald-400 font-mono text-xs">
+                {timeSeries[hoveredIndex].success}✓ / {timeSeries[hoveredIndex].error}✗
+              </span>
+            )}
+          </h3>
+
+          {N === 0 ? (
+            <div className="flex-1 flex items-center justify-center text-slate-500 text-xs italic bg-slate-900/40 rounded-lg border border-slate-800/60">
+              {t('dashboard.noData')}
+            </div>
+          ) : (
+            <div className="relative flex-1">
+              <svg
+                viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+                className="w-full h-full overflow-visible"
+                onMouseMove={handleMouseMove}
+                onMouseLeave={handleMouseLeave}
+              >
+                {/* Gridlines */}
+                {renderGridLines(stackedLimit)}
+
+                {/* X-axis baseline */}
+                <line
+                  x1={paddingLeft}
+                  y1={yMax}
+                  x2={svgWidth - paddingRight}
+                  y2={yMax}
+                  stroke="#334155"
+                  strokeWidth="1.5"
+                />
+
+                {/* Stacked Columns with rounded data-ends and gap separators */}
+                {timeSeries.map((p, i) => {
+                  const barWidth = Math.min(20, Math.max(8, (plottingWidth / N) * 0.5));
+                  const x = getX(i) - barWidth / 2;
+
+                  // Success segment (bottom)
+                  const hSuccess = (p.success / stackedLimit) * plottingHeight;
+                  const ySuccess = yMax - hSuccess;
+
+                  // Error segment (top)
+                  const gap = (p.success > 0 && p.error > 0) ? 2 : 0;
+                  const hError = Math.max(0, (p.error / stackedLimit) * plottingHeight - gap);
+                  const yError = ySuccess - gap - hError;
+
+                  const isHovered = hoveredIndex === i;
+
+                  return (
+                    <g key={i}>
+                      {/* Interactive Column Hover Guide Background */}
+                      {isHovered && (
+                        <rect
+                          x={getX(i) - barWidth}
+                          y={yMin}
+                          width={barWidth * 2}
+                          height={plottingHeight}
+                          fill="rgba(255, 255, 255, 0.04)"
+                          rx="4"
+                          className="pointer-events-none"
+                        />
+                      )}
+
+                      {/* Success Bar */}
+                      {hSuccess > 0 && (
+                        <path
+                          d={p.error === 0
+                            ? getRoundedTopBarPath(x, ySuccess, barWidth, hSuccess, 4)
+                            : `M ${x} ${yMax} L ${x} ${ySuccess} L ${x + barWidth} ${ySuccess} L ${x + barWidth} ${yMax} Z`
+                          }
+                          fill="#10b981"
+                          className="transition-colors duration-200"
+                        />
+                      )}
+
+                      {/* Error Bar */}
+                      {hError > 0 && (
+                        <path
+                          d={getRoundedTopBarPath(x, yError, barWidth, hError, 4)}
+                          fill="#f43f5e"
+                          className="transition-colors duration-200"
+                        />
+                      )}
+                    </g>
+                  );
+                })}
+
+                {/* X-axis labels */}
+                {labelIndices.map(idx => (
+                  <text
+                    key={idx}
+                    x={getX(idx)}
+                    y={yMax + 16}
+                    textAnchor="middle"
+                    className="text-[10px] fill-slate-400 font-mono select-none"
+                  >
+                    {timeSeries[idx].time}
+                  </text>
+                ))}
+              </svg>
+
+              {/* Synchronized Hover Tooltip Overlay */}
+              {hoveredIndex !== null && timeSeries[hoveredIndex] && (
+                <div
+                  className="absolute z-10 bg-slate-900/95 border border-slate-700/80 text-[11px] p-2 rounded-lg shadow-xl pointer-events-none space-y-1 backdrop-blur-sm"
+                  style={{
+                    left: `${((getX(hoveredIndex) - paddingLeft) / plottingWidth) * 85 + 8}%`,
+                    top: '15%',
+                    transform: hoveredIndex > N / 2 ? 'translateX(-105%)' : 'translateX(5%)',
+                  }}
+                >
+                  <div className="font-bold text-slate-300 font-mono border-b border-slate-800 pb-0.5 mb-1 text-center">
+                    {timeSeries[hoveredIndex].time}
+                  </div>
+                  <div className="flex justify-between space-x-4">
+                    <span className="text-slate-400">Success Ratio:</span>
+                    <span className="font-bold text-emerald-400 font-mono">
+                      {((timeSeries[hoveredIndex].success / (timeSeries[hoveredIndex].total || 1)) * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="flex justify-between space-x-4">
+                    <span className="text-slate-400">Success (✓):</span>
+                    <span className="font-bold text-emerald-400 font-mono">{timeSeries[hoveredIndex].success}</span>
+                  </div>
+                  <div className="flex justify-between space-x-4">
+                    <span className="text-slate-400">Errors (✗):</span>
+                    <span className="font-bold text-rose-400 font-mono">{timeSeries[hoveredIndex].error}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
