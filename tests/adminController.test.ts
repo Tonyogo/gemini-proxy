@@ -61,6 +61,16 @@ describe('Admin API Endpoints', () => {
     expect(typeof res.body.tree).toBe('object');
   });
 
+  it('GET /api/admin/logs returns hourCount field for selected hour slice', async () => {
+    const res = await request(app)
+      .get('/api/admin/logs?limit=10')
+      .set('x-admin-key', 'test-secret-key');
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('hourCount');
+    expect(typeof res.body.hourCount).toBe('number');
+  });
+
   test('POST /api/admin/config updates configuration', async () => {
     const res = await request(app)
       .post('/api/admin/config')

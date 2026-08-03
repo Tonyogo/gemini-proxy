@@ -32,95 +32,71 @@ class LogService {
     limit = 50,
     filterDate?: string,
     filterHour?: string
-  ): Promise<{ tree: LogTreeStructure; logs: LogItem[]; total: number }> {
+  ): Promise<{ tree: LogTreeStructure; hourCount: number; total: number; logs: LogItem[] }> {
     const debugDir = this.getDebugDir();
     const items: LogItem[] = [];
     const tree: LogTreeStructure = {};
+
+    let hourCount = 0;
 
     try {
       const dates = await fs.readdir(debugDir);
       const sortedDates = dates.sort().reverse();
 
-      // Populate tree high-level overview
+      // Lightweight tree overview: list date and hour directories without deep file counting
       for (const date of sortedDates) {
         const dateDir = path.join(debugDir, date);
         const dateStat = await fs.stat(dateDir).catch(() => null);
         if (!dateStat || !dateStat.isDirectory()) continue;
 
         tree[date] = tree[date] || {};
-        const hours = await fs.readdir(dateDir);
+        const hours = await fs.readdir(dateDir).catch(() => []);
         for (const hour of hours) {
-          const hourDir = path.join(dateDir, hour);
-          const hourStat = await fs.stat(hourDir).catch(() => null);
-          if (!hourStat || !hourStat.isDirectory()) continue;
-
-          // Estimate/read files count for tree
-          const files = await fs.readdir(hourDir);
-          tree[date][hour] = files.filter(f => f.endsWith('.json')).length;
+          tree[date][hour] = 0; // Default placeholder, no deep file readdir
         }
       }
 
-      // Fast-path: Specific date & hour filtering
-      if (filterDate && filterHour && filterHour !== 'all') {
-        const hourDir = path.join(debugDir, filterDate, filterHour);
+      // Determine active date and hour
+      let targetDate = filterDate;
+      let targetHour = filterHour;
+
+      if (!targetDate || !targetHour || targetHour === 'all') {
+        if (sortedDates.length > 0) {
+          targetDate = targetDate || sortedDates[0];
+          const availableHours = Object.keys(tree[targetDate] || {}).sort((a, b) => parseInt(b, 10) - parseInt(a, 10));
+          if (availableHours.length > 0) {
+            targetHour = (targetHour && targetHour !== 'all') ? targetHour : availableHours[0];
+          }
+        }
+      }
+
+      // Perform targeted file scan for active date/hour ONLY
+      if (targetDate && targetHour && targetHour !== 'all') {
+        const hourDir = path.join(debugDir, targetDate, targetHour);
         const files = await fs.readdir(hourDir).catch(() => []);
         const jsonFiles = files.filter(f => f.endsWith('.json')).sort().reverse();
+
+        hourCount = jsonFiles.length;
+        if (tree[targetDate] && tree[targetDate][targetHour] !== undefined) {
+          tree[targetDate][targetHour] = hourCount;
+        }
+
         for (const file of jsonFiles) {
           items.push({
-            date: filterDate,
-            hour: filterHour,
+            date: targetDate,
+            hour: targetHour,
             filename: file,
-            path: path.join(filterDate, filterHour, file)
+            path: path.join(targetDate, targetHour, file)
           });
-        }
-      } else {
-        // Collect items until target count reached
-        const targetCount = page * limit;
-        for (const date of sortedDates) {
-          if (filterDate && date !== filterDate) continue;
-
-          const dateDir = path.join(debugDir, date);
-          const hours = (await fs.readdir(dateDir).catch(() => [])).sort().reverse();
-
-          for (const hour of hours) {
-            if (filterHour && filterHour !== 'all' && hour !== filterHour) continue;
-
-            const hourDir = path.join(dateDir, hour);
-            const files = await fs.readdir(hourDir).catch(() => []);
-            const jsonFiles = files.filter(f => f.endsWith('.json')).sort().reverse();
-
-            for (const file of jsonFiles) {
-              items.push({
-                date,
-                hour,
-                filename: file,
-                path: path.join(date, hour, file)
-              });
-            }
-
-            if (items.length >= targetCount) break;
-          }
-          if (items.length >= targetCount) break;
         }
       }
     } catch {
       // Directory may not exist yet
     }
 
-    // Calculate total matching logs using the tree counts
-    let total = 0;
-    for (const d of Object.keys(tree)) {
-      if (filterDate && d !== filterDate) continue;
-      for (const h of Object.keys(tree[d])) {
-        if (filterHour && filterHour !== 'all' && h !== filterHour) continue;
-        total += tree[d][h];
-      }
-    }
-
     const start = (page - 1) * limit;
     const slicedItems = items.slice(start, start + limit);
 
-    // Dynamic extraction of metadata (timestamp, path, status, is_stream) from log JSON files for the current page slice
     const enrichedLogs = await Promise.all(
       slicedItems.map(async item => {
         try {
@@ -154,7 +130,6 @@ class LogService {
             duration: parsed.duration !== undefined ? parsed.duration : null
           };
         } catch (e) {
-          // If reading or parsing JSON fails, fall back to file stats
           try {
             const fullPath = path.join(debugDir, item.date, item.hour, item.filename);
             const stats = await fs.stat(fullPath);
@@ -163,7 +138,8 @@ class LogService {
               timestamp: stats.mtime.toISOString(),
               reqPath: null,
               status: null,
-              isStream: false
+              isStream: false,
+              duration: null
             };
           } catch {
             return {
@@ -171,7 +147,8 @@ class LogService {
               timestamp: null,
               reqPath: null,
               status: null,
-              isStream: false
+              isStream: false,
+              duration: null
             };
           }
         }
@@ -180,8 +157,9 @@ class LogService {
 
     return {
       tree,
-      logs: enrichedLogs,
-      total
+      hourCount,
+      total: hourCount,
+      logs: enrichedLogs
     };
   }
 
