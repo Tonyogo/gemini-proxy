@@ -194,6 +194,28 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                   }
                 }
 
+                let durationElem = null;
+                if (log.duration !== null && log.duration !== undefined) {
+                  const durationSec = log.duration / 1000;
+                  let durationColorClass = '';
+                  if (durationSec < 1) {
+                    durationColorClass = 'bg-purple-500/10 text-purple-300 border-purple-500/20';
+                  } else if (durationSec < 5) {
+                    durationColorClass = 'bg-amber-500/10 text-amber-300 border-amber-500/20';
+                  } else {
+                    durationColorClass = 'bg-rose-500/10 text-rose-300 border-rose-500/20';
+                  }
+                  durationElem = (
+                    <span className={`px-1.5 py-0.5 rounded border text-[9px] font-mono font-semibold ${durationColorClass}`}>
+                      {durationSec.toFixed(2)}s
+                    </span>
+                  );
+                }
+
+                const displayId = log.filename
+                  ? '...' + log.filename.replace(/^transaction_/, '').replace(/\.json$/, '')
+                  : '';
+
                 return (
                   <div
                     key={idx}
@@ -204,8 +226,24 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                         : 'bg-slate-900/60 border-slate-700/40 hover:border-slate-600 text-slate-300'
                     }`}
                   >
-                    <div className="font-mono text-[11px] truncate font-semibold">{log.filename}</div>
-                    <div className="text-[10px] text-slate-400 mt-1.5 flex items-center justify-between font-mono">
+                    {/* Row 1 (Top) */}
+                    <div className="flex items-center justify-between font-mono text-[10px]">
+                      <div className="flex items-center space-x-1.5">
+                        <span className="text-slate-400">{formattedTime}</span>
+                        {pathLabel && (
+                          <span className={`px-1.5 py-0.5 rounded border text-[9px] font-semibold ${pathBadgeColor}`}>
+                            {pathLabel}
+                          </span>
+                        )}
+                      </div>
+                      {durationElem}
+                    </div>
+
+                    {/* Row 2 (Bottom) */}
+                    <div className="flex items-center justify-between mt-2 font-mono text-[10px]">
+                      <span className="text-slate-500 truncate" title={log.filename}>
+                        {displayId}
+                      </span>
                       <div className="flex items-center space-x-1.5">
                         {log.status !== null && log.status !== undefined && (
                           <span className={`px-1.5 py-0.5 rounded border text-[9px] font-bold ${
@@ -221,21 +259,6 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                             STREAM
                           </span>
                         )}
-                        {log.duration !== null && log.duration !== undefined && (
-                          <span className="px-1.5 py-0.5 rounded border text-[9px] font-mono font-semibold bg-purple-500/10 text-purple-300 border-purple-500/20">
-                            {log.duration}ms
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center space-x-1.5">
-                        {pathLabel && (
-                          <span className={`px-1.5 py-0.5 rounded border text-[9px] font-semibold ${pathBadgeColor}`}>
-                            {pathLabel}
-                          </span>
-                        )}
-                        <span className="px-1.5 py-0.5 rounded border border-slate-700/60 bg-slate-800/80 text-slate-300 font-mono">
-                          {formattedTime}
-                        </span>
                       </div>
                     </div>
                   </div>
