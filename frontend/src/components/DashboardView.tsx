@@ -204,7 +204,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
           <div className="bg-slate-800/80 backdrop-blur border border-slate-700/60 p-5 rounded-xl shadow-lg">
             <div className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2">{t('dashboard.totalTransactions')}</div>
             <div className="text-2xl font-extrabold text-blue-400">{stats ? stats.totalLogs : 0}</div>
-            <div className="text-xs text-slate-500 mt-2">{t('dashboard.sampledRequests').replace('{count}', String(stats ? stats.sampleSize : 0))}</div>
+            <div className="text-xs text-slate-500 mt-2">{t('dashboard.sampledRequests')}</div>
           </div>
 
           {/* Average Latency */}

@@ -76,11 +76,9 @@ class MetricsService {
           // 1. Fast metadata count (O(1) filesystem metadata lookup)
           this.totalLogs += jsonFiles.length;
 
-          // 2. Collect candidate files until limit of 1000
+          // 2. Collect candidate files
           for (const file of jsonFiles) {
-            if (candidatePaths.length < 1000) {
-              candidatePaths.push(path.join(hourDir, file));
-            }
+            candidatePaths.push(path.join(hourDir, file));
           }
         }
       }
