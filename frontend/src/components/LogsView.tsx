@@ -253,6 +253,11 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                         {displayId}
                       </span>
                       <div className="flex items-center space-x-1.5">
+                        {log.isStream && (
+                          <span className="px-1.5 py-0.5 rounded border text-[9px] font-bold bg-blue-500/10 text-blue-300 border-blue-500/20">
+                            STREAM
+                          </span>
+                        )}
                         {log.status !== null && log.status !== undefined && (
                           <span className={`px-1.5 py-0.5 rounded border text-[9px] font-bold ${
                             log.status >= 200 && log.status < 300 ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20' :
@@ -260,11 +265,6 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                             'bg-rose-500/10 text-rose-300 border-rose-500/20'
                           }`}>
                             {log.status}
-                          </span>
-                        )}
-                        {log.isStream && (
-                          <span className="px-1.5 py-0.5 rounded border text-[9px] font-bold bg-blue-500/10 text-blue-300 border-blue-500/20">
-                            STREAM
                           </span>
                         )}
                       </div>
