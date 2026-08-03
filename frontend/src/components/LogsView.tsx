@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import Editor from '@monaco-editor/react';
 import JsonTreeView from './JsonTreeView';
 import SseStreamPreview from './SseStreamPreview';
 import { defineGeminiProxyTheme } from '../utils/monacoTheme';
 
 export default function LogsView({ adminKey }: { adminKey: string }) {
+  const detailCacheRef = useRef<Map<string, any>>(new Map());
   const [logs, setLogs] = useState<any[]>([]);
   const [tree, setTree] = useState<Record<string, Record<string, number>>>({});
   const [selectedDate, setSelectedDate] = useState<string>('');
@@ -59,11 +60,19 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
 
   const loadDetail = (log: any) => {
     setSelectedFile(log.path);
+    if (detailCacheRef.current.has(log.path)) {
+      setSelectedLog(detailCacheRef.current.get(log.path));
+      setDetailLoading(false);
+      return;
+    }
     setDetailLoading(true);
     const headers: Record<string, string> = adminKey ? { 'x-admin-key': adminKey } : {};
     fetch(`/api/admin/logs/${log.date}/${log.hour}/${log.filename}`, { headers })
       .then(r => r.json())
-      .then(setSelectedLog)
+      .then(data => {
+        detailCacheRef.current.set(log.path, data);
+        setSelectedLog(data);
+      })
       .catch(() => setSelectedLog(null))
       .finally(() => setDetailLoading(false));
   };
@@ -104,7 +113,10 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
           <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-700/60">
             <h3 className="font-bold text-slate-100 text-xs uppercase tracking-wider">Transaction Logs</h3>
             <button
-              onClick={() => fetchLogs(true)}
+              onClick={() => {
+                detailCacheRef.current.clear();
+                fetchLogs(true);
+              }}
               className="text-[10px] bg-slate-700 hover:bg-slate-600 text-slate-200 px-2 py-1 rounded transition-colors flex items-center space-x-1"
             >
               <span>↻</span>
