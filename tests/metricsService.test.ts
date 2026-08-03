@@ -55,7 +55,7 @@ describe('MetricsService Time-Series Aggregations', () => {
 
     // Verify chronological order: 08:00, 10:00, 14:00
     expect(stats.timeSeries[0]).toEqual({
-      time: '08:00',
+      time: '2026-08-03 08:00',
       total: 1,
       success: 1,
       error: 0,
@@ -63,7 +63,7 @@ describe('MetricsService Time-Series Aggregations', () => {
     });
 
     expect(stats.timeSeries[1]).toEqual({
-      time: '10:00',
+      time: '2026-08-03 10:00',
       total: 2,
       success: 2,
       error: 0,
@@ -71,7 +71,7 @@ describe('MetricsService Time-Series Aggregations', () => {
     });
 
     expect(stats.timeSeries[2]).toEqual({
-      time: '14:00',
+      time: '2026-08-03 14:00',
       total: 1,
       success: 0,
       error: 1,

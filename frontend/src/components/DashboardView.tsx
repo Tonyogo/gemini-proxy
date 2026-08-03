@@ -290,17 +290,22 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                 )}
 
                 {/* X-axis labels */}
-                {labelIndices.map(idx => (
-                  <text
-                    key={idx}
-                    x={getX(idx)}
-                    y={yMax + 16}
-                    textAnchor="middle"
-                    className="text-[10px] fill-slate-400 font-mono select-none"
-                  >
-                    {timeSeries[idx].time}
-                  </text>
-                ))}
+                {labelIndices.map(idx => {
+                  const rawTime = timeSeries[idx].time;
+                  // If formatted as "YYYY-MM-DD HH:00", split and only show "HH:00" to keep labels clean
+                  const displayLabel = rawTime.includes(' ') ? rawTime.split(' ')[1] : rawTime;
+                  return (
+                    <text
+                      key={idx}
+                      x={getX(idx)}
+                      y={yMax + 16}
+                      textAnchor="middle"
+                      className="text-[10px] fill-slate-400 font-mono select-none"
+                    >
+                      {displayLabel}
+                    </text>
+                  );
+                })}
 
                 {/* Active Hover Crosshair Line */}
                 {hoveredIndex !== null && (
@@ -430,17 +435,22 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                 ))}
 
                 {/* X-axis labels */}
-                {labelIndices.map(idx => (
-                  <text
-                    key={idx}
-                    x={getX(idx)}
-                    y={yMax + 16}
-                    textAnchor="middle"
-                    className="text-[10px] fill-slate-400 font-mono select-none"
-                  >
-                    {timeSeries[idx].time}
-                  </text>
-                ))}
+                {labelIndices.map(idx => {
+                  const rawTime = timeSeries[idx].time;
+                  // If formatted as "YYYY-MM-DD HH:00", split and only show "HH:00" to keep labels clean
+                  const displayLabel = rawTime.includes(' ') ? rawTime.split(' ')[1] : rawTime;
+                  return (
+                    <text
+                      key={idx}
+                      x={getX(idx)}
+                      y={yMax + 16}
+                      textAnchor="middle"
+                      className="text-[10px] fill-slate-400 font-mono select-none"
+                    >
+                      {displayLabel}
+                    </text>
+                  );
+                })}
 
                 {/* Active Hover Crosshair Line */}
                 {hoveredIndex !== null && (
@@ -585,17 +595,22 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                 })}
 
                 {/* X-axis labels */}
-                {labelIndices.map(idx => (
-                  <text
-                    key={idx}
-                    x={getX(idx)}
-                    y={yMax + 16}
-                    textAnchor="middle"
-                    className="text-[10px] fill-slate-400 font-mono select-none"
-                  >
-                    {timeSeries[idx].time}
-                  </text>
-                ))}
+                {labelIndices.map(idx => {
+                  const rawTime = timeSeries[idx].time;
+                  // If formatted as "YYYY-MM-DD HH:00", split and only show "HH:00" to keep labels clean
+                  const displayLabel = rawTime.includes(' ') ? rawTime.split(' ')[1] : rawTime;
+                  return (
+                    <text
+                      key={idx}
+                      x={getX(idx)}
+                      y={yMax + 16}
+                      textAnchor="middle"
+                      className="text-[10px] fill-slate-400 font-mono select-none"
+                    >
+                      {displayLabel}
+                    </text>
+                  );
+                })}
               </svg>
 
               {/* Synchronized Hover Tooltip Overlay */}

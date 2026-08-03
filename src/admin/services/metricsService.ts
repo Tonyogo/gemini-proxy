@@ -26,8 +26,11 @@ class MetricsService {
   }
 
   private getHourKey(dateObj: Date = new Date()): string {
+    const year = dateObj.getFullYear();
+    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const date = String(dateObj.getDate()).padStart(2, '0');
     const hours = String(dateObj.getHours()).padStart(2, '0');
-    return `${hours}:00`;
+    return `${year}-${month}-${date} ${hours}:00`;
   }
 
   private updateBucket(hourKey: string, isError: boolean, duration?: number | null): void {
@@ -145,7 +148,8 @@ class MetricsService {
   }
 
   public getStats() {
-    const timeSeries: TimeSeriesPoint[] = Array.from(this.timeSeriesMap.entries())
+    // Generate chronological timeSeries list sorted by date-hour
+    const sortedPoints = Array.from(this.timeSeriesMap.entries())
       .map(([time, bucket]) => ({
         time,
         total: bucket.total,
@@ -154,6 +158,9 @@ class MetricsService {
         avgDurationMs: bucket.durationCount > 0 ? Math.round(bucket.totalDuration / bucket.durationCount) : 0
       }))
       .sort((a, b) => a.time.localeCompare(b.time));
+
+    // Keep only the most recent 24 hourly buckets to act as a rolling 24h window
+    const timeSeries = sortedPoints.slice(-24);
 
     return {
       totalLogs: this.totalLogs,
