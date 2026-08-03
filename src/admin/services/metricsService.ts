@@ -60,6 +60,20 @@ class MetricsService {
     const debugDir = this.getDebugDir();
     const candidatePaths: string[] = [];
 
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+
+    const formatDate = (d: Date): string => {
+      const yr = d.getFullYear();
+      const mo = String(d.getMonth() + 1).padStart(2, '0');
+      const dt = String(d.getDate()).padStart(2, '0');
+      return `${yr}-${mo}-${dt}`;
+    };
+
+    const todayStr = formatDate(today);
+    const yesterdayStr = formatDate(yesterday);
+
     try {
       const dates = await fs.readdir(debugDir);
       for (const date of dates.sort().reverse()) {
@@ -76,17 +90,19 @@ class MetricsService {
           const files = await fs.readdir(hourDir);
           const jsonFiles = files.filter(f => f.endsWith('.json')).sort().reverse();
 
-          // 1. Fast metadata count (O(1) filesystem metadata lookup)
+          // 1. Fast metadata count (O(1) filesystem metadata lookup) - ALWAYS count ALL files
           this.totalLogs += jsonFiles.length;
 
-          // 2. Collect candidate files
-          for (const file of jsonFiles) {
-            candidatePaths.push(path.join(hourDir, file));
+          // 2. Only collect candidate paths for detail reading if date is Today or Yesterday
+          if (date === todayStr || date === yesterdayStr) {
+            for (const file of jsonFiles) {
+              candidatePaths.push(path.join(hourDir, file));
+            }
           }
         }
       }
 
-      // 3. Concurrently read and parse bounded candidate files
+      // 3. Concurrently read and parse bounded 24h candidate files
       const filePromises = candidatePaths.map(filePath =>
         fs.readFile(filePath, 'utf8')
           .then(content => {
