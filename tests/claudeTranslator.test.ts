@@ -56,8 +56,11 @@ describe('Claude to Gemini Request Translation', () => {
 
     // Combined message parts (was role: system merged into next role: user block)
     expect(result.googleRequest.contents[0].role).toEqual('user');
-    expect(result.googleRequest.contents[0].parts[0].text).toEqual(
-      '<runtime-context>\nThis is a message system prompt\n</runtime-context>'
+    expect(result.googleRequest.contents[0].parts[0].text).toContain(
+      'This is a message system prompt'
+    );
+    expect(result.googleRequest.contents[0].parts[0].text).toContain(
+      '[IMPORTANT: This context is strictly for your internal operational guidance.'
     );
 
     // Second part of merged message (was role: user)
@@ -428,8 +431,11 @@ describe('Claude Tools Interaction Roundtrips (Complex and Multi-Turn)', () => {
 
       const result = translator.translateClaudeToGoogle(claudePayload);
 
-      expect(result.googleRequest.contents[0].parts[0].text).toEqual(
-        '<custom-system-wrapper>\nCustom tagged system message\n</custom-system-wrapper>'
+      expect(result.googleRequest.contents[0].parts[0].text).toContain(
+        'Custom tagged system message'
+      );
+      expect(result.googleRequest.contents[0].parts[0].text).toContain(
+        '<custom-system-wrapper>'
       );
     } finally {
       config.runtimeContextTag = originalTag;
@@ -560,8 +566,8 @@ describe('ClaudeTranslator - SYSTEM_ROLE_TO_INSTRUCTION & Deduplication', () => 
 
     expect(systemText).toContain('Main system instruction');
     expect(systemText).toContain('Note: Content enclosed within <runtime-context> tags');
-    expect(systemText).toContain('<runtime-context>\n# claudeMd\nVersion 2: Updated instruction content\n</runtime-context>');
-    expect(systemText).toContain('<runtime-context>\n# customContext\nUnique context content\n</runtime-context>');
+    expect(systemText).toContain('# claudeMd\nVersion 2: Updated instruction content');
+    expect(systemText).toContain('# customContext\nUnique context content');
     expect(systemText).not.toContain('Version 1');
   });
 });
