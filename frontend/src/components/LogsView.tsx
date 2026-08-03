@@ -156,7 +156,6 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                 onChange={(e) => handleHourChange(e.target.value)}
                 className="w-full bg-slate-900 border border-slate-700 rounded-lg p-1.5 text-xs text-slate-100 font-mono focus:outline-none focus:border-blue-500"
               >
-                <option value="all">🕒 {t('logs.allHours')}</option>
                 {availableHours.map(h => (
                   <option key={h} value={h}>🕒 {h}:00</option>
                 ))}
