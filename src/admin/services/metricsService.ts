@@ -26,11 +26,29 @@ class MetricsService {
   }
 
   private getHourKey(dateObj: Date = new Date()): string {
-    const year = dateObj.getFullYear();
-    const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-    const date = String(dateObj.getDate()).padStart(2, '0');
-    const hours = String(dateObj.getHours()).padStart(2, '0');
-    return `${year}-${month}-${date} ${hours}:00`;
+    try {
+      const timeZone = config.timeZone || 'Asia/Shanghai';
+      const formatter = new Intl.DateTimeFormat('sv-SE', {
+        timeZone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        hourCycle: 'h23'
+      });
+      const parts = formatter.formatToParts(dateObj);
+      const year = parts.find(p => p.type === 'year')?.value || String(dateObj.getFullYear());
+      const month = parts.find(p => p.type === 'month')?.value || String(dateObj.getMonth() + 1).padStart(2, '0');
+      const day = parts.find(p => p.type === 'day')?.value || String(dateObj.getDate()).padStart(2, '0');
+      const hour = parts.find(p => p.type === 'hour')?.value || String(dateObj.getHours()).padStart(2, '0');
+      return `${year}-${month}-${day} ${hour}:00`;
+    } catch {
+      const year = dateObj.getFullYear();
+      const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const date = String(dateObj.getDate()).padStart(2, '0');
+      const hours = String(dateObj.getHours()).padStart(2, '0');
+      return `${year}-${month}-${date} ${hours}:00`;
+    }
   }
 
   private updateBucket(hourKey: string, isError: boolean, duration?: number | null): void {
