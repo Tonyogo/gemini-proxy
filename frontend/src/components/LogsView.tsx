@@ -20,6 +20,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
   const [activeTab, setActiveTab] = useState<'payload' | 'response'>('payload');
   const [viewMode, setViewMode] = useState<'preview' | 'raw'>('preview');
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
+  const [hourCount, setHourCount] = useState<number>(0);
 
   const fetchLogs = (forceAutoJump = false, customDate?: string, customHour?: string) => {
     setLoading(true);
@@ -39,6 +40,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
       .then(data => {
         const logTree = data.tree || {};
         setTree(logTree);
+        setHourCount(data.hourCount !== undefined ? data.hourCount : (data.total || 0));
         const fetchedLogs = data.logs || [];
         setLogs(fetchedLogs);
 
@@ -113,7 +115,14 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
       {!sidebarCollapsed && (
         <div className="w-80 shrink-0 bg-slate-800/80 border border-slate-700/60 rounded-xl p-4 shadow-md flex flex-col h-[820px] transition-all">
           <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-700/60">
-            <h3 className="font-bold text-slate-100 text-xs uppercase tracking-wider">{t('logs.title')}</h3>
+            <div className="flex items-center space-x-2">
+              <h3 className="font-bold text-slate-100 text-xs uppercase tracking-wider">{t('logs.title')}</h3>
+              {hourCount > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                  {hourCount}
+                </span>
+              )}
+            </div>
             <button
               onClick={() => {
                 detailCacheRef.current.clear();
@@ -149,7 +158,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
               >
                 <option value="all">🕒 {t('logs.allHours')}</option>
                 {availableHours.map(h => (
-                  <option key={h} value={h}>🕒 {h}:00 ({tree[selectedDate][h]})</option>
+                  <option key={h} value={h}>🕒 {h}:00</option>
                 ))}
               </select>
             </div>
