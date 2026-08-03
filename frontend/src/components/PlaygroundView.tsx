@@ -9,7 +9,7 @@ type EndpointOption = 'messages' | 'count_tokens' | 'custom';
 
 const DEFAULT_PRESETS: Record<EndpointOption, any> = {
   messages: {
-    model: "gemini-flash-lite-latest",
+    model: "gemini-3.1-flash-lite",
     max_tokens: 1024,
     messages: [
       { role: "user", content: "Hello! Who are you?" }
@@ -17,13 +17,13 @@ const DEFAULT_PRESETS: Record<EndpointOption, any> = {
     stream: true
   },
   count_tokens: {
-    model: "gemini-flash-lite-latest",
+    model: "gemini-3.1-flash-lite",
     messages: [
       { role: "user", content: "Hello! Count the tokens in this message." }
     ]
   },
   custom: {
-    model: "gemini-flash-lite-latest",
+    model: "gemini-3.1-flash-lite",
     messages: [
       { role: "user", content: "Test custom endpoint payload" }
     ]
