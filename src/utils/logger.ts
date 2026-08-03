@@ -1,4 +1,5 @@
 import config from '../../config/default';
+import terminalLogService from '../admin/services/terminalLogService';
 
 const levels: Record<string, number> = { error: 0, warn: 1, info: 2, debug: 3 };
 
@@ -27,17 +28,21 @@ const getFormattedTimestamp = (): string => {
 };
 
 const log = (level: string, message: string, ...meta: any[]) => {
+  const timestamp = getFormattedTimestamp();
+  const formattedMeta = meta.length
+    ? ' ' + meta.map(m => typeof m === 'object' ? JSON.stringify(m) : m).join(' ')
+    : '';
+  const fullMsg = `${message}${formattedMeta}`;
+
+  terminalLogService.addLog(level, `[${timestamp}] [${level.toUpperCase()}] ${fullMsg}`);
+
   // Suppress all console logs during testing
   if (process.env.NODE_ENV === 'test') {
     return;
   }
 
   if (levels[level] <= getCurrentLevel()) {
-    const timestamp = getFormattedTimestamp();
-    const formattedMeta = meta.length
-      ? ' ' + meta.map(m => typeof m === 'object' ? JSON.stringify(m) : m).join(' ')
-      : '';
-    console.log(`[${timestamp}] [${level.toUpperCase()}] ${message}${formattedMeta}`);
+    console.log(`[${timestamp}] [${level.toUpperCase()}] ${fullMsg}`);
   }
 };
 
