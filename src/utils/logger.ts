@@ -28,6 +28,11 @@ const getFormattedTimestamp = (): string => {
 };
 
 const log = (level: string, message: string, ...meta: any[]) => {
+  const currentLevelNum = getCurrentLevel();
+  if (levels[level] > currentLevelNum) {
+    return;
+  }
+
   const timestamp = getFormattedTimestamp();
   const formattedMeta = meta.length
     ? ' ' + meta.map(m => typeof m === 'object' ? JSON.stringify(m) : m).join(' ')
@@ -41,9 +46,7 @@ const log = (level: string, message: string, ...meta: any[]) => {
     return;
   }
 
-  if (levels[level] <= getCurrentLevel()) {
-    console.log(`[${timestamp}] [${level.toUpperCase()}] ${fullMsg}`);
-  }
+  console.log(`[${timestamp}] [${level.toUpperCase()}] ${fullMsg}`);
 };
 
 const logger = {

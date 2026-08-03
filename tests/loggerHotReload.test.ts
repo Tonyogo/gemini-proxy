@@ -18,16 +18,16 @@ describe('Logger Dynamic Hot-Reload', () => {
     // 1. Set log level to 'error'
     await updateConfig({ logLevel: 'error' });
 
+    // Temporarily mock NODE_ENV away from 'test' for logger.ts test check
+    const originalEnv = process.env.NODE_ENV;
+    delete process.env.NODE_ENV;
+
     // Debug log should be suppressed
     logger.debug('This is a debug message');
     expect(consoleSpy).not.toHaveBeenCalled();
 
     // 2. Change log level live to 'debug'
     await updateConfig({ logLevel: 'debug' });
-
-    // Temporarily mock NODE_ENV away from 'test' for logger.ts isTestEnv check
-    const originalEnv = process.env.NODE_ENV;
-    delete process.env.NODE_ENV;
 
     logger.debug('This debug message should appear now');
     expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('[DEBUG] This debug message should appear now'));
