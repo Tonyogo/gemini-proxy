@@ -8,6 +8,7 @@ export interface TimeSeriesPoint {
   success: number;
   error: number;
   avgDurationMs: number;
+  models: Record<string, number>;
 }
 
 class MetricsService {
@@ -18,7 +19,7 @@ class MetricsService {
   private durationCount = 0;
   private isInitialized = false;
 
-  private timeSeriesMap: Map<string, { total: number; success: number; error: number; totalDuration: number; durationCount: number }> = new Map();
+  private timeSeriesMap: Map<string, { total: number; success: number; error: number; totalDuration: number; durationCount: number; models: Record<string, number> }> = new Map();
 
   private getDebugDir(): string {
     const logsDir = config.transactionLogsDir || 'logs';
@@ -51,10 +52,10 @@ class MetricsService {
     }
   }
 
-  private updateBucket(hourKey: string, isError: boolean, duration?: number | null): void {
+  private updateBucket(hourKey: string, isError: boolean, duration?: number | null, modelName?: string | null): void {
     let bucket = this.timeSeriesMap.get(hourKey);
     if (!bucket) {
-      bucket = { total: 0, success: 0, error: 0, totalDuration: 0, durationCount: 0 };
+      bucket = { total: 0, success: 0, error: 0, totalDuration: 0, durationCount: 0, models: {} };
       this.timeSeriesMap.set(hourKey, bucket);
     }
 
@@ -68,6 +69,10 @@ class MetricsService {
     if (duration !== undefined && duration !== null && typeof duration === 'number') {
       bucket.totalDuration += duration;
       bucket.durationCount++;
+    }
+
+    if (modelName) {
+      bucket.models[modelName] = (bucket.models[modelName] || 0) + 1;
     }
   }
 
@@ -151,7 +156,8 @@ class MetricsService {
               }
             }
             const hourKey = this.getHourKey(dateObj);
-            this.updateBucket(hourKey, isError, data.duration);
+            const modelName = data.client_req?.model || data.claude_res?.model || null;
+            this.updateBucket(hourKey, isError, data.duration, modelName);
           })
           .catch(() => {
             // Ignore single file parse errors
@@ -164,7 +170,7 @@ class MetricsService {
     }
   }
 
-  public record(isError: boolean, duration?: number | null, timestamp?: Date): void {
+  public record(isError: boolean, duration?: number | null, timestamp?: Date, modelName?: string | null): void {
     this.totalLogs++;
     if (isError) {
       this.errorCount++;
@@ -178,7 +184,7 @@ class MetricsService {
     }
 
     const hourKey = this.getHourKey(timestamp || new Date());
-    this.updateBucket(hourKey, isError, duration);
+    this.updateBucket(hourKey, isError, duration, modelName);
   }
 
   public getStats() {
@@ -189,7 +195,8 @@ class MetricsService {
         total: bucket.total,
         success: bucket.success,
         error: bucket.error,
-        avgDurationMs: bucket.durationCount > 0 ? Math.round(bucket.totalDuration / bucket.durationCount) : 0
+        avgDurationMs: bucket.durationCount > 0 ? Math.round(bucket.totalDuration / bucket.durationCount) : 0,
+        models: bucket.models
       }))
       .sort((a, b) => a.time.localeCompare(b.time));
 

@@ -116,8 +116,9 @@ class PayloadLogger {
       await fs.writeFile(filePath, JSON.stringify(payload, null, 2), 'utf8');
       logger.debug(`[PayloadLogger] Saved transaction log: ${filePath}`);
 
+      const modelName = (clientReq && clientReq.model) || (claudeRes && claudeRes.model) || null;
       const isError = Boolean(claudeRes && claudeRes.error);
-      metricsService.record(isError, duration);
+      metricsService.record(isError, duration, undefined, modelName);
     } catch (err: any) {
       logger.error(`[PayloadLogger] Failed to write transaction file: ${err.message}`);
     }

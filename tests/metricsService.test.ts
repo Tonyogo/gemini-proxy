@@ -81,7 +81,8 @@ describe('MetricsService Time-Series Aggregations', () => {
       total: 1,
       success: 1,
       error: 0,
-      avgDurationMs: 300
+      avgDurationMs: 300,
+      models: {}
     });
 
     expect(stats.timeSeries[1]).toEqual({
@@ -89,7 +90,8 @@ describe('MetricsService Time-Series Aggregations', () => {
       total: 2,
       success: 2,
       error: 0,
-      avgDurationMs: 150
+      avgDurationMs: 150,
+      models: {}
     });
 
     expect(stats.timeSeries[2]).toEqual({
@@ -97,7 +99,19 @@ describe('MetricsService Time-Series Aggregations', () => {
       total: 1,
       success: 0,
       error: 1,
-      avgDurationMs: 400
+      avgDurationMs: 400,
+      models: {}
     });
+  });
+
+  it('tracks per-model counts inside timeSeries buckets', () => {
+    metricsService.record(false, 100, new Date(), 'gemini-3.1-flash');
+    metricsService.record(false, 200, new Date(), 'claude-3-5-sonnet');
+
+    const stats = metricsService.getStats();
+    const latest = stats.timeSeries[stats.timeSeries.length - 1];
+    expect(latest).toHaveProperty('models');
+    expect(latest.models['gemini-3.1-flash']).toBe(1);
+    expect(latest.models['claude-3-5-sonnet']).toBe(1);
   });
 });

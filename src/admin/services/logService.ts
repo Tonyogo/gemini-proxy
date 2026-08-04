@@ -13,6 +13,7 @@ export interface LogItem {
   status?: number | null;
   isStream?: boolean;
   duration?: number | null;
+  model?: string | null;
 }
 
 export interface LogTreeStructure {
@@ -121,13 +122,16 @@ class LogService {
             fallbackIsStream = true;
           }
 
+          const modelName = parsed.client_req?.model || parsed.claude_res?.model || null;
+
           return {
             ...item,
             reqPath: parsed.path || null,
             timestamp: parsed.timestamp || null,
             status: fallbackStatus,
             isStream: fallbackIsStream,
-            duration: parsed.duration !== undefined ? parsed.duration : null
+            duration: parsed.duration !== undefined ? parsed.duration : null,
+            model: modelName
           };
         } catch (e) {
           try {
@@ -139,7 +143,8 @@ class LogService {
               reqPath: null,
               status: null,
               isStream: false,
-              duration: null
+              duration: null,
+              model: null
             };
           } catch {
             return {
@@ -148,7 +153,8 @@ class LogService {
               reqPath: null,
               status: null,
               isStream: false,
-              duration: null
+              duration: null,
+              model: null
             };
           }
         }
