@@ -7,6 +7,7 @@ interface TimeSeriesPoint {
   success: number;
   error: number;
   avgDurationMs: number;
+  models?: Record<string, number>;
 }
 
 export default function DashboardView({ adminKey }: { adminKey: string }) {
@@ -118,6 +119,35 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
   const stackedLimit = maxStacked === 0 ? 10 : Math.ceil(maxStacked * 1.15);
   const getYStacked = (v: number) => yMax - (v / stackedLimit) * plottingHeight;
 
+  // Model Distribution Chart calculations
+  const allModels = Array.from(new Set(timeSeries.flatMap(p => Object.keys(p.models || {}))));
+  const modelColors = ['#06b6d4', '#a855f7', '#f59e0b', '#10b981', '#f43f5e', '#3b82f6'];
+  const getModelColor = (modelName: string, index: number) => {
+    return modelColors[index % modelColors.length];
+  };
+
+  let maxModelCount = 0;
+  timeSeries.forEach(p => {
+    if (p.models) {
+      Object.values(p.models).forEach(count => {
+        if (count > maxModelCount) {
+          maxModelCount = count;
+        }
+      });
+    }
+  });
+  const modelLimit = maxModelCount === 0 ? 10 : Math.ceil(maxModelCount * 1.15);
+  const getYModel = (v: number) => yMax - (v / modelLimit) * plottingHeight;
+
+  const getModelPath = (modelName: string) => {
+    if (N === 0) return '';
+    const points = timeSeries.map((p, i) => {
+      const count = p.models?.[modelName] || 0;
+      return `${getX(i)},${getYModel(count)}`;
+    });
+    return `M ${points.join(' L ')}`;
+  };
+
   // Stacked column top-rounded path generator
   const getRoundedTopBarPath = (x: number, y: number, w: number, h: number, r: number) => {
     if (h <= 0) return '';
@@ -228,7 +258,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
       </div>
 
       {/* SVG Trend Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Chart 1: Volume Trend */}
         <div className="bg-slate-800/80 backdrop-blur border border-slate-700/60 rounded-xl p-5 shadow-lg relative flex flex-col h-[320px]">
           <h3 className="text-sm font-bold text-slate-200 mb-4 tracking-wide uppercase text-xs flex items-center justify-between">
@@ -640,6 +670,180 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                     <span className="text-slate-400">Errors (✗):</span>
                     <span className="font-bold text-rose-400 font-mono">{timeSeries[hoveredIndex].error}</span>
                   </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Chart 4: Model Distribution Trend */}
+        <div className="bg-slate-800/80 backdrop-blur border border-slate-700/60 rounded-xl p-5 shadow-lg relative flex flex-col h-[320px]">
+          <div className="mb-2">
+            <h3 className="text-sm font-bold text-slate-200 mb-2 tracking-wide uppercase text-[10px] flex items-center justify-between">
+              <span>{t('dashboard.modelChartTitle')}</span>
+              {hoveredIndex !== null && timeSeries[hoveredIndex] && (
+                <span className="text-cyan-400 font-mono text-xs">
+                  {allModels.length} models
+                </span>
+              )}
+            </h3>
+
+            {/* Model Legend */}
+            {allModels.length > 0 && (
+              <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-slate-400">
+                {allModels.map((model, idx) => (
+                  <div key={model} className="flex items-center space-x-1 font-mono">
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: getModelColor(model, idx) }}></span>
+                    <span className="truncate max-w-[120px]" title={model}>{model}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {N === 0 ? (
+            <div className="flex-1 flex items-center justify-center text-slate-500 text-xs italic bg-slate-900/40 rounded-lg border border-slate-800/60">
+              {t('dashboard.noData')}
+            </div>
+          ) : (
+            <div className="relative flex-1">
+              <svg
+                viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+                className="w-full h-full overflow-visible"
+                onMouseMove={handleMouseMove}
+                onMouseLeave={handleMouseLeave}
+              >
+                {/* Gridlines */}
+                {renderGridLines(modelLimit)}
+
+                {/* X-axis baseline */}
+                <line
+                  x1={paddingLeft}
+                  y1={yMax}
+                  x2={svgWidth - paddingRight}
+                  y2={yMax}
+                  stroke="#334155"
+                  strokeWidth="1.5"
+                />
+
+                {/* Polylines for each active model */}
+                {allModels.map((model, idx) => {
+                  const mPath = getModelPath(model);
+                  if (!mPath) return null;
+                  return (
+                    <path
+                      key={model}
+                      d={mPath}
+                      fill="none"
+                      stroke={getModelColor(model, idx)}
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  );
+                })}
+
+                {/* Small node points for each active model */}
+                {allModels.map((model, mIdx) => {
+                  const mColor = getModelColor(model, mIdx);
+                  return timeSeries.map((p, i) => {
+                    const count = p.models?.[model] || 0;
+                    return (
+                      <circle
+                        key={`${model}-${i}`}
+                        cx={getX(i)}
+                        cy={getYModel(count)}
+                        r="2.5"
+                        fill={mColor}
+                        stroke="#1e293b"
+                        strokeWidth="1"
+                      />
+                    );
+                  });
+                })}
+
+                {/* X-axis labels */}
+                {labelIndices.map(idx => {
+                  const rawTime = timeSeries[idx].time;
+                  const displayLabel = rawTime.includes(' ') ? rawTime.split(' ')[1] : rawTime;
+                  return (
+                    <text
+                      key={idx}
+                      x={getX(idx)}
+                      y={yMax + 16}
+                      textAnchor="middle"
+                      className="text-[10px] fill-slate-400 font-mono select-none"
+                    >
+                      {displayLabel}
+                    </text>
+                  );
+                })}
+
+                {/* Active Hover Crosshair Line */}
+                {hoveredIndex !== null && (
+                  <line
+                    x1={getX(hoveredIndex)}
+                    y1={yMin}
+                    x2={getX(hoveredIndex)}
+                    y2={yMax}
+                    stroke="#06b6d4"
+                    strokeWidth="1"
+                    strokeDasharray="3 3"
+                    className="opacity-80"
+                  />
+                )}
+
+                {/* Highlighted active node dots on hover */}
+                {hoveredIndex !== null && timeSeries[hoveredIndex] && (
+                  allModels.map((model, mIdx) => {
+                    const count = timeSeries[hoveredIndex].models?.[model] || 0;
+                    const mColor = getModelColor(model, mIdx);
+                    return (
+                      <circle
+                        key={`hover-${model}`}
+                        cx={getX(hoveredIndex)}
+                        cy={getYModel(count)}
+                        r="5.5"
+                        fill={mColor}
+                        stroke="#1e293b"
+                        strokeWidth="2"
+                        className="animate-pulse"
+                      />
+                    );
+                  })
+                )}
+              </svg>
+
+              {/* Synchronized Hover Tooltip Overlay */}
+              {hoveredIndex !== null && timeSeries[hoveredIndex] && (
+                <div
+                  className="absolute z-10 bg-slate-900/95 border border-slate-700/80 text-[11px] p-2 rounded-lg shadow-xl pointer-events-none space-y-1 backdrop-blur-sm min-w-[140px]"
+                  style={{
+                    left: `${((getX(hoveredIndex) - paddingLeft) / plottingWidth) * 85 + 8}%`,
+                    top: '15%',
+                    transform: hoveredIndex > N / 2 ? 'translateX(-105%)' : 'translateX(5%)',
+                  }}
+                >
+                  <div className="font-bold text-slate-300 font-mono border-b border-slate-800 pb-0.5 mb-1 text-center">
+                    {timeSeries[hoveredIndex].time}
+                  </div>
+                  {allModels.length === 0 ? (
+                    <div className="text-slate-500 italic text-center p-1">No active models</div>
+                  ) : (
+                    allModels.map((model, mIdx) => {
+                      const count = timeSeries[hoveredIndex].models?.[model] || 0;
+                      const mColor = getModelColor(model, mIdx);
+                      return (
+                        <div key={model} className="flex items-center justify-between space-x-4">
+                          <div className="flex items-center space-x-1.5 text-slate-400">
+                            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: mColor }}></span>
+                            <span className="font-mono truncate max-w-[100px]">{model}:</span>
+                          </div>
+                          <span className="font-bold font-mono" style={{ color: mColor }}>{count}</span>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               )}
             </div>

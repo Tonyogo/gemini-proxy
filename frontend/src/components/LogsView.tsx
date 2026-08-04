@@ -236,11 +236,16 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                   >
                     {/* Row 1 (Top) */}
                     <div className="flex items-center justify-between font-mono text-[10px]">
-                      <div className="flex items-center space-x-1.5">
-                        <span className="text-slate-400">{formattedTime}</span>
+                      <div className="flex items-center space-x-1.5 min-w-0">
+                        <span className="text-slate-400 shrink-0">{formattedTime}</span>
                         {pathLabel && (
-                          <span className={`px-1.5 py-0.5 rounded border text-[9px] font-semibold ${pathBadgeColor}`}>
+                          <span className={`px-1.5 py-0.5 rounded border text-[9px] font-semibold shrink-0 ${pathBadgeColor}`}>
                             {pathLabel}
+                          </span>
+                        )}
+                        {log.model && (
+                          <span className="px-1.5 py-0.5 rounded border text-[9px] font-mono font-medium bg-amber-500/10 text-amber-300 border-amber-500/20 truncate max-w-[100px]" title={log.model}>
+                            {log.model}
                           </span>
                         )}
                       </div>

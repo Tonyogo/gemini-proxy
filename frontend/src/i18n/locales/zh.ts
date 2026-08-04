@@ -33,6 +33,7 @@ export const zh: Translations = {
     modelMappingsSub: "声明式模型别名规则，透明地重定向请求到目标模型",
     days: "天",
     volumeChartTitle: "每小时请求量趋势",
+    modelChartTitle: "模型请求分布趋势",
     latencyChartTitle: "每小时平均延迟 (ms) 趋势",
     successErrorChartTitle: "每小时成功与错误分布",
     noData: "该时间段内暂无趋势数据。"
@@ -40,6 +41,7 @@ export const zh: Translations = {
   logs: {
     title: "请求日志列表",
     refresh: "刷新",
+    modelLabel: "模型",
     dateLabel: "日期",
     hourLabel: "小时",
     allHours: "全部小时",

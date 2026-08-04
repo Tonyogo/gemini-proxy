@@ -31,6 +31,7 @@ export const en = {
     modelMappingsSub: "Declarative model aliasing rules that transparently redirect requests to target models",
     days: "Days",
     volumeChartTitle: "Hourly Request Volume Trend",
+    modelChartTitle: "Model Distribution Trend",
     latencyChartTitle: "Hourly Average Latency (ms) Trend",
     successErrorChartTitle: "Hourly Success vs Error Distribution",
     noData: "No trend data available for this period."
@@ -38,6 +39,7 @@ export const en = {
   logs: {
     title: "Request Logs",
     refresh: "Refresh",
+    modelLabel: "Model",
     dateLabel: "Date",
     hourLabel: "Hour",
     allHours: "All Hours",
