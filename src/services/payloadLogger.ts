@@ -5,6 +5,20 @@ import logger from '../utils/logger';
 import { sanitizeData } from '../utils/requestHelper';
 import metricsService from '../admin/services/metricsService';
 
+export interface LogIndexRecord {
+  id: string;
+  timestamp: string;
+  date: string;
+  hour: string;
+  filename: string;
+  path: string;
+  status: number;
+  duration: number | null;
+  reqPath: string | null;
+  model: string | null;
+  isStream: boolean;
+}
+
 class PayloadLogger {
   private getDebugDir(): string {
     const logsDir = config.transactionLogsDir || 'logs';
@@ -13,10 +27,7 @@ class PayloadLogger {
       : path.join(process.cwd(), logsDir);
   }
 
-  /**
-   * Computes the target partition subdirectory based on configured TIME_ZONE.
-   */
-  private _getTargetDir(): string {
+  private _getTargetDirParts(): { dateStr: string; hourStr: string; targetDir: string } {
     const timeZone = config.timeZone || 'Asia/Shanghai';
     const formatter = new Intl.DateTimeFormat('en-US', {
       timeZone,
@@ -36,7 +47,18 @@ class PayloadLogger {
     let hour = getPart('hour');
     if (hour === '24') hour = '00';
 
-    return path.join(this.getDebugDir(), `${year}-${month}-${day}`, hour);
+    const dateStr = `${year}-${month}-${day}`;
+    const hourStr = hour;
+    const targetDir = path.join(this.getDebugDir(), dateStr, hourStr);
+
+    return { dateStr, hourStr, targetDir };
+  }
+
+  /**
+   * Computes the target partition subdirectory based on configured TIME_ZONE.
+   */
+  private _getTargetDir(): string {
+    return this._getTargetDirParts().targetDir;
   }
 
   public async cleanupExpiredLogs(): Promise<void> {
@@ -89,7 +111,7 @@ class PayloadLogger {
     try {
       this.cleanupExpiredLogs().catch(() => {});
 
-      const targetDir = this._getTargetDir();
+      const { dateStr, hourStr, targetDir } = this._getTargetDirParts();
       await fs.mkdir(targetDir, { recursive: true });
 
       const resolvedStatus = status !== undefined
@@ -117,6 +139,26 @@ class PayloadLogger {
       logger.debug(`[PayloadLogger] Saved transaction log: ${filePath}`);
 
       const modelName = (clientReq && clientReq.model) || (claudeRes && claudeRes.model) || null;
+
+      const indexRecord: LogIndexRecord = {
+        id: transactionId,
+        timestamp: payload.timestamp,
+        date: dateStr,
+        hour: hourStr,
+        filename: `transaction_${transactionId}.json`,
+        path: path.join(dateStr, hourStr, `transaction_${transactionId}.json`),
+        status: resolvedStatus,
+        duration: duration !== undefined ? duration : null,
+        reqPath: reqPath || null,
+        model: modelName,
+        isStream: resolvedIsStream
+      };
+
+      const indexPath = path.join(targetDir, '..', 'index.jsonl');
+      await fs.appendFile(indexPath, JSON.stringify(indexRecord) + '\n', 'utf8').catch((err) => {
+        logger.error(`[PayloadLogger] Failed to append to index.jsonl: ${err.message}`);
+      });
+
       const isError = Boolean(claudeRes && claudeRes.error);
       metricsService.record(isError, duration, undefined, modelName);
     } catch (err: any) {

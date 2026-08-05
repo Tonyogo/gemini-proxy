@@ -1,5 +1,5 @@
 import payloadLogger from '../src/services/payloadLogger';
-import { promises as fs } from 'fs';
+import { promises as fs, existsSync, readFileSync } from 'fs';
 import * as path from 'path';
 import config from '../config/default';
 
@@ -34,6 +34,7 @@ describe('PayloadLogger Service', () => {
   afterEach(async () => {
     try {
       await fs.unlink(filePath);
+      await fs.unlink(path.join(path.dirname(targetDir), 'index.jsonl')).catch(() => {});
       await fs.rmdir(targetDir).catch(() => {});
       await fs.rmdir(path.dirname(targetDir)).catch(() => {});
     } catch (e) {
@@ -86,6 +87,41 @@ describe('PayloadLogger Service', () => {
     expect(data.gem_req).toEqual(gemReq);
     expect(data.gem_res).toEqual(gemRes);
     expect(data.claude_res).toEqual(claudeRes);
+  });
+
+  it('appends a LogIndexRecord entry to logs/<date>/index.jsonl when saving a transaction', async () => {
+    const transactionId = `test_idx_${Date.now()}`;
+    await payloadLogger.saveTransaction(
+      transactionId,
+      { model: 'gemini-3.1-flash', stream: false },
+      { contents: [] },
+      { candidates: [] },
+      { type: 'message' },
+      150,
+      '/v1/messages',
+      200,
+      false
+    );
+
+    const debugDir = (payloadLogger as any)._getTargetDir();
+    const indexPath = path.join(debugDir, '..', 'index.jsonl');
+    expect(existsSync(indexPath)).toBe(true);
+
+    const content = readFileSync(indexPath, 'utf8');
+    const lines = content.trim().split('\n');
+    expect(lines.length).toBeGreaterThan(0);
+
+    const record = JSON.parse(lines[lines.length - 1]);
+    expect(record.id).toBe(transactionId);
+    expect(record.status).toBe(200);
+    expect(record.duration).toBe(150);
+    expect(record.reqPath).toBe('/v1/messages');
+    expect(record.model).toBe('gemini-3.1-flash');
+
+    // Clean up files written by this test
+    const customFilePath = path.join(debugDir, `transaction_${transactionId}.json`);
+    await fs.unlink(customFilePath).catch(() => {});
+    await fs.unlink(indexPath).catch(() => {});
   });
 });
 
