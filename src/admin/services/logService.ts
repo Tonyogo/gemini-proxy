@@ -2,6 +2,7 @@ import { promises as fs } from 'fs';
 import * as path from 'path';
 import config from '../../../config/default';
 import metricsService from './metricsService';
+import { LogIndexRecord } from '../../services/payloadLogger';
 
 export interface LogItem {
   date: string;
@@ -35,7 +36,6 @@ class LogService {
     filterHour?: string
   ): Promise<{ tree: LogTreeStructure; hourCount: number; total: number; logs: LogItem[] }> {
     const debugDir = this.getDebugDir();
-    const items: LogItem[] = [];
     const tree: LogTreeStructure = {};
 
     let hourCount = 0;
@@ -53,7 +53,9 @@ class LogService {
         tree[date] = tree[date] || {};
         const hours = await fs.readdir(dateDir).catch(() => []);
         for (const hour of hours) {
-          tree[date][hour] = 0; // Default placeholder, no deep file readdir
+          if (/^\d{2}$/.test(hour)) {
+            tree[date][hour] = 0; // Default placeholder, no deep file readdir
+          }
         }
       }
 
@@ -64,108 +66,154 @@ class LogService {
       if (!targetDate || !targetHour || targetHour === 'all') {
         if (sortedDates.length > 0) {
           targetDate = targetDate || sortedDates[0];
-          const availableHours = Object.keys(tree[targetDate] || {}).sort((a, b) => parseInt(b, 10) - parseInt(a, 10));
+          const availableHours = Object.keys(tree[targetDate] || {})
+            .filter(h => /^\d{2}$/.test(h))
+            .sort((a, b) => parseInt(b, 10) - parseInt(a, 10));
           if (availableHours.length > 0) {
             targetHour = (targetHour && targetHour !== 'all') ? targetHour : availableHours[0];
           }
         }
       }
 
-      // Perform targeted file scan for active date/hour ONLY
-      if (targetDate && targetHour && targetHour !== 'all') {
-        const hourDir = path.join(debugDir, targetDate, targetHour);
-        const files = await fs.readdir(hourDir).catch(() => []);
-        const jsonFiles = files.filter(f => f.endsWith('.json')).sort().reverse();
+      if (targetDate) {
+        let targetRecords: LogIndexRecord[] = [];
+        const indexPath = path.join(debugDir, targetDate, 'index.jsonl');
+        const indexExists = await fs.access(indexPath).then(() => true).catch(() => false);
 
-        hourCount = jsonFiles.length;
-        if (tree[targetDate] && tree[targetDate][targetHour] !== undefined) {
-          tree[targetDate][targetHour] = hourCount;
+        if (indexExists) {
+          try {
+            const content = await fs.readFile(indexPath, 'utf8');
+            const lines = content.trim().split('\n');
+            for (const line of lines) {
+              if (!line.trim()) continue;
+              try {
+                targetRecords.push(JSON.parse(line));
+              } catch {
+                // Ignore single corrupt line
+              }
+            }
+          } catch {
+            // Fallback if read fails
+          }
         }
 
-        for (const file of jsonFiles) {
-          items.push({
-            date: targetDate,
-            hour: targetHour,
-            filename: file,
-            path: path.join(targetDate, targetHour, file)
-          });
+        if (targetRecords.length === 0) {
+          // Execute self-healing fallback
+          const dateDir = path.join(debugDir, targetDate);
+          const hours = await fs.readdir(dateDir).catch(() => []);
+          const sortedHours = hours.filter(h => /^\d{2}$/.test(h)).sort();
+
+          for (const hour of sortedHours) {
+            const hourDir = path.join(dateDir, hour);
+            const files = await fs.readdir(hourDir).catch(() => []);
+            const jsonFiles = files.filter(f => f.endsWith('.json')).sort();
+
+            for (const file of jsonFiles) {
+              try {
+                const fullPath = path.join(hourDir, file);
+                const content = await fs.readFile(fullPath, 'utf8');
+                const parsed = JSON.parse(content);
+
+                let fallbackStatus = 200;
+                if (parsed.status !== undefined && parsed.status !== null) {
+                  fallbackStatus = parsed.status;
+                } else if (parsed.claude_res?.error) {
+                  fallbackStatus = 500;
+                }
+
+                let fallbackIsStream = false;
+                if (parsed.is_stream !== undefined && parsed.is_stream !== null) {
+                  fallbackIsStream = Boolean(parsed.is_stream);
+                } else if (parsed.client_req?.stream === true) {
+                  fallbackIsStream = true;
+                } else if (Array.isArray(parsed.claude_res) && parsed.claude_res.length > 0 && parsed.claude_res[0]?.type) {
+                  fallbackIsStream = true;
+                }
+
+                const modelName = parsed.client_req?.model || parsed.claude_res?.model || null;
+                const transactionId = file.replace(/^transaction_/, '').replace(/\.json$/, '');
+
+                targetRecords.push({
+                  id: transactionId,
+                  timestamp: parsed.timestamp || new Date().toISOString(),
+                  date: targetDate,
+                  hour,
+                  filename: file,
+                  path: path.join(targetDate, hour, file),
+                  status: fallbackStatus,
+                  duration: parsed.duration !== undefined ? parsed.duration : null,
+                  reqPath: parsed.path || null,
+                  model: modelName,
+                  isStream: fallbackIsStream
+                });
+              } catch {
+                // Ignore single file error
+              }
+            }
+          }
+
+          // Write targetRecords to index.jsonl if not empty
+          if (targetRecords.length > 0) {
+            const indexPath = path.join(dateDir, 'index.jsonl');
+            const fileContent = targetRecords.map(rec => JSON.stringify(rec)).join('\n') + '\n';
+            await fs.mkdir(dateDir, { recursive: true }).catch(() => {});
+            await fs.writeFile(indexPath, fileContent, 'utf8').catch(() => {});
+          }
         }
+
+        // Synchronize actual counts into tree[targetDate]
+        if (tree[targetDate]) {
+          for (const hr of Object.keys(tree[targetDate])) {
+            tree[targetDate][hr] = 0;
+          }
+          for (const rec of targetRecords) {
+            if (tree[targetDate][rec.hour] !== undefined) {
+              tree[targetDate][rec.hour]++;
+            }
+          }
+        }
+
+        // Filter and reverse for response (newest first)
+        let filteredRecords = targetRecords;
+        if (targetHour && targetHour !== 'all') {
+          filteredRecords = targetRecords.filter(rec => rec.hour === targetHour);
+        }
+        filteredRecords = [...filteredRecords].reverse();
+
+        hourCount = filteredRecords.length;
+
+        const start = (page - 1) * limit;
+        const slicedRecords = filteredRecords.slice(start, start + limit);
+
+        const enrichedLogs = slicedRecords.map(rec => ({
+          date: rec.date,
+          hour: rec.hour,
+          filename: rec.filename,
+          path: rec.path,
+          reqPath: rec.reqPath,
+          timestamp: rec.timestamp,
+          status: rec.status,
+          isStream: rec.isStream,
+          duration: rec.duration,
+          model: rec.model
+        }));
+
+        return {
+          tree,
+          hourCount,
+          total: hourCount,
+          logs: enrichedLogs
+        };
       }
     } catch {
       // Directory may not exist yet
     }
 
-    const start = (page - 1) * limit;
-    const slicedItems = items.slice(start, start + limit);
-
-    const enrichedLogs = await Promise.all(
-      slicedItems.map(async item => {
-        try {
-          const fullPath = path.join(debugDir, item.date, item.hour, item.filename);
-          const content = await fs.readFile(fullPath, 'utf8');
-          const parsed = JSON.parse(content);
-          let fallbackStatus: number | null = null;
-          if (parsed.status !== undefined && parsed.status !== null) {
-            fallbackStatus = parsed.status;
-          } else if (parsed.claude_res?.error) {
-            fallbackStatus = 500;
-          } else if (parsed.claude_res) {
-            fallbackStatus = 200;
-          }
-
-          let fallbackIsStream = false;
-          if (parsed.is_stream !== undefined && parsed.is_stream !== null) {
-            fallbackIsStream = Boolean(parsed.is_stream);
-          } else if (parsed.client_req?.stream === true) {
-            fallbackIsStream = true;
-          } else if (Array.isArray(parsed.claude_res) && parsed.claude_res.length > 0 && parsed.claude_res[0]?.type) {
-            fallbackIsStream = true;
-          }
-
-          const modelName = parsed.client_req?.model || parsed.claude_res?.model || null;
-
-          return {
-            ...item,
-            reqPath: parsed.path || null,
-            timestamp: parsed.timestamp || null,
-            status: fallbackStatus,
-            isStream: fallbackIsStream,
-            duration: parsed.duration !== undefined ? parsed.duration : null,
-            model: modelName
-          };
-        } catch (e) {
-          try {
-            const fullPath = path.join(debugDir, item.date, item.hour, item.filename);
-            const stats = await fs.stat(fullPath);
-            return {
-              ...item,
-              timestamp: stats.mtime.toISOString(),
-              reqPath: null,
-              status: null,
-              isStream: false,
-              duration: null,
-              model: null
-            };
-          } catch {
-            return {
-              ...item,
-              timestamp: null,
-              reqPath: null,
-              status: null,
-              isStream: false,
-              duration: null,
-              model: null
-            };
-          }
-        }
-      })
-    );
-
     return {
       tree,
-      hourCount,
-      total: hourCount,
-      logs: enrichedLogs
+      hourCount: 0,
+      total: 0,
+      logs: []
     };
   }
 

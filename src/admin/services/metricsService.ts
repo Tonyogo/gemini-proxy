@@ -81,7 +81,6 @@ class MetricsService {
     this.isInitialized = true;
 
     const debugDir = this.getDebugDir();
-    const candidatePaths: string[] = [];
 
     const today = new Date();
     const yesterday = new Date(today);
@@ -104,7 +103,56 @@ class MetricsService {
         const dateStat = await fs.stat(dateDir).catch(() => null);
         if (!dateStat || !dateStat.isDirectory()) continue;
 
-        const hours = await fs.readdir(dateDir);
+        // Check if index.jsonl exists for this date
+        const indexPath = path.join(dateDir, 'index.jsonl');
+        const indexExists = await fs.access(indexPath).then(() => true).catch(() => false);
+
+        if (indexExists) {
+          try {
+            const content = await fs.readFile(indexPath, 'utf8');
+            const lines = content.trim().split('\n');
+            const records: any[] = [];
+            for (const line of lines) {
+              if (!line.trim()) continue;
+              try {
+                records.push(JSON.parse(line));
+              } catch {
+                // Ignore corrupt line
+              }
+            }
+
+            // 1. Accumulate totalLogs from index count
+            this.totalLogs += records.length;
+
+            // 2. If today or yesterday, parse records to populate global stats and hourly trend
+            if (date === todayStr || date === yesterdayStr) {
+              for (const record of records) {
+                const isError = record.status >= 400;
+                if (isError) {
+                  this.errorCount++;
+                } else {
+                  this.successCount++;
+                }
+                if (record.duration !== undefined && record.duration !== null && typeof record.duration === 'number') {
+                  this.totalDurationMs += record.duration;
+                  this.durationCount++;
+                }
+
+                // Hydrate hourly metrics trend
+                const dateObj = record.timestamp ? new Date(record.timestamp) : undefined;
+                const hourKey = this.getHourKey(dateObj);
+                this.updateBucket(hourKey, isError, record.duration, record.model);
+              }
+            }
+            // Skip the folder-based directory scan since we used index.jsonl
+            continue;
+          } catch {
+            // If anything fails, fallback to directory scan below
+          }
+        }
+
+        // Fallback directory scan (if index.jsonl doesn't exist or failed to load)
+        const hours = await fs.readdir(dateDir).catch(() => []);
         for (const hour of hours.sort().reverse()) {
           const hourDir = path.join(dateDir, hour);
           const hourStat = await fs.stat(hourDir).catch(() => null);
@@ -113,58 +161,47 @@ class MetricsService {
           const files = await fs.readdir(hourDir);
           const jsonFiles = files.filter(f => f.endsWith('.json')).sort().reverse();
 
-          // 1. Fast metadata count (O(1) filesystem metadata lookup) - ALWAYS count ALL files
+          // 1. Fast metadata count
           this.totalLogs += jsonFiles.length;
 
-          // 2. Only collect candidate paths for detail reading if date is Today or Yesterday
+          // 2. Parse today/yesterday detail
           if (date === todayStr || date === yesterdayStr) {
-            for (const file of jsonFiles) {
-              candidatePaths.push(path.join(hourDir, file));
-            }
+            const filePromises = jsonFiles.map(file => {
+              const filePath = path.join(hourDir, file);
+              return fs.readFile(filePath, 'utf8')
+                .then(content => {
+                  const data = JSON.parse(content);
+                  const isError = Boolean(data.claude_res?.error);
+                  if (isError) {
+                    this.errorCount++;
+                  } else {
+                    this.successCount++;
+                  }
+                  if (data.duration !== undefined && data.duration !== null && typeof data.duration === 'number') {
+                    this.totalDurationMs += data.duration;
+                    this.durationCount++;
+                  }
+
+                  // Hydrate hourly metrics trend
+                  let dateObj: Date | undefined;
+                  if (data.timestamp) {
+                    dateObj = new Date(data.timestamp);
+                  } else {
+                    dateObj = new Date();
+                    dateObj.setHours(parseInt(hour, 10));
+                  }
+                  const hourKey = this.getHourKey(dateObj);
+                  const modelName = data.client_req?.model || data.claude_res?.model || null;
+                  this.updateBucket(hourKey, isError, data.duration, modelName);
+                })
+                .catch(() => {
+                  // Ignore single file parse errors
+                });
+            });
+            await Promise.all(filePromises);
           }
         }
       }
-
-      // 3. Concurrently read and parse bounded 24h candidate files
-      const filePromises = candidatePaths.map(filePath =>
-        fs.readFile(filePath, 'utf8')
-          .then(content => {
-            const data = JSON.parse(content);
-            const isError = Boolean(data.claude_res?.error);
-            if (isError) {
-              this.errorCount++;
-            } else {
-              this.successCount++;
-            }
-            if (data.duration !== undefined && data.duration !== null && typeof data.duration === 'number') {
-              this.totalDurationMs += data.duration;
-              this.durationCount++;
-            }
-
-            // Hydrate hourly metrics trend
-            let dateObj: Date | undefined;
-            if (data.timestamp) {
-              dateObj = new Date(data.timestamp);
-            } else {
-              const parts = filePath.split(path.sep);
-              if (parts.length >= 2) {
-                const hourStr = parts[parts.length - 2];
-                if (/^\d{2}$/.test(hourStr)) {
-                  dateObj = new Date();
-                  dateObj.setHours(parseInt(hourStr, 10));
-                }
-              }
-            }
-            const hourKey = this.getHourKey(dateObj);
-            const modelName = data.client_req?.model || data.claude_res?.model || null;
-            this.updateBucket(hourKey, isError, data.duration, modelName);
-          })
-          .catch(() => {
-            // Ignore single file parse errors
-          })
-      );
-
-      await Promise.all(filePromises);
     } catch {
       // Directory may not exist yet
     }
