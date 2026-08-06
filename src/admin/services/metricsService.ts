@@ -87,10 +87,21 @@ class MetricsService {
     yesterday.setDate(today.getDate() - 1);
 
     const formatDate = (d: Date): string => {
-      const yr = d.getFullYear();
-      const mo = String(d.getMonth() + 1).padStart(2, '0');
-      const dt = String(d.getDate()).padStart(2, '0');
-      return `${yr}-${mo}-${dt}`;
+      try {
+        const timeZone = config.timeZone || 'Asia/Shanghai';
+        const formatter = new Intl.DateTimeFormat('sv-SE', {
+          timeZone,
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        });
+        return formatter.format(d);
+      } catch {
+        const yr = d.getFullYear();
+        const mo = String(d.getMonth() + 1).padStart(2, '0');
+        const dt = String(d.getDate()).padStart(2, '0');
+        return `${yr}-${mo}-${dt}`;
+      }
     };
 
     const todayStr = formatDate(today);
@@ -170,20 +181,35 @@ class MetricsService {
   }
 
   public getStats() {
-    // Generate chronological timeSeries list sorted by date-hour
-    const sortedPoints = Array.from(this.timeSeriesMap.entries())
-      .map(([time, bucket]) => ({
-        time,
-        total: bucket.total,
-        success: bucket.success,
-        error: bucket.error,
-        avgDurationMs: bucket.durationCount > 0 ? Math.round(bucket.totalDuration / bucket.durationCount) : 0,
-        models: bucket.models
-      }))
-      .sort((a, b) => a.time.localeCompare(b.time));
+    const now = new Date();
+    const trailingHours: string[] = [];
+    for (let i = 23; i >= 0; i--) {
+      const d = new Date(now.getTime() - i * 3600 * 1000);
+      trailingHours.push(this.getHourKey(d));
+    }
 
-    // Keep only the most recent 24 hourly buckets to act as a rolling 24h window
-    const timeSeries = sortedPoints.slice(-24);
+    const timeSeries = trailingHours.map(time => {
+      const bucket = this.timeSeriesMap.get(time);
+      if (bucket) {
+        return {
+          time,
+          total: bucket.total,
+          success: bucket.success,
+          error: bucket.error,
+          avgDurationMs: bucket.durationCount > 0 ? Math.round(bucket.totalDuration / bucket.durationCount) : 0,
+          models: bucket.models
+        };
+      } else {
+        return {
+          time,
+          total: 0,
+          success: 0,
+          error: 0,
+          avgDurationMs: 0,
+          models: {}
+        };
+      }
+    });
 
     return {
       totalLogs: this.totalLogs,

@@ -43,10 +43,11 @@ describe('MetricsService Time-Series Aggregations', () => {
     expect(latest).toHaveProperty('avgDurationMs');
   });
 
-  it('correctly aggregates metrics in separate hour buckets and returns them sorted', () => {
-    const date10 = new Date('2026-08-03T10:15:00Z');
-    const date14 = new Date('2026-08-03T14:30:00Z');
-    const date08 = new Date('2026-08-03T08:05:00Z');
+  it('correctly aggregates metrics in separate hour buckets and returns trailing 24 hours', () => {
+    const now = new Date();
+    const date10 = new Date(now.getTime() - 2 * 3600 * 1000);
+    const date14 = new Date(now.getTime() - 1 * 3600 * 1000);
+    const date08 = new Date(now.getTime() - 3 * 3600 * 1000);
 
     const formatExpectedHour = (d: Date): string => {
       const timeZone = config.timeZone || 'Asia/Shanghai';
@@ -76,9 +77,13 @@ describe('MetricsService Time-Series Aggregations', () => {
     metricsService.record(false, 300, date08); // separate hour, total 1, success 1, avg 300
 
     const stats = metricsService.getStats();
-    expect(stats.timeSeries).toHaveLength(3);
+    expect(stats.timeSeries).toHaveLength(24);
 
-    expect(stats.timeSeries[0]).toEqual({
+    const p08 = stats.timeSeries.find(p => p.time === exp08);
+    const p10 = stats.timeSeries.find(p => p.time === exp10);
+    const p14 = stats.timeSeries.find(p => p.time === exp14);
+
+    expect(p08).toEqual({
       time: exp08,
       total: 1,
       success: 1,
@@ -87,7 +92,7 @@ describe('MetricsService Time-Series Aggregations', () => {
       models: {}
     });
 
-    expect(stats.timeSeries[1]).toEqual({
+    expect(p10).toEqual({
       time: exp10,
       total: 2,
       success: 2,
@@ -96,7 +101,7 @@ describe('MetricsService Time-Series Aggregations', () => {
       models: {}
     });
 
-    expect(stats.timeSeries[2]).toEqual({
+    expect(p14).toEqual({
       time: exp14,
       total: 1,
       success: 0,
@@ -119,27 +124,32 @@ describe('MetricsService Time-Series Aggregations', () => {
 });
 
 describe('MetricsService Initialization via index.jsonl', () => {
-  const logsDir = path.join(process.cwd(), 'logs');
+  const testLogsDir = path.join(process.cwd(), 'logs_test_metrics');
 
   const today = new Date();
   const yesterday = new Date(today);
   yesterday.setDate(today.getDate() - 1);
 
   const formatDate = (d: Date): string => {
-    const yr = d.getFullYear();
-    const mo = String(d.getMonth() + 1).padStart(2, '0');
-    const dt = String(d.getDate()).padStart(2, '0');
-    return `${yr}-${mo}-${dt}`;
+    const timeZone = config.timeZone || 'Asia/Shanghai';
+    const formatter = new Intl.DateTimeFormat('sv-SE', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    return formatter.format(d);
   };
 
   const todayStr = formatDate(today);
   const yesterdayStr = formatDate(yesterday);
 
-  const todayDir = path.join(logsDir, todayStr);
-  const yesterdayDir = path.join(logsDir, yesterdayStr);
-  const farPastDir = path.join(logsDir, '2020-01-01');
+  const todayDir = path.join(testLogsDir, todayStr);
+  const yesterdayDir = path.join(testLogsDir, yesterdayStr);
+  const farPastDir = path.join(testLogsDir, '2020-01-01');
 
   beforeEach(async () => {
+    config.transactionLogsDir = testLogsDir;
     metricsService.resetForTesting();
     await fs.mkdir(todayDir, { recursive: true });
     await fs.mkdir(yesterdayDir, { recursive: true });
@@ -148,12 +158,11 @@ describe('MetricsService Initialization via index.jsonl', () => {
 
   afterEach(async () => {
     try {
-      await fs.rm(todayDir, { recursive: true, force: true });
-      await fs.rm(yesterdayDir, { recursive: true, force: true });
-      await fs.rm(farPastDir, { recursive: true, force: true });
+      await fs.rm(testLogsDir, { recursive: true, force: true });
     } catch {
       // ignore
     }
+    config.transactionLogsDir = 'logs';
   });
 
   it('hydrates stats cleanly from index.jsonl on init()', async () => {
