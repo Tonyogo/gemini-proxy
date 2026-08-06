@@ -116,7 +116,16 @@ export const en = {
     resetDefault: "Reset to .env Defaults",
     cancel: "Cancel",
     save: "Save & Apply Live",
-    applying: "Applying..."
+    applying: "Applying...",
+    sysLogsGroup: "📦 1. System & Log Policies",
+    translationGroup: "🔄 2. Translation & Context Rules",
+    modelMappingsGroup: "🔀 3. Model Mappings (MODEL_MAPPINGS)",
+    addMapping: "+ Add Mapping Rule",
+    toggleJson: "⚙️ Switch to Raw JSON Editor",
+    toggleKv: "📋 Switch to Visual KV Editor",
+    sourceModel: "Incoming Model (Source)",
+    targetModel: "Gemini Upstream Model (Target)",
+    emptyMappings: "No model mapping rules added. Click below to add one."
   },
   concurrentTest: {
     title: "Concurrency Load Test",

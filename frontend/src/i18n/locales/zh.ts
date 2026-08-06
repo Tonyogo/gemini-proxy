@@ -118,7 +118,16 @@ export const zh: Translations = {
     resetDefault: "重置为环境变量默认值",
     cancel: "取消",
     save: "保存配置修改",
-    applying: "正在应用..."
+    applying: "正在应用...",
+    sysLogsGroup: "📦 1. 系统与日志策略",
+    translationGroup: "🔄 2. 翻译与上下文规则",
+    modelMappingsGroup: "🔀 3. 模型别名映射 (MODEL_MAPPINGS)",
+    addMapping: "+ 添加映射规则",
+    toggleJson: "⚙️ 切换为原始 JSON 编辑",
+    toggleKv: "📋 切换为可视化 KV 编辑",
+    sourceModel: "源模型 (Claude/Incoming)",
+    targetModel: "重定向至 (Gemini Upstream)",
+    emptyMappings: "暂无模型映射规则。点击下方按钮添加。"
   },
   concurrentTest: {
     title: "并发压力测试",
