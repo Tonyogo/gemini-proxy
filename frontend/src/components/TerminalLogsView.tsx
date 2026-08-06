@@ -25,8 +25,11 @@ export default function TerminalLogsView({ adminKey }: { adminKey: string }) {
         const payload = JSON.parse(e.data);
         if (payload.type === 'history') {
           setLogs(payload.logs || []);
-        } else if (payload.type === 'log' && payload.entry) {
-          setLogs(prev => [...prev.slice(-99), payload.entry]);
+        } else if (payload.type === 'log') {
+          const entry = payload.entry || payload.log;
+          if (entry) {
+            setLogs(prev => [...prev.slice(-99), entry]);
+          }
         }
       } catch (err) {
         // ignore parse error
