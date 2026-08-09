@@ -64,15 +64,16 @@ class MetricsService {
       bucket.error++;
     } else {
       bucket.success++;
-    }
 
-    if (duration !== undefined && duration !== null && typeof duration === 'number') {
-      bucket.totalDuration += duration;
-      bucket.durationCount++;
-    }
+      // Update duration and models ONLY on success
+      if (duration !== undefined && duration !== null && typeof duration === 'number') {
+        bucket.totalDuration += duration;
+        bucket.durationCount++;
+      }
 
-    if (modelName) {
-      bucket.models[modelName] = (bucket.models[modelName] || 0) + 1;
+      if (modelName) {
+        bucket.models[modelName] = (bucket.models[modelName] || 0) + 1;
+      }
     }
   }
 
@@ -133,25 +134,28 @@ class MetricsService {
           }
 
           // Accumulate totalLogs from index record count
-          this.totalLogs += records.length;
-
-          // Hydrate stats for Today and Yesterday
-          if (date === todayStr || date === yesterdayStr) {
-            for (const record of records) {
-              const isError = record.status >= 400;
+          for (const record of records) {
+            this.totalLogs++;
+            const isError = record.status >= 400;
+            // Hydrate stats for Today and Yesterday
+            if (date === todayStr || date === yesterdayStr) {
               if (isError) {
                 this.errorCount++;
               } else {
                 this.successCount++;
-              }
-              if (record.duration !== undefined && record.duration !== null && typeof record.duration === 'number') {
-                this.totalDurationMs += record.duration;
-                this.durationCount++;
+                if (record.duration !== undefined && record.duration !== null && typeof record.duration === 'number') {
+                  this.totalDurationMs += record.duration;
+                  this.durationCount++;
+                }
               }
 
               const dateObj = record.timestamp ? new Date(record.timestamp) : undefined;
               const hourKey = this.getHourKey(dateObj);
               this.updateBucket(hourKey, isError, record.duration, record.model);
+            } else {
+              const dateObj = record.timestamp ? new Date(record.timestamp) : undefined;
+              const hourKey = this.getHourKey(dateObj);
+              this.updateBucket(hourKey, isError, null, null);
             }
           }
         } catch {
@@ -169,28 +173,39 @@ class MetricsService {
       this.errorCount++;
     } else {
       this.successCount++;
-    }
-
-    if (duration !== undefined && duration !== null && typeof duration === 'number') {
-      this.totalDurationMs += duration;
-      this.durationCount++;
+      if (duration !== undefined && duration !== null && typeof duration === 'number') {
+        this.totalDurationMs += duration;
+        this.durationCount++;
+      }
     }
 
     const hourKey = this.getHourKey(timestamp || new Date());
     this.updateBucket(hourKey, isError, duration, modelName);
   }
 
-  public getStats() {
+  public getStats(rangeHours = 24) {
     const now = new Date();
     const trailingHours: string[] = [];
-    for (let i = 23; i >= 0; i--) {
+    for (let i = rangeHours - 1; i >= 0; i--) {
       const d = new Date(now.getTime() - i * 3600 * 1000);
       trailingHours.push(this.getHourKey(d));
     }
 
+    let rangeTotalLogs = 0;
+    let rangeSuccessCount = 0;
+    let rangeErrorCount = 0;
+    let rangeTotalDurationMs = 0;
+    let rangeDurationCount = 0;
+
     const timeSeries = trailingHours.map(time => {
       const bucket = this.timeSeriesMap.get(time);
       if (bucket) {
+        rangeTotalLogs += bucket.total;
+        rangeSuccessCount += bucket.success;
+        rangeErrorCount += bucket.error;
+        rangeTotalDurationMs += bucket.totalDuration;
+        rangeDurationCount += bucket.durationCount;
+
         return {
           time,
           total: bucket.total,
@@ -211,12 +226,20 @@ class MetricsService {
       }
     });
 
+    if (rangeHours === 24) {
+      rangeTotalLogs = this.totalLogs;
+      rangeSuccessCount = this.successCount;
+      rangeErrorCount = this.errorCount;
+      rangeTotalDurationMs = this.totalDurationMs;
+      rangeDurationCount = this.durationCount;
+    }
+
     return {
-      totalLogs: this.totalLogs,
-      sampleSize: this.durationCount,
-      successCount: this.successCount,
-      errorCount: this.errorCount,
-      avgDurationMs: this.durationCount > 0 ? Math.round(this.totalDurationMs / this.durationCount) : 0,
+      totalLogs: rangeTotalLogs,
+      sampleSize: rangeDurationCount,
+      successCount: rangeSuccessCount,
+      errorCount: rangeErrorCount,
+      avgDurationMs: rangeDurationCount > 0 ? Math.round(rangeTotalDurationMs / rangeDurationCount) : 0,
       timeSeries
     };
   }

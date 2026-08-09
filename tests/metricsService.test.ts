@@ -17,7 +17,41 @@ describe('MetricsService Unit Tests', () => {
     expect(stats.totalLogs).toBe(3);
     expect(stats.successCount).toBe(2);
     expect(stats.errorCount).toBe(1);
-    expect(stats.avgDurationMs).toBe(200);
+    expect(stats.avgDurationMs).toBe(150); // (100 + 200) / 2
+  });
+
+  it('only records durations and model metrics for successful requests', () => {
+    metricsService.record(false, 150, new Date(), 'gemini-3.5-pro'); // Success
+    metricsService.record(true, 500, new Date(), 'gemini-3.5-pro');  // Error
+
+    const stats = metricsService.getStats();
+    const latest = stats.timeSeries[stats.timeSeries.length - 1];
+
+    expect(stats.totalLogs).toBe(2);
+    expect(stats.successCount).toBe(1);
+    expect(stats.errorCount).toBe(1);
+    expect(stats.sampleSize).toBe(1); // Only success duration counted
+    expect(stats.avgDurationMs).toBe(150); // 150 / 1
+
+    expect(latest.models['gemini-3.5-pro']).toBe(1); // Failed model not counted
+  });
+
+  it('calculates range-bound sum counts and correct average latency on getStats(range)', () => {
+    const now = new Date();
+    // Record successful transaction 10 hours ago with 100ms
+    metricsService.record(false, 100, new Date(now.getTime() - 10 * 3600 * 1000), 'model-a');
+    // Record successful transaction 2 hours ago with 200ms
+    metricsService.record(false, 200, new Date(now.getTime() - 2 * 3600 * 1000), 'model-b');
+
+    const stats6h = metricsService.getStats(6);
+    expect(stats6h.timeSeries).toHaveLength(6);
+    expect(stats6h.totalLogs).toBe(1); // Only transaction from 2h ago
+    expect(stats6h.avgDurationMs).toBe(200);
+
+    const stats12h = metricsService.getStats(12);
+    expect(stats12h.timeSeries).toHaveLength(12);
+    expect(stats12h.totalLogs).toBe(2); // Both transactions inside 12h
+    expect(stats12h.avgDurationMs).toBe(150); // (100 + 200) / 2
   });
 });
 
@@ -106,7 +140,7 @@ describe('MetricsService Time-Series Aggregations', () => {
       total: 1,
       success: 0,
       error: 1,
-      avgDurationMs: 400,
+      avgDurationMs: 0,
       models: {}
     });
   });
@@ -220,7 +254,7 @@ describe('MetricsService Initialization via index.jsonl', () => {
     // Only today & yesterday hydrated for stats
     expect(stats.successCount).toBe(1); // today (200)
     expect(stats.errorCount).toBe(1);   // yesterday (500)
-    expect(stats.sampleSize).toBe(2);   // today & yesterday duration records
-    expect(stats.avgDurationMs).toBe(250); // (150 + 350) / 2
+    expect(stats.sampleSize).toBe(1);   // only today (status 200) duration recorded
+    expect(stats.avgDurationMs).toBe(150); // only today duration (150)
   });
 });
