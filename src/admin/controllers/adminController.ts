@@ -57,7 +57,15 @@ class AdminController {
   }
 
   public async getStats(req: Request, res: Response): Promise<void> {
-    const stats = await logService.getStats();
+    const rangeParam = req.query.range as string | undefined;
+    let range = 24;
+    if (rangeParam) {
+      const parsedRange = parseInt(rangeParam, 10);
+      if ([6, 12, 24, 48].includes(parsedRange)) {
+        range = parsedRange;
+      }
+    }
+    const stats = await logService.getStats(range);
     res.json(stats);
   }
 
