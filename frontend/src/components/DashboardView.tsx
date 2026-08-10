@@ -15,14 +15,15 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
   const [status, setStatus] = useState<any>(null);
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [range, setRange] = useState<number>(24);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
-  const loadData = () => {
+  const loadData = (currentRange = range) => {
     setLoading(true);
     const headers: Record<string, string> = adminKey ? { 'x-admin-key': adminKey } : {};
     Promise.all([
       fetch('/api/admin/status', { headers }).then(r => r.json()).catch(() => null),
-      fetch('/api/admin/stats', { headers }).then(r => r.json()).catch(() => null),
+      fetch(`/api/admin/stats?range=${currentRange}`, { headers }).then(r => r.json()).catch(() => null),
     ]).then(([statusData, statsData]) => {
       setStatus(statusData);
       setStats(statsData);
@@ -31,8 +32,8 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
   };
 
   useEffect(() => {
-    loadData();
-  }, [adminKey]);
+    loadData(range);
+  }, [adminKey, range]);
 
   if (loading) {
     return (
@@ -215,7 +216,28 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
     <div className="space-y-8 max-w-7xl mx-auto font-sans">
       {/* Top Banner: Status & Metrics */}
       <div>
-        <h2 className="text-xl font-bold text-slate-100 mb-4 tracking-tight">{t('dashboard.title')}</h2>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+          <h2 className="text-xl font-bold text-slate-100 tracking-tight">{t('dashboard.title')}</h2>
+
+          {/* Time Range Selector */}
+          <div className="flex items-center space-x-2 bg-slate-900 border border-slate-800/80 p-1 rounded-xl">
+            <span className="text-[10px] text-slate-500 uppercase font-bold px-2 select-none">{t('dashboard.timeRange')}</span>
+            {([6, 12, 24, 48] as const).map((r) => (
+              <button
+                key={r}
+                type="button"
+                onClick={() => setRange(r)}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                  range === r
+                    ? 'bg-blue-600/90 text-white shadow'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+                }`}
+              >
+                {t(`dashboard.range${r}h`)}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {/* Status Card */}
           <div className="bg-slate-800/80 backdrop-blur border border-slate-700/60 p-5 rounded-xl shadow-lg">
