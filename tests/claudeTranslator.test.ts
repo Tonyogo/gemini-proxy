@@ -780,7 +780,7 @@ describe('Claude Translator Custom System Instruction Injection', () => {
     const result2 = translator.translateClaudeToGoogle(claudePayloadWithSystem);
     expect(result2.googleRequest.systemInstruction).toBeDefined();
     expect(result2.googleRequest.systemInstruction!.parts[0].text).toEqual(
-      'Always answer concisely in markdown.\nYou are a code assistant.'
+      'Always answer concisely in markdown.\n\nYou are a code assistant.'
     );
 
     config.customSystemInstruction = '';

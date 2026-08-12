@@ -207,7 +207,7 @@ class ClaudeTranslator {
       if (!text) return;
 
       if (systemInstruction) {
-        systemInstruction.parts[0].text = `${systemInstruction.parts[0].text}\n${text}`;
+        systemInstruction.parts[0].text = `${systemInstruction.parts[0].text}\n\n${text}`;
       } else {
         systemInstruction = {
           parts: [{ text }],
