@@ -34,7 +34,7 @@ class AdminController {
 
   public async getLogs(req: Request, res: Response): Promise<void> {
     const page = parseInt((req.query.page as string) || '1', 10);
-    const limit = parseInt((req.query.limit as string) || '20', 10);
+    const limit = parseInt((req.query.limit as string) || '50', 10);
     const filterDate = req.query.date as string | undefined;
     const filterHour = req.query.hour as string | undefined;
 

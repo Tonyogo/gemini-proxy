@@ -34,7 +34,7 @@ class LogService {
     limit = 50,
     filterDate?: string,
     filterHour?: string
-  ): Promise<{ tree: LogTreeStructure; hourCount: number; total: number; logs: LogItem[] }> {
+  ): Promise<{ tree: LogTreeStructure; hourCount: number; total: number; page: number; limit: number; logs: LogItem[] }> {
     const debugDir = this.getDebugDir();
     const tree: LogTreeStructure = {};
 
@@ -202,6 +202,8 @@ class LogService {
           tree,
           hourCount,
           total: hourCount,
+          page,
+          limit,
           logs: enrichedLogs
         };
       }
@@ -213,6 +215,8 @@ class LogService {
       tree,
       hourCount: 0,
       total: 0,
+      page,
+      limit,
       logs: []
     };
   }

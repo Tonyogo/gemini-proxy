@@ -44,6 +44,18 @@ describe('Admin API Endpoints', () => {
     expect(res.body).toHaveProperty('total');
   });
 
+  test('GET /api/admin/logs respects page and limit query parameters and returns pagination metadata', async () => {
+    const res = await request(app)
+      .get('/api/admin/logs?page=2&limit=10')
+      .set('x-admin-key', 'test-secret-key');
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty('page', 2);
+    expect(res.body).toHaveProperty('limit', 10);
+    expect(res.body).toHaveProperty('total');
+    expect(res.body).toHaveProperty('hourCount');
+  });
+
   test('GET /api/admin/logs filters by date and hour query parameters', async () => {
     const res = await request(app).get('/api/admin/logs?date=2026-07-22&hour=15');
     expect(res.status).toBe(200);
