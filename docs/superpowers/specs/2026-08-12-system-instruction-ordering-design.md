@@ -11,9 +11,9 @@ Update the construction order of `systemInstruction` when converting Anthropic C
 
 When `systemRoleToInstruction = true` (and across all `systemInstruction` assembly), components must be appended in the following precise order:
 
-1. **Adapter Prompt**: Configured via `config.customSystemInstruction` (`CUSTOM_SYSTEM_INSTRUCTION` environment variable or runtime config).
-2. **Claude Original System Prompt**: Provided in request payload `claudeBody.system`.
-3. **Runtime Context Messages**: When `config.systemRoleToInstruction = true`, deduplicated `role: 'system'` messages from `claudeBody.messages` wrapped in `<runtime-context>` (or configured `runtimeContextTag`) tags, preceded by the notice header line.
+1. **Claude Original System Prompt**: Provided in request payload `claudeBody.system`.
+2. **Adapter Prompt**: Configured via `config.customSystemInstruction` (`CUSTOM_SYSTEM_INSTRUCTION` environment variable or runtime config).
+3. **Runtime Context Messages**: When `config.systemRoleToInstruction = true`, deduplicated `role: 'system'` messages from `claudeBody.messages` appended with double newlines (`\n\n`) as separator, without any `<runtime-context>` tag wrapping and without notice messages.
 
 ---
 
@@ -24,28 +24,21 @@ When `systemRoleToInstruction = true` (and across all `systemInstruction` assemb
 In `translateClaudeToGoogle`:
 
 ```typescript
-// 1. Adapter Prompt (CUSTOM_SYSTEM_INSTRUCTION)
-if (config.customSystemInstruction) {
-  appendSystemContent(config.customSystemInstruction);
-}
-
-// 2. Claude Original System Prompt (claudeBody.system)
+// 1. Claude Original System Prompt (claudeBody.system)
 if (claudeBody.system) {
   appendSystemContent(claudeBody.system);
+}
+
+// 2. Adapter Prompt (CUSTOM_SYSTEM_INSTRUCTION)
+if (config.customSystemInstruction) {
+  appendSystemContent(config.customSystemInstruction);
 }
 
 // 3. System Role Messages (when systemRoleToInstruction is enabled)
 if (config.systemRoleToInstruction) {
   const deduplicatedSystemMsgs = this.deduplicateSystemMessages(claudeBody.messages || []);
-  if (deduplicatedSystemMsgs.length > 0) {
-    appendSystemContent(`Note: Content enclosed within <${tag}> tags contains dynamic system instructions, runtime environment state, or client tool guidance.`);
-    for (const sysMsg of deduplicatedSystemMsgs) {
-      const wrappedParts = wrapSystemMessageContent(sysMsg.content);
-      const textBlock = wrappedParts.map((p: any) => p.text || '').filter(Boolean).join('\n');
-      if (textBlock) {
-        appendSystemContent(textBlock);
-      }
-    }
+  for (const sysMsg of deduplicatedSystemMsgs) {
+    appendSystemContent(sysMsg.content);
   }
 }
 ```
@@ -55,20 +48,19 @@ if (config.systemRoleToInstruction) {
 ## 3. Data Flow & Resulting Output Example
 
 For a request payload with:
-- `config.customSystemInstruction`: `"Custom Adapter Instruction"`
 - `claudeBody.system`: `"Original Claude System"`
+- `config.customSystemInstruction`: `"Custom Adapter Instruction"`
 - `config.systemRoleToInstruction`: `true`
 - `claudeBody.messages`: `[{ role: 'system', content: '# context\nInfo' }]`
 
 **Generated Gemini `systemInstruction.parts[0].text`:**
 ```text
-Custom Adapter Instruction
 Original Claude System
-Note: Content enclosed within <runtime-context> tags contains dynamic system instructions, runtime environment state, or client tool guidance.
-<runtime-context>
+
+Custom Adapter Instruction
+
 # context
 Info
-</runtime-context>
 ```
 
 ---
@@ -76,6 +68,7 @@ Info
 ## 4. Test Strategy
 
 1. Update `tests/claudeTranslator.test.ts`:
-   - Verify ordering when both `customSystemInstruction` and `claudeBody.system` are set.
-   - Verify ordering when `systemRoleToInstruction` is enabled with `role: 'system'` messages present.
+   - Verify ordering: `claudeBody.system` -> `customSystemInstruction` -> deduplicated system messages.
+   - Verify double newline separation between sections.
+   - Verify there is no `<runtime-context>` tag wrapping and no notice header prefix.
 2. Run full test suite (`npm test`).
