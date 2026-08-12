@@ -21,15 +21,18 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
   const [viewMode, setViewMode] = useState<'preview' | 'raw'>('preview');
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   const [hourCount, setHourCount] = useState<number>(0);
+  const [page, setPage] = useState<number>(1);
+  const [limit, setLimit] = useState<number>(50);
+  const [totalLogs, setTotalLogs] = useState<number>(0);
 
-  const fetchLogs = (forceAutoJump = false, customDate?: string, customHour?: string) => {
+  const fetchLogs = (forceAutoJump = false, customDate?: string, customHour?: string, pageNum = page, limitNum = limit) => {
     setLoading(true);
     const headers: Record<string, string> = adminKey ? { 'x-admin-key': adminKey } : {};
 
     const targetDate = customDate !== undefined ? customDate : selectedDate;
     const targetHour = customHour !== undefined ? customHour : selectedHour;
 
-    let query = '/api/admin/logs?limit=30';
+    let query = `/api/admin/logs?page=${pageNum}&limit=${limitNum}`;
     if (!forceAutoJump) {
       if (targetDate) query += `&date=${targetDate}`;
       if (targetHour) query += `&hour=${targetHour}`;
@@ -40,7 +43,11 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
       .then(data => {
         const logTree = data.tree || {};
         setTree(logTree);
-        setHourCount(data.hourCount !== undefined ? data.hourCount : (data.total || 0));
+        const totalCount = data.hourCount !== undefined ? data.hourCount : (data.total || 0);
+        setHourCount(totalCount);
+        setTotalLogs(totalCount);
+        setPage(data.page || pageNum);
+        setLimit(data.limit || limitNum);
         const fetchedLogs = data.logs || [];
         setLogs(fetchedLogs);
 
@@ -87,12 +94,25 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
       .sort((a, b) => parseInt(b, 10) - parseInt(a, 10));
     const newHour = hours.length > 0 ? hours[0] : '';
     setSelectedHour(newHour);
-    fetchLogs(false, date, newHour);
+    setPage(1);
+    fetchLogs(false, date, newHour, 1, limit);
   };
 
   const handleHourChange = (hour: string) => {
     setSelectedHour(hour);
-    fetchLogs(false, selectedDate, hour);
+    setPage(1);
+    fetchLogs(false, selectedDate, hour, 1, limit);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    fetchLogs(false, selectedDate, selectedHour, newPage, limit);
+  };
+
+  const handleLimitChange = (newLimit: number) => {
+    setLimit(newLimit);
+    setPage(1);
+    fetchLogs(false, selectedDate, selectedHour, 1, newLimit);
   };
 
   const availableHours = selectedDate && tree[selectedDate]
@@ -279,6 +299,52 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
               })
             )}
           </div>
+
+          {/* Bottom Pagination Bar */}
+          {totalLogs > 0 && (
+            <div className="pt-2.5 mt-2 border-t border-slate-700/60 flex flex-col gap-2 font-mono text-[11px] text-slate-400 shrink-0">
+              <div className="flex items-center justify-between">
+                <span>
+                  {t('logs.showingRange', `{start}-{end} of {total}`)
+                    .replace('{start}', String((page - 1) * limit + 1))
+                    .replace('{end}', String(Math.min(page * limit, totalLogs)))
+                    .replace('{total}', String(totalLogs))}
+                </span>
+                <select
+                  value={limit}
+                  onChange={(e) => handleLimitChange(Number(e.target.value))}
+                  className="bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-slate-200 text-[10px] focus:outline-none focus:border-blue-500"
+                >
+                  <option value={30}>30/页</option>
+                  <option value={50}>50/页</option>
+                  <option value={100}>100/页</option>
+                  <option value={200}>200/页</option>
+                </select>
+              </div>
+
+              <div className="flex items-center justify-between gap-1">
+                <button
+                  disabled={page <= 1 || loading}
+                  onClick={() => handlePageChange(page - 1)}
+                  className="px-2 py-1 rounded bg-slate-700 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-slate-200 transition-colors text-[10px]"
+                >
+                  ‹ {t('logs.prevPage', 'Prev')}
+                </button>
+
+                <span className="text-slate-300 font-semibold text-[10px]">
+                  {page} / {Math.ceil(totalLogs / limit) || 1}
+                </span>
+
+                <button
+                  disabled={page >= Math.ceil(totalLogs / limit) || loading}
+                  onClick={() => handlePageChange(page + 1)}
+                  className="px-2 py-1 rounded bg-slate-700 hover:bg-slate-600 disabled:opacity-40 disabled:cursor-not-allowed text-slate-200 transition-colors text-[10px]"
+                >
+                  {t('logs.nextPage', 'Next')} ›
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

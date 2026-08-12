@@ -68,7 +68,10 @@ export const zh: Translations = {
     geminiUpstreamReq: "Gemini 上游请求 (gem_req)",
     claudeFinalRes: "Claude 最终响应 (claude_res)",
     geminiUpstreamRes: "Gemini 上游响应 (gem_res)",
-    selectPrompt: "请在左侧选择一条日志条目，以并排检查 JSON 载荷。"
+    selectPrompt: "请在左侧选择一条日志条目，以并排检查 JSON 载荷。",
+    prevPage: "上一页",
+    nextPage: "下一页",
+    showingRange: "{start}-{end} / 共 {total} 条"
   },
   terminal: {
     title: "服务端终端控制台输出",

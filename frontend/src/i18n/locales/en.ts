@@ -66,7 +66,10 @@ export const en = {
     geminiUpstreamReq: "Gemini Upstream Request (gem_req)",
     claudeFinalRes: "Claude Final Response (claude_res)",
     geminiUpstreamRes: "Gemini Upstream Response (gem_res)",
-    selectPrompt: "Select a log entry on the left to inspect side-by-side JSON payloads."
+    selectPrompt: "Select a log entry on the left to inspect side-by-side JSON payloads.",
+    prevPage: "Prev",
+    nextPage: "Next",
+    showingRange: "{start}-{end} of {total}"
   },
   terminal: {
     title: "Server Terminal Output",
