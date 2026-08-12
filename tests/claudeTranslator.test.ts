@@ -515,7 +515,7 @@ describe('ClaudeTranslator - SYSTEM_ROLE_TO_INSTRUCTION & Deduplication', () => 
     config.systemRoleToInstruction = originalSwitchValue;
   });
 
-  it('constructs systemInstruction in correct order: customSystemInstruction -> claudeBody.system -> systemRoleToInstruction msgs', () => {
+  it('constructs systemInstruction in correct order: claudeBody.system -> customSystemInstruction -> systemRoleToInstruction msgs', () => {
     config.systemRoleToInstruction = true;
     config.customSystemInstruction = 'Adapter Prompt Content';
 
@@ -537,16 +537,16 @@ describe('ClaudeTranslator - SYSTEM_ROLE_TO_INSTRUCTION & Deduplication', () => 
     const result = translator.translateClaudeToGoogle(claudePayload);
     const systemText = result.googleRequest.systemInstruction!.parts[0].text;
 
-    const idxCustom = systemText.indexOf('Adapter Prompt Content');
     const idxOriginal = systemText.indexOf('Claude Original System Content');
+    const idxCustom = systemText.indexOf('Adapter Prompt Content');
     const idxRuntime = systemText.indexOf('Runtime Context Content');
 
-    expect(idxCustom).toBeGreaterThan(-1);
     expect(idxOriginal).toBeGreaterThan(-1);
+    expect(idxCustom).toBeGreaterThan(-1);
     expect(idxRuntime).toBeGreaterThan(-1);
 
-    expect(idxCustom).toBeLessThan(idxOriginal);
-    expect(idxOriginal).toBeLessThan(idxRuntime);
+    expect(idxOriginal).toBeLessThan(idxCustom);
+    expect(idxCustom).toBeLessThan(idxRuntime);
 
     // Clean up
     config.customSystemInstruction = '';
@@ -780,7 +780,7 @@ describe('Claude Translator Custom System Instruction Injection', () => {
     const result2 = translator.translateClaudeToGoogle(claudePayloadWithSystem);
     expect(result2.googleRequest.systemInstruction).toBeDefined();
     expect(result2.googleRequest.systemInstruction!.parts[0].text).toEqual(
-      'Always answer concisely in markdown.\n\nYou are a code assistant.'
+      'You are a code assistant.\n\nAlways answer concisely in markdown.'
     );
 
     config.customSystemInstruction = '';
