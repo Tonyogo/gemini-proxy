@@ -539,17 +539,14 @@ describe('ClaudeTranslator - SYSTEM_ROLE_TO_INSTRUCTION & Deduplication', () => 
 
     const idxCustom = systemText.indexOf('Adapter Prompt Content');
     const idxOriginal = systemText.indexOf('Claude Original System Content');
-    const idxNotice = systemText.indexOf('Note: Content enclosed within <runtime-context> tags');
     const idxRuntime = systemText.indexOf('Runtime Context Content');
 
     expect(idxCustom).toBeGreaterThan(-1);
     expect(idxOriginal).toBeGreaterThan(-1);
-    expect(idxNotice).toBeGreaterThan(-1);
     expect(idxRuntime).toBeGreaterThan(-1);
 
     expect(idxCustom).toBeLessThan(idxOriginal);
-    expect(idxOriginal).toBeLessThan(idxNotice);
-    expect(idxNotice).toBeLessThan(idxRuntime);
+    expect(idxOriginal).toBeLessThan(idxRuntime);
 
     // Clean up
     config.customSystemInstruction = '';
@@ -597,12 +594,11 @@ describe('ClaudeTranslator - SYSTEM_ROLE_TO_INSTRUCTION & Deduplication', () => 
     expect(result.googleRequest.contents[1].parts[0].text).toEqual('Assistant reply');
     expect(result.googleRequest.contents[2].parts[0].text).toEqual('User message 2');
 
-    // 2. Verify systemInstruction contains main prompt, explanation notice, and deduplicated system messages (Version 2 & customContext)
+    // 2. Verify systemInstruction contains main prompt and deduplicated system messages (Version 2 & customContext)
     expect(result.googleRequest.systemInstruction).toBeDefined();
     const systemText = result.googleRequest.systemInstruction!.parts[0].text;
 
     expect(systemText).toContain('Main system instruction');
-    expect(systemText).toContain('Note: Content enclosed within <runtime-context> tags');
     expect(systemText).toContain('# claudeMd\nVersion 2: Updated instruction content');
     expect(systemText).toContain('# customContext\nUnique context content');
     expect(systemText).not.toContain('Version 1');

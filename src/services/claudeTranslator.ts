@@ -247,15 +247,8 @@ class ClaudeTranslator {
 
     if (config.systemRoleToInstruction) {
       const deduplicatedSystemMsgs = this.deduplicateSystemMessages(claudeBody.messages || []);
-      if (deduplicatedSystemMsgs.length > 0) {
-        appendSystemContent(`Note: Content enclosed within <${tag}> tags contains dynamic system instructions, runtime environment state, or client tool guidance.`);
-        for (const sysMsg of deduplicatedSystemMsgs) {
-          const wrappedParts = wrapSystemMessageContent(sysMsg.content);
-          const textBlock = wrappedParts.map((p: any) => p.text || '').filter(Boolean).join('\n');
-          if (textBlock) {
-            appendSystemContent(textBlock);
-          }
-        }
+      for (const sysMsg of deduplicatedSystemMsgs) {
+        appendSystemContent(sysMsg.content);
       }
     }
 
