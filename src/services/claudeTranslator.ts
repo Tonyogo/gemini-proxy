@@ -216,12 +216,12 @@ class ClaudeTranslator {
       }
     };
 
-    if (claudeBody.system) {
-      appendSystemContent(claudeBody.system);
-    }
-
     if (config.customSystemInstruction) {
       appendSystemContent(config.customSystemInstruction);
+    }
+
+    if (claudeBody.system) {
+      appendSystemContent(claudeBody.system);
     }
 
     const tag = config.runtimeContextTag || 'runtime-context';

@@ -515,6 +515,46 @@ describe('ClaudeTranslator - SYSTEM_ROLE_TO_INSTRUCTION & Deduplication', () => 
     config.systemRoleToInstruction = originalSwitchValue;
   });
 
+  it('constructs systemInstruction in correct order: customSystemInstruction -> claudeBody.system -> systemRoleToInstruction msgs', () => {
+    config.systemRoleToInstruction = true;
+    config.customSystemInstruction = 'Adapter Prompt Content';
+
+    const claudePayload: any = {
+      model: 'gemini-3.5-flash',
+      system: 'Claude Original System Content',
+      messages: [
+        {
+          role: 'system',
+          content: '# runtimeContext\nRuntime Context Content'
+        },
+        {
+          role: 'user',
+          content: 'Hello'
+        }
+      ]
+    };
+
+    const result = translator.translateClaudeToGoogle(claudePayload);
+    const systemText = result.googleRequest.systemInstruction!.parts[0].text;
+
+    const idxCustom = systemText.indexOf('Adapter Prompt Content');
+    const idxOriginal = systemText.indexOf('Claude Original System Content');
+    const idxNotice = systemText.indexOf('Note: Content enclosed within <runtime-context> tags');
+    const idxRuntime = systemText.indexOf('Runtime Context Content');
+
+    expect(idxCustom).toBeGreaterThan(-1);
+    expect(idxOriginal).toBeGreaterThan(-1);
+    expect(idxNotice).toBeGreaterThan(-1);
+    expect(idxRuntime).toBeGreaterThan(-1);
+
+    expect(idxCustom).toBeLessThan(idxOriginal);
+    expect(idxOriginal).toBeLessThan(idxNotice);
+    expect(idxNotice).toBeLessThan(idxRuntime);
+
+    // Clean up
+    config.customSystemInstruction = '';
+  });
+
   it('routes system messages to systemInstruction and deduplicates when systemRoleToInstruction is enabled', () => {
     config.systemRoleToInstruction = true;
 
@@ -744,7 +784,7 @@ describe('Claude Translator Custom System Instruction Injection', () => {
     const result2 = translator.translateClaudeToGoogle(claudePayloadWithSystem);
     expect(result2.googleRequest.systemInstruction).toBeDefined();
     expect(result2.googleRequest.systemInstruction!.parts[0].text).toEqual(
-      'You are a code assistant.\nAlways answer concisely in markdown.'
+      'Always answer concisely in markdown.\nYou are a code assistant.'
     );
 
     config.customSystemInstruction = '';
