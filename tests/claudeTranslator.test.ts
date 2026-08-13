@@ -786,8 +786,6 @@ describe('Claude Translator Custom System Instruction Injection', () => {
     config.customSystemInstruction = '';
   });
 });
-import translator from '../src/services/claudeTranslator';
-import { config } from '../config/default';
 
 describe('Claude Translator Ephemeral Messages Filtering', () => {
   beforeEach(() => {

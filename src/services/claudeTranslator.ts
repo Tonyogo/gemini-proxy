@@ -175,6 +175,69 @@ class ClaudeTranslator {
     return Array.from(latestByPrefix.values());
   }
 
+  /**
+   * Extracts raw text from message content (string or array of text blocks).
+   */
+  public _getNormalizedTextContent(content: any): string {
+    if (!content) return '';
+    if (typeof content === 'string') {
+      return content.trim();
+    }
+    if (Array.isArray(content)) {
+      return content
+        .map((b: any) => {
+          if (typeof b === 'string') return b;
+          if (b && b.type === 'text') return b.text || '';
+          return b?.text || '';
+        })
+        .filter(Boolean)
+        .join('\n')
+        .trim();
+    }
+    return '';
+  }
+
+  /**
+   * Filters historical ephemeral/temporary messages prior to the last user turn.
+   */
+  public filterEphemeralMessages(messages: any[]): any[] {
+    if (!messages || !Array.isArray(messages) || messages.length === 0) {
+      return messages || [];
+    }
+
+    const ephemeralList = config.ephemeralMessages || [];
+    if (ephemeralList.length === 0) {
+      return messages;
+    }
+
+    const normalizedEphemeralSet = new Set(ephemeralList.map(s => s.trim()));
+
+    // Find index of the last user message
+    let lastUserIndex = -1;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i] && messages[i].role === 'user') {
+        lastUserIndex = i;
+        break;
+      }
+    }
+
+    if (lastUserIndex === -1) {
+      return messages;
+    }
+
+    return messages.filter((msg, index) => {
+      if (!msg) return false;
+      if (index < lastUserIndex && (msg.role === 'user' || msg.role === 'system')) {
+        const normalizedText = this._getNormalizedTextContent(msg.content);
+        if (normalizedEphemeralSet.has(normalizedText)) {
+          logger.debug(`[Translator] Filtering historical ephemeral message at index ${index}: "${normalizedText.substring(0, 40)}..."`);
+          return false;
+        }
+      }
+      return true;
+    });
+  }
+
   public translateClaudeToGoogle(claudeBody: ClaudeRequest) {
     const rawModel = claudeBody.model;
 
@@ -245,8 +308,12 @@ class ClaudeTranslator {
       return parts;
     };
 
+    const inputMessages = claudeBody.messages && Array.isArray(claudeBody.messages)
+      ? this.filterEphemeralMessages(claudeBody.messages)
+      : [];
+
     if (config.systemRoleToInstruction) {
-      const deduplicatedSystemMsgs = this.deduplicateSystemMessages(claudeBody.messages || []);
+      const deduplicatedSystemMsgs = this.deduplicateSystemMessages(inputMessages);
       for (const sysMsg of deduplicatedSystemMsgs) {
         appendSystemContent(sysMsg.content);
       }
@@ -255,8 +322,8 @@ class ClaudeTranslator {
     const contents: GeminiContent[] = [];
     const toolIdToNameMap = new Map<string, string>();
 
-    if (claudeBody.messages && Array.isArray(claudeBody.messages)) {
-      for (const msg of claudeBody.messages) {
+    if (inputMessages.length > 0) {
+      for (const msg of inputMessages) {
         if (msg.role === 'system') {
           if (config.systemRoleToInstruction) {
             // Skip inline insertion when systemRoleToInstruction switch is active
