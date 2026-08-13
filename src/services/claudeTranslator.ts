@@ -225,24 +225,43 @@ class ClaudeTranslator {
       return messages;
     }
 
-    return messages.filter((msg, index) => {
-      if (!msg) return false;
+    return messages.map((msg, index) => {
+      if (!msg) return msg;
       if (index < lastUserIndex) {
-        const normalizedText = this._getNormalizedTextContent(msg.content);
-        if (msg.role === 'user' && userPatterns.length > 0) {
-          if (userPatterns.some(pattern => normalizedText.includes(pattern))) {
-            logger.debug(`[Translator] Filtering historical ephemeral user message at index ${index}: "${normalizedText.substring(0, 40)}..."`);
-            return false;
-          }
-        } else if (msg.role === 'system' && systemPatterns.length > 0) {
+        if (msg.role === 'system' && systemPatterns.length > 0) {
+          const normalizedText = this._getNormalizedTextContent(msg.content);
           if (systemPatterns.some(pattern => normalizedText.includes(pattern))) {
             logger.debug(`[Translator] Filtering historical ephemeral system message at index ${index}: "${normalizedText.substring(0, 40)}..."`);
-            return false;
+            return null;
+          }
+        } else if (msg.role === 'user' && userPatterns.length > 0) {
+          if (Array.isArray(msg.content) && msg.content.length > 1) {
+            const filteredContent = msg.content.filter((block: any) => {
+              let blockText = '';
+              if (typeof block === 'string') {
+                blockText = block.trim();
+              } else if (block && block.type === 'text') {
+                blockText = (block.text || '').trim();
+              } else if (block && block.text) {
+                blockText = String(block.text).trim();
+              }
+
+              if (blockText && userPatterns.some(pattern => blockText.includes(pattern))) {
+                logger.debug(`[Translator] Filtering historical ephemeral user block at msg index ${index}: "${blockText.substring(0, 40)}..."`);
+                return false;
+              }
+              return true;
+            });
+
+            // Guard: If filtering would remove ALL blocks, keep original content
+            if (filteredContent.length > 0) {
+              return { ...msg, content: filteredContent };
+            }
           }
         }
       }
-      return true;
-    });
+      return msg;
+    }).filter(Boolean);
   }
 
   public translateClaudeToGoogle(claudeBody: ClaudeRequest) {
