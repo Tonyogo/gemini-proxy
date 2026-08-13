@@ -13,6 +13,29 @@ if (process.env.MODEL_MAPPINGS) {
   }
 }
 
+const parseListEnv = (envVal: string | undefined, defaultVal: string[]): string[] => {
+  if (!envVal) return defaultVal;
+  try {
+    const parsed = JSON.parse(envVal);
+    if (Array.isArray(parsed)) {
+      return parsed.map((s: any) => String(s));
+    }
+  } catch {
+    return envVal.split('\n').map(s => s.trim()).filter(Boolean);
+  }
+  return defaultVal;
+};
+
+const parsedEphemeralUserMessages = parseListEnv(
+  process.env.EPHEMERAL_USER_MESSAGES,
+  ["[Your previous response had no visible output. Please continue and produce a user-visible response.]"]
+);
+
+const parsedEphemeralSystemMessages = parseListEnv(
+  process.env.EPHEMERAL_SYSTEM_MESSAGES,
+  []
+);
+
 const isTestEnv = process.env.NODE_ENV === 'test';
 const runtimeFileName = isTestEnv ? 'runtime.test.json' : 'runtime.json';
 const runtimeJsonPath = path.join(process.cwd(), 'config', runtimeFileName);
@@ -30,6 +53,8 @@ if (existsSync(runtimeJsonPath)) {
 const getEnvConfig = () => ({
   logLevel: (process.env.LOG_LEVEL || 'info') as string,
   modelMappings: parsedModelMappings as Record<string, string>,
+  ephemeralUserMessages: parsedEphemeralUserMessages as string[],
+  ephemeralSystemMessages: parsedEphemeralSystemMessages as string[],
   customSystemInstruction: (process.env.CUSTOM_SYSTEM_INSTRUCTION || '') as string,
   systemRoleToInstruction: (process.env.SYSTEM_ROLE_TO_INSTRUCTION === 'true') as boolean,
   runtimeContextTag: (process.env.RUNTIME_CONTEXT_TAG || 'runtime-context') as string,
