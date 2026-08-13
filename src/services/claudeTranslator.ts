@@ -231,7 +231,7 @@ class ClaudeTranslator {
         if (msg.role === 'system' && systemPatterns.length > 0) {
           const normalizedText = this._getNormalizedTextContent(msg.content);
           if (systemPatterns.some(pattern => normalizedText.includes(pattern))) {
-            logger.debug(`[Translator] Filtering historical ephemeral system message at index ${index}: "${normalizedText.substring(0, 40)}..."`);
+            logger.info(`[Translator] Filtering historical ephemeral system message at index ${index}: "${normalizedText.substring(0, 40)}..."`);
             return null;
           }
         } else if (msg.role === 'user' && userPatterns.length > 0) {
@@ -247,7 +247,7 @@ class ClaudeTranslator {
               }
 
               if (blockText && userPatterns.some(pattern => blockText.includes(pattern))) {
-                logger.debug(`[Translator] Filtering historical ephemeral user block at msg index ${index}: "${blockText.substring(0, 40)}..."`);
+                logger.info(`[Translator] Filtering historical ephemeral user block at msg index ${index}: "${blockText.substring(0, 40)}..."`);
                 return false;
               }
               return true;
