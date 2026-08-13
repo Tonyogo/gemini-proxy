@@ -786,3 +786,52 @@ describe('Claude Translator Custom System Instruction Injection', () => {
     config.customSystemInstruction = '';
   });
 });
+import translator from '../src/services/claudeTranslator';
+import { config } from '../config/default';
+
+describe('Claude Translator Ephemeral Messages Filtering', () => {
+  beforeEach(() => {
+    config.ephemeralMessages = [
+      '[Your previous response had no visible output. Please continue and produce a user-visible response.]'
+    ];
+  });
+
+  afterEach(() => {
+    config.ephemeralMessages = [];
+  });
+
+  it('filters historical ephemeral messages before the last user turn', () => {
+    const claudePayload = {
+      model: 'gemini-3.5-flash',
+      messages: [
+        { role: 'user', content: '[Your previous response had no visible output. Please continue and produce a user-visible response.]' },
+        { role: 'assistant', content: 'Understood.' },
+        { role: 'user', content: '[Your previous response had no visible output. Please continue and produce a user-visible response.]' },
+        { role: 'assistant', content: 'Here is the output.' },
+        { role: 'user', content: 'What is the capital of France?' }
+      ]
+    } as any;
+
+    const result = translator.translateClaudeToGoogle(claudePayload);
+    // Historical ephemeral messages should be filtered out
+    // Remaining messages should be: assistant "Here is the output.", user "What is the capital of France?"
+    const textParts = result.googleRequest.contents.flatMap((c: any) => c.parts.map((p: any) => p.text));
+    expect(textParts).not.toContain('[Your previous response had no visible output. Please continue and produce a user-visible response.]');
+    expect(textParts).toContain('What is the capital of France?');
+  });
+
+  it('preserves ephemeral message if it is the latest user turn', () => {
+    const claudePayload = {
+      model: 'gemini-3.5-flash',
+      messages: [
+        { role: 'user', content: 'Hello' },
+        { role: 'assistant', content: '' },
+        { role: 'user', content: '[Your previous response had no visible output. Please continue and produce a user-visible response.]' }
+      ]
+    } as any;
+
+    const result = translator.translateClaudeToGoogle(claudePayload);
+    const textParts = result.googleRequest.contents.flatMap((c: any) => c.parts.map((p: any) => p.text));
+    expect(textParts).toContain('[Your previous response had no visible output. Please continue and produce a user-visible response.]');
+  });
+});
