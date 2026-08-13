@@ -39,7 +39,9 @@ export const en = {
     modelChartTitle: "Model Distribution Trend",
     latencyChartTitle: "Hourly Average Latency (ms) Trend",
     successErrorChartTitle: "Hourly Success vs Error Distribution",
-    noData: "No trend data available for this period."
+    noData: "No trend data available for this period.",
+    noSampling: "No Data",
+    noRequestsInPeriod: "No requests in this period"
   },
   logs: {
     title: "Request Logs",

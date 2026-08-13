@@ -205,11 +205,42 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
     volumeAreaPath = `M ${getX(0)},${yMax} L ${points.join(' L ')} L ${getX(N - 1)},${yMax} Z`;
   }
 
-  // Build Line path for Latency
-  let latencyLinePath = '';
-  if (N > 0) {
-    const points = timeSeries.map((p, i) => `${getX(i)},${getYLatency(p.avgDurationMs)}`);
-    latencyLinePath = `M ${points.join(' L ')}`;
+  // Build Line paths for Latency (Solid for contiguous segments, Dashed for interpolations across no-data points)
+  let latencySolidPaths: string[] = [];
+  let latencyDashedPaths: string[] = [];
+  const validLatencyIndices = timeSeries
+    .map((p, i) => (p.total > 0 ? i : -1))
+    .filter(i => i !== -1);
+
+  if (validLatencyIndices.length > 0) {
+    let currentSegment: number[] = [validLatencyIndices[0]];
+
+    for (let k = 1; k < validLatencyIndices.length; k++) {
+      const prevIdx = validLatencyIndices[k - 1];
+      const currIdx = validLatencyIndices[k];
+
+      if (currIdx === prevIdx + 1) {
+        // Consecutive hours with data: extend solid line segment
+        currentSegment.push(currIdx);
+      } else {
+        // Gap present: finalize existing solid segment (if it has >= 2 points)
+        if (currentSegment.length > 1) {
+          const pts = currentSegment.map(idx => `${getX(idx)},${getYLatency(timeSeries[idx].avgDurationMs)}`);
+          latencySolidPaths.push(`M ${pts.join(' L ')}`);
+        }
+        currentSegment = [currIdx];
+
+        // Draw dashed interpolation line bridging the gap between prevIdx and currIdx
+        const p1 = `${getX(prevIdx)},${getYLatency(timeSeries[prevIdx].avgDurationMs)}`;
+        const p2 = `${getX(currIdx)},${getYLatency(timeSeries[currIdx].avgDurationMs)}`;
+        latencyDashedPaths.push(`M ${p1} L ${p2}`);
+      }
+    }
+
+    if (currentSegment.length > 1) {
+      const pts = currentSegment.map(idx => `${getX(idx)},${getYLatency(timeSeries[idx].avgDurationMs)}`);
+      latencySolidPaths.push(`M ${pts.join(' L ')}`);
+    }
   }
 
   return (
@@ -400,18 +431,26 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                   <div className="font-bold text-slate-300 font-mono border-b border-slate-800 pb-0.5 mb-1 text-center">
                     {timeSeries[hoveredIndex].time}
                   </div>
-                  <div className="flex justify-between space-x-4">
-                    <span className="text-slate-400">Total:</span>
-                    <span className="font-bold text-cyan-400 font-mono">{timeSeries[hoveredIndex].total}</span>
-                  </div>
-                  <div className="flex justify-between space-x-4">
-                    <span className="text-slate-400">Success:</span>
-                    <span className="font-bold text-emerald-400 font-mono">{timeSeries[hoveredIndex].success}</span>
-                  </div>
-                  <div className="flex justify-between space-x-4">
-                    <span className="text-slate-400">Error:</span>
-                    <span className="font-bold text-rose-400 font-mono">{timeSeries[hoveredIndex].error}</span>
-                  </div>
+                  {timeSeries[hoveredIndex].total === 0 ? (
+                    <div className="text-center text-slate-500 italic py-1">
+                      {t('dashboard.noRequestsInPeriod')}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex justify-between space-x-4">
+                        <span className="text-slate-400">Total:</span>
+                        <span className="font-bold text-cyan-400 font-mono">{timeSeries[hoveredIndex].total}</span>
+                      </div>
+                      <div className="flex justify-between space-x-4">
+                        <span className="text-slate-400">Success:</span>
+                        <span className="font-bold text-emerald-400 font-mono">{timeSeries[hoveredIndex].success}</span>
+                      </div>
+                      <div className="flex justify-between space-x-4">
+                        <span className="text-slate-400">Error:</span>
+                        <span className="font-bold text-rose-400 font-mono">{timeSeries[hoveredIndex].error}</span>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
             </div>
@@ -424,7 +463,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
             <span>{t('dashboard.latencyChartTitle')}</span>
             {hoveredIndex !== null && timeSeries[hoveredIndex] && (
               <span className="text-purple-400 font-mono text-xs lowercase">
-                {timeSeries[hoveredIndex].avgDurationMs} ms
+                {timeSeries[hoveredIndex].total > 0 ? `${timeSeries[hoveredIndex].avgDurationMs} ms` : t('dashboard.noSampling')}
               </span>
             )}
           </h3>
@@ -461,29 +500,46 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                   strokeWidth="1.5"
                 />
 
-                {/* Polyline */}
-                {latencyLinePath && (
+                {/* Solid Line Segments for Latency */}
+                {latencySolidPaths.map((pathD, idx) => (
                   <path
-                    d={latencyLinePath}
+                    key={`solid-${idx}`}
+                    d={pathD}
                     fill="none"
                     stroke="url(#latencyLineGrad)"
                     strokeWidth="2.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   />
-                )}
+                ))}
 
-                {/* All Node points (amber color with gap ring) */}
-                {timeSeries.map((p, i) => (
-                  <circle
-                    key={i}
-                    cx={getX(i)}
-                    cy={getYLatency(p.avgDurationMs)}
-                    r="3.5"
-                    fill="#f59e0b"
-                    stroke="#1e293b"
+                {/* Dashed Line Segments across No-Data Gaps */}
+                {latencyDashedPaths.map((pathD, idx) => (
+                  <path
+                    key={`dashed-${idx}`}
+                    d={pathD}
+                    fill="none"
+                    stroke="#94a3b8"
                     strokeWidth="1.5"
+                    strokeDasharray="4 4"
+                    strokeOpacity="0.6"
+                    strokeLinecap="round"
                   />
+                ))}
+
+                {/* Node points ONLY for valid data hours */}
+                {timeSeries.map((p, i) => (
+                  p.total > 0 ? (
+                    <circle
+                      key={i}
+                      cx={getX(i)}
+                      cy={getYLatency(p.avgDurationMs)}
+                      r="3.5"
+                      fill="#f59e0b"
+                      stroke="#1e293b"
+                      strokeWidth="1.5"
+                    />
+                  ) : null
                 ))}
 
                 {/* X-axis labels */}
@@ -518,8 +574,8 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                   />
                 )}
 
-                {/* Highlighted active node dot */}
-                {hoveredIndex !== null && timeSeries[hoveredIndex] && (
+                {/* Highlighted active node dot (if data exists for this hour) */}
+                {hoveredIndex !== null && timeSeries[hoveredIndex] && timeSeries[hoveredIndex].total > 0 && (
                   <circle
                     cx={getX(hoveredIndex)}
                     cy={getYLatency(timeSeries[hoveredIndex].avgDurationMs)}
@@ -547,7 +603,9 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                   </div>
                   <div className="flex justify-between space-x-4">
                     <span className="text-slate-400">Avg Latency:</span>
-                    <span className="font-bold text-amber-400 font-mono">{timeSeries[hoveredIndex].avgDurationMs} ms</span>
+                    <span className="font-bold text-amber-400 font-mono">
+                      {timeSeries[hoveredIndex].total > 0 ? `${timeSeries[hoveredIndex].avgDurationMs} ms` : t('dashboard.noSampling')}
+                    </span>
                   </div>
                 </div>
               )}
@@ -678,20 +736,28 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                   <div className="font-bold text-slate-300 font-mono border-b border-slate-800 pb-0.5 mb-1 text-center">
                     {timeSeries[hoveredIndex].time}
                   </div>
-                  <div className="flex justify-between space-x-4">
-                    <span className="text-slate-400">Success Ratio:</span>
-                    <span className="font-bold text-emerald-400 font-mono">
-                      {((timeSeries[hoveredIndex].success / (timeSeries[hoveredIndex].total || 1)) * 100).toFixed(1)}%
-                    </span>
-                  </div>
-                  <div className="flex justify-between space-x-4">
-                    <span className="text-slate-400">Success (✓):</span>
-                    <span className="font-bold text-emerald-400 font-mono">{timeSeries[hoveredIndex].success}</span>
-                  </div>
-                  <div className="flex justify-between space-x-4">
-                    <span className="text-slate-400">Errors (✗):</span>
-                    <span className="font-bold text-rose-400 font-mono">{timeSeries[hoveredIndex].error}</span>
-                  </div>
+                  {timeSeries[hoveredIndex].total === 0 ? (
+                    <div className="text-center text-slate-500 italic py-1">
+                      {t('dashboard.noRequestsInPeriod')}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex justify-between space-x-4">
+                        <span className="text-slate-400">Success Ratio:</span>
+                        <span className="font-bold text-emerald-400 font-mono">
+                          {((timeSeries[hoveredIndex].success / (timeSeries[hoveredIndex].total || 1)) * 100).toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between space-x-4">
+                        <span className="text-slate-400">Success (✓):</span>
+                        <span className="font-bold text-emerald-400 font-mono">{timeSeries[hoveredIndex].success}</span>
+                      </div>
+                      <div className="flex justify-between space-x-4">
+                        <span className="text-slate-400">Errors (✗):</span>
+                        <span className="font-bold text-rose-400 font-mono">{timeSeries[hoveredIndex].error}</span>
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
             </div>

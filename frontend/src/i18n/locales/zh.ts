@@ -41,7 +41,9 @@ export const zh: Translations = {
     modelChartTitle: "模型请求分布趋势",
     latencyChartTitle: "每小时平均延迟 (ms) 趋势",
     successErrorChartTitle: "每小时成功与错误分布",
-    noData: "该时间段内暂无趋势数据。"
+    noData: "该时间段内暂无趋势数据。",
+    noSampling: "无采样数据",
+    noRequestsInPeriod: "该时段无请求"
   },
   logs: {
     title: "请求日志列表",
