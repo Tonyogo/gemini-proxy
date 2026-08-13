@@ -205,12 +205,12 @@ class ClaudeTranslator {
       return messages || [];
     }
 
-    const ephemeralList = config.ephemeralMessages || [];
-    if (ephemeralList.length === 0) {
+    const userPatterns = (config.ephemeralUserMessages || []).map(s => s.trim()).filter(Boolean);
+    const systemPatterns = (config.ephemeralSystemMessages || []).map(s => s.trim()).filter(Boolean);
+
+    if (userPatterns.length === 0 && systemPatterns.length === 0) {
       return messages;
     }
-
-    const normalizedEphemeralSet = new Set(ephemeralList.map(s => s.trim()));
 
     // Find index of the last user message
     let lastUserIndex = -1;
@@ -227,11 +227,18 @@ class ClaudeTranslator {
 
     return messages.filter((msg, index) => {
       if (!msg) return false;
-      if (index < lastUserIndex && (msg.role === 'user' || msg.role === 'system')) {
+      if (index < lastUserIndex) {
         const normalizedText = this._getNormalizedTextContent(msg.content);
-        if (normalizedEphemeralSet.has(normalizedText)) {
-          logger.debug(`[Translator] Filtering historical ephemeral message at index ${index}: "${normalizedText.substring(0, 40)}..."`);
-          return false;
+        if (msg.role === 'user' && userPatterns.length > 0) {
+          if (userPatterns.some(pattern => normalizedText.includes(pattern))) {
+            logger.debug(`[Translator] Filtering historical ephemeral user message at index ${index}: "${normalizedText.substring(0, 40)}..."`);
+            return false;
+          }
+        } else if (msg.role === 'system' && systemPatterns.length > 0) {
+          if (systemPatterns.some(pattern => normalizedText.includes(pattern))) {
+            logger.debug(`[Translator] Filtering historical ephemeral system message at index ${index}: "${normalizedText.substring(0, 40)}..."`);
+            return false;
+          }
         }
       }
       return true;

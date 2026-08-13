@@ -789,33 +789,35 @@ describe('Claude Translator Custom System Instruction Injection', () => {
 
 describe('Claude Translator Ephemeral Messages Filtering', () => {
   beforeEach(() => {
-    config.ephemeralMessages = [
-      '[Your previous response had no visible output. Please continue and produce a user-visible response.]'
+    config.ephemeralUserMessages = [
+      'no visible output'
+    ];
+    config.ephemeralSystemMessages = [
+      'temp system context'
     ];
   });
 
   afterEach(() => {
-    config.ephemeralMessages = [];
+    config.ephemeralUserMessages = [];
+    config.ephemeralSystemMessages = [];
   });
 
-  it('filters historical ephemeral messages before the last user turn', () => {
+  it('filters historical ephemeral user and system messages using fuzzy substring matching', () => {
     const claudePayload = {
       model: 'gemini-3.5-flash',
       messages: [
         { role: 'user', content: '[Your previous response had no visible output. Please continue and produce a user-visible response.]' },
+        { role: 'system', content: 'This contains temp system context for historical turn.' },
         { role: 'assistant', content: 'Understood.' },
-        { role: 'user', content: '[Your previous response had no visible output. Please continue and produce a user-visible response.]' },
-        { role: 'assistant', content: 'Here is the output.' },
         { role: 'user', content: 'What is the capital of France?' }
       ]
     } as any;
 
     const result = translator.translateClaudeToGoogle(claudePayload);
-    // Historical ephemeral messages should be filtered out
-    // Remaining messages should be: assistant "Here is the output.", user "What is the capital of France?"
     const textParts = result.googleRequest.contents.flatMap((c: any) => c.parts.map((p: any) => p.text));
-    expect(textParts).not.toContain('[Your previous response had no visible output. Please continue and produce a user-visible response.]');
-    expect(textParts).toContain('What is the capital of France?');
+    expect(textParts.some((t: string) => t.includes('no visible output'))).toBe(false);
+    expect(textParts.some((t: string) => t.includes('temp system context'))).toBe(false);
+    expect(textParts.some((t: string) => t.includes('What is the capital of France?'))).toBe(true);
   });
 
   it('preserves ephemeral message if it is the latest user turn', () => {
@@ -830,6 +832,23 @@ describe('Claude Translator Ephemeral Messages Filtering', () => {
 
     const result = translator.translateClaudeToGoogle(claudePayload);
     const textParts = result.googleRequest.contents.flatMap((c: any) => c.parts.map((p: any) => p.text));
-    expect(textParts).toContain('[Your previous response had no visible output. Please continue and produce a user-visible response.]');
+    expect(textParts.some((t: string) => t.includes('no visible output'))).toBe(true);
+  });
+
+  it('does not filter system message if pattern belongs to user and vice versa', () => {
+    config.ephemeralUserMessages = ['only_user_pattern'];
+    config.ephemeralSystemMessages = ['only_system_pattern'];
+
+    const claudePayload = {
+      model: 'gemini-3.5-flash',
+      messages: [
+        { role: 'system', content: 'This has only_user_pattern inside system message' },
+        { role: 'user', content: 'Hello' }
+      ]
+    } as any;
+
+    const result = translator.translateClaudeToGoogle(claudePayload);
+    const textParts = result.googleRequest.contents.flatMap((c: any) => c.parts.map((p: any) => p.text));
+    expect(textParts.some((t: string) => t.includes('only_user_pattern'))).toBe(true);
   });
 });

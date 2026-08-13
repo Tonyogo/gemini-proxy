@@ -22,7 +22,8 @@ class AdminController {
         timeZone: config.timeZone,
         logRetentionDays: config.logRetentionDays,
         countTokensModel: config.countTokensModel,
-        ephemeralMessages: config.ephemeralMessages
+        ephemeralUserMessages: config.ephemeralUserMessages,
+        ephemeralSystemMessages: config.ephemeralSystemMessages
       }
     });
   }
@@ -87,7 +88,8 @@ class AdminController {
           timeZone: config.timeZone,
           logRetentionDays: config.logRetentionDays,
           countTokensModel: config.countTokensModel,
-        ephemeralMessages: config.ephemeralMessages
+        ephemeralUserMessages: config.ephemeralUserMessages,
+        ephemeralSystemMessages: config.ephemeralSystemMessages
         }
       });
     } catch (err: any) {
