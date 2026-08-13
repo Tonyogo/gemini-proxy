@@ -135,6 +135,7 @@ export const zh: Translations = {
     toggleKv: "📋 切换为可视化 KV 编辑",
     sourceModel: "源模型 (Claude/Incoming)",
     targetModel: "重定向至 (Gemini Upstream)",
+    highToggleTooltip: "一键切换/添加 -high 思考模式尾缀",
     emptyMappings: "暂无模型映射规则。点击下方按钮添加。"
   },
   concurrentTest: {

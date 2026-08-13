@@ -96,6 +96,12 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
     updateRawFromEntries(newEntries);
   };
 
+  const handleToggleHigh = (id: string, target: string) => {
+    const trimmed = target.trim();
+    const newTarget = trimmed.endsWith('-high') ? trimmed.slice(0, -5) : (trimmed ? `${trimmed}-high` : '');
+    handleEntryChange(id, 'target', newTarget);
+  };
+
   const handleRawJsonChange = (val: string) => {
     setModelMappingsRaw(val);
     try {
@@ -348,6 +354,18 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                             placeholder={t('config.targetModel')}
                             className="flex-1 bg-slate-900 border border-slate-700/80 rounded-lg p-2 text-xs text-amber-300 font-mono focus:outline-none focus:border-amber-500"
                           />
+                          <button
+                            type="button"
+                            onClick={() => handleToggleHigh(entry.id, entry.target)}
+                            className={`px-2.5 py-2 text-[10px] font-bold rounded-lg transition-all border shrink-0 ${
+                              entry.target.trim().endsWith('-high')
+                                ? 'bg-amber-500/15 border-amber-500/40 text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.08)]'
+                                : 'bg-slate-900 border-slate-700/60 text-slate-400 hover:text-slate-300 hover:border-slate-600'
+                            }`}
+                            title={t('config.highToggleTooltip')}
+                          >
+                            ⚡ HIGH
+                          </button>
                           <button
                             type="button"
                             onClick={() => handleRemoveMapping(entry.id)}

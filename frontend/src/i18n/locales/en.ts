@@ -133,6 +133,7 @@ export const en = {
     toggleKv: "📋 Switch to Visual KV Editor",
     sourceModel: "Incoming Model (Source)",
     targetModel: "Gemini Upstream Model (Target)",
+    highToggleTooltip: "Toggle -high thinking suffix",
     emptyMappings: "No model mapping rules added. Click below to add one."
   },
   concurrentTest: {
