@@ -214,44 +214,13 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
     volumeAreaPath = `M ${getX(0)},${yMax} L ${points.join(' L ')} L ${getX(N - 1)},${yMax} Z`;
   }
 
-  // Build Per-Model Line paths for Latency (Solid for contiguous segments, Dashed across gaps)
-  const getModelLatencyPaths = (modelName: string) => {
-    let solidPaths: string[] = [];
-    let dashedPaths: string[] = [];
-
-    const validIndices = timeSeries
-      .map((p, i) => (p.modelDurations?.[modelName] !== undefined ? i : -1))
-      .filter(i => i !== -1);
-
-    if (validIndices.length > 0) {
-      let currentSegment: number[] = [validIndices[0]];
-
-      for (let k = 1; k < validIndices.length; k++) {
-        const prevIdx = validIndices[k - 1];
-        const currIdx = validIndices[k];
-
-        if (currIdx === prevIdx + 1) {
-          currentSegment.push(currIdx);
-        } else {
-          if (currentSegment.length > 1) {
-            const pts = currentSegment.map(idx => `${getX(idx)},${getYLatency(timeSeries[idx].modelDurations![modelName])}`);
-            solidPaths.push(`M ${pts.join(' L ')}`);
-          }
-          currentSegment = [currIdx];
-
-          const p1 = `${getX(prevIdx)},${getYLatency(timeSeries[prevIdx].modelDurations![modelName])}`;
-          const p2 = `${getX(currIdx)},${getYLatency(timeSeries[currIdx].modelDurations![modelName])}`;
-          dashedPaths.push(`M ${p1} L ${p2}`);
-        }
-      }
-
-      if (currentSegment.length > 1) {
-        const pts = currentSegment.map(idx => `${getX(idx)},${getYLatency(timeSeries[idx].modelDurations![modelName])}`);
-        solidPaths.push(`M ${pts.join(' L ')}`);
-      }
-    }
-
-    return { solidPaths, dashedPaths, validIndices };
+  const getModelLatencyPath = (modelName: string) => {
+    if (N === 0) return '';
+    const points = timeSeries.map((p, i) => {
+      const dur = p.modelDurations?.[modelName] || 0;
+      return `${getX(i)},${getYLatency(dur)}`;
+    });
+    return `M ${points.join(' L ')}`;
   };
 
   return (
@@ -518,102 +487,65 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                   strokeWidth="1.5"
                 />
 
-                {/* Per-Model Lines (Fallback to Overall if no per-model latency) */}
+                {/* Polylines for each active model */}
                 {allModels.length > 0 ? (
-                  allModels.map((model, mIdx) => {
-                    const mColor = getModelColor(model, mIdx);
-                    const { solidPaths, dashedPaths, validIndices } = getModelLatencyPaths(model);
-
+                  allModels.map((model, idx) => {
+                    const mPath = getModelLatencyPath(model);
+                    if (!mPath) return null;
                     return (
-                      <g key={model}>
-                        {solidPaths.map((pD, sIdx) => (
-                          <path
-                            key={`solid-${model}-${sIdx}`}
-                            d={pD}
-                            fill="none"
-                            stroke={mColor}
-                            strokeWidth="2.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        ))}
-                        {dashedPaths.map((pD, dIdx) => (
-                          <path
-                            key={`dashed-${model}-${dIdx}`}
-                            d={pD}
-                            fill="none"
-                            stroke={mColor}
-                            strokeWidth="1.5"
-                            strokeDasharray="4 4"
-                            strokeOpacity="0.5"
-                            strokeLinecap="round"
-                          />
-                        ))}
-                        {validIndices.map(i => (
-                          <circle
-                            key={`node-${model}-${i}`}
-                            cx={getX(i)}
-                            cy={getYLatency(timeSeries[i].modelDurations![model])}
-                            r="3"
-                            fill={mColor}
-                            stroke="#1e293b"
-                            strokeWidth="1"
-                          />
-                        ))}
-                      </g>
+                      <path
+                        key={model}
+                        d={mPath}
+                        fill="none"
+                        stroke={getModelColor(model, idx)}
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
                     );
                   })
                 ) : (
-                  <>
-                    <defs>
-                      <linearGradient id="latencyLineGrad" x1="0" y1="0" x2="1" y2="0">
-                        <stop offset="0%" stopColor="#8b5cf6" />
-                        <stop offset="100%" stopColor="#f59e0b" />
-                      </linearGradient>
-                    </defs>
-                    {/* Overall Solid & Dashed Lines */}
-                    {(() => {
-                      const { solidPaths, dashedPaths, validIndices } = getModelLatencyPaths('__overall');
+                  <path
+                    d={`M ${timeSeries.map((p, i) => `${getX(i)},${getYLatency(p.avgDurationMs)}`).join(' L ')}`}
+                    fill="none"
+                    stroke="#a855f7"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                )}
+
+                {/* Node points for each active model across all time points */}
+                {allModels.length > 0 ? (
+                  allModels.map((model, mIdx) => {
+                    const mColor = getModelColor(model, mIdx);
+                    return timeSeries.map((p, i) => {
+                      const dur = p.modelDurations?.[model] || 0;
                       return (
-                        <>
-                          {solidPaths.map((pathD, idx) => (
-                            <path
-                              key={`solid-${idx}`}
-                              d={pathD}
-                              fill="none"
-                              stroke="url(#latencyLineGrad)"
-                              strokeWidth="2.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                            />
-                          ))}
-                          {dashedPaths.map((pathD, idx) => (
-                            <path
-                              key={`dashed-${idx}`}
-                              d={pathD}
-                              fill="none"
-                              stroke="#94a3b8"
-                              strokeWidth="1.5"
-                              strokeDasharray="4 4"
-                              strokeOpacity="0.6"
-                              strokeLinecap="round"
-                            />
-                          ))}
-                          {validIndices.map(i => (
-                            <circle
-                              key={i}
-                              cx={getX(i)}
-                              cy={getYLatency(timeSeries[i].avgDurationMs)}
-                              r="3.5"
-                              fill="#f59e0b"
-                              stroke="#1e293b"
-                              strokeWidth="1.5"
-                            />
-                          ))}
-                        </>
+                        <circle
+                          key={`latency-${model}-${i}`}
+                          cx={getX(i)}
+                          cy={getYLatency(dur)}
+                          r="2.5"
+                          fill={mColor}
+                          stroke="#1e293b"
+                          strokeWidth="1"
+                        />
                       );
-                    })()}
-                  </>
+                    });
+                  })
+                ) : (
+                  timeSeries.map((p, i) => (
+                    <circle
+                      key={`latency-overall-${i}`}
+                      cx={getX(i)}
+                      cy={getYLatency(p.avgDurationMs)}
+                      r="2.5"
+                      fill="#a855f7"
+                      stroke="#1e293b"
+                      strokeWidth="1"
+                    />
+                  ))
                 )}
 
                 {/* X-axis labels */}
@@ -674,8 +606,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                         </span>
                       </div>
                       {allModels.map((model, mIdx) => {
-                        const mDur = timeSeries[hoveredIndex].modelDurations?.[model];
-                        if (mDur === undefined) return null;
+                        const mDur = timeSeries[hoveredIndex].modelDurations?.[model] || 0;
                         const mColor = getModelColor(model, mIdx);
                         return (
                           <div key={model} className="flex justify-between space-x-4">
