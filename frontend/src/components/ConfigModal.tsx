@@ -23,6 +23,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
   const [logLevel, setLogLevel] = useState<string>('info');
   const [logRetentionDays, setLogRetentionDays] = useState<number>(3);
   const [countTokensModel, setCountTokensModel] = useState<string>('');
+  const [ephemeralMessagesText, setEphemeralMessagesText] = useState<string>('');
 
   // KV Editor and Raw JSON Sync States
   const [mappingEntries, setMappingEntries] = useState<MappingEntry[]>([]);
@@ -48,6 +49,10 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
           setLogLevel(data.config.logLevel || 'info');
           setLogRetentionDays(data.config.logRetentionDays || 3);
           setCountTokensModel(data.config.countTokensModel || '');
+          const ephMsgs = Array.isArray(data.config.ephemeralMessages)
+            ? data.config.ephemeralMessages.join('\n')
+            : '';
+          setEphemeralMessagesText(ephMsgs);
 
           const mappings = data.config.modelMappings || {};
           setModelMappingsRaw(JSON.stringify(mappings, null, 2));
@@ -144,6 +149,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
           logLevel,
           logRetentionDays,
           countTokensModel,
+          ephemeralMessages: ephemeralMessagesText.split('\n').map(s => s.trim()).filter(Boolean),
           modelMappings: parsedMappings
         })
       });
@@ -284,6 +290,18 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                   className="w-full bg-slate-900 border border-slate-700/80 rounded-lg p-2.5 text-xs text-slate-100 font-mono focus:outline-none focus:border-blue-500"
                 />
                 <p className="text-[10px] text-slate-400">{t('config.countTokensDesc')}</p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-200 block">EPHEMERAL_MESSAGES</label>
+                <textarea
+                  rows={2}
+                  value={ephemeralMessagesText}
+                  onChange={(e) => setEphemeralMessagesText(e.target.value)}
+                  placeholder={t('config.ephemeralMessagesPlaceholder')}
+                  className="w-full bg-slate-900 border border-slate-700/80 rounded-lg p-2.5 text-xs text-slate-100 font-mono focus:outline-none focus:border-blue-500 leading-relaxed"
+                />
+                <p className="text-[10px] text-slate-400">{t('config.ephemeralMessagesDesc')}</p>
               </div>
 
               <div className="space-y-1.5">

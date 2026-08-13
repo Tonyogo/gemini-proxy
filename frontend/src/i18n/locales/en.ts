@@ -115,6 +115,8 @@ export const en = {
     systemRoleDesc: "Convert inline system messages into systemInstruction.",
     logRetentionDesc: "Days to keep log files before auto-deletion (0 to disable).",
     countTokensDesc: "Fixed model override to use specifically for /v1/messages/count_tokens requests.",
+    ephemeralMessagesDesc: "Prompt messages active only for current turn, automatically cleaned up when historical (one per line).",
+    ephemeralMessagesPlaceholder: "Enter prompt patterns to clean up historically, one per line...",
     customInstructionPlaceholder: "Supplementary instructions injected into all upstream calls...",
     mappingsPlaceholder: '{ "gemini-pro-latest": "gemini-flash-latest" }',
     confirmReset: "Are you sure you want to reset all configurations to .env defaults?",

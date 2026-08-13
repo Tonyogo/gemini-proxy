@@ -21,7 +21,8 @@ class AdminController {
         enableUi: config.enableUi,
         timeZone: config.timeZone,
         logRetentionDays: config.logRetentionDays,
-        countTokensModel: config.countTokensModel
+        countTokensModel: config.countTokensModel,
+        ephemeralMessages: config.ephemeralMessages
       }
     });
   }
@@ -85,7 +86,8 @@ class AdminController {
           modelMappings: config.modelMappings,
           timeZone: config.timeZone,
           logRetentionDays: config.logRetentionDays,
-          countTokensModel: config.countTokensModel
+          countTokensModel: config.countTokensModel,
+        ephemeralMessages: config.ephemeralMessages
         }
       });
     } catch (err: any) {
