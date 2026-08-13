@@ -9,6 +9,7 @@ export interface TimeSeriesPoint {
   error: number;
   avgDurationMs: number;
   models: Record<string, number>;
+  modelDurations?: Record<string, number>;
 }
 
 class MetricsService {
@@ -19,7 +20,18 @@ class MetricsService {
   private durationCount = 0;
   private isInitialized = false;
 
-  private timeSeriesMap: Map<string, { total: number; success: number; error: number; totalDuration: number; durationCount: number; models: Record<string, number> }> = new Map();
+  private timeSeriesMap: Map<
+    string,
+    {
+      total: number;
+      success: number;
+      error: number;
+      totalDuration: number;
+      durationCount: number;
+      models: Record<string, number>;
+      modelDurations: Record<string, { totalDuration: number; durationCount: number }>;
+    }
+  > = new Map();
 
   private getDebugDir(): string {
     const logsDir = config.transactionLogsDir || 'logs';
@@ -55,7 +67,7 @@ class MetricsService {
   private updateBucket(hourKey: string, isError: boolean, duration?: number | null, modelName?: string | null): void {
     let bucket = this.timeSeriesMap.get(hourKey);
     if (!bucket) {
-      bucket = { total: 0, success: 0, error: 0, totalDuration: 0, durationCount: 0, models: {} };
+      bucket = { total: 0, success: 0, error: 0, totalDuration: 0, durationCount: 0, models: {}, modelDurations: {} };
       this.timeSeriesMap.set(hourKey, bucket);
     }
 
@@ -69,6 +81,14 @@ class MetricsService {
       if (duration !== undefined && duration !== null && typeof duration === 'number') {
         bucket.totalDuration += duration;
         bucket.durationCount++;
+
+        if (modelName) {
+          if (!bucket.modelDurations[modelName]) {
+            bucket.modelDurations[modelName] = { totalDuration: 0, durationCount: 0 };
+          }
+          bucket.modelDurations[modelName].totalDuration += duration;
+          bucket.modelDurations[modelName].durationCount++;
+        }
       }
 
       if (modelName) {
@@ -206,13 +226,23 @@ class MetricsService {
         rangeTotalDurationMs += bucket.totalDuration;
         rangeDurationCount += bucket.durationCount;
 
+        const modelAvgDurations: Record<string, number> = {};
+        if (bucket.modelDurations) {
+          for (const [mName, mDur] of Object.entries(bucket.modelDurations)) {
+            if (mDur.durationCount > 0) {
+              modelAvgDurations[mName] = Math.round(mDur.totalDuration / mDur.durationCount);
+            }
+          }
+        }
+
         return {
           time,
           total: bucket.total,
           success: bucket.success,
           error: bucket.error,
           avgDurationMs: bucket.durationCount > 0 ? Math.round(bucket.totalDuration / bucket.durationCount) : 0,
-          models: bucket.models
+          models: bucket.models,
+          modelDurations: modelAvgDurations
         };
       } else {
         return {
@@ -221,7 +251,8 @@ class MetricsService {
           success: 0,
           error: 0,
           avgDurationMs: 0,
-          models: {}
+          models: {},
+          modelDurations: {}
         };
       }
     });

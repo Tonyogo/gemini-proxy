@@ -8,6 +8,7 @@ interface TimeSeriesPoint {
   error: number;
   avgDurationMs: number;
   models?: Record<string, number>;
+  modelDurations?: Record<string, number>;
 }
 
 export default function DashboardView({ adminKey }: { adminKey: string }) {
@@ -111,7 +112,15 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
   const getYVolume = (v: number) => yMax - (v / volumeLimit) * plottingHeight;
 
   // Latency Chart calculations
-  const maxLatency = Math.max(...timeSeries.map(p => p.avgDurationMs), 0);
+  let maxLatency = 0;
+  timeSeries.forEach(p => {
+    if (p.modelDurations) {
+      Object.values(p.modelDurations).forEach(dur => {
+        if (dur > maxLatency) maxLatency = dur;
+      });
+    }
+    if (p.avgDurationMs > maxLatency) maxLatency = p.avgDurationMs;
+  });
   const latencyLimit = maxLatency === 0 ? 100 : Math.ceil(maxLatency * 1.15);
   const getYLatency = (v: number) => yMax - (v / latencyLimit) * plottingHeight;
 
@@ -205,43 +214,45 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
     volumeAreaPath = `M ${getX(0)},${yMax} L ${points.join(' L ')} L ${getX(N - 1)},${yMax} Z`;
   }
 
-  // Build Line paths for Latency (Solid for contiguous segments, Dashed for interpolations across no-data points)
-  let latencySolidPaths: string[] = [];
-  let latencyDashedPaths: string[] = [];
-  const validLatencyIndices = timeSeries
-    .map((p, i) => (p.total > 0 ? i : -1))
-    .filter(i => i !== -1);
+  // Build Per-Model Line paths for Latency (Solid for contiguous segments, Dashed across gaps)
+  const getModelLatencyPaths = (modelName: string) => {
+    let solidPaths: string[] = [];
+    let dashedPaths: string[] = [];
 
-  if (validLatencyIndices.length > 0) {
-    let currentSegment: number[] = [validLatencyIndices[0]];
+    const validIndices = timeSeries
+      .map((p, i) => (p.modelDurations?.[modelName] !== undefined ? i : -1))
+      .filter(i => i !== -1);
 
-    for (let k = 1; k < validLatencyIndices.length; k++) {
-      const prevIdx = validLatencyIndices[k - 1];
-      const currIdx = validLatencyIndices[k];
+    if (validIndices.length > 0) {
+      let currentSegment: number[] = [validIndices[0]];
 
-      if (currIdx === prevIdx + 1) {
-        // Consecutive hours with data: extend solid line segment
-        currentSegment.push(currIdx);
-      } else {
-        // Gap present: finalize existing solid segment (if it has >= 2 points)
-        if (currentSegment.length > 1) {
-          const pts = currentSegment.map(idx => `${getX(idx)},${getYLatency(timeSeries[idx].avgDurationMs)}`);
-          latencySolidPaths.push(`M ${pts.join(' L ')}`);
+      for (let k = 1; k < validIndices.length; k++) {
+        const prevIdx = validIndices[k - 1];
+        const currIdx = validIndices[k];
+
+        if (currIdx === prevIdx + 1) {
+          currentSegment.push(currIdx);
+        } else {
+          if (currentSegment.length > 1) {
+            const pts = currentSegment.map(idx => `${getX(idx)},${getYLatency(timeSeries[idx].modelDurations![modelName])}`);
+            solidPaths.push(`M ${pts.join(' L ')}`);
+          }
+          currentSegment = [currIdx];
+
+          const p1 = `${getX(prevIdx)},${getYLatency(timeSeries[prevIdx].modelDurations![modelName])}`;
+          const p2 = `${getX(currIdx)},${getYLatency(timeSeries[currIdx].modelDurations![modelName])}`;
+          dashedPaths.push(`M ${p1} L ${p2}`);
         }
-        currentSegment = [currIdx];
+      }
 
-        // Draw dashed interpolation line bridging the gap between prevIdx and currIdx
-        const p1 = `${getX(prevIdx)},${getYLatency(timeSeries[prevIdx].avgDurationMs)}`;
-        const p2 = `${getX(currIdx)},${getYLatency(timeSeries[currIdx].avgDurationMs)}`;
-        latencyDashedPaths.push(`M ${p1} L ${p2}`);
+      if (currentSegment.length > 1) {
+        const pts = currentSegment.map(idx => `${getX(idx)},${getYLatency(timeSeries[idx].modelDurations![modelName])}`);
+        solidPaths.push(`M ${pts.join(' L ')}`);
       }
     }
 
-    if (currentSegment.length > 1) {
-      const pts = currentSegment.map(idx => `${getX(idx)},${getYLatency(timeSeries[idx].avgDurationMs)}`);
-      latencySolidPaths.push(`M ${pts.join(' L ')}`);
-    }
-  }
+    return { solidPaths, dashedPaths, validIndices };
+  };
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto font-sans">
@@ -459,14 +470,28 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
 
         {/* Chart 2: Average Latency Trend */}
         <div className="bg-slate-800/80 backdrop-blur border border-slate-700/60 rounded-xl p-5 shadow-lg relative flex flex-col h-[320px]">
-          <h3 className="text-sm font-bold text-slate-200 mb-4 tracking-wide uppercase text-xs flex items-center justify-between">
-            <span>{t('dashboard.latencyChartTitle')}</span>
-            {hoveredIndex !== null && timeSeries[hoveredIndex] && (
-              <span className="text-purple-400 font-mono text-xs lowercase">
-                {timeSeries[hoveredIndex].total > 0 ? `${timeSeries[hoveredIndex].avgDurationMs} ms` : t('dashboard.noSampling')}
-              </span>
+          <div className="mb-2">
+            <h3 className="text-sm font-bold text-slate-200 mb-2 tracking-wide uppercase text-[10px] flex items-center justify-between">
+              <span>{t('dashboard.latencyChartTitle')}</span>
+              {hoveredIndex !== null && timeSeries[hoveredIndex] && (
+                <span className="text-purple-400 font-mono text-xs lowercase">
+                  {timeSeries[hoveredIndex].total > 0 ? `${timeSeries[hoveredIndex].avgDurationMs} ms` : t('dashboard.noSampling')}
+                </span>
+              )}
+            </h3>
+
+            {/* Model Legend for Latency */}
+            {allModels.length > 0 && (
+              <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-slate-400">
+                {allModels.map((model, idx) => (
+                  <div key={model} className="flex items-center space-x-1 font-mono">
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: getModelColor(model, idx) }}></span>
+                    <span className="truncate max-w-[120px]" title={model}>{model}</span>
+                  </div>
+                ))}
+              </div>
             )}
-          </h3>
+          </div>
 
           {N === 0 ? (
             <div className="flex-1 flex items-center justify-center text-slate-500 text-xs italic bg-slate-900/40 rounded-lg border border-slate-800/60">
@@ -480,13 +505,6 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                 onMouseMove={handleMouseMove}
                 onMouseLeave={handleMouseLeave}
               >
-                <defs>
-                  <linearGradient id="latencyLineGrad" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor="#8b5cf6" />
-                    <stop offset="100%" stopColor="#f59e0b" />
-                  </linearGradient>
-                </defs>
-
                 {/* Gridlines */}
                 {renderGridLines(latencyLimit, v => `${v}ms`)}
 
@@ -500,52 +518,107 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                   strokeWidth="1.5"
                 />
 
-                {/* Solid Line Segments for Latency */}
-                {latencySolidPaths.map((pathD, idx) => (
-                  <path
-                    key={`solid-${idx}`}
-                    d={pathD}
-                    fill="none"
-                    stroke="url(#latencyLineGrad)"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                ))}
+                {/* Per-Model Lines (Fallback to Overall if no per-model latency) */}
+                {allModels.length > 0 ? (
+                  allModels.map((model, mIdx) => {
+                    const mColor = getModelColor(model, mIdx);
+                    const { solidPaths, dashedPaths, validIndices } = getModelLatencyPaths(model);
 
-                {/* Dashed Line Segments across No-Data Gaps */}
-                {latencyDashedPaths.map((pathD, idx) => (
-                  <path
-                    key={`dashed-${idx}`}
-                    d={pathD}
-                    fill="none"
-                    stroke="#94a3b8"
-                    strokeWidth="1.5"
-                    strokeDasharray="4 4"
-                    strokeOpacity="0.6"
-                    strokeLinecap="round"
-                  />
-                ))}
-
-                {/* Node points ONLY for valid data hours */}
-                {timeSeries.map((p, i) => (
-                  p.total > 0 ? (
-                    <circle
-                      key={i}
-                      cx={getX(i)}
-                      cy={getYLatency(p.avgDurationMs)}
-                      r="3.5"
-                      fill="#f59e0b"
-                      stroke="#1e293b"
-                      strokeWidth="1.5"
-                    />
-                  ) : null
-                ))}
+                    return (
+                      <g key={model}>
+                        {solidPaths.map((pD, sIdx) => (
+                          <path
+                            key={`solid-${model}-${sIdx}`}
+                            d={pD}
+                            fill="none"
+                            stroke={mColor}
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        ))}
+                        {dashedPaths.map((pD, dIdx) => (
+                          <path
+                            key={`dashed-${model}-${dIdx}`}
+                            d={pD}
+                            fill="none"
+                            stroke={mColor}
+                            strokeWidth="1.5"
+                            strokeDasharray="4 4"
+                            strokeOpacity="0.5"
+                            strokeLinecap="round"
+                          />
+                        ))}
+                        {validIndices.map(i => (
+                          <circle
+                            key={`node-${model}-${i}`}
+                            cx={getX(i)}
+                            cy={getYLatency(timeSeries[i].modelDurations![model])}
+                            r="3"
+                            fill={mColor}
+                            stroke="#1e293b"
+                            strokeWidth="1"
+                          />
+                        ))}
+                      </g>
+                    );
+                  })
+                ) : (
+                  <>
+                    <defs>
+                      <linearGradient id="latencyLineGrad" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor="#8b5cf6" />
+                        <stop offset="100%" stopColor="#f59e0b" />
+                      </linearGradient>
+                    </defs>
+                    {/* Overall Solid & Dashed Lines */}
+                    {(() => {
+                      const { solidPaths, dashedPaths, validIndices } = getModelLatencyPaths('__overall');
+                      return (
+                        <>
+                          {solidPaths.map((pathD, idx) => (
+                            <path
+                              key={`solid-${idx}`}
+                              d={pathD}
+                              fill="none"
+                              stroke="url(#latencyLineGrad)"
+                              strokeWidth="2.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          ))}
+                          {dashedPaths.map((pathD, idx) => (
+                            <path
+                              key={`dashed-${idx}`}
+                              d={pathD}
+                              fill="none"
+                              stroke="#94a3b8"
+                              strokeWidth="1.5"
+                              strokeDasharray="4 4"
+                              strokeOpacity="0.6"
+                              strokeLinecap="round"
+                            />
+                          ))}
+                          {validIndices.map(i => (
+                            <circle
+                              key={i}
+                              cx={getX(i)}
+                              cy={getYLatency(timeSeries[i].avgDurationMs)}
+                              r="3.5"
+                              fill="#f59e0b"
+                              stroke="#1e293b"
+                              strokeWidth="1.5"
+                            />
+                          ))}
+                        </>
+                      );
+                    })()}
+                  </>
+                )}
 
                 {/* X-axis labels */}
                 {labelIndices.map(idx => {
                   const rawTime = timeSeries[idx].time;
-                  // If formatted as "YYYY-MM-DD HH:00", split and only show "HH:00" to keep labels clean
                   const displayLabel = rawTime.includes(' ') ? rawTime.split(' ')[1] : rawTime;
                   return (
                     <text
@@ -573,25 +646,12 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                     className="opacity-80"
                   />
                 )}
-
-                {/* Highlighted active node dot (if data exists for this hour) */}
-                {hoveredIndex !== null && timeSeries[hoveredIndex] && timeSeries[hoveredIndex].total > 0 && (
-                  <circle
-                    cx={getX(hoveredIndex)}
-                    cy={getYLatency(timeSeries[hoveredIndex].avgDurationMs)}
-                    r="5.5"
-                    fill="#f59e0b"
-                    stroke="#1e293b"
-                    strokeWidth="2"
-                    className="animate-pulse"
-                  />
-                )}
               </svg>
 
               {/* Synchronized Hover Tooltip Overlay */}
               {hoveredIndex !== null && timeSeries[hoveredIndex] && (
                 <div
-                  className="absolute z-10 bg-slate-900/95 border border-slate-700/80 text-[11px] p-2 rounded-lg shadow-xl pointer-events-none space-y-1 backdrop-blur-sm"
+                  className="absolute z-10 bg-slate-900/95 border border-slate-700/80 text-[11px] p-2 rounded-lg shadow-xl pointer-events-none space-y-1 backdrop-blur-sm min-w-[140px]"
                   style={{
                     left: `${((getX(hoveredIndex) - paddingLeft) / plottingWidth) * 85 + 8}%`,
                     top: '15%',
@@ -601,12 +661,36 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                   <div className="font-bold text-slate-300 font-mono border-b border-slate-800 pb-0.5 mb-1 text-center">
                     {timeSeries[hoveredIndex].time}
                   </div>
-                  <div className="flex justify-between space-x-4">
-                    <span className="text-slate-400">Avg Latency:</span>
-                    <span className="font-bold text-amber-400 font-mono">
-                      {timeSeries[hoveredIndex].total > 0 ? `${timeSeries[hoveredIndex].avgDurationMs} ms` : t('dashboard.noSampling')}
-                    </span>
-                  </div>
+                  {timeSeries[hoveredIndex].total === 0 ? (
+                    <div className="text-center text-slate-500 italic py-1">
+                      {t('dashboard.noSampling')}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex justify-between space-x-4 border-b border-slate-800/80 pb-1 mb-1">
+                        <span className="text-slate-400 font-semibold">Overall Avg:</span>
+                        <span className="font-bold text-purple-400 font-mono">
+                          {timeSeries[hoveredIndex].avgDurationMs} ms
+                        </span>
+                      </div>
+                      {allModels.map((model, mIdx) => {
+                        const mDur = timeSeries[hoveredIndex].modelDurations?.[model];
+                        if (mDur === undefined) return null;
+                        const mColor = getModelColor(model, mIdx);
+                        return (
+                          <div key={model} className="flex justify-between space-x-4">
+                            <span className="flex items-center space-x-1 truncate max-w-[100px]" style={{ color: mColor }}>
+                              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: mColor }}></span>
+                              <span className="truncate">{model}:</span>
+                            </span>
+                            <span className="font-bold font-mono" style={{ color: mColor }}>
+                              {mDur} ms
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </>
+                  )}
                 </div>
               )}
             </div>
