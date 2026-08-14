@@ -583,7 +583,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
               {/* Synchronized Hover Tooltip Overlay */}
               {hoveredIndex !== null && timeSeries[hoveredIndex] && (
                 <div
-                  className="absolute z-10 bg-slate-900/95 border border-slate-700/80 text-[11px] p-2 rounded-lg shadow-xl pointer-events-none space-y-1 backdrop-blur-sm min-w-[140px]"
+                  className="absolute z-10 bg-slate-900/95 border border-slate-700/80 text-[11px] p-2.5 rounded-lg shadow-xl pointer-events-none space-y-1 backdrop-blur-sm min-w-[180px] max-w-[280px]"
                   style={{
                     left: `${((getX(hoveredIndex) - paddingLeft) / plottingWidth) * 85 + 8}%`,
                     top: '15%',
@@ -600,8 +600,8 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                   ) : (
                     <>
                       <div className="flex justify-between space-x-4 border-b border-slate-800/80 pb-1 mb-1">
-                        <span className="text-slate-400 font-semibold">Overall Avg:</span>
-                        <span className="font-bold text-purple-400 font-mono">
+                        <span className="text-slate-400 font-semibold shrink-0">Overall Avg:</span>
+                        <span className="font-bold text-purple-400 font-mono shrink-0">
                           {timeSeries[hoveredIndex].avgDurationMs} ms
                         </span>
                       </div>
@@ -609,12 +609,12 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                         const mDur = timeSeries[hoveredIndex].modelDurations?.[model] || 0;
                         const mColor = getModelColor(model, mIdx);
                         return (
-                          <div key={model} className="flex justify-between space-x-4">
-                            <span className="flex items-center space-x-1 truncate max-w-[100px]" style={{ color: mColor }}>
+                          <div key={model} className="flex items-center justify-between gap-3" title={model}>
+                            <span className="flex items-center space-x-1.5 min-w-0 text-slate-300" style={{ color: mColor }}>
                               <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: mColor }}></span>
-                              <span className="truncate">{model}:</span>
+                              <span className="font-mono break-all leading-tight">{model}:</span>
                             </span>
-                            <span className="font-bold font-mono" style={{ color: mColor }}>
+                            <span className="font-bold font-mono shrink-0" style={{ color: mColor }}>
                               {mDur} ms
                             </span>
                           </div>
@@ -920,7 +920,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
               {/* Synchronized Hover Tooltip Overlay */}
               {hoveredIndex !== null && timeSeries[hoveredIndex] && (
                 <div
-                  className="absolute z-10 bg-slate-900/95 border border-slate-700/80 text-[11px] p-2 rounded-lg shadow-xl pointer-events-none space-y-1 backdrop-blur-sm min-w-[140px]"
+                  className="absolute z-10 bg-slate-900/95 border border-slate-700/80 text-[11px] p-2.5 rounded-lg shadow-xl pointer-events-none space-y-1 backdrop-blur-sm min-w-[180px] max-w-[280px]"
                   style={{
                     left: `${((getX(hoveredIndex) - paddingLeft) / plottingWidth) * 85 + 8}%`,
                     top: '15%',
@@ -937,12 +937,12 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                       const count = timeSeries[hoveredIndex].models?.[model] || 0;
                       const mColor = getModelColor(model, mIdx);
                       return (
-                        <div key={model} className="flex items-center justify-between space-x-4">
-                          <div className="flex items-center space-x-1.5 text-slate-400">
+                        <div key={model} className="flex items-center justify-between gap-3" title={model}>
+                          <div className="flex items-center space-x-1.5 min-w-0 text-slate-400">
                             <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: mColor }}></span>
-                            <span className="font-mono truncate max-w-[100px]">{model}:</span>
+                            <span className="font-mono break-all leading-tight">{model}:</span>
                           </div>
-                          <span className="font-bold font-mono" style={{ color: mColor }}>{count}</span>
+                          <span className="font-bold font-mono shrink-0" style={{ color: mColor }}>{count}</span>
                         </div>
                       );
                     })
