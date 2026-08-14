@@ -64,7 +64,8 @@ export const zh: Translations = {
     noUpstreamLogs: "暂无上游代理服务终端日志输出。",
     copyLogs: "复制日志",
     copiedLogs: "已复制！",
-    autoScroll: "自动滚动"
+    autoScroll: "自动滚动",
+    livePolling: "实时轮询中 (3s)"
   },
   dashboard: {
     title: "代理系统概览",

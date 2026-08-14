@@ -62,7 +62,8 @@ export const en = {
     noUpstreamLogs: "No upstream proxy terminal logs available.",
     copyLogs: "Copy Logs",
     copiedLogs: "Copied!",
-    autoScroll: "Auto-scroll"
+    autoScroll: "Auto-scroll",
+    livePolling: "Live polling (3s)"
   },
   dashboard: {
     title: "Proxy System Overview",

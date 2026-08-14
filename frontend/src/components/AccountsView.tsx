@@ -61,8 +61,8 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
   const [batchDeleteConfirm, setBatchDeleteConfirm] = useState<boolean>(false);
   const [dedupConfirm, setDedupConfirm] = useState<boolean>(false);
 
-  // Terminal Logs Collapse & State
-  const [isLogsExpanded, setIsLogsExpanded] = useState<boolean>(true);
+  // Terminal Logs Collapse & State (Defaults to false/collapsed)
+  const [isLogsExpanded, setIsLogsExpanded] = useState<boolean>(false);
   const [autoScrollLogs, setAutoScrollLogs] = useState<boolean>(true);
   const [copiedLogs, setCopiedLogs] = useState<boolean>(false);
 
@@ -84,8 +84,10 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     return headers;
   };
 
-  const fetchStatus = async () => {
-    setLoading(true);
+  const fetchStatus = async (silent: boolean = false) => {
+    if (!silent) {
+      setLoading(true);
+    }
     try {
       const res = await fetch('/api/admin/accounts/status', {
         headers: getHeaders()
@@ -93,20 +95,39 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
       if (res.ok) {
         const json = await res.json();
         setData(json);
-      } else {
+      } else if (!silent) {
         const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
         showToast(t('accounts.actionFailed', { error: err.error || err.message }), 'error');
       }
     } catch (e: any) {
-      showToast(t('accounts.actionFailed', { error: e.message }), 'error');
+      if (!silent) {
+        showToast(t('accounts.actionFailed', { error: e.message }), 'error');
+      }
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   };
 
+  // Initial load
   useEffect(() => {
     fetchStatus();
   }, [adminKey]);
+
+  // Periodic 3s refresh when terminal logs are expanded
+  useEffect(() => {
+    if (!isLogsExpanded) return;
+
+    // Trigger an immediate silent fetch on expand
+    fetchStatus(true);
+
+    const timer = setInterval(() => {
+      fetchStatus(true);
+    }, 3000);
+
+    return () => clearInterval(timer);
+  }, [isLogsExpanded, adminKey]);
 
   useEffect(() => {
     if (autoScrollLogs && isLogsExpanded && terminalLogsEndRef.current) {
@@ -594,7 +615,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
 
           {/* Refresh */}
           <button
-            onClick={fetchStatus}
+            onClick={() => fetchStatus(false)}
             disabled={loading || actionLoading}
             className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/80 rounded-lg text-xs font-semibold transition-all"
             title={t('accounts.refresh')}
@@ -858,7 +879,10 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
       {/* Upstream Terminal Logs Section */}
       <div className="bg-slate-900/90 border border-slate-800/80 rounded-2xl overflow-hidden shadow-lg">
         {/* Terminal Header */}
-        <div className="px-4 py-3 bg-slate-900 border-b border-slate-800 flex items-center justify-between">
+        <div
+          onClick={() => setIsLogsExpanded(!isLogsExpanded)}
+          className="px-4 py-3 bg-slate-900 border-b border-slate-800 flex items-center justify-between cursor-pointer select-none hover:bg-slate-800/50 transition-colors"
+        >
           <div className="flex items-center space-x-2">
             <span className="text-sm">🖥️</span>
             <span className="text-xs font-bold text-slate-200">{t('accounts.upstreamLogsTitle')}</span>
@@ -867,27 +891,37 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                 {data.logCount}
               </span>
             )}
+            {isLogsExpanded && (
+              <span className="flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block"></span>
+                <span>{t('accounts.livePolling')}</span>
+              </span>
+            )}
           </div>
 
-          <div className="flex items-center space-x-3 text-xs">
-            <label className="flex items-center space-x-1.5 text-slate-400 hover:text-slate-200 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={autoScrollLogs}
-                onChange={(e) => setAutoScrollLogs(e.target.checked)}
-                className="w-3.5 h-3.5 rounded bg-slate-950 border-slate-700 text-blue-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
-              />
-              <span className="text-[11px]">{t('accounts.autoScroll')}</span>
-            </label>
+          <div className="flex items-center space-x-3 text-xs" onClick={(e) => e.stopPropagation()}>
+            {isLogsExpanded && (
+              <>
+                <label className="flex items-center space-x-1.5 text-slate-400 hover:text-slate-200 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={autoScrollLogs}
+                    onChange={(e) => setAutoScrollLogs(e.target.checked)}
+                    className="w-3.5 h-3.5 rounded bg-slate-950 border-slate-700 text-blue-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                  />
+                  <span className="text-[11px]">{t('accounts.autoScroll')}</span>
+                </label>
 
-            {data?.logs && (
-              <button
-                onClick={handleCopyLogs}
-                className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-[11px] text-slate-300 hover:text-white transition-all flex items-center space-x-1"
-              >
-                <span>{copiedLogs ? '✓' : '📋'}</span>
-                <span>{copiedLogs ? t('accounts.copiedLogs') : t('accounts.copyLogs')}</span>
-              </button>
+                {data?.logs && (
+                  <button
+                    onClick={handleCopyLogs}
+                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-[11px] text-slate-300 hover:text-white transition-all flex items-center space-x-1"
+                  >
+                    <span>{copiedLogs ? '✓' : '📋'}</span>
+                    <span>{copiedLogs ? t('accounts.copiedLogs') : t('accounts.copyLogs')}</span>
+                  </button>
+                )}
+              </>
             )}
 
             <button
