@@ -343,22 +343,27 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     return 0;
   };
 
-  // Helper to format model usage tooltip breakdown
-  const getUsageTooltip = (usage?: AccountUsage): string => {
-    if (!usage) return '';
-    const details: string[] = [];
+  // Helper to extract models breakdown list
+  const getModelBreakdowns = (usage?: AccountUsage): Array<{ model: string; count: number; limit?: number }> => {
+    if (!usage) return [];
+    const list: Array<{ model: string; count: number; limit?: number }> = [];
     if (usage.byModel) {
       for (const [model, item] of Object.entries(usage.byModel)) {
-        const count = item.usage ?? item.requests ?? 0;
-        const limitStr = item.limit !== undefined ? ` / ${item.limit}` : '';
-        details.push(`${model}: ${count}${limitStr}`);
+        list.push({
+          model,
+          count: item.usage ?? item.requests ?? 0,
+          limit: item.limit
+        });
       }
     } else if (usage.models) {
       for (const [model, item] of Object.entries(usage.models)) {
-        details.push(`${model}: ${item.requests ?? 0}`);
+        list.push({
+          model,
+          count: item.requests ?? 0
+        });
       }
     }
-    return details.length > 0 ? details.join('\n') : '';
+    return list;
   };
 
   return (
@@ -521,7 +526,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
             const isChecked = selectedIndices.includes(acc.index);
             const isDisabled = acc.isDisabled || acc.status === 'disabled';
             const totalUsage = getTotalUsage(acc.usage);
-            const usageTooltip = getUsageTooltip(acc.usage);
+            const breakdowns = getModelBreakdowns(acc.usage);
 
             return (
               <div
@@ -589,15 +594,65 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                       </span>
                     )}
 
-                    {/* Today Usage Badge */}
-                    <span
-                      title={usageTooltip || `${t('accounts.todayUsage')}: ${totalUsage}`}
-                      className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-medium bg-blue-500/10 text-blue-300 border border-blue-500/30 flex items-center space-x-1 cursor-help transition-all hover:bg-blue-500/20"
-                    >
-                      <span>📊</span>
-                      <span>{t('accounts.todayUsage')}</span>
-                      <strong className="text-blue-200">{totalUsage}</strong>
-                    </span>
+                    {/* Interactive Today Usage Badge with Custom Instant Popover Tooltip */}
+                    <div className="relative inline-block group">
+                      <div className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-medium bg-blue-500/10 text-blue-300 border border-blue-500/30 flex items-center space-x-1 cursor-pointer transition-all hover:bg-blue-500/20 shadow-sm">
+                        <span>📊</span>
+                        <span>{t('accounts.todayUsage')}</span>
+                        <strong className="text-blue-200">{totalUsage}</strong>
+                        <span className="text-[8px] text-blue-400 ml-0.5">▾</span>
+                      </div>
+
+                      {/* Popover Bubble */}
+                      <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block z-50 w-64 p-3 bg-slate-900 border border-slate-700/80 rounded-xl shadow-2xl backdrop-blur-lg pointer-events-auto">
+                        <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800">
+                          <span className="text-[11px] font-bold text-slate-200 flex items-center space-x-1">
+                            <span>📊</span>
+                            <span>{t('accounts.todayUsage')}</span>
+                          </span>
+                          <span className="text-xs font-mono font-bold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-md">
+                            {totalUsage}
+                          </span>
+                        </div>
+
+                        {breakdowns.length === 0 ? (
+                          <div className="text-[10px] text-slate-400 italic py-1">
+                            {totalUsage === 0 ? '暂无各模型请求消耗数据' : `总请求次数: ${totalUsage}`}
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {breakdowns.map((item, idx) => {
+                              const ratio = item.limit ? Math.min(100, Math.round((item.count / item.limit) * 100)) : null;
+                              return (
+                                <div key={idx} className="space-y-1">
+                                  <div className="flex items-center justify-between text-[11px]">
+                                    <span className="text-slate-300 font-mono truncate max-w-[130px]" title={item.model}>
+                                      {item.model}
+                                    </span>
+                                    <span className="text-slate-400 font-mono font-semibold">
+                                      <strong className="text-slate-200">{item.count}</strong>
+                                      {item.limit !== undefined && <span className="text-slate-500 text-[10px]"> / {item.limit}</span>}
+                                    </span>
+                                  </div>
+                                  {ratio !== null && (
+                                    <div className="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden border border-slate-800">
+                                      <div
+                                        className={`h-full rounded-full transition-all ${
+                                          ratio >= 90 ? 'bg-rose-500' : ratio >= 70 ? 'bg-amber-500' : 'bg-blue-500'
+                                        }`}
+                                        style={{ width: `${ratio}%` }}
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                        {/* Triangle arrow pointer */}
+                        <div className="absolute left-6 top-full -mt-px w-2.5 h-2.5 bg-slate-900 border-r border-b border-slate-700/80 transform rotate-45"></div>
+                      </div>
+                    </div>
 
                     {/* In flight count if > 0 */}
                     {(acc.inFlight || 0) > 0 && (
