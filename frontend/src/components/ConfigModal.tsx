@@ -17,7 +17,6 @@ interface MappingEntry {
 export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: ConfigModalProps) {
   const { t } = useTranslation();
   const [systemRoleToInstruction, setSystemRoleToInstruction] = useState<boolean>(false);
-  const [runtimeContextTag, setRuntimeContextTag] = useState<string>('runtime-context');
   const [customSystemInstruction, setCustomSystemInstruction] = useState<string>('');
   const [upstreamTimeoutMs, setUpstreamTimeoutMs] = useState<number>(180000);
   const [logLevel, setLogLevel] = useState<string>('info');
@@ -44,7 +43,6 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
       .then(data => {
         if (data?.config) {
           setSystemRoleToInstruction(Boolean(data.config.systemRoleToInstruction));
-          setRuntimeContextTag(data.config.runtimeContextTag || 'runtime-context');
           setCustomSystemInstruction(data.config.customSystemInstruction || '');
           setUpstreamTimeoutMs(data.config.upstreamTimeoutMs || 180000);
           setLogLevel(data.config.logLevel || 'info');
@@ -154,7 +152,6 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
         headers,
         body: JSON.stringify({
           systemRoleToInstruction,
-          runtimeContextTag,
           customSystemInstruction,
           upstreamTimeoutMs,
           logLevel,
@@ -350,32 +347,20 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                 <span>{t('config.translationGroup')}</span>
               </h3>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-slate-900/60 p-3.5 rounded-xl border border-slate-800/80 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-slate-200">SYSTEM_ROLE_TO_INSTRUCTION</span>
-                    <button
-                      type="button"
-                      onClick={() => setSystemRoleToInstruction(!systemRoleToInstruction)}
-                      className={`w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${
-                        systemRoleToInstruction ? 'bg-emerald-600' : 'bg-slate-950 border border-slate-700'
-                      }`}
-                    >
-                      <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${systemRoleToInstruction ? 'translate-x-5' : ''}`}></div>
-                    </button>
-                  </div>
-                  <p className="text-[10px] text-slate-400">{t('config.systemRoleDesc')}</p>
+              <div className="bg-slate-900/60 p-3.5 rounded-xl border border-slate-800/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-200">SYSTEM_ROLE_TO_INSTRUCTION</span>
+                  <button
+                    type="button"
+                    onClick={() => setSystemRoleToInstruction(!systemRoleToInstruction)}
+                    className={`w-11 h-6 flex items-center rounded-full p-1 cursor-pointer transition-colors ${
+                      systemRoleToInstruction ? 'bg-emerald-600' : 'bg-slate-950 border border-slate-700'
+                    }`}
+                  >
+                    <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${systemRoleToInstruction ? 'translate-x-5' : ''}`}></div>
+                  </button>
                 </div>
-
-                <div className="bg-slate-900/60 p-3.5 rounded-xl border border-slate-800/80 space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-200 block">RUNTIME_CONTEXT_TAG</label>
-                  <input
-                    type="text"
-                    value={runtimeContextTag}
-                    onChange={(e) => setRuntimeContextTag(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700/80 rounded-lg p-2 text-xs text-slate-100 font-mono focus:outline-none focus:border-blue-500"
-                  />
-                </div>
+                <p className="text-[10px] text-slate-400">{t('config.systemRoleDesc')}</p>
               </div>
 
               <div className="space-y-1.5">
