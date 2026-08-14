@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import DashboardView from './components/DashboardView';
+import AccountsView from './components/AccountsView';
 import LogsView from './components/LogsView';
 import PlaygroundView from './components/PlaygroundView';
 import TerminalLogsView from './components/TerminalLogsView';
@@ -8,7 +9,7 @@ import { useTranslation } from './i18n/LanguageContext';
 
 export default function App() {
   const { t, lang, setLang } = useTranslation();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'logs' | 'terminal' | 'playground'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'accounts' | 'logs' | 'terminal' | 'playground'>('dashboard');
   const [adminKey, setAdminKey] = useState(localStorage.getItem('adminKey') || '');
   const [inputKey, setInputKey] = useState(localStorage.getItem('adminKey') || '');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -145,7 +146,7 @@ export default function App() {
         </div>
 
         <nav className="flex space-x-2 bg-slate-950/60 p-1 rounded-xl border border-slate-800/80">
-          {(['dashboard', 'logs', 'terminal', 'playground'] as const).map((tab) => (
+          {(['dashboard', 'accounts', 'logs', 'terminal', 'playground'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -197,6 +198,7 @@ export default function App() {
             adminKey={adminKey}
           />
         )}
+        {activeTab === 'accounts' && <AccountsView adminKey={adminKey} />}
         {activeTab === 'logs' && <LogsView adminKey={adminKey} />}
         {activeTab === 'terminal' && <TerminalLogsView adminKey={adminKey} />}
         {activeTab === 'playground' && <PlaygroundView />}
