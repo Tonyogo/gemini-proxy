@@ -33,6 +33,7 @@ export interface AccountDetail {
 
 export interface SystemStatusData {
   logCount?: number;
+  logs?: string;
   status?: {
     currentAuthIndex?: number;
     currentAccountName?: string;
@@ -60,7 +61,13 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
   const [batchDeleteConfirm, setBatchDeleteConfirm] = useState<boolean>(false);
   const [dedupConfirm, setDedupConfirm] = useState<boolean>(false);
 
+  // Terminal Logs Collapse & State
+  const [isLogsExpanded, setIsLogsExpanded] = useState<boolean>(true);
+  const [autoScrollLogs, setAutoScrollLogs] = useState<boolean>(true);
+  const [copiedLogs, setCopiedLogs] = useState<boolean>(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const terminalLogsEndRef = useRef<HTMLDivElement>(null);
 
   const showToast = (text: string, type: 'success' | 'error' = 'success') => {
     setToastMessage({ text, type });
@@ -100,6 +107,12 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
   useEffect(() => {
     fetchStatus();
   }, [adminKey]);
+
+  useEffect(() => {
+    if (autoScrollLogs && isLogsExpanded && terminalLogsEndRef.current) {
+      terminalLogsEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [data?.logs, autoScrollLogs, isLogsExpanded]);
 
   const accounts: AccountDetail[] = data?.status?.accountDetails || [];
   const currentAuthIndex = data?.status?.currentAuthIndex;
@@ -343,6 +356,13 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
         fileInputRef.current.value = '';
       }
     }
+  };
+
+  const handleCopyLogs = () => {
+    if (!data?.logs) return;
+    navigator.clipboard.writeText(data.logs);
+    setCopiedLogs(true);
+    setTimeout(() => setCopiedLogs(false), 2000);
   };
 
   // Helper to extract total usage number
@@ -834,6 +854,92 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
           })}
         </div>
       )}
+
+      {/* Upstream Terminal Logs Section */}
+      <div className="bg-slate-900/90 border border-slate-800/80 rounded-2xl overflow-hidden shadow-lg">
+        {/* Terminal Header */}
+        <div className="px-4 py-3 bg-slate-900 border-b border-slate-800 flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <span className="text-sm">🖥️</span>
+            <span className="text-xs font-bold text-slate-200">{t('accounts.upstreamLogsTitle')}</span>
+            {data?.logCount !== undefined && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-slate-800 text-slate-400 border border-slate-700">
+                {data.logCount}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center space-x-3 text-xs">
+            <label className="flex items-center space-x-1.5 text-slate-400 hover:text-slate-200 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={autoScrollLogs}
+                onChange={(e) => setAutoScrollLogs(e.target.checked)}
+                className="w-3.5 h-3.5 rounded bg-slate-950 border-slate-700 text-blue-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+              />
+              <span className="text-[11px]">{t('accounts.autoScroll')}</span>
+            </label>
+
+            {data?.logs && (
+              <button
+                onClick={handleCopyLogs}
+                className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-[11px] text-slate-300 hover:text-white transition-all flex items-center space-x-1"
+              >
+                <span>{copiedLogs ? '✓' : '📋'}</span>
+                <span>{copiedLogs ? t('accounts.copiedLogs') : t('accounts.copyLogs')}</span>
+              </button>
+            )}
+
+            <button
+              onClick={() => setIsLogsExpanded(!isLogsExpanded)}
+              className="p-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-400 hover:text-white transition-all"
+              title={isLogsExpanded ? 'Collapse' : 'Expand'}
+            >
+              <svg className={`w-3.5 h-3.5 transform transition-transform ${isLogsExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Terminal Log Viewport */}
+        {isLogsExpanded && (
+          <div className="p-4 bg-slate-950 text-slate-300 font-mono text-[11px] leading-relaxed max-h-80 overflow-y-auto select-text whitespace-pre-wrap">
+            {data?.logs ? (
+              <div className="space-y-0.5">
+                {data.logs.split('\n').map((line, idx) => {
+                  if (!line.trim()) return null;
+                  const isError = /error|fail|exception|\[ERROR\]/i.test(line);
+                  const isWarn = /warn|warning|\[WARN\]/i.test(line);
+                  const isSuccess = /success|ready|connected|active/i.test(line);
+
+                  return (
+                    <div
+                      key={idx}
+                      className={`${
+                        isError
+                          ? 'text-rose-400 font-medium'
+                          : isWarn
+                          ? 'text-amber-400'
+                          : isSuccess
+                          ? 'text-emerald-400'
+                          : 'text-slate-300'
+                      }`}
+                    >
+                      {line}
+                    </div>
+                  );
+                })}
+                <div ref={terminalLogsEndRef} />
+              </div>
+            ) : (
+              <div className="text-slate-500 italic py-2 text-center">
+                {t('accounts.noUpstreamLogs')}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Delete Confirmation Modal */}
       {deleteConfirm && (

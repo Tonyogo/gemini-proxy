@@ -59,7 +59,12 @@ export const zh: Translations = {
     actionSuccess: "操作成功。",
     actionFailed: "操作失败：{error}",
     confirm: "确认",
-    cancel: "取消"
+    cancel: "取消",
+    upstreamLogsTitle: "代理服务终端日志",
+    noUpstreamLogs: "暂无上游代理服务终端日志输出。",
+    copyLogs: "复制日志",
+    copiedLogs: "已复制！",
+    autoScroll: "自动滚动"
   },
   dashboard: {
     title: "代理系统概览",

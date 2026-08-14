@@ -57,7 +57,12 @@ export const en = {
     actionSuccess: "Operation completed successfully.",
     actionFailed: "Operation failed: {error}",
     confirm: "Confirm",
-    cancel: "Cancel"
+    cancel: "Cancel",
+    upstreamLogsTitle: "Upstream Proxy Terminal Logs",
+    noUpstreamLogs: "No upstream proxy terminal logs available.",
+    copyLogs: "Copy Logs",
+    copiedLogs: "Copied!",
+    autoScroll: "Auto-scroll"
   },
   dashboard: {
     title: "Proxy System Overview",
