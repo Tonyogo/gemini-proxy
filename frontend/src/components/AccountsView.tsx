@@ -1,6 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from '../i18n/LanguageContext';
 
+export interface ModelUsageDetail {
+  limit?: number;
+  usage?: number;
+  requests?: number;
+}
+
+export interface AccountUsage {
+  total?: number;
+  totalRequests?: number;
+  byModel?: Record<string, ModelUsageDetail>;
+  models?: Record<string, { requests?: number }>;
+}
+
 export interface AccountDetail {
   index: number;
   name: string | null;
@@ -15,10 +28,7 @@ export interface AccountDetail {
   concurrentStatus?: string;
   inFlight?: number;
   isSuspended?: boolean;
-  usage?: {
-    totalRequests?: number;
-    models?: Record<string, { requests?: number }>;
-  };
+  usage?: AccountUsage;
 }
 
 export interface SystemStatusData {
@@ -286,7 +296,6 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
           const json = JSON.parse(text);
           parsedFiles.push(json);
         } catch {
-          // If plain string or format
           parsedFiles.push(text);
         }
       }
@@ -323,6 +332,35 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     }
   };
 
+  // Helper to extract total usage number
+  const getTotalUsage = (usage?: AccountUsage): number => {
+    if (!usage) return 0;
+    if (typeof usage.total === 'number') return usage.total;
+    if (typeof usage.totalRequests === 'number') return usage.totalRequests;
+    if (usage.byModel) {
+      return Object.values(usage.byModel).reduce((sum, item) => sum + (item.usage || item.requests || 0), 0);
+    }
+    return 0;
+  };
+
+  // Helper to format model usage tooltip breakdown
+  const getUsageTooltip = (usage?: AccountUsage): string => {
+    if (!usage) return '';
+    const details: string[] = [];
+    if (usage.byModel) {
+      for (const [model, item] of Object.entries(usage.byModel)) {
+        const count = item.usage ?? item.requests ?? 0;
+        const limitStr = item.limit !== undefined ? ` / ${item.limit}` : '';
+        details.push(`${model}: ${count}${limitStr}`);
+      }
+    } else if (usage.models) {
+      for (const [model, item] of Object.entries(usage.models)) {
+        details.push(`${model}: ${item.requests ?? 0}`);
+      }
+    }
+    return details.length > 0 ? details.join('\n') : '';
+  };
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Toast */}
@@ -351,7 +389,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
         </div>
         <div className="bg-slate-900/80 border border-slate-800/80 rounded-xl p-3.5 flex flex-col justify-between">
           <span className="text-[11px] font-medium text-slate-400">{t('accounts.disabledAccounts')}</span>
-          <span className="text-xl font-bold text-slate-400 mt-1">{disabledCount}</span>
+          <span className="text-xl font-bold text-rose-400 mt-1">{disabledCount}</span>
         </div>
         <div className="bg-slate-900/80 border border-slate-800/80 rounded-xl p-3.5 flex flex-col justify-between">
           <span className="text-[11px] font-medium text-blue-400">{t('accounts.inFlightRequests')}</span>
@@ -481,14 +519,18 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
           {accounts.map(acc => {
             const isCurrent = acc.index === currentAuthIndex;
             const isChecked = selectedIndices.includes(acc.index);
-            const usageRequests = acc.usage?.totalRequests ?? 0;
+            const isDisabled = acc.isDisabled || acc.status === 'disabled';
+            const totalUsage = getTotalUsage(acc.usage);
+            const usageTooltip = getUsageTooltip(acc.usage);
 
             return (
               <div
                 key={acc.index}
                 className={`flex items-center justify-between p-3.5 rounded-xl border transition-all ${
                   isCurrent
-                    ? 'bg-emerald-950/20 border-emerald-500/40 shadow-sm shadow-emerald-950/30'
+                    ? 'bg-emerald-950/30 border-emerald-500/50 shadow-md shadow-emerald-950/40'
+                    : isDisabled
+                    ? 'bg-slate-950/60 border-slate-800/60 opacity-60 hover:opacity-100 hover:border-slate-700'
                     : 'bg-slate-900/70 hover:bg-slate-900/90 border-slate-800/80'
                 }`}
               >
@@ -501,28 +543,30 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                     className="w-4 h-4 rounded bg-slate-950 border-slate-700 text-blue-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
                   />
 
-                  <span className="font-mono text-xs text-slate-400 font-bold whitespace-nowrap">
+                  <span className={`font-mono text-xs font-bold whitespace-nowrap ${isDisabled ? 'text-slate-500' : 'text-slate-400'}`}>
                     #{acc.index}
                   </span>
 
-                  <span className="font-medium text-xs text-slate-100 truncate max-w-xs md:max-w-md">
+                  <span className={`font-medium text-xs truncate max-w-xs md:max-w-md ${isDisabled ? 'text-slate-400 line-through decoration-slate-600' : 'text-slate-100'}`}>
                     {acc.name || `Account #${acc.index}`}
                   </span>
 
                   {/* Status Badges */}
                   <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
-                    {acc.isDisabled ? (
-                      <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-400 border border-slate-700">
-                        {t('accounts.statusDisabled')}
+                    {isDisabled ? (
+                      <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/30 flex items-center space-x-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block"></span>
+                        <span>{t('accounts.statusDisabled')}</span>
                       </span>
                     ) : (
-                      <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                        {t('accounts.statusActive')}
+                      <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/40 flex items-center space-x-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse"></span>
+                        <span>{t('accounts.statusActive')}</span>
                       </span>
                     )}
 
                     {isCurrent && (
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/50">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/25 text-emerald-300 border border-emerald-500/60 shadow-sm">
                         {t('accounts.currentBadge')}
                       </span>
                     )}
@@ -546,10 +590,13 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                     )}
 
                     {/* Today Usage Badge */}
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-medium bg-blue-500/10 text-blue-300 border border-blue-500/30 flex items-center space-x-1">
+                    <span
+                      title={usageTooltip || `${t('accounts.todayUsage')}: ${totalUsage}`}
+                      className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-medium bg-blue-500/10 text-blue-300 border border-blue-500/30 flex items-center space-x-1 cursor-help transition-all hover:bg-blue-500/20"
+                    >
                       <span>📊</span>
                       <span>{t('accounts.todayUsage')}</span>
-                      <strong className="text-blue-200">{usageRequests}</strong>
+                      <strong className="text-blue-200">{totalUsage}</strong>
                     </span>
 
                     {/* In flight count if > 0 */}
@@ -565,14 +612,14 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                 <div className="flex items-center space-x-1.5 ml-4">
                   {/* Enable / Disable Button */}
                   <button
-                    onClick={() => handleToggleDisabled(acc.index, acc.isDisabled)}
+                    onClick={() => handleToggleDisabled(acc.index, isDisabled)}
                     disabled={actionLoading}
-                    className={`p-1.5 rounded-lg border transition-all text-xs ${
-                      acc.isDisabled
-                        ? 'bg-slate-800/80 hover:bg-emerald-500/20 text-slate-400 hover:text-emerald-300 border-slate-700 hover:border-emerald-500/40'
-                        : 'bg-slate-800/80 hover:bg-amber-500/20 text-emerald-400 hover:text-amber-300 border-slate-700 hover:border-amber-500/40'
+                    className={`p-1.5 rounded-lg border transition-all text-xs flex items-center justify-center ${
+                      isDisabled
+                        ? 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border-emerald-500/40 shadow-sm shadow-emerald-950'
+                        : 'bg-slate-800/80 hover:bg-rose-500/20 text-slate-300 hover:text-rose-300 border-slate-700 hover:border-rose-500/40'
                     }`}
-                    title={acc.isDisabled ? t('accounts.toggleEnable') : t('accounts.toggleDisable')}
+                    title={isDisabled ? t('accounts.toggleEnable') : t('accounts.toggleDisable')}
                   >
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3m8.293 8.293l1.414 1.414" />
@@ -582,11 +629,11 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                   {/* Set as Current Button */}
                   <button
                     onClick={() => handleSetCurrent(acc.index)}
-                    disabled={actionLoading || isCurrent || acc.isDisabled}
+                    disabled={actionLoading || isCurrent || isDisabled}
                     className={`p-1.5 rounded-lg border transition-all text-xs ${
                       isCurrent
                         ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 cursor-default'
-                        : 'bg-slate-800/80 hover:bg-blue-500/20 text-slate-400 hover:text-blue-300 border-slate-700 hover:border-blue-500/40'
+                        : 'bg-slate-800/80 hover:bg-blue-500/20 text-slate-400 hover:text-blue-300 border-slate-700 hover:border-blue-500/40 disabled:opacity-30 disabled:hover:bg-slate-800/80 disabled:hover:border-slate-700'
                     }`}
                     title={isCurrent ? t('accounts.isCurrentAccount') : t('accounts.setAsCurrent')}
                   >
