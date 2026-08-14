@@ -25,7 +25,7 @@ export interface AccountDetail {
   isRotation: boolean;
   hasContext: boolean;
   canonicalIndex: number | null;
-  concurrentStatus?: string;
+  concurrentStatus?: 'INACTIVE' | 'ACTIVATING' | 'ACTIVATED' | 'RETIRED' | string;
   inFlight?: number;
   isSuspended?: boolean;
   usage?: AccountUsage;
@@ -106,8 +106,21 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
   const isSystemBusy = Boolean(data?.status?.isSystemBusy);
 
   const totalCount = accounts.length;
-  const activeCount = accounts.filter(a => !a.isDisabled && a.status === 'active').length;
-  const disabledCount = accounts.filter(a => a.isDisabled || a.status === 'disabled').length;
+  // Summary counts based on concurrentStatus & isDisabled
+  const activatedCount = accounts.filter(a => {
+    const cStatus = (a.concurrentStatus || '').toUpperCase();
+    return cStatus === 'ACTIVATED' || (cStatus === '' && !a.isDisabled && a.status === 'active');
+  }).length;
+
+  const activatingCount = accounts.filter(a => (a.concurrentStatus || '').toUpperCase() === 'ACTIVATING').length;
+
+  const disabledCount = accounts.filter(a => a.isDisabled || (a as any).disabled === true || a.status === 'disabled').length;
+
+  const inactiveCount = accounts.filter(a => {
+    const cStatus = (a.concurrentStatus || '').toUpperCase();
+    return cStatus === 'INACTIVE' || cStatus === 'RETIRED';
+  }).length;
+
   const inFlightCount = accounts.reduce((acc, cur) => acc + (cur.inFlight || 0), 0);
 
   const handleSelectAll = () => {
@@ -366,6 +379,75 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     return list;
   };
 
+  // Helper to render concurrentStatus Badge
+  const renderStatusBadge = (acc: AccountDetail) => {
+    const rawConcurrent = (acc.concurrentStatus || '').toUpperCase();
+    const isManuallyDisabled = Boolean(acc.isDisabled || (acc as any).disabled === true || acc.status === 'disabled');
+
+    // If explicitly disabled
+    if (isManuallyDisabled || rawConcurrent === 'DISABLED') {
+      return (
+        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-400 border border-slate-700 flex items-center space-x-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-slate-500 inline-block"></span>
+          <span>{t('accounts.statusDisabled')}</span>
+        </span>
+      );
+    }
+
+    if (rawConcurrent === 'ACTIVATED') {
+      return (
+        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/40 flex items-center space-x-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse"></span>
+          <span>{t('accounts.statusActivated')}</span>
+        </span>
+      );
+    }
+
+    if (rawConcurrent === 'ACTIVATING') {
+      return (
+        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-500/15 text-blue-400 border border-blue-500/40 flex items-center space-x-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 inline-block animate-ping"></span>
+          <span>{t('accounts.statusActivating')}</span>
+        </span>
+      );
+    }
+
+    if (rawConcurrent === 'RETIRED') {
+      return (
+        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30 flex items-center space-x-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block"></span>
+          <span>{t('accounts.statusRetired')}</span>
+        </span>
+      );
+    }
+
+    if (rawConcurrent === 'INACTIVE') {
+      return (
+        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800/90 text-slate-400 border border-slate-700/80 flex items-center space-x-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-slate-600 inline-block"></span>
+          <span>{t('accounts.statusInactive')}</span>
+        </span>
+      );
+    }
+
+    // Default fallback based on status property
+    if (acc.status === 'active') {
+      return (
+        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/40 flex items-center space-x-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse"></span>
+          <span>{t('accounts.statusActive')}</span>
+        </span>
+      );
+    }
+
+    return (
+      <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-400 border border-slate-700 flex items-center space-x-1">
+        <span className="w-1.5 h-1.5 rounded-full bg-slate-500 inline-block"></span>
+        <span>{acc.status || t('accounts.statusInactive')}</span>
+      </span>
+    );
+  };
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Toast */}
@@ -383,32 +465,30 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
       )}
 
       {/* Header & Stats Banner */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <div className="bg-slate-900/80 border border-slate-800/80 rounded-xl p-3.5 flex flex-col justify-between">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+        <div className="bg-slate-900/80 border border-slate-800/80 rounded-xl p-3 flex flex-col justify-between">
           <span className="text-[11px] font-medium text-slate-400">{t('accounts.totalAccounts')}</span>
           <span className="text-xl font-bold text-slate-100 mt-1">{totalCount}</span>
         </div>
-        <div className="bg-slate-900/80 border border-slate-800/80 rounded-xl p-3.5 flex flex-col justify-between">
+        <div className="bg-slate-900/80 border border-slate-800/80 rounded-xl p-3 flex flex-col justify-between">
           <span className="text-[11px] font-medium text-emerald-400">{t('accounts.activeAccounts')}</span>
-          <span className="text-xl font-bold text-emerald-300 mt-1">{activeCount}</span>
+          <span className="text-xl font-bold text-emerald-300 mt-1">{activatedCount}</span>
         </div>
-        <div className="bg-slate-900/80 border border-slate-800/80 rounded-xl p-3.5 flex flex-col justify-between">
-          <span className="text-[11px] font-medium text-slate-400">{t('accounts.disabledAccounts')}</span>
+        <div className="bg-slate-900/80 border border-slate-800/80 rounded-xl p-3 flex flex-col justify-between">
+          <span className="text-[11px] font-medium text-blue-400">{t('accounts.activatingAccounts')}</span>
+          <span className="text-xl font-bold text-blue-300 mt-1">{activatingCount}</span>
+        </div>
+        <div className="bg-slate-900/80 border border-slate-800/80 rounded-xl p-3 flex flex-col justify-between">
+          <span className="text-[11px] font-medium text-slate-400">{t('accounts.inactiveAccounts')}</span>
+          <span className="text-xl font-bold text-slate-400 mt-1">{inactiveCount}</span>
+        </div>
+        <div className="bg-slate-900/80 border border-slate-800/80 rounded-xl p-3 flex flex-col justify-between">
+          <span className="text-[11px] font-medium text-rose-400">{t('accounts.disabledAccounts')}</span>
           <span className="text-xl font-bold text-rose-400 mt-1">{disabledCount}</span>
         </div>
-        <div className="bg-slate-900/80 border border-slate-800/80 rounded-xl p-3.5 flex flex-col justify-between">
-          <span className="text-[11px] font-medium text-blue-400">{t('accounts.inFlightRequests')}</span>
-          <span className="text-xl font-bold text-blue-300 mt-1">{inFlightCount}</span>
-        </div>
-        <div className="bg-slate-900/80 border border-slate-800/80 rounded-xl p-3.5 flex flex-col justify-between col-span-2 md:col-span-1">
-          <span className="text-[11px] font-medium text-amber-400">{t('accounts.systemBusy')}</span>
-          <span className="text-sm font-semibold mt-1">
-            {isSystemBusy ? (
-              <span className="text-rose-400 font-bold">BUSY</span>
-            ) : (
-              <span className="text-emerald-400 font-medium">IDLE</span>
-            )}
-          </span>
+        <div className="bg-slate-900/80 border border-slate-800/80 rounded-xl p-3 flex flex-col justify-between">
+          <span className="text-[11px] font-medium text-purple-400">{t('accounts.inFlightRequests')}</span>
+          <span className="text-xl font-bold text-purple-300 mt-1">{inFlightCount}</span>
         </div>
       </div>
 
@@ -524,7 +604,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
           {accounts.map(acc => {
             const isCurrent = acc.index === currentAuthIndex;
             const isChecked = selectedIndices.includes(acc.index);
-            const isDisabled = acc.isDisabled || acc.status === 'disabled';
+            const isManuallyDisabled = Boolean(acc.isDisabled || (acc as any).disabled === true || acc.status === 'disabled');
             const totalUsage = getTotalUsage(acc.usage);
             const breakdowns = getModelBreakdowns(acc.usage);
             const hasContext = Boolean(acc.hasContext);
@@ -535,7 +615,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                 className={`flex items-center justify-between p-3.5 rounded-xl border transition-all ${
                   isCurrent
                     ? 'bg-emerald-950/30 border-emerald-500/50 shadow-md shadow-emerald-950/40'
-                    : isDisabled
+                    : isManuallyDisabled
                     ? 'bg-slate-950/60 border-slate-800/60 opacity-60 hover:opacity-100 hover:border-slate-700'
                     : 'bg-slate-900/70 hover:bg-slate-900/90 border-slate-800/80'
                 }`}
@@ -549,19 +629,19 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                     className="w-4 h-4 rounded bg-slate-950 border-slate-700 text-blue-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
                   />
 
-                  <span className={`font-mono text-xs font-bold whitespace-nowrap ${isDisabled ? 'text-slate-500' : 'text-slate-400'}`}>
+                  <span className={`font-mono text-xs font-bold whitespace-nowrap ${isManuallyDisabled ? 'text-slate-500' : 'text-slate-400'}`}>
                     #{acc.index}
                   </span>
 
-                  <span className={`font-medium text-xs truncate max-w-xs md:max-w-md ${isDisabled ? 'text-slate-400 line-through decoration-slate-600' : 'text-slate-100'}`}>
+                  <span className={`font-medium text-xs truncate max-w-xs md:max-w-md ${isManuallyDisabled ? 'text-slate-400 line-through decoration-slate-600' : 'text-slate-100'}`}>
                     {acc.name || `Account #${acc.index}`}
                   </span>
 
                   {/* Status Badges */}
                   <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
-                    {/* hasContext Bulb Icon Indicator */}
+                    {/* hasContext Indicator */}
                     <div
-                      title={hasContext ? 'Context Ready (已载入浏览器会话)' : 'No Context (未载入)'}
+                      title={hasContext ? 'Context Ready (已载入浏览器会话)' : 'No Context (未载入会话)'}
                       className={`px-1.5 py-0.5 rounded flex items-center justify-center cursor-help transition-all ${
                         hasContext
                           ? 'bg-amber-500/15 text-amber-300 border border-amber-500/40 shadow-sm shadow-amber-500/20'
@@ -583,17 +663,8 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                       </svg>
                     </div>
 
-                    {isDisabled ? (
-                      <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/30 flex items-center space-x-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block"></span>
-                        <span>{t('accounts.statusDisabled')}</span>
-                      </span>
-                    ) : (
-                      <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/40 flex items-center space-x-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse"></span>
-                        <span>{t('accounts.statusActive')}</span>
-                      </span>
-                    )}
+                    {/* Concurrent Status Dynamic Badge */}
+                    {renderStatusBadge(acc)}
 
                     {isCurrent && (
                       <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/25 text-emerald-300 border border-emerald-500/60 shadow-sm">
@@ -692,14 +763,14 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                 <div className="flex items-center space-x-1.5 ml-4">
                   {/* Enable / Disable Button */}
                   <button
-                    onClick={() => handleToggleDisabled(acc.index, isDisabled)}
+                    onClick={() => handleToggleDisabled(acc.index, isManuallyDisabled)}
                     disabled={actionLoading}
                     className={`p-1.5 rounded-lg border transition-all text-xs flex items-center justify-center ${
-                      isDisabled
+                      isManuallyDisabled
                         ? 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border-emerald-500/40 shadow-sm shadow-emerald-950'
                         : 'bg-slate-800/80 hover:bg-rose-500/20 text-slate-300 hover:text-rose-300 border-slate-700 hover:border-rose-500/40'
                     }`}
-                    title={isDisabled ? t('accounts.toggleEnable') : t('accounts.toggleDisable')}
+                    title={isManuallyDisabled ? t('accounts.toggleEnable') : t('accounts.toggleDisable')}
                   >
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3m8.293 8.293l1.414 1.414" />
@@ -709,7 +780,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                   {/* Set as Current Button */}
                   <button
                     onClick={() => handleSetCurrent(acc.index)}
-                    disabled={actionLoading || isCurrent || isDisabled}
+                    disabled={actionLoading || isCurrent || isManuallyDisabled}
                     className={`p-1.5 rounded-lg border transition-all text-xs ${
                       isCurrent
                         ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 cursor-default'
