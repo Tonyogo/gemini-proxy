@@ -770,10 +770,13 @@ class ClaudeTranslator {
 
   public normalizeError(error: any) {
     logger.error(`API Error: ${error.message || error}`);
-    const status = error.status || 500;
+    let status = error.status || 500;
     let type = 'api_error';
     if (status === 400 || status === 404) type = 'invalid_request_error';
-    if (status === 401 || status === 403) type = 'authentication_error';
+    if (status === 401 || status === 403) {
+      status = 422;
+      type = 'api_error';
+    }
     if (status === 429) type = 'rate_limit_error';
 
     return {

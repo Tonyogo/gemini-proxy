@@ -875,3 +875,31 @@ describe('Claude Translator Ephemeral Messages Filtering', () => {
     expect(textParts.some((t: string) => t.includes('only_user_pattern'))).toBe(true);
   });
 });
+
+describe('ClaudeTranslator - normalizeError Status Code Mapping', () => {
+  it('remaps 403 and 401 upstream errors to 422 with api_error type to prevent CLI process exit', () => {
+    const err403 = translator.normalizeError({ status: 403, message: 'User location is not supported' });
+    expect(err403.status).toEqual(422);
+    expect(err403.payload.error.type).toEqual('api_error');
+    expect(err403.payload.error.message).toEqual('User location is not supported');
+
+    const err401 = translator.normalizeError({ status: 401, message: 'API key expired' });
+    expect(err401.status).toEqual(422);
+    expect(err401.payload.error.type).toEqual('api_error');
+    expect(err401.payload.error.message).toEqual('API key expired');
+  });
+
+  it('preserves other standard status codes and types', () => {
+    const err400 = translator.normalizeError({ status: 400, message: 'Invalid field' });
+    expect(err400.status).toEqual(400);
+    expect(err400.payload.error.type).toEqual('invalid_request_error');
+
+    const err429 = translator.normalizeError({ status: 429, message: 'Quota exceeded' });
+    expect(err429.status).toEqual(429);
+    expect(err429.payload.error.type).toEqual('rate_limit_error');
+
+    const err500 = translator.normalizeError({ status: 500, message: 'Internal error' });
+    expect(err500.status).toEqual(500);
+    expect(err500.payload.error.type).toEqual('api_error');
+  });
+});
