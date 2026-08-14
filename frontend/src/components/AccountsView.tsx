@@ -527,6 +527,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
             const isDisabled = acc.isDisabled || acc.status === 'disabled';
             const totalUsage = getTotalUsage(acc.usage);
             const breakdowns = getModelBreakdowns(acc.usage);
+            const hasContext = Boolean(acc.hasContext);
 
             return (
               <div
@@ -558,6 +559,30 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
 
                   {/* Status Badges */}
                   <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
+                    {/* hasContext Bulb Icon Indicator */}
+                    <div
+                      title={hasContext ? 'Context Ready (已载入浏览器会话)' : 'No Context (未载入)'}
+                      className={`px-1.5 py-0.5 rounded flex items-center justify-center cursor-help transition-all ${
+                        hasContext
+                          ? 'bg-amber-500/15 text-amber-300 border border-amber-500/40 shadow-sm shadow-amber-500/20'
+                          : 'bg-slate-800/50 text-slate-600 border border-slate-800 opacity-60'
+                      }`}
+                    >
+                      <svg
+                        className={`w-3.5 h-3.5 ${hasContext ? 'text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.6)]' : 'text-slate-600'}`}
+                        fill={hasContext ? 'currentColor' : 'none'}
+                        stroke="currentColor"
+                        strokeWidth={hasContext ? 1.5 : 2}
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                        />
+                      </svg>
+                    </div>
+
                     {isDisabled ? (
                       <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/30 flex items-center space-x-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block"></span>
