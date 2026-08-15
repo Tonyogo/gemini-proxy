@@ -1,5 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Editor from '@monaco-editor/react';
+import {
+  Play,
+  Copy,
+  Check,
+  Zap,
+  Sparkles,
+  RefreshCw,
+  Code,
+  Terminal,
+  Activity,
+  Layers,
+  Flame,
+  Send,
+  Eye,
+  Sliders,
+  CheckCircle2,
+  AlertCircle,
+  Clock,
+  Key,
+  Globe,
+  Braces,
+  RotateCcw,
+  AlignLeft,
+  ChevronDown
+} from 'lucide-react';
 import JsonTreeView from './JsonTreeView';
 import SseStreamPreview from './SseStreamPreview';
 import ConcurrentTestModal from './ConcurrentTestModal';
@@ -8,15 +33,79 @@ import { useTranslation } from '../i18n/LanguageContext';
 
 type EndpointOption = 'messages' | 'count_tokens' | 'custom';
 
-const DEFAULT_PRESETS: Record<EndpointOption, any> = {
-  messages: {
+type PresetKey = 'basicChat' | 'toolUse' | 'vision' | 'thinkingMode';
+
+const PRESETS: Record<PresetKey, any> = {
+  basicChat: {
     model: "gemini-3.1-flash-lite",
     max_tokens: 1024,
     messages: [
-      { role: "user", content: "Hello! Who are you?" }
+      { role: "user", content: "Hello! Explain quantum computing in simple terms." }
     ],
     stream: true
   },
+  toolUse: {
+    model: "gemini-2.5-flash",
+    max_tokens: 1024,
+    tools: [
+      {
+        name: "get_weather",
+        description: "Get the current weather for a location",
+        input_schema: {
+          type: "object",
+          properties: {
+            location: { type: "string", description: "City and state, e.g. San Francisco, CA" },
+            unit: { type: "string", enum: ["celsius", "fahrenheit"] }
+          },
+          required: ["location"]
+        }
+      }
+    ],
+    messages: [
+      { role: "user", content: "What is the weather in Tokyo right now?" }
+    ],
+    stream: false
+  },
+  vision: {
+    model: "gemini-2.5-flash",
+    max_tokens: 1024,
+    messages: [
+      {
+        role: "user",
+        content: [
+          {
+            type: "image",
+            source: {
+              type: "base64",
+              media_type: "image/png",
+              data: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+            }
+          },
+          {
+            type: "text",
+            text: "Describe this 1x1 red pixel image."
+          }
+        ]
+      }
+    ],
+    stream: true
+  },
+  thinkingMode: {
+    model: "gemini-2.5-pro",
+    max_tokens: 2048,
+    thinking: {
+      type: "enabled",
+      budget_tokens: 1024
+    },
+    messages: [
+      { role: "user", content: "Solve this riddle: I speak without a mouth and hear without ears. I have no body, but I come alive with wind. What am I?" }
+    ],
+    stream: true
+  }
+};
+
+const DEFAULT_PRESETS: Record<EndpointOption, any> = {
+  messages: PRESETS.basicChat,
   count_tokens: {
     model: "gemini-3.1-flash-lite",
     messages: [
@@ -37,18 +126,110 @@ export default function PlaygroundView() {
   const [endpointOption, setEndpointOption] = useState<EndpointOption>('messages');
   const [customMethod, setCustomMethod] = useState<string>('POST');
   const [customPath, setCustomPath] = useState<string>('/v1/models');
+  const [selectedModel, setSelectedModel] = useState<string>('gemini-3.1-flash-lite');
 
   const [requestBody, setRequestBody] = useState<string>(JSON.stringify(DEFAULT_PRESETS.messages, null, 2));
   const [responseRaw, setResponseRaw] = useState<string>(() => t('playground.initialResponse'));
   const [responseJson, setResponseJson] = useState<any>(null);
   const [responseStreamChunks, setResponseStreamChunks] = useState<any[]>([]);
   const [isStreamingActive, setIsStreamingActive] = useState<boolean>(false);
+  const [statusCode, setStatusCode] = useState<number | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [latency, setLatency] = useState<number | null>(null);
+  const [tokenCount, setTokenCount] = useState<number | null>(null);
   const [viewMode, setViewMode] = useState<'preview' | 'raw'>('preview');
-  const [copied, setCopied] = useState<boolean>(false);
+  const [copiedCurl, setCopiedCurl] = useState<boolean>(false);
+  const [copiedResponse, setCopiedResponse] = useState<boolean>(false);
   const [showConcurrentModal, setShowConcurrentModal] = useState<boolean>(false);
+  const [showPresetsDropdown, setShowPresetsDropdown] = useState<boolean>(false);
+  const presetsRef = useRef<HTMLDivElement>(null);
+
+  // Sync selected model from JSON body on mount or change
+  useEffect(() => {
+    try {
+      const parsed = JSON.parse(requestBody);
+      if (parsed && parsed.model && parsed.model !== selectedModel) {
+        setSelectedModel(parsed.model);
+      }
+    } catch {
+      // ignore
+    }
+  }, [requestBody]);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (presetsRef.current && !presetsRef.current.contains(e.target as Node)) {
+        setShowPresetsDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleKeyChange = (val: string) => {
+    setApiKey(val);
+    localStorage.setItem('geminiApiKey', val);
+  };
+
+  const handleModelChange = (modelName: string) => {
+    setSelectedModel(modelName);
+    try {
+      const parsed = JSON.parse(requestBody);
+      parsed.model = modelName;
+      setRequestBody(JSON.stringify(parsed, null, 2));
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleToggleStreamInBody = () => {
+    try {
+      const parsed = JSON.parse(requestBody);
+      parsed.stream = !parsed.stream;
+      setRequestBody(JSON.stringify(parsed, null, 2));
+    } catch {
+      // ignore
+    }
+  };
+
+  const isStreamChecked = (() => {
+    try {
+      const parsed = JSON.parse(requestBody);
+      return parsed.stream === true;
+    } catch {
+      return false;
+    }
+  })();
+
+  const handleFormatJson = () => {
+    try {
+      const parsed = JSON.parse(requestBody);
+      setRequestBody(JSON.stringify(parsed, null, 2));
+    } catch (err: any) {
+      alert(`${t('playground.alertInvalidJson')}${err.message}`);
+    }
+  };
+
+  const handleResetJson = () => {
+    setRequestBody(JSON.stringify(DEFAULT_PRESETS[endpointOption], null, 2));
+  };
+
+  const handleSelectPreset = (key: PresetKey) => {
+    const preset = PRESETS[key];
+    setRequestBody(JSON.stringify(preset, null, 2));
+    setSelectedModel(preset.model || 'gemini-3.1-flash-lite');
+    setEndpointOption('messages');
+    setShowPresetsDropdown(false);
+  };
+
+  const handleEndpointOptionChange = (option: EndpointOption) => {
+    setEndpointOption(option);
+    if (option === 'messages' || option === 'count_tokens') {
+      setRequestBody(JSON.stringify(DEFAULT_PRESETS[option], null, 2));
+    }
+  };
 
   const handleCopyCurl = () => {
     const origin = window.location.origin;
@@ -78,20 +259,14 @@ export default function PlaygroundView() {
     const curlCmd = `curl -X ${targetMethod} "${targetUrl}" \\\n  ${headers.join(' \\\n  ')}${bodyFlag ? ` \\\n  ${bodyFlag}` : ''}`;
 
     navigator.clipboard.writeText(curlCmd);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setCopiedCurl(true);
+    setTimeout(() => setCopiedCurl(false), 2000);
   };
 
-  const handleKeyChange = (val: string) => {
-    setApiKey(val);
-    localStorage.setItem('geminiApiKey', val);
-  };
-
-  const handleEndpointOptionChange = (option: EndpointOption) => {
-    setEndpointOption(option);
-    if (option === 'messages' || option === 'count_tokens') {
-      setRequestBody(JSON.stringify(DEFAULT_PRESETS[option], null, 2));
-    }
+  const handleCopyResponse = () => {
+    navigator.clipboard.writeText(responseRaw);
+    setCopiedResponse(true);
+    setTimeout(() => setCopiedResponse(false), 2000);
   };
 
   const handleSend = async () => {
@@ -127,6 +302,8 @@ export default function PlaygroundView() {
     setResponseStreamChunks([]);
     setIsStreamingActive(false);
     setLatency(null);
+    setStatusCode(null);
+    setTokenCount(null);
 
     const startTime = Date.now();
     const isStream = targetMethod === 'POST' && parsedPayload && parsedPayload.stream === true;
@@ -145,7 +322,7 @@ export default function PlaygroundView() {
       }
 
       const res = await fetch(targetUrl, fetchOptions);
-
+      setStatusCode(res.status);
       setLatency(Date.now() - startTime);
 
       if (!res.ok) {
@@ -164,6 +341,7 @@ export default function PlaygroundView() {
         let buffer = '';
         let fullStreamOutput = '';
         const accumulatedChunks: any[] = [];
+        let totalOutTokens = 0;
 
         setResponseRaw(t('playground.connectedStreaming'));
 
@@ -187,8 +365,16 @@ export default function PlaygroundView() {
                 try {
                   const chunk = JSON.parse(rawJson);
                   accumulatedChunks.push(chunk);
-                  // Update reactive array of JSON objects for SseStreamPreview
                   setResponseStreamChunks([...accumulatedChunks]);
+
+                  if (chunk.usage?.output_tokens) {
+                    totalOutTokens = chunk.usage.output_tokens;
+                  } else if (chunk.usageMetadata?.candidatesTokenCount) {
+                    totalOutTokens = chunk.usageMetadata.candidatesTokenCount;
+                  }
+                  if (totalOutTokens > 0) {
+                    setTokenCount(totalOutTokens);
+                  }
                 } catch {
                   // ignore chunk parse errors
                 }
@@ -201,6 +387,11 @@ export default function PlaygroundView() {
         const data = await res.json();
         setResponseJson(data);
         setResponseRaw(JSON.stringify(data, null, 2));
+        if (data?.usage?.output_tokens) {
+          setTokenCount(data.usage.output_tokens);
+        } else if (data?.input_tokens) {
+          setTokenCount(data.input_tokens);
+        }
       }
     } catch (err: any) {
       setResponseRaw(`Connection Error:\n${err.message}`);
@@ -211,82 +402,169 @@ export default function PlaygroundView() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-4 h-[780px] flex flex-col font-sans">
-      {/* Top Controls Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-slate-900/60 p-4 rounded-xl border border-slate-700/40">
+    <div className="max-w-7xl mx-auto space-y-4 h-[calc(100vh-6.5rem)] min-h-[700px] flex flex-col font-sans">
+      {/* Top Controls Header Workbench */}
+      <div className="bg-[#0F1118]/90 backdrop-blur-md border border-white/[0.08] p-3.5 rounded-2xl shadow-xl flex flex-wrap items-center justify-between gap-3">
+        {/* Left Side: Brand badge & Key input */}
         <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 rounded-lg bg-emerald-600/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 font-bold text-sm font-mono">
-            PG
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600/30 to-purple-600/30 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold shadow-inner">
+            <Terminal className="w-4 h-4 text-indigo-400" />
           </div>
           <div>
-            <h2 className="text-sm font-bold text-slate-100 uppercase tracking-wider">{t('playground.title')}</h2>
+            <div className="flex items-center space-x-2">
+              <h2 className="text-xs font-bold text-white tracking-wide uppercase">{t('playground.title')}</h2>
+              <span className="px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
+                v1.0
+              </span>
+            </div>
             <p className="text-[10px] text-slate-400">{t('playground.subtitle')}</p>
           </div>
-        </div>
 
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
-            <span className="text-[10px] text-slate-400 uppercase font-semibold">{t('playground.geminiApiKey')}</span>
+          <div className="h-6 w-[1px] bg-white/[0.08] mx-1 hidden sm:block" />
+
+          {/* Gemini API Key input with icon */}
+          <div className="relative flex items-center">
+            <Key className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 pointer-events-none" />
             <input
               type="password"
               value={apiKey}
               onChange={(e) => handleKeyChange(e.target.value)}
               placeholder={t('playground.apiKeyPlaceholder')}
-              className="bg-slate-950 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-blue-500 font-mono w-44"
+              className="bg-[#151824] border border-white/[0.08] rounded-xl pl-8 pr-2.5 py-1.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500/80 font-mono w-48 transition-all"
             />
           </div>
+        </div>
 
-          <div className="flex items-center space-x-2">
-            <span className="text-[10px] text-slate-400 uppercase font-semibold">{t('playground.endpoint')}</span>
+        {/* Right Side: Workbench Selectors & Actions */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Model Selector */}
+          <div className="flex items-center space-x-1.5 bg-[#151824] border border-white/[0.08] rounded-xl px-2.5 py-1">
+            <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+            <select
+              value={selectedModel}
+              onChange={(e) => handleModelChange(e.target.value)}
+              className="bg-transparent text-xs text-slate-200 focus:outline-none font-mono cursor-pointer"
+            >
+              <option value="gemini-3.1-flash-lite" className="bg-[#0F1118]">gemini-3.1-flash-lite</option>
+              <option value="gemini-2.5-flash" className="bg-[#0F1118]">gemini-2.5-flash</option>
+              <option value="gemini-2.5-pro" className="bg-[#0F1118]">gemini-2.5-pro</option>
+              <option value="gemini-2.5-flash-thinking" className="bg-[#0F1118]">gemini-2.5-flash-thinking</option>
+              <option value="claude-3-7-sonnet-20250219" className="bg-[#0F1118]">claude-3-7-sonnet</option>
+              <option value="claude-3-5-sonnet-20241022" className="bg-[#0F1118]">claude-3-5-sonnet</option>
+            </select>
+          </div>
+
+          {/* Endpoint selector */}
+          <div className="flex items-center space-x-1.5 bg-[#151824] border border-white/[0.08] rounded-xl px-2.5 py-1">
+            <Globe className="w-3.5 h-3.5 text-blue-400" />
             <select
               value={endpointOption}
               onChange={(e) => handleEndpointOptionChange(e.target.value as EndpointOption)}
-              className="bg-slate-950 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-blue-500 font-mono"
+              className="bg-transparent text-xs text-slate-200 focus:outline-none font-mono cursor-pointer"
             >
-              <option value="messages">POST /v1/messages</option>
-              <option value="count_tokens">POST /v1/messages/count_tokens</option>
-              <option value="custom">{t('playground.customEndpoint')}</option>
+              <option value="messages" className="bg-[#0F1118]">POST /v1/messages</option>
+              <option value="count_tokens" className="bg-[#0F1118]">POST /v1/messages/count_tokens</option>
+              <option value="custom" className="bg-[#0F1118]">{t('playground.customEndpoint')}</option>
             </select>
 
             {endpointOption === 'custom' && (
-              <>
+              <div className="flex items-center space-x-1 pl-1.5 border-l border-white/[0.08]">
                 <select
                   value={customMethod}
                   onChange={(e) => setCustomMethod(e.target.value)}
-                  className="bg-slate-950 border border-slate-700/80 rounded-lg px-2 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-blue-500 font-mono"
+                  className="bg-transparent text-xs text-indigo-400 font-bold focus:outline-none cursor-pointer"
                 >
-                  <option value="POST">POST</option>
-                  <option value="GET">GET</option>
-                  <option value="PUT">PUT</option>
-                  <option value="DELETE">DELETE</option>
+                  <option value="POST" className="bg-[#0F1118]">POST</option>
+                  <option value="GET" className="bg-[#0F1118]">GET</option>
+                  <option value="PUT" className="bg-[#0F1118]">PUT</option>
+                  <option value="DELETE" className="bg-[#0F1118]">DELETE</option>
                 </select>
-
                 <input
                   type="text"
                   value={customPath}
                   onChange={(e) => setCustomPath(e.target.value)}
                   placeholder="/v1/..."
-                  className="bg-slate-950 border border-slate-700/80 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-blue-500 font-mono w-36"
+                  className="bg-[#090A0F] border border-white/[0.1] rounded-lg px-2 py-0.5 text-xs text-slate-100 font-mono w-28 focus:outline-none"
                 />
-              </>
+              </div>
             )}
           </div>
 
-          {latency !== null && (
-            <span className="text-[10px] font-mono bg-purple-500/10 text-purple-300 border border-purple-500/20 px-2.5 py-1 rounded-full">
-              {t('playground.latency').replace('{ms}', String(latency))}
-            </span>
-          )}
-
+          {/* Stream Toggle Pill */}
           <button
-            onClick={handleCopyCurl}
-            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700/80 rounded-lg font-semibold text-xs text-slate-200 transition-colors flex items-center space-x-1.5"
-            title="Copy as cURL command"
+            type="button"
+            onClick={handleToggleStreamInBody}
+            className={`px-2.5 py-1 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition-all border ${
+              isStreamChecked
+                ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.15)]'
+                : 'bg-[#151824] border-white/[0.08] text-slate-400 hover:text-slate-200'
+            }`}
+            title="Toggle stream: true/false in payload"
           >
-            <span>📋</span>
-            <span>{copied ? t('playground.copied') : t('playground.copyCurl')}</span>
+            <Zap className={`w-3 h-3 ${isStreamChecked ? 'text-emerald-400' : 'text-slate-500'}`} />
+            <span>Stream</span>
+            <span className={`w-1.5 h-1.5 rounded-full ${isStreamChecked ? 'bg-emerald-400 animate-pulse' : 'bg-slate-600'}`} />
           </button>
 
+          {/* Quick Fill Presets Dropdown */}
+          <div className="relative" ref={presetsRef}>
+            <button
+              onClick={() => setShowPresetsDropdown(!showPresetsDropdown)}
+              className="px-2.5 py-1 bg-[#151824] hover:bg-[#1C2030] border border-white/[0.08] hover:border-white/[0.15] text-slate-300 rounded-xl text-xs font-semibold transition-all flex items-center space-x-1.5"
+            >
+              <Sliders className="w-3.5 h-3.5 text-purple-400" />
+              <span>Presets</span>
+              <ChevronDown className="w-3 h-3 text-slate-500" />
+            </button>
+
+            {showPresetsDropdown && (
+              <div className="absolute right-0 mt-2 w-48 bg-[#0F1118] border border-white/[0.1] rounded-xl shadow-2xl z-30 py-1 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
+                <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-white/[0.06]">
+                  Quick Fill Templates
+                </div>
+                <button
+                  onClick={() => handleSelectPreset('basicChat')}
+                  className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/[0.05] transition-colors flex items-center space-x-2"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Basic Chat (Stream)</span>
+                </button>
+                <button
+                  onClick={() => handleSelectPreset('toolUse')}
+                  className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/[0.05] transition-colors flex items-center space-x-2"
+                >
+                  <Code className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Tool Use (Function Call)</span>
+                </button>
+                <button
+                  onClick={() => handleSelectPreset('vision')}
+                  className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/[0.05] transition-colors flex items-center space-x-2"
+                >
+                  <Eye className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Vision & Multimodal</span>
+                </button>
+                <button
+                  onClick={() => handleSelectPreset('thinkingMode')}
+                  className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/[0.05] transition-colors flex items-center space-x-2"
+                >
+                  <Flame className="w-3.5 h-3.5 text-rose-400" />
+                  <span>Thinking Mode (CoT)</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Copy cURL */}
+          <button
+            onClick={handleCopyCurl}
+            className="px-2.5 py-1 bg-[#151824] hover:bg-[#1C2030] border border-white/[0.08] hover:border-white/[0.15] rounded-xl font-semibold text-xs text-slate-300 transition-colors flex items-center space-x-1.5"
+            title="Copy as cURL command"
+          >
+            {copiedCurl ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-slate-400" />}
+            <span>{copiedCurl ? t('playground.copied') : t('playground.copyCurl')}</span>
+          </button>
+
+          {/* Concurrent Test Modal Trigger */}
           <button
             onClick={() => {
               if (!apiKey) {
@@ -295,39 +573,69 @@ export default function PlaygroundView() {
               }
               setShowConcurrentModal(true);
             }}
-            className="px-3 py-1.5 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/40 rounded-lg font-semibold text-xs text-purple-300 transition-colors flex items-center space-x-1.5"
+            className="px-3 py-1 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-300 rounded-xl font-semibold text-xs transition-colors flex items-center space-x-1.5"
           >
-            <span>⚡</span>
+            <Activity className="w-3.5 h-3.5 text-purple-400" />
             <span>{t('playground.concurrentTest')}</span>
           </button>
 
+          {/* Send Request Action Button with Glowing Gradient */}
           <button
             onClick={handleSend}
             disabled={loading}
-            className="px-5 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 rounded-lg font-bold text-xs text-white transition-colors shadow-md animate-pulse"
+            className="px-4 py-1.5 bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-500 hover:from-indigo-600 hover:via-purple-700 hover:to-pink-600 disabled:opacity-50 text-white rounded-xl font-bold text-xs shadow-[0_0_20px_rgba(129,140,248,0.35)] transition-all flex items-center space-x-1.5 active:scale-95"
           >
-            {loading ? t('playground.sending') : t('playground.runTest')}
+            {loading ? (
+              <>
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                <span>{t('playground.sending')}</span>
+              </>
+            ) : (
+              <>
+                <Send className="w-3.5 h-3.5" />
+                <span>{t('playground.runTest')}</span>
+              </>
+            )}
           </button>
         </div>
       </div>
 
-      {/* Main Request / Response Panels (50% / 50%) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 flex-1 overflow-hidden">
-        {/* Left Column: Request Builder */}
-        <div className="bg-slate-850 border border-slate-700/50 rounded-xl p-4 flex flex-col h-full overflow-hidden">
-          <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-800">
-            <span className="font-bold text-blue-400 text-xs uppercase flex items-center space-x-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-              <span>{t('playground.rawJsonRequest')}</span>
-            </span>
-            <span className="text-[10px] text-slate-500 font-mono">
-              {endpointOption === 'messages' && 'POST /v1/messages'}
-              {endpointOption === 'count_tokens' && 'POST /v1/messages/count_tokens'}
-              {endpointOption === 'custom' && `${customMethod} ${customPath}`}
-            </span>
+      {/* Main Dual-Column Monaco Editor Layout */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 overflow-hidden">
+        {/* Left Column: Request JSON Editor */}
+        <div className="bg-[#0F1118]/80 backdrop-blur-md border border-white/[0.08] rounded-2xl p-4 flex flex-col h-full overflow-hidden shadow-xl">
+          <div className="flex items-center justify-between pb-3 mb-2 border-b border-white/[0.06]">
+            <div className="flex items-center space-x-2">
+              <span className="w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]" />
+              <span className="font-bold text-indigo-400 text-xs uppercase tracking-wider">
+                {t('playground.rawJsonRequest')}
+              </span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-white/[0.05] border border-white/[0.08] text-slate-400">
+                JSON
+              </span>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={handleFormatJson}
+                className="px-2 py-1 bg-[#151824] hover:bg-[#1C2030] border border-white/[0.08] hover:border-white/[0.15] rounded-lg text-[11px] text-slate-300 transition-colors flex items-center space-x-1"
+                title="Format JSON payload"
+              >
+                <AlignLeft className="w-3 h-3 text-indigo-400" />
+                <span>Format</span>
+              </button>
+              <button
+                onClick={handleResetJson}
+                className="px-2 py-1 bg-[#151824] hover:bg-[#1C2030] border border-white/[0.08] hover:border-white/[0.15] rounded-lg text-[11px] text-slate-400 hover:text-slate-200 transition-colors flex items-center space-x-1"
+                title="Reset to default payload"
+              >
+                <RotateCcw className="w-3 h-3 text-slate-500" />
+                <span>Reset</span>
+              </button>
+            </div>
           </div>
 
-          <div className="flex-1 rounded-xl overflow-hidden border border-slate-800">
+          <div className="flex-1 rounded-xl overflow-hidden border border-white/[0.06] bg-[#020617]">
             <Editor
               height="100%"
               language="json"
@@ -340,47 +648,99 @@ export default function PlaygroundView() {
                 fontSize: 12,
                 scrollBeyondLastLine: false,
                 lineNumbers: 'on',
-                automaticLayout: true
+                automaticLayout: true,
+                padding: { top: 10, bottom: 10 }
               }}
             />
           </div>
         </div>
 
-        {/* Right Column: Output Viewer */}
-        <div className="bg-slate-850 border border-slate-700/50 rounded-xl p-4 flex flex-col h-full overflow-hidden">
-          <div className="flex items-center justify-between pb-2 mb-3 border-b border-slate-800">
-            <span className="font-bold text-emerald-400 text-xs uppercase flex items-center space-x-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-              <span>{t('playground.responseOutput')}</span>
-            </span>
+        {/* Right Column: Response Preview Panel */}
+        <div className="bg-[#0F1118]/80 backdrop-blur-md border border-white/[0.08] rounded-2xl p-4 flex flex-col h-full overflow-hidden shadow-xl">
+          <div className="flex items-center justify-between pb-3 mb-2 border-b border-white/[0.06]">
+            <div className="flex items-center space-x-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
+              <span className="font-bold text-emerald-400 text-xs uppercase tracking-wider">
+                {t('playground.responseOutput')}
+              </span>
 
-            {/* View Mode Selectors */}
-            <div className="flex bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
+              {/* Status Code Badge */}
+              {statusCode !== null && (
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border ${
+                  statusCode >= 200 && statusCode < 300
+                    ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
+                    : statusCode === 429
+                    ? 'bg-amber-500/15 border-amber-500/30 text-amber-300'
+                    : 'bg-rose-500/15 border-rose-500/30 text-rose-300'
+                }`}>
+                  HTTP {statusCode}
+                </span>
+              )}
+
+              {/* Latency badge */}
+              {latency !== null && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-purple-500/15 border border-purple-500/30 text-purple-300 flex items-center space-x-1">
+                  <Clock className="w-2.5 h-2.5 text-purple-400" />
+                  <span>{latency}ms</span>
+                </span>
+              )}
+
+              {/* Token Counter badge */}
+              {tokenCount !== null && (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 flex items-center space-x-1">
+                  <Sparkles className="w-2.5 h-2.5 text-indigo-400" />
+                  <span>{tokenCount} tokens</span>
+                </span>
+              )}
+            </div>
+
+            {/* View Mode Selectors & Copy */}
+            <div className="flex items-center space-x-2">
+              <div className="flex bg-[#151824] p-0.5 rounded-xl border border-white/[0.08] text-xs">
+                <button
+                  onClick={() => setViewMode('preview')}
+                  className={`px-2.5 py-1 rounded-lg font-semibold transition-all text-[11px] flex items-center space-x-1 ${
+                    viewMode === 'preview'
+                      ? 'bg-emerald-600 text-white shadow'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <Eye className="w-3 h-3" />
+                  <span>{t('playground.preview')}</span>
+                </button>
+                <button
+                  onClick={() => setViewMode('raw')}
+                  className={`px-2.5 py-1 rounded-lg font-semibold transition-all text-[11px] flex items-center space-x-1 ${
+                    viewMode === 'raw'
+                      ? 'bg-emerald-600 text-white shadow'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <Code className="w-3 h-3" />
+                  <span>{t('playground.rawText')}</span>
+                </button>
+              </div>
+
               <button
-                onClick={() => setViewMode('preview')}
-                className={`px-3 py-1 rounded-md font-semibold transition-all ${
-                  viewMode === 'preview' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
-                }`}
+                onClick={handleCopyResponse}
+                className="p-1.5 bg-[#151824] hover:bg-[#1C2030] border border-white/[0.08] hover:border-white/[0.15] rounded-xl text-slate-400 hover:text-white transition-colors"
+                title="Copy response body"
               >
-                {t('playground.preview')}
-              </button>
-              <button
-                onClick={() => setViewMode('raw')}
-                className={`px-3 py-1 rounded-md font-semibold transition-all ${
-                  viewMode === 'raw' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                {t('playground.rawText')}
+                {copiedResponse ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
               </button>
             </div>
           </div>
 
-          <div className="flex-1 rounded-xl overflow-hidden border border-slate-800 overflow-y-auto">
+          <div className="flex-1 rounded-xl overflow-hidden border border-white/[0.06] bg-[#020617] overflow-y-auto p-1">
             {viewMode === 'preview' ? (
               isStreamingActive ? (
-                <SseStreamPreview streamData={responseStreamChunks} />
+                <div className="p-2">
+                  <SseStreamPreview streamData={responseStreamChunks} />
+                </div>
               ) : (
-                <JsonTreeView data={responseJson} />
+                <div className="p-3">
+                  <JsonTreeView data={responseJson} />
+                </div>
               )
             ) : (
               <Editor
@@ -396,7 +756,8 @@ export default function PlaygroundView() {
                   scrollBeyondLastLine: false,
                   lineNumbers: 'on',
                   wordWrap: 'on',
-                  automaticLayout: true
+                  automaticLayout: true,
+                  padding: { top: 10, bottom: 10 }
                 }}
               />
             )}

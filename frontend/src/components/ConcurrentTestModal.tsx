@@ -1,4 +1,21 @@
 import React, { useState } from 'react';
+import {
+  Activity,
+  Zap,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  TrendingUp,
+  X,
+  Play,
+  RefreshCw,
+  Sparkles,
+  Sliders,
+  Flame,
+  Layers,
+  ArrowUpRight,
+  AlertTriangle
+} from 'lucide-react';
 import { useTranslation } from '../i18n/LanguageContext';
 
 interface ConcurrentTestModalProps {
@@ -29,6 +46,7 @@ export default function ConcurrentTestModal({
   const { t } = useTranslation();
   const [concurrency, setConcurrency] = useState<number>(5);
   const [totalRequests, setTotalRequests] = useState<number>(10);
+  const [targetModel, setTargetModel] = useState<string>(parsedPayload?.model || 'gemini-3.1-flash-lite');
 
   const [testing, setTesting] = useState(false);
   const [completedCount, setCompletedCount] = useState<number>(0);
@@ -47,10 +65,13 @@ export default function ConcurrentTestModal({
     const requestList: RequestResult[] = [];
     let completed = 0;
 
-    // Deep clone payload and ensure stream is false for accurate response latency
-    const testPayload = parsedPayload ? JSON.parse(JSON.stringify(parsedPayload)) : null;
+    // Deep clone payload, assign model and ensure stream is false for accurate response latency
+    const testPayload = parsedPayload ? JSON.parse(JSON.stringify(parsedPayload)) : {};
     if (testPayload && typeof testPayload === 'object') {
       testPayload.stream = false;
+      if (targetModel) {
+        testPayload.model = targetModel;
+      }
     }
 
     const executeSingleRequest = async (id: number): Promise<RequestResult> => {
@@ -120,141 +141,240 @@ export default function ConcurrentTestModal({
   };
 
   const successCount = results.filter(r => r.success).length;
+  const rateLimit429Count = results.filter(r => r.status === 429).length;
   const failedCount = results.filter(r => !r.success).length;
+  const otherErrorCount = failedCount - rateLimit429Count;
+
   const latencies = results.map(r => r.latency);
   const minLatency = latencies.length > 0 ? Math.min(...latencies) : 0;
   const maxLatency = latencies.length > 0 ? Math.max(...latencies) : 0;
   const avgLatency = latencies.length > 0 ? Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length) : 0;
-  const qps = totalDuration && totalDuration > 0 ? ((successCount / (totalDuration / 1000))).toFixed(1) : '0';
+  const qps = totalDuration && totalDuration > 0 ? ((completedCount / (totalDuration / 1000))).toFixed(1) : '0';
+
+  const progressPercent = totalRequests > 0 ? Math.round((completedCount / totalRequests) * 100) : 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="bg-slate-900 border border-slate-700/80 rounded-2xl max-w-3xl w-full p-6 shadow-2xl space-y-5 text-slate-100 font-sans">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-          <div className="flex items-center space-x-2">
-            <span className="text-xl">⚡</span>
+    <div className="backdrop-blur-xl bg-black/60 fixed inset-0 flex items-center justify-center z-50 p-4 animate-in fade-in duration-200 font-sans">
+      <div className="bg-[#0F1118] border border-white/[0.1] rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[92vh]">
+        {/* Header with benchmark title and warning badge */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.08] bg-[#121520]">
+          <div className="flex items-center space-x-3">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-purple-600/30 to-pink-600/30 border border-purple-500/30 flex items-center justify-center text-purple-400 font-bold shadow-inner">
+              <Zap className="w-4 h-4 text-purple-400" />
+            </div>
             <div>
-              <h3 className="text-base font-bold text-slate-100">{t('concurrentTest.title')}</h3>
-              <p className="text-xs text-slate-400">{t('concurrentTest.sub').replace('{method}', targetMethod).replace('{url}', targetUrl)}</p>
+              <div className="flex items-center space-x-2">
+                <h3 className="text-sm font-bold text-white">{t('concurrentTest.title')}</h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 flex items-center space-x-1">
+                  <AlertTriangle className="w-3 h-3 text-amber-400" />
+                  <span>Pressure Benchmark</span>
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400">
+                {t('concurrentTest.sub').replace('{method}', targetMethod).replace('{url}', targetUrl)}
+              </p>
             </div>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-200 text-lg font-mono">✕</button>
+          <button
+            onClick={onClose}
+            className="text-slate-400 hover:text-slate-200 p-1.5 rounded-xl hover:bg-white/[0.05] transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
-        {/* Configuration Controls */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-950 p-4 rounded-xl border border-slate-800">
-          <div>
-            <label className="text-xs font-semibold text-slate-300 block mb-1">{t('concurrentTest.concurrencyLabel')}</label>
-            <input
-              type="number"
-              min={1}
-              max={50}
-              disabled={testing}
-              value={concurrency}
-              onChange={(e) => setConcurrency(Math.max(1, parseInt(e.target.value, 10) || 1))}
-              className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs font-mono text-slate-100 focus:outline-none focus:border-blue-500"
-            />
-          </div>
+        <div className="p-6 overflow-y-auto space-y-5 flex-1">
+          {/* Configuration Controls */}
+          <div className="bg-[#121520] p-5 rounded-2xl border border-white/[0.06] space-y-4">
+            <div className="flex items-center space-x-2 text-xs font-bold text-purple-400 uppercase tracking-wider">
+              <Sliders className="w-3.5 h-3.5 text-purple-400" />
+              <span>Benchmark Configuration</span>
+            </div>
 
-          <div>
-            <label className="text-xs font-semibold text-slate-300 block mb-1">{t('concurrentTest.totalRequestsLabel')}</label>
-            <input
-              type="number"
-              min={1}
-              max={200}
-              disabled={testing}
-              value={totalRequests}
-              onChange={(e) => setTotalRequests(Math.max(1, parseInt(e.target.value, 10) || 1))}
-              className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs font-mono text-slate-100 focus:outline-none focus:border-blue-500"
-            />
-          </div>
-
-          <div className="flex items-end">
-            <button
-              onClick={runTest}
-              disabled={testing}
-              className="w-full py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 rounded-lg font-bold text-xs text-white transition-colors shadow-md flex items-center justify-center space-x-1.5"
-            >
-              <span>{testing ? t('concurrentTest.testingButton') : t('concurrentTest.runButton')}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Progress & Stats Dashboard */}
-        {(results.length > 0 || testing) && (
-          <div className="space-y-4">
-            {/* Progress bar */}
-            <div>
-              <div className="flex justify-between text-xs text-slate-400 mb-1 font-mono">
-                <span>{t('concurrentTest.progress')}</span>
-                <span>{completedCount} / {totalRequests} ({Math.round((completedCount / totalRequests) * 100)}%)</span>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Concurrency slider & input */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <label className="text-xs font-semibold text-slate-200">{t('concurrentTest.concurrencyLabel')}</label>
+                  <span className="text-xs font-mono font-bold text-purple-300">{concurrency}</span>
+                </div>
+                <input
+                  type="range"
+                  min={1}
+                  max={50}
+                  disabled={testing}
+                  value={concurrency}
+                  onChange={(e) => setConcurrency(parseInt(e.target.value, 10) || 1)}
+                  className="w-full accent-purple-500 cursor-pointer h-1.5 bg-[#151824] rounded-lg"
+                />
               </div>
-              <div className="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
-                <div
-                  className="bg-blue-500 h-full transition-all duration-150"
-                  style={{ width: `${(completedCount / totalRequests) * 100}%` }}
-                ></div>
+
+              {/* Request Count */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-200 block">{t('concurrentTest.totalRequestsLabel')}</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={200}
+                  disabled={testing}
+                  value={totalRequests}
+                  onChange={(e) => setTotalRequests(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                  className="w-full bg-[#151824] border border-white/[0.08] rounded-xl p-2 text-xs font-mono text-slate-100 focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              {/* Target Model Selector */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-200 block">Target Model</label>
+                <select
+                  value={targetModel}
+                  disabled={testing}
+                  onChange={(e) => setTargetModel(e.target.value)}
+                  className="w-full bg-[#151824] border border-white/[0.08] rounded-xl p-2 text-xs font-mono text-slate-100 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                >
+                  <option value="gemini-3.1-flash-lite">gemini-3.1-flash-lite</option>
+                  <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+                  <option value="gemini-2.5-pro">gemini-2.5-pro</option>
+                  <option value="gemini-2.5-flash-thinking">gemini-2.5-flash-thinking</option>
+                </select>
               </div>
             </div>
 
-            {/* KPI Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-              <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
-                <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">{t('concurrentTest.successFailed')}</div>
-                <div className="text-sm font-bold font-mono mt-1">
-                  <span className="text-emerald-400">{successCount}</span> / <span className="text-rose-400">{failedCount}</span>
+            {/* Run Action Button */}
+            <div className="pt-2">
+              <button
+                onClick={runTest}
+                disabled={testing}
+                className="w-full py-2.5 bg-gradient-to-r from-purple-500 via-indigo-600 to-pink-500 hover:from-purple-600 hover:via-indigo-700 hover:to-pink-600 disabled:opacity-50 text-white rounded-xl font-bold text-xs shadow-[0_0_20px_rgba(168,85,247,0.35)] transition-all flex items-center justify-center space-x-2"
+              >
+                {testing ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>{t('concurrentTest.testingButton')}</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-4 h-4" />
+                    <span>{t('concurrentTest.runButton')}</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Real-time Execution Dashboard */}
+          {(results.length > 0 || testing) && (
+            <div className="space-y-4 animate-in fade-in duration-200">
+              {/* Progress bar with glowing gradient */}
+              <div className="bg-[#121520] p-4 rounded-2xl border border-white/[0.06] space-y-2">
+                <div className="flex justify-between text-xs text-slate-300 font-mono">
+                  <span className="flex items-center space-x-1.5 font-sans font-semibold">
+                    <Activity className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>{t('concurrentTest.progress')}</span>
+                  </span>
+                  <span>{completedCount} / {totalRequests} ({progressPercent}%)</span>
+                </div>
+                <div className="w-full bg-[#151824] rounded-full h-2.5 overflow-hidden border border-white/[0.06]">
+                  <div
+                    className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 h-full transition-all duration-150 shadow-[0_0_12px_rgba(168,85,247,0.5)]"
+                    style={{ width: `${progressPercent}%` }}
+                  />
                 </div>
               </div>
 
-              <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
-                <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">{t('concurrentTest.avgLatency')}</div>
-                <div className="text-sm font-bold font-mono mt-1 text-purple-300">{avgLatency} ms</div>
+              {/* KPI Badges Row */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+                {/* Success / Failure */}
+                <div className="bg-[#121520] p-3.5 rounded-2xl border border-white/[0.06]">
+                  <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold flex items-center justify-center space-x-1">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                    <span>Success</span>
+                  </div>
+                  <div className="text-base font-bold font-mono mt-1 text-emerald-400">
+                    {successCount}
+                  </div>
+                </div>
+
+                {/* 429 Rate Limit / Other Errors */}
+                <div className="bg-[#121520] p-3.5 rounded-2xl border border-white/[0.06]">
+                  <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold flex items-center justify-center space-x-1">
+                    <AlertCircle className="w-3 h-3 text-rose-400" />
+                    <span>429 / Failed</span>
+                  </div>
+                  <div className="text-base font-bold font-mono mt-1">
+                    <span className="text-amber-400" title="429 Rate Limit Errors">{rateLimit429Count}</span>
+                    <span className="text-slate-600 mx-1">/</span>
+                    <span className="text-rose-400" title="Other Failures">{otherErrorCount}</span>
+                  </div>
+                </div>
+
+                {/* Avg Latency */}
+                <div className="bg-[#121520] p-3.5 rounded-2xl border border-white/[0.06]">
+                  <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold flex items-center justify-center space-x-1">
+                    <Clock className="w-3 h-3 text-purple-400" />
+                    <span>{t('concurrentTest.avgLatency')}</span>
+                  </div>
+                  <div className="text-base font-bold font-mono mt-1 text-purple-300">
+                    {avgLatency} <span className="text-xs font-normal text-slate-500">ms</span>
+                  </div>
+                </div>
+
+                {/* Live Throughput QPS */}
+                <div className="bg-[#121520] p-3.5 rounded-2xl border border-white/[0.06]">
+                  <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold flex items-center justify-center space-x-1">
+                    <TrendingUp className="w-3 h-3 text-indigo-400" />
+                    <span>RPS (QPS)</span>
+                  </div>
+                  <div className="text-base font-bold font-mono mt-1 text-indigo-300">
+                    {qps} <span className="text-xs font-normal text-slate-500">req/s</span>
+                  </div>
+                </div>
               </div>
 
-              <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
-                <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">{t('concurrentTest.minMaxLatency')}</div>
-                <div className="text-xs font-bold font-mono mt-1 text-slate-200">{minLatency}ms / {maxLatency}ms</div>
-              </div>
+              {/* Request Timeline / Latency Distribution List */}
+              <div className="bg-[#121520] rounded-2xl border border-white/[0.06] overflow-hidden">
+                <div className="p-3 bg-[#151824] border-b border-white/[0.06] flex items-center justify-between text-xs font-semibold text-slate-300">
+                  <div className="flex items-center space-x-1.5">
+                    <Layers className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Request Execution Timeline</span>
+                  </div>
+                  <span className="text-[11px] font-mono text-slate-500">
+                    Min: {minLatency}ms | Max: {maxLatency}ms
+                  </span>
+                </div>
 
-              <div className="bg-slate-950 p-3 rounded-xl border border-slate-800">
-                <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">{t('concurrentTest.qpsTotalTime')}</div>
-                <div className="text-xs font-bold font-mono mt-1 text-amber-300">
-                  {qps} req/s <span className="text-slate-500">({totalDuration ? (totalDuration / 1000).toFixed(1) : 0}s)</span>
+                <div className="max-h-60 overflow-y-auto divide-y divide-white/[0.04]">
+                  {results.map((r) => {
+                    const is429 = r.status === 429;
+                    return (
+                      <div key={r.id} className="p-2.5 flex items-center justify-between font-mono text-xs hover:bg-white/[0.02] transition-colors">
+                        <div className="flex items-center space-x-3 min-w-0 pr-2">
+                          <span className="text-slate-500 text-[11px] w-8">#{r.id}</span>
+                          <span className={`px-2 py-0.5 rounded-lg border text-[10px] font-bold ${
+                            r.success
+                              ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                              : is429
+                              ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                              : 'bg-rose-500/15 text-rose-300 border-rose-500/30'
+                          }`}>
+                            {r.status || 'ERR'}
+                          </span>
+                          <span className="text-slate-400 truncate max-w-sm font-sans text-xs">
+                            {r.error || 'Request Succeeded'}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center space-x-3 shrink-0">
+                          <span className="text-purple-300 font-mono text-xs">{r.latency}ms</span>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
-
-            {/* Details Table */}
-            <div className="bg-slate-950 rounded-xl border border-slate-800 overflow-hidden max-h-56 overflow-y-auto">
-              <table className="w-full text-left text-xs font-mono">
-                <thead className="bg-slate-900 border-b border-slate-800 text-slate-400 sticky top-0">
-                  <tr>
-                    <th className="p-2.5">{t('concurrentTest.reqHeader')}</th>
-                    <th className="p-2.5">{t('concurrentTest.statusHeader')}</th>
-                    <th className="p-2.5">{t('concurrentTest.latencyHeader')}</th>
-                    <th className="p-2.5">{t('concurrentTest.detailsHeader')}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/60">
-                  {results.map((r) => (
-                    <tr key={r.id} className="hover:bg-slate-900/40">
-                      <td className="p-2.5 text-slate-400">#{r.id}</td>
-                      <td className="p-2.5">
-                        <span className={`px-1.5 py-0.5 rounded border text-[10px] font-bold ${
-                          r.success ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20' : 'bg-rose-500/10 text-rose-300 border-rose-500/20'
-                        }`}>
-                          {r.status || 'ERR'}
-                        </span>
-                      </td>
-                      <td className="p-2.5 text-purple-300">{r.latency} ms</td>
-                      <td className="p-2.5 text-slate-400 truncate max-w-xs">{r.error || 'OK'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
