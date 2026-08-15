@@ -519,28 +519,28 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     const rawConcurrent = (acc.concurrentStatus || '').toUpperCase();
     const isManuallyDisabled = Boolean(acc.isDisabled || (acc as any).disabled === true || acc.status === 'disabled');
 
-    // Suspended / Rate Limited
-    if (acc.isSuspended) {
+    // 1. Explicitly Suspended / Rate Limited
+    if (acc.isSuspended || rawConcurrent === 'SUSPENDED') {
       return (
-        <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center space-x-1.5 shadow-[0_0_8px_rgba(244,63,94,0.1)]">
+        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center space-x-1.5 shadow-[0_0_8px_rgba(244,63,94,0.1)]">
           <span className="w-1.5 h-1.5 rounded-full bg-rose-400 inline-block" />
-          <span>SUSPENDED</span>
+          <span>{t('accounts.statusSuspended', '已暂停')}</span>
         </span>
       );
     }
 
-    // Explicitly Disabled / Inactive
+    // 2. Explicitly Disabled / Inactive
     if (isManuallyDisabled || rawConcurrent === 'DISABLED') {
       return (
-        <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-800/40 text-slate-400 border border-slate-700/50 flex items-center space-x-1.5">
+        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-slate-800/40 text-slate-400 border border-slate-700/50 flex items-center space-x-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-slate-500 inline-block" />
           <span>{t('accounts.statusDisabled')}</span>
         </span>
       );
     }
 
-    // Activated (active running)
-    if (rawConcurrent === 'ACTIVATED' || (rawConcurrent === '' && acc.status === 'active')) {
+    // 3. Activated (active running in pool)
+    if (rawConcurrent === 'ACTIVATED' || (!rawConcurrent && acc.status === 'active')) {
       return (
         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-[0_0_8px_rgba(16,185,129,0.15)] flex items-center space-x-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse" />
@@ -549,29 +549,29 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
       );
     }
 
-    // Activating / Rotating
+    // 4. Activating / Rotating
     if (rawConcurrent === 'ACTIVATING' || acc.isRotation) {
       return (
         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center space-x-1.5 shadow-[0_0_8px_rgba(99,102,241,0.15)]">
           <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 inline-block animate-ping" />
-          <span>{acc.isRotation ? 'ROTATION' : t('accounts.statusActivating')}</span>
+          <span>{acc.isRotation ? t('accounts.statusRotation', '轮换中') : t('accounts.statusActivating')}</span>
         </span>
       );
     }
 
-    // Retired
+    // 5. Retired (completed quota / cool down)
     if (rawConcurrent === 'RETIRED') {
       return (
-        <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center space-x-1.5">
+        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center space-x-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
           <span>{t('accounts.statusRetired')}</span>
         </span>
       );
     }
 
-    // Inactive
+    // 6. Inactive
     return (
-      <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-800/40 text-slate-400 border border-slate-700/50 flex items-center space-x-1.5">
+      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-slate-800/40 text-slate-400 border border-slate-700/50 flex items-center space-x-1.5">
         <span className="w-1.5 h-1.5 rounded-full bg-slate-600 inline-block" />
         <span>{t('accounts.statusInactive')}</span>
       </span>
@@ -606,7 +606,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
             <span>{t('accounts.title')}</span>
           </h1>
           <p className="text-xs text-slate-400 mt-1">
-            Manage multi-account credentials, automatic context rotation, and per-account usage quotas.
+            {t('accounts.sub', 'Manage multi-account credentials, automatic context rotation, and per-account usage quotas.')}
           </p>
         </div>
 
@@ -675,7 +675,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
             <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search by index or email..."
+              placeholder={t('accounts.searchPlaceholder', '按序号或邮箱/标识搜索...')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-[#141620] border border-white/[0.08] text-slate-200 text-xs rounded-lg pl-8 pr-7 py-1.5 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all placeholder:text-slate-500"
@@ -697,12 +697,12 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="bg-[#141620] border border-white/[0.08] text-slate-300 text-xs rounded-lg pl-3 pr-8 py-1.5 focus:outline-none focus:border-indigo-500/50 appearance-none cursor-pointer hover:border-white/[0.15] transition-all"
             >
-              <option value="ALL">All Statuses ({totalCount})</option>
-              <option value="ACTIVATED">Activated ({activatedCount})</option>
-              <option value="ACTIVATING">Activating ({activatingCount})</option>
-              <option value="DISABLED">Disabled ({disabledCount})</option>
-              <option value="INACTIVE">Inactive ({inactiveCount})</option>
-              <option value="ISSUES">Issues / Expired</option>
+              <option value="ALL">{t('accounts.filterAll', '全部状态')} ({totalCount})</option>
+              <option value="ACTIVATED">{t('accounts.filterActivated', '已激活')} ({activatedCount})</option>
+              <option value="ACTIVATING">{t('accounts.filterActivating', '激活中')} ({activatingCount})</option>
+              <option value="DISABLED">{t('accounts.filterDisabled', '已禁用')} ({disabledCount})</option>
+              <option value="INACTIVE">{t('accounts.filterInactive', '未激活')} ({inactiveCount})</option>
+              <option value="ISSUES">{t('accounts.filterIssues', '凭据异常 / 已过期')}</option>
             </select>
             <ChevronDown className="w-3.5 h-3.5 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
@@ -768,7 +768,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
             </div>
             <p className="text-slate-400 text-xs max-w-md mx-auto">
               {searchQuery || statusFilter !== 'ALL'
-                ? 'No accounts match the selected search or status filters.'
+                ? t('accounts.noFilteredAccounts', '未找到符合当前搜索关键词或状态筛选的账号。')
                 : t('accounts.noAccounts')}
             </p>
           </div>
@@ -785,21 +785,23 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                       className="w-4 h-4 rounded bg-[#0A0C10] border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
                     />
                   </th>
-                  <th className="px-3 py-3 w-16">Index</th>
-                  <th className="px-4 py-3 min-w-[200px]">Account / Identifier</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Quota & Today Usage</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
+                  <th className="px-3 py-3 w-16">{t('accounts.tableIndex', '序号')}</th>
+                  <th className="px-4 py-3 min-w-[200px]">{t('accounts.tableAccount', '账号 / 凭据标识')}</th>
+                  <th className="px-4 py-3">{t('accounts.tableStatus', '状态')}</th>
+                  <th className="px-4 py-3">{t('accounts.tableQuota', '配额与今日用量')}</th>
+                  <th className="px-4 py-3 text-right">{t('accounts.tableActions', '操作')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/[0.04] text-xs">
-                {filteredAccounts.map((acc) => {
+                {filteredAccounts.map((acc, accIdx) => {
                   const isCurrent = acc.index === currentAuthIndex;
                   const isChecked = selectedIndices.includes(acc.index);
                   const isManuallyDisabled = Boolean(acc.isDisabled || (acc as any).disabled === true || acc.status === 'disabled');
                   const totalUsage = getTotalUsage(acc.usage);
                   const breakdowns = getModelBreakdowns(acc.usage);
                   const hasContext = Boolean(acc.hasContext);
+                  // Render popover downwards for top 2 rows to avoid being clipped by container overflow/header
+                  const isTopRow = accIdx < 2;
 
                   return (
                     <tr
@@ -931,7 +933,11 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                           </div>
 
                           {/* Popover Bubble */}
-                          <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block z-50 w-64 p-3 bg-[#0F1118] border border-white/[0.12] rounded-xl shadow-2xl backdrop-blur-xl pointer-events-auto">
+                          <div
+                            className={`absolute left-0 ${
+                              isTopRow ? 'top-full mt-2' : 'bottom-full mb-2'
+                            } hidden group-hover:block z-50 w-64 p-3 bg-[#0F1118] border border-white/[0.12] rounded-xl shadow-2xl backdrop-blur-xl pointer-events-auto`}
+                          >
                             <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/[0.08]">
                               <span className="text-[11px] font-bold text-slate-200 flex items-center space-x-1.5">
                                 <Clock className="w-3.5 h-3.5 text-indigo-400" />
@@ -976,7 +982,14 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                                 })}
                               </div>
                             )}
-                            <div className="absolute left-6 top-full -mt-px w-2.5 h-2.5 bg-[#0F1118] border-r border-b border-white/[0.12] transform rotate-45" />
+                            {/* Pointer Arrow */}
+                            <div
+                              className={`absolute left-6 ${
+                                isTopRow
+                                  ? 'bottom-full -mb-px border-l border-t'
+                                  : 'top-full -mt-px border-r border-b'
+                              } w-2.5 h-2.5 bg-[#0F1118] border-white/[0.12] transform rotate-45`}
+                            />
                           </div>
                         </div>
                       </td>

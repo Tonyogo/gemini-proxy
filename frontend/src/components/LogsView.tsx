@@ -219,10 +219,10 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
   };
 
   return (
-    <div className="flex flex-col md:flex-row gap-4 max-w-7xl mx-auto items-stretch md:items-start min-h-[600px] md:h-[calc(100vh-6.5rem)]">
+    <div className="flex flex-col md:flex-row gap-4 max-w-7xl mx-auto items-stretch md:items-start min-h-[700px] md:h-[calc(100vh-6.5rem)]">
       {/* Left Column (Request Master List) */}
       {!sidebarCollapsed && (
-        <div className="w-full md:w-88 shrink-0 bg-slate-900/90 border border-slate-800/90 rounded-2xl p-3.5 shadow-xl flex flex-col max-h-[480px] md:max-h-none md:h-full transition-all">
+        <div className="w-full md:w-88 shrink-0 bg-slate-900/90 border border-slate-800/90 rounded-2xl p-3.5 shadow-xl flex flex-col h-[460px] md:h-full transition-all">
           {/* Header Bar */}
           <div className="flex items-center justify-between pb-3 mb-2.5 border-b border-slate-800/80">
             <div className="flex items-center space-x-2">
@@ -537,7 +537,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
       )}
 
       {/* Right Column (Detail Inspector) */}
-      <div className="flex-1 min-w-0 bg-slate-900/90 border border-slate-800/90 rounded-2xl p-4 shadow-xl flex flex-col h-full">
+      <div className="flex-1 min-w-0 bg-slate-900/90 border border-slate-800/90 rounded-2xl p-4 shadow-xl flex flex-col h-full min-h-[500px]">
         {/* Top Header & Navigation Bar */}
         <div className="flex flex-wrap items-center justify-between pb-3 mb-3.5 border-b border-slate-800/80 gap-3">
           <div className="flex items-center space-x-3">
@@ -623,12 +623,12 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                   {copiedCurl ? (
                     <>
                       <Check className="w-3 h-3 text-emerald-400" />
-                      <span className="text-emerald-400">cURL Copied!</span>
+                      <span className="text-emerald-400">{t('logs.curlCopied', 'cURL 已复制！')}</span>
                     </>
                   ) : (
                     <>
                       <Terminal className="w-3 h-3" />
-                      <span>Copy cURL</span>
+                      <span>{t('logs.copyCurl', '复制 cURL')}</span>
                     </>
                   )}
                 </button>
@@ -641,12 +641,12 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                   {copiedJson ? (
                     <>
                       <Check className="w-3 h-3 text-emerald-400" />
-                      <span className="text-emerald-400">JSON Copied!</span>
+                      <span className="text-emerald-400">{t('logs.jsonCopied', 'JSON 已复制！')}</span>
                     </>
                   ) : (
                     <>
                       <Copy className="w-3 h-3" />
-                      <span>Copy JSON</span>
+                      <span>{t('logs.copyJson', '复制完整 JSON')}</span>
                     </>
                   )}
                 </button>

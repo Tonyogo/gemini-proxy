@@ -1117,10 +1117,10 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
           <div className="flex items-center justify-between mb-4 border-b border-white/[0.06] pb-3">
             <h3 className="text-xs font-semibold text-slate-200 tracking-wider uppercase flex items-center space-x-2">
               <Layers className="w-4 h-4 text-indigo-400" />
-              <span>Model Performance Matrix</span>
+              <span>{t('dashboard.modelPerformanceTitle', '模型性能与分布矩阵')}</span>
             </h3>
             <span className="text-[10px] font-mono text-slate-400 bg-white/[0.04] px-2 py-0.5 rounded border border-white/[0.06]">
-              {modelStatsSummary.list.length} Models Tracked
+              {modelStatsSummary.list.length} {t('dashboard.modelsTracked', '个已追踪模型')}
             </span>
           </div>
 
@@ -1173,7 +1173,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
           <div className="flex items-center justify-between mb-4 border-b border-white/[0.06] pb-3">
             <h3 className="text-xs font-semibold text-slate-200 tracking-wider uppercase flex items-center space-x-2">
               <Cpu className="w-4 h-4 text-emerald-400" />
-              <span>System Runtime Matrix</span>
+              <span>{t('dashboard.systemRuntimeMatrix', '系统运行时参数矩阵')}</span>
             </h3>
             <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
               ACTIVE
