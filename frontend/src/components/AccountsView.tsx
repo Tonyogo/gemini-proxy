@@ -1,4 +1,31 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import {
+  Users,
+  Search,
+  Filter,
+  RefreshCw,
+  Upload,
+  Layers,
+  Download,
+  Trash2,
+  Power,
+  CheckCircle2,
+  AlertCircle,
+  Clock,
+  Sparkles,
+  Zap,
+  ChevronDown,
+  Copy,
+  Check,
+  Radio,
+  FileText,
+  Key,
+  ShieldCheck,
+  AlertTriangle,
+  ArrowRightLeft,
+  X,
+  ExternalLink
+} from 'lucide-react';
 import { useTranslation } from '../i18n/LanguageContext';
 
 export interface ModelUsageDetail {
@@ -56,12 +83,19 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
   const [actionLoading, setActionLoading] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
+  // Filters & Search
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<string>('ALL');
+
   // Modals state
   const [deleteConfirm, setDeleteConfirm] = useState<{ index: number; email: string; isCurrent: boolean } | null>(null);
   const [batchDeleteConfirm, setBatchDeleteConfirm] = useState<boolean>(false);
   const [dedupConfirm, setDedupConfirm] = useState<boolean>(false);
 
-  // Terminal Logs Collapse & State (Defaults to false/collapsed)
+  // Clipboard feedback map for account keys/names
+  const [copiedKeyIndex, setCopiedKeyIndex] = useState<number | null>(null);
+
+  // Upstream Terminal Logs Collapse & State
   const [isLogsExpanded, setIsLogsExpanded] = useState<boolean>(false);
   const [autoScrollLogs, setAutoScrollLogs] = useState<boolean>(true);
   const [copiedLogs, setCopiedLogs] = useState<boolean>(false);
@@ -110,7 +144,6 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     }
   };
 
-  // Initial load
   useEffect(() => {
     fetchStatus();
   }, [adminKey]);
@@ -119,9 +152,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
   useEffect(() => {
     if (!isLogsExpanded) return;
 
-    // Trigger an immediate silent fetch on expand
     fetchStatus(true);
-
     const timer = setInterval(() => {
       fetchStatus(true);
     }, 3000);
@@ -140,13 +171,15 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
   const isSystemBusy = Boolean(data?.status?.isSystemBusy);
 
   const totalCount = accounts.length;
-  // Summary counts based on concurrentStatus & isDisabled
   const activatedCount = accounts.filter(a => {
     const cStatus = (a.concurrentStatus || '').toUpperCase();
     return cStatus === 'ACTIVATED' || (cStatus === '' && !a.isDisabled && a.status === 'active');
   }).length;
 
-  const activatingCount = accounts.filter(a => (a.concurrentStatus || '').toUpperCase() === 'ACTIVATING').length;
+  const activatingCount = accounts.filter(a => {
+    const cStatus = (a.concurrentStatus || '').toUpperCase();
+    return cStatus === 'ACTIVATING' || a.isRotation;
+  }).length;
 
   const disabledCount = accounts.filter(a => a.isDisabled || (a as any).disabled === true || a.status === 'disabled').length;
 
@@ -157,11 +190,45 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
 
   const inFlightCount = accounts.reduce((acc, cur) => acc + (cur.inFlight || 0), 0);
 
+  // Filtered accounts list based on searchQuery and statusFilter
+  const filteredAccounts = useMemo(() => {
+    return accounts.filter(acc => {
+      // Search filter (by index or name/email)
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase().trim();
+        const matchesIndex = `#${acc.index}`.includes(query) || `${acc.index}` === query;
+        const matchesName = (acc.name || '').toLowerCase().includes(query);
+        if (!matchesIndex && !matchesName) return false;
+      }
+
+      // Status filter
+      if (statusFilter !== 'ALL') {
+        const cStatus = (acc.concurrentStatus || '').toUpperCase();
+        const isManuallyDisabled = Boolean(acc.isDisabled || (acc as any).disabled === true || acc.status === 'disabled');
+
+        if (statusFilter === 'ACTIVATED') {
+          if (isManuallyDisabled) return false;
+          if (cStatus !== 'ACTIVATED' && !(cStatus === '' && acc.status === 'active')) return false;
+        } else if (statusFilter === 'ACTIVATING') {
+          if (cStatus !== 'ACTIVATING' && !acc.isRotation) return false;
+        } else if (statusFilter === 'DISABLED') {
+          if (!isManuallyDisabled && cStatus !== 'DISABLED') return false;
+        } else if (statusFilter === 'INACTIVE') {
+          if (cStatus !== 'INACTIVE' && cStatus !== 'RETIRED') return false;
+        } else if (statusFilter === 'ISSUES') {
+          if (!acc.isInvalid && !acc.isDuplicate && !acc.isExpired && !acc.isSuspended) return false;
+        }
+      }
+
+      return true;
+    });
+  }, [accounts, searchQuery, statusFilter]);
+
   const handleSelectAll = () => {
-    if (selectedIndices.length === accounts.length && accounts.length > 0) {
+    if (selectedIndices.length === filteredAccounts.length && filteredAccounts.length > 0) {
       setSelectedIndices([]);
     } else {
-      setSelectedIndices(accounts.map(a => a.index));
+      setSelectedIndices(filteredAccounts.map(a => a.index));
     }
   };
 
@@ -188,6 +255,28 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
         const err = await res.json().catch(() => ({ error: 'Error' }));
         showToast(t('accounts.actionFailed', { error: err.error || err.message }), 'error');
       }
+    } catch (err: any) {
+      showToast(t('accounts.actionFailed', { error: err.message }), 'error');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleBatchToggleDisabled = async (disabled: boolean) => {
+    if (selectedIndices.length === 0) return;
+    setActionLoading(true);
+    try {
+      await Promise.all(
+        selectedIndices.map(index =>
+          fetch('/api/admin/accounts/toggle-disabled', {
+            method: 'POST',
+            headers: getHeaders({ 'Content-Type': 'application/json' }),
+            body: JSON.stringify({ index, disabled })
+          })
+        )
+      );
+      showToast(t('accounts.actionSuccess'));
+      fetchStatus();
     } catch (err: any) {
       showToast(t('accounts.actionFailed', { error: err.message }), 'error');
     } finally {
@@ -386,7 +475,13 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     setTimeout(() => setCopiedLogs(false), 2000);
   };
 
-  // Helper to extract total usage number
+  const handleCopyAccountName = (index: number, name: string | null) => {
+    if (!name) return;
+    navigator.clipboard.writeText(name);
+    setCopiedKeyIndex(index);
+    setTimeout(() => setCopiedKeyIndex(null), 1500);
+  };
+
   const getTotalUsage = (usage?: AccountUsage): number => {
     if (!usage) return 0;
     if (typeof usage.total === 'number') return usage.total;
@@ -397,7 +492,6 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     return 0;
   };
 
-  // Helper to extract models breakdown list
   const getModelBreakdowns = (usage?: AccountUsage): Array<{ model: string; count: number; limit?: number }> => {
     if (!usage) return [];
     const list: Array<{ model: string; count: number; limit?: number }> = [];
@@ -420,136 +514,201 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     return list;
   };
 
-  // Helper to render concurrentStatus Badge
+  // State Machine Badges with modern Linear styles
   const renderStatusBadge = (acc: AccountDetail) => {
     const rawConcurrent = (acc.concurrentStatus || '').toUpperCase();
     const isManuallyDisabled = Boolean(acc.isDisabled || (acc as any).disabled === true || acc.status === 'disabled');
 
-    // If explicitly disabled
+    // Suspended / Rate Limited
+    if (acc.isSuspended) {
+      return (
+        <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center space-x-1.5 shadow-[0_0_8px_rgba(244,63,94,0.1)]">
+          <span className="w-1.5 h-1.5 rounded-full bg-rose-400 inline-block" />
+          <span>SUSPENDED</span>
+        </span>
+      );
+    }
+
+    // Explicitly Disabled / Inactive
     if (isManuallyDisabled || rawConcurrent === 'DISABLED') {
       return (
-        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-400 border border-slate-700 flex items-center space-x-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-slate-500 inline-block"></span>
+        <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-800/40 text-slate-400 border border-slate-700/50 flex items-center space-x-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-slate-500 inline-block" />
           <span>{t('accounts.statusDisabled')}</span>
         </span>
       );
     }
 
-    if (rawConcurrent === 'ACTIVATED') {
+    // Activated (active running)
+    if (rawConcurrent === 'ACTIVATED' || (rawConcurrent === '' && acc.status === 'active')) {
       return (
-        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/40 flex items-center space-x-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse"></span>
+        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-[0_0_8px_rgba(16,185,129,0.15)] flex items-center space-x-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse" />
           <span>{t('accounts.statusActivated')}</span>
         </span>
       );
     }
 
-    if (rawConcurrent === 'ACTIVATING') {
+    // Activating / Rotating
+    if (rawConcurrent === 'ACTIVATING' || acc.isRotation) {
       return (
-        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-500/15 text-blue-400 border border-blue-500/40 flex items-center space-x-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 inline-block animate-ping"></span>
-          <span>{t('accounts.statusActivating')}</span>
+        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center space-x-1.5 shadow-[0_0_8px_rgba(99,102,241,0.15)]">
+          <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 inline-block animate-ping" />
+          <span>{acc.isRotation ? 'ROTATION' : t('accounts.statusActivating')}</span>
         </span>
       );
     }
 
+    // Retired
     if (rawConcurrent === 'RETIRED') {
       return (
-        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30 flex items-center space-x-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block"></span>
+        <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center space-x-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
           <span>{t('accounts.statusRetired')}</span>
         </span>
       );
     }
 
-    if (rawConcurrent === 'INACTIVE') {
-      return (
-        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800/90 text-slate-400 border border-slate-700/80 flex items-center space-x-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-slate-600 inline-block"></span>
-          <span>{t('accounts.statusInactive')}</span>
-        </span>
-      );
-    }
-
-    // Default fallback based on status property
-    if (acc.status === 'active') {
-      return (
-        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/40 flex items-center space-x-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse"></span>
-          <span>{t('accounts.statusActive')}</span>
-        </span>
-      );
-    }
-
+    // Inactive
     return (
-      <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-400 border border-slate-700 flex items-center space-x-1">
-        <span className="w-1.5 h-1.5 rounded-full bg-slate-500 inline-block"></span>
-        <span>{acc.status || t('accounts.statusInactive')}</span>
+      <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-800/40 text-slate-400 border border-slate-700/50 flex items-center space-x-1.5">
+        <span className="w-1.5 h-1.5 rounded-full bg-slate-600 inline-block" />
+        <span>{t('accounts.statusInactive')}</span>
       </span>
     );
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto pb-24">
       {/* Toast */}
       {toastMessage && (
         <div
-          className={`fixed top-16 right-6 z-50 px-4 py-2.5 rounded-xl shadow-2xl text-xs font-semibold flex items-center space-x-2 border transition-all duration-300 ${
+          className={`fixed top-16 right-6 z-50 px-4 py-2.5 rounded-xl shadow-2xl text-xs font-semibold flex items-center space-x-2 border backdrop-blur-xl transition-all duration-300 ${
             toastMessage.type === 'success'
-              ? 'bg-emerald-950/90 border-emerald-500/40 text-emerald-300'
-              : 'bg-rose-950/90 border-rose-500/40 text-rose-300'
+              ? 'bg-emerald-950/90 border-emerald-500/40 text-emerald-300 shadow-[0_0_20px_rgba(16,185,129,0.2)]'
+              : 'bg-rose-950/90 border-rose-500/40 text-rose-300 shadow-[0_0_20px_rgba(244,63,94,0.2)]'
           }`}
         >
-          <span>{toastMessage.type === 'success' ? '✓' : '⚠️'}</span>
+          {toastMessage.type === 'success' ? (
+            <Check className="w-4 h-4 text-emerald-400" />
+          ) : (
+            <AlertCircle className="w-4 h-4 text-rose-400" />
+          )}
           <span>{toastMessage.text}</span>
         </div>
       )}
 
-      {/* Header & Stats Banner */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
-        <div className="bg-slate-900/80 border border-slate-800/80 rounded-xl p-3 flex flex-col justify-between">
-          <span className="text-[11px] font-medium text-slate-400">{t('accounts.totalAccounts')}</span>
-          <span className="text-xl font-bold text-slate-100 mt-1">{totalCount}</span>
+      {/* Modern Page Header & Stats Banner */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-bold text-white tracking-tight flex items-center space-x-2.5">
+            <Users className="w-5 h-5 text-indigo-400" />
+            <span>{t('accounts.title')}</span>
+          </h1>
+          <p className="text-xs text-slate-400 mt-1">
+            Manage multi-account credentials, automatic context rotation, and per-account usage quotas.
+          </p>
         </div>
-        <div className="bg-slate-900/80 border border-slate-800/80 rounded-xl p-3 flex flex-col justify-between">
-          <span className="text-[11px] font-medium text-emerald-400">{t('accounts.activeAccounts')}</span>
-          <span className="text-xl font-bold text-emerald-300 mt-1">{activatedCount}</span>
-        </div>
-        <div className="bg-slate-900/80 border border-slate-800/80 rounded-xl p-3 flex flex-col justify-between">
-          <span className="text-[11px] font-medium text-blue-400">{t('accounts.activatingAccounts')}</span>
-          <span className="text-xl font-bold text-blue-300 mt-1">{activatingCount}</span>
-        </div>
-        <div className="bg-slate-900/80 border border-slate-800/80 rounded-xl p-3 flex flex-col justify-between">
-          <span className="text-[11px] font-medium text-slate-400">{t('accounts.inactiveAccounts')}</span>
-          <span className="text-xl font-bold text-slate-400 mt-1">{inactiveCount}</span>
-        </div>
-        <div className="bg-slate-900/80 border border-slate-800/80 rounded-xl p-3 flex flex-col justify-between">
-          <span className="text-[11px] font-medium text-rose-400">{t('accounts.disabledAccounts')}</span>
-          <span className="text-xl font-bold text-rose-400 mt-1">{disabledCount}</span>
-        </div>
-        <div className="bg-slate-900/80 border border-slate-800/80 rounded-xl p-3 flex flex-col justify-between">
-          <span className="text-[11px] font-medium text-purple-400">{t('accounts.inFlightRequests')}</span>
-          <span className="text-xl font-bold text-purple-300 mt-1">{inFlightCount}</span>
+
+        {/* Stats Chips */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          {/* Total Accounts */}
+          <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl px-3.5 py-2 flex items-center space-x-3">
+            <div className="p-2 rounded-lg bg-slate-800/60 text-slate-300 border border-white/[0.04]">
+              <Users className="w-3.5 h-3.5" />
+            </div>
+            <div>
+              <div className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
+                {t('accounts.totalAccounts')}
+              </div>
+              <div className="text-base font-bold text-slate-100 font-mono">{totalCount}</div>
+            </div>
+          </div>
+
+          {/* Activated */}
+          <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl px-3.5 py-2 flex items-center space-x-3">
+            <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+            </div>
+            <div>
+              <div className="text-[10px] font-medium text-emerald-400 uppercase tracking-wider">
+                {t('accounts.activeAccounts')}
+              </div>
+              <div className="text-base font-bold text-emerald-300 font-mono">{activatedCount}</div>
+            </div>
+          </div>
+
+          {/* Activating / Rotating */}
+          <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl px-3.5 py-2 flex items-center space-x-3">
+            <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+              <Sparkles className="w-3.5 h-3.5" />
+            </div>
+            <div>
+              <div className="text-[10px] font-medium text-indigo-400 uppercase tracking-wider">
+                {t('accounts.activatingAccounts')}
+              </div>
+              <div className="text-base font-bold text-indigo-300 font-mono">{activatingCount}</div>
+            </div>
+          </div>
+
+          {/* Inactive / Disabled */}
+          <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl px-3.5 py-2 flex items-center space-x-3">
+            <div className="p-2 rounded-lg bg-slate-800/50 text-slate-400 border border-slate-700/40">
+              <Power className="w-3.5 h-3.5" />
+            </div>
+            <div>
+              <div className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
+                {t('accounts.disabledAccounts')}
+              </div>
+              <div className="text-base font-bold text-slate-400 font-mono">{disabledCount + inactiveCount}</div>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Action Toolbar */}
-      <div className="bg-slate-900/90 border border-slate-800/80 rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3 shadow-md">
-        <div className="flex items-center space-x-3">
-          <label className="flex items-center space-x-2 text-xs font-semibold text-slate-300 cursor-pointer select-none">
+      <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3 shadow-md">
+        {/* Left: Search & Filter */}
+        <div className="flex items-center flex-wrap gap-2.5 flex-1 min-w-[280px]">
+          {/* Search Input */}
+          <div className="relative flex-1 max-w-xs">
+            <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
-              type="checkbox"
-              checked={accounts.length > 0 && selectedIndices.length === accounts.length}
-              onChange={handleSelectAll}
-              className="w-4 h-4 rounded bg-slate-950 border-slate-700 text-blue-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+              type="text"
+              placeholder="Search by index or email..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-[#141620] border border-white/[0.08] text-slate-200 text-xs rounded-lg pl-8 pr-7 py-1.5 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all placeholder:text-slate-500"
             />
-            <span>{t('accounts.selectAll')}</span>
-            {selectedIndices.length > 0 && (
-              <span className="text-blue-400 font-mono text-[11px]">({selectedIndices.length})</span>
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 text-xs"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
             )}
-          </label>
+          </div>
+
+          {/* Status Filter */}
+          <div className="relative">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="bg-[#141620] border border-white/[0.08] text-slate-300 text-xs rounded-lg pl-3 pr-8 py-1.5 focus:outline-none focus:border-indigo-500/50 appearance-none cursor-pointer hover:border-white/[0.15] transition-all"
+            >
+              <option value="ALL">All Statuses ({totalCount})</option>
+              <option value="ACTIVATED">Activated ({activatedCount})</option>
+              <option value="ACTIVATING">Activating ({activatingCount})</option>
+              <option value="DISABLED">Disabled ({disabledCount})</option>
+              <option value="INACTIVE">Inactive ({inactiveCount})</option>
+              <option value="ISSUES">Issues / Expired</option>
+            </select>
+            <ChevronDown className="w-3.5 h-3.5 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
         </div>
 
+        {/* Right: Actions */}
         <div className="flex items-center flex-wrap gap-2">
           {/* File Upload Hidden Input */}
           <input
@@ -565,12 +724,10 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={actionLoading}
-            className="px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/40 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all shadow-sm"
+            className="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all shadow-[0_0_12px_rgba(99,102,241,0.15)] hover:shadow-[0_0_16px_rgba(99,102,241,0.25)] active:scale-95"
             title={t('accounts.importFiles')}
           >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-            </svg>
+            <Upload className="w-3.5 h-3.5 text-indigo-400" />
             <span>{t('accounts.importFiles')}</span>
           </button>
 
@@ -578,322 +735,398 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
           <button
             onClick={() => setDedupConfirm(true)}
             disabled={actionLoading || accounts.length === 0}
-            className="px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all"
+            className="px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 disabled:opacity-40 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all active:scale-95"
             title={t('accounts.deduplicate')}
           >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-            </svg>
+            <Layers className="w-3.5 h-3.5 text-amber-400" />
             <span>{t('accounts.deduplicate')}</span>
-          </button>
-
-          {/* Batch Download ZIP */}
-          <button
-            onClick={handleBatchDownload}
-            disabled={actionLoading || selectedIndices.length === 0}
-            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-300 border border-slate-700/80 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all"
-            title={t('accounts.batchDownload')}
-          >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            <span>{t('accounts.batchDownload')}</span>
-          </button>
-
-          {/* Batch Delete */}
-          <button
-            onClick={() => setBatchDeleteConfirm(true)}
-            disabled={actionLoading || selectedIndices.length === 0}
-            className="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 disabled:opacity-50 text-rose-400 border border-rose-500/30 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all"
-            title={t('accounts.batchDelete')}
-          >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-            <span>{t('accounts.batchDelete')}</span>
           </button>
 
           {/* Refresh */}
           <button
             onClick={() => fetchStatus(false)}
             disabled={loading || actionLoading}
-            className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700/80 rounded-lg text-xs font-semibold transition-all"
+            className="p-1.5 bg-[#141620] hover:bg-white/[0.06] text-slate-300 border border-white/[0.08] hover:border-white/[0.15] rounded-lg text-xs font-semibold transition-all active:scale-95"
             title={t('accounts.refresh')}
           >
-            <svg className={`w-4 h-4 ${loading ? 'animate-spin text-blue-400' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-indigo-400' : 'text-slate-400'}`} />
           </button>
         </div>
       </div>
 
-      {/* Account List */}
-      {loading && accounts.length === 0 ? (
-        <div className="flex items-center justify-center py-20 text-slate-400 font-mono text-xs">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mr-3"></div>
-          {t('accounts.loading')}
-        </div>
-      ) : accounts.length === 0 ? (
-        <div className="text-center py-16 bg-slate-900/40 border border-dashed border-slate-800 rounded-2xl p-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-slate-800/80 text-slate-400 mb-3">
-            📁
+      {/* Modern Data Table */}
+      <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl overflow-hidden shadow-2xl">
+        {loading && accounts.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-slate-400 font-mono text-xs space-y-3">
+            <div className="w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div>
+            <span>{t('accounts.loading')}</span>
           </div>
-          <p className="text-slate-400 text-xs max-w-md mx-auto">{t('accounts.noAccounts')}</p>
-        </div>
-      ) : (
-        <div className="space-y-2.5">
-          {accounts.map(acc => {
-            const isCurrent = acc.index === currentAuthIndex;
-            const isChecked = selectedIndices.includes(acc.index);
-            const isManuallyDisabled = Boolean(acc.isDisabled || (acc as any).disabled === true || acc.status === 'disabled');
-            const totalUsage = getTotalUsage(acc.usage);
-            const breakdowns = getModelBreakdowns(acc.usage);
-            const hasContext = Boolean(acc.hasContext);
+        ) : filteredAccounts.length === 0 ? (
+          <div className="text-center py-16 px-4">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-slate-800/50 text-slate-500 mb-3 border border-white/[0.04]">
+              <Users className="w-6 h-6" />
+            </div>
+            <p className="text-slate-400 text-xs max-w-md mx-auto">
+              {searchQuery || statusFilter !== 'ALL'
+                ? 'No accounts match the selected search or status filters.'
+                : t('accounts.noAccounts')}
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-white/[0.08] bg-[#141620] text-[11px] font-medium tracking-wider text-slate-400 uppercase select-none">
+                  <th className="w-10 px-4 py-3 text-center">
+                    <input
+                      type="checkbox"
+                      checked={filteredAccounts.length > 0 && selectedIndices.length === filteredAccounts.length}
+                      onChange={handleSelectAll}
+                      className="w-4 h-4 rounded bg-[#0A0C10] border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                    />
+                  </th>
+                  <th className="px-3 py-3 w-16">Index</th>
+                  <th className="px-4 py-3 min-w-[200px]">Account / Identifier</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Quota & Today Usage</th>
+                  <th className="px-4 py-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/[0.04] text-xs">
+                {filteredAccounts.map((acc) => {
+                  const isCurrent = acc.index === currentAuthIndex;
+                  const isChecked = selectedIndices.includes(acc.index);
+                  const isManuallyDisabled = Boolean(acc.isDisabled || (acc as any).disabled === true || acc.status === 'disabled');
+                  const totalUsage = getTotalUsage(acc.usage);
+                  const breakdowns = getModelBreakdowns(acc.usage);
+                  const hasContext = Boolean(acc.hasContext);
 
-            return (
-              <div
-                key={acc.index}
-                className={`flex items-center justify-between p-3.5 rounded-xl border transition-all ${
-                  isCurrent
-                    ? 'bg-emerald-950/30 border-emerald-500/50 shadow-md shadow-emerald-950/40'
-                    : isManuallyDisabled
-                    ? 'bg-slate-950/60 border-slate-800/60 opacity-60 hover:opacity-100 hover:border-slate-700'
-                    : 'bg-slate-900/70 hover:bg-slate-900/90 border-slate-800/80'
-                }`}
-              >
-                {/* Left: Checkbox + Index + Email + Badges */}
-                <div className="flex items-center space-x-3.5 min-w-0">
-                  <input
-                    type="checkbox"
-                    checked={isChecked}
-                    onChange={() => handleSelectOne(acc.index)}
-                    className="w-4 h-4 rounded bg-slate-950 border-slate-700 text-blue-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
-                  />
-
-                  <span className={`font-mono text-xs font-bold whitespace-nowrap ${isManuallyDisabled ? 'text-slate-500' : 'text-slate-400'}`}>
-                    #{acc.index}
-                  </span>
-
-                  <span className={`font-medium text-xs truncate max-w-xs md:max-w-md ${isManuallyDisabled ? 'text-slate-400 line-through decoration-slate-600' : 'text-slate-100'}`}>
-                    {acc.name || `Account #${acc.index}`}
-                  </span>
-
-                  {/* Status Badges */}
-                  <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
-                    {/* hasContext Indicator */}
-                    <div
-                      title={hasContext ? 'Context Ready (已载入浏览器会话)' : 'No Context (未载入会话)'}
-                      className={`px-1.5 py-0.5 rounded flex items-center justify-center cursor-help transition-all ${
-                        hasContext
-                          ? 'bg-amber-500/15 text-amber-300 border border-amber-500/40 shadow-sm shadow-amber-500/20'
-                          : 'bg-slate-800/50 text-slate-600 border border-slate-800 opacity-60'
+                  return (
+                    <tr
+                      key={acc.index}
+                      className={`hover:bg-[#151824]/80 transition-colors group ${
+                        isCurrent
+                          ? 'bg-emerald-950/20'
+                          : isChecked
+                          ? 'bg-indigo-950/20'
+                          : isManuallyDisabled
+                          ? 'opacity-60 bg-black/20'
+                          : ''
                       }`}
                     >
-                      <svg
-                        className={`w-3.5 h-3.5 ${hasContext ? 'text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.6)]' : 'text-slate-600'}`}
-                        fill={hasContext ? 'currentColor' : 'none'}
-                        stroke="currentColor"
-                        strokeWidth={hasContext ? 1.5 : 2}
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                      {/* Checkbox */}
+                      <td className="w-10 px-4 py-3 text-center">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => handleSelectOne(acc.index)}
+                          className="w-4 h-4 rounded bg-[#0A0C10] border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
                         />
-                      </svg>
-                    </div>
+                      </td>
 
-                    {/* Concurrent Status Dynamic Badge */}
-                    {renderStatusBadge(acc)}
+                      {/* Index */}
+                      <td className="px-3 py-3 font-mono text-xs font-semibold text-slate-400">
+                        #{acc.index}
+                      </td>
 
-                    {isCurrent && (
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/25 text-emerald-300 border border-emerald-500/60 shadow-sm">
-                        {t('accounts.currentBadge')}
-                      </span>
-                    )}
-
-                    {acc.isInvalid && (
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/30">
-                        {t('accounts.invalidBadge')}
-                      </span>
-                    )}
-
-                    {acc.isDuplicate && (
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30">
-                        {t('accounts.duplicateBadge')}
-                      </span>
-                    )}
-
-                    {acc.isExpired && (
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/30">
-                        {t('accounts.expiredBadge')}
-                      </span>
-                    )}
-
-                    {/* Interactive Today Usage Badge with Custom Instant Popover Tooltip */}
-                    <div className="relative inline-block group">
-                      <div className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-medium bg-blue-500/10 text-blue-300 border border-blue-500/30 flex items-center space-x-1 cursor-pointer transition-all hover:bg-blue-500/20 shadow-sm">
-                        <span>📊</span>
-                        <span>{t('accounts.todayUsage')}</span>
-                        <strong className="text-blue-200">{totalUsage}</strong>
-                        <span className="text-[8px] text-blue-400 ml-0.5">▾</span>
-                      </div>
-
-                      {/* Popover Bubble */}
-                      <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block z-50 w-64 p-3 bg-slate-900 border border-slate-700/80 rounded-xl shadow-2xl backdrop-blur-lg pointer-events-auto">
-                        <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800">
-                          <span className="text-[11px] font-bold text-slate-200 flex items-center space-x-1">
-                            <span>📊</span>
-                            <span>{t('accounts.todayUsage')}</span>
-                          </span>
-                          <span className="text-xs font-mono font-bold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-md">
-                            {totalUsage}
-                          </span>
-                        </div>
-
-                        {breakdowns.length === 0 ? (
-                          <div className="text-[10px] text-slate-400 italic py-1">
-                            {totalUsage === 0 ? '暂无各模型请求消耗数据' : `总请求次数: ${totalUsage}`}
-                          </div>
-                        ) : (
-                          <div className="space-y-2">
-                            {breakdowns.map((item, idx) => {
-                              const ratio = item.limit ? Math.min(100, Math.round((item.count / item.limit) * 100)) : null;
-                              return (
-                                <div key={idx} className="space-y-1">
-                                  <div className="flex items-center justify-between text-[11px]">
-                                    <span className="text-slate-300 font-mono truncate max-w-[130px]" title={item.model}>
-                                      {item.model}
-                                    </span>
-                                    <span className="text-slate-400 font-mono font-semibold">
-                                      <strong className="text-slate-200">{item.count}</strong>
-                                      {item.limit !== undefined && <span className="text-slate-500 text-[10px]"> / {item.limit}</span>}
-                                    </span>
-                                  </div>
-                                  {ratio !== null && (
-                                    <div className="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden border border-slate-800">
-                                      <div
-                                        className={`h-full rounded-full transition-all ${
-                                          ratio >= 90 ? 'bg-rose-500' : ratio >= 70 ? 'bg-amber-500' : 'bg-blue-500'
-                                        }`}
-                                        style={{ width: `${ratio}%` }}
-                                      />
-                                    </div>
+                      {/* Name & Identifiers */}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center space-x-2">
+                          <div className="flex flex-col min-w-0">
+                            <div className="flex items-center space-x-2">
+                              <span
+                                className={`font-medium truncate max-w-xs md:max-w-sm ${
+                                  isManuallyDisabled
+                                    ? 'text-slate-400 line-through decoration-slate-600'
+                                    : 'text-slate-100'
+                                }`}
+                              >
+                                {acc.name || `Account #${acc.index}`}
+                              </span>
+                              {acc.name && (
+                                <button
+                                  onClick={() => handleCopyAccountName(acc.index, acc.name)}
+                                  className="text-slate-500 hover:text-slate-300 transition-colors"
+                                  title="Copy Account Email/Name"
+                                >
+                                  {copiedKeyIndex === acc.index ? (
+                                    <Check className="w-3 h-3 text-emerald-400" />
+                                  ) : (
+                                    <Copy className="w-3 h-3" />
                                   )}
-                                </div>
-                              );
-                            })}
+                                </button>
+                              )}
+                            </div>
+                            {acc.canonicalIndex !== null && acc.canonicalIndex !== undefined && (
+                              <span className="text-[10px] text-slate-500 font-mono">
+                                canonical #{acc.canonicalIndex}
+                              </span>
+                            )}
                           </div>
-                        )}
-                        {/* Triangle arrow pointer */}
-                        <div className="absolute left-6 top-full -mt-px w-2.5 h-2.5 bg-slate-900 border-r border-b border-slate-700/80 transform rotate-45"></div>
-                      </div>
-                    </div>
+                        </div>
+                      </td>
 
-                    {/* In flight count if > 0 */}
-                    {(acc.inFlight || 0) > 0 && (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-purple-500/20 text-purple-300 border border-purple-500/40">
-                        {t('accounts.inFlight')}: {acc.inFlight}
-                      </span>
-                    )}
-                  </div>
-                </div>
+                      {/* Status Badges */}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
+                          {/* hasContext Indicator */}
+                          <div
+                            title={hasContext ? 'Context Ready (Browser session active)' : 'No Context'}
+                            className={`px-1.5 py-0.5 rounded flex items-center justify-center cursor-help transition-all ${
+                              hasContext
+                                ? 'bg-amber-500/15 text-amber-300 border border-amber-500/40 shadow-sm shadow-amber-500/20'
+                                : 'bg-slate-800/40 text-slate-600 border border-slate-800/60 opacity-60'
+                            }`}
+                          >
+                            <Zap
+                              className={`w-3.5 h-3.5 ${
+                                hasContext ? 'text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.6)] fill-amber-400' : 'text-slate-600'
+                              }`}
+                            />
+                          </div>
 
-                {/* Right: Action Buttons Group */}
-                <div className="flex items-center space-x-1.5 ml-4">
-                  {/* Enable / Disable Button */}
-                  <button
-                    onClick={() => handleToggleDisabled(acc.index, isManuallyDisabled)}
-                    disabled={actionLoading}
-                    className={`p-1.5 rounded-lg border transition-all text-xs flex items-center justify-center ${
-                      isManuallyDisabled
-                        ? 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border-emerald-500/40 shadow-sm shadow-emerald-950'
-                        : 'bg-slate-800/80 hover:bg-rose-500/20 text-slate-300 hover:text-rose-300 border-slate-700 hover:border-rose-500/40'
-                    }`}
-                    title={isManuallyDisabled ? t('accounts.toggleEnable') : t('accounts.toggleDisable')}
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3m8.293 8.293l1.414 1.414" />
-                    </svg>
-                  </button>
+                          {/* Dynamic Status Badge */}
+                          {renderStatusBadge(acc)}
 
-                  {/* Set as Current Button */}
-                  <button
-                    onClick={() => handleSetCurrent(acc.index)}
-                    disabled={actionLoading || isCurrent || isManuallyDisabled}
-                    className={`p-1.5 rounded-lg border transition-all text-xs ${
-                      isCurrent
-                        ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 cursor-default'
-                        : 'bg-slate-800/80 hover:bg-blue-500/20 text-slate-400 hover:text-blue-300 border-slate-700 hover:border-blue-500/40 disabled:opacity-30 disabled:hover:bg-slate-800/80 disabled:hover:border-slate-700'
-                    }`}
-                    title={isCurrent ? t('accounts.isCurrentAccount') : t('accounts.setAsCurrent')}
-                  >
-                    {isCurrent ? (
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                    ) : (
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                      </svg>
-                    )}
-                  </button>
+                          {isCurrent && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm">
+                              {t('accounts.currentBadge')}
+                            </span>
+                          )}
 
-                  {/* Single Download Credential JSON */}
-                  <button
-                    onClick={() => handleDownloadSingle(acc.index)}
-                    disabled={actionLoading}
-                    className="p-1.5 bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-slate-200 border border-slate-700 rounded-lg text-xs transition-all"
-                    title={t('accounts.downloadCredential')}
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                  </button>
+                          {acc.isInvalid && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/30">
+                              {t('accounts.invalidBadge')}
+                            </span>
+                          )}
 
-                  {/* Delete Button */}
-                  <button
-                    onClick={() => {
-                      if (isCurrent) {
-                        setDeleteConfirm({ index: acc.index, email: acc.name || '', isCurrent: true });
-                      } else {
-                        setDeleteConfirm({ index: acc.index, email: acc.name || '', isCurrent: false });
-                      }
-                    }}
-                    disabled={actionLoading}
-                    className="p-1.5 bg-slate-800/80 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-slate-700 hover:border-rose-500/40 rounded-lg text-xs transition-all"
-                    title={t('accounts.deleteAccount')}
-                  >
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+                          {acc.isDuplicate && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                              {t('accounts.duplicateBadge')}
+                            </span>
+                          )}
+
+                          {acc.isExpired && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/30">
+                              {t('accounts.expiredBadge')}
+                            </span>
+                          )}
+
+                          {(acc.inFlight || 0) > 0 && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-purple-500/20 text-purple-300 border border-purple-500/40">
+                              {t('accounts.inFlight')}: {acc.inFlight}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Quota & Usage */}
+                      <td className="px-4 py-3">
+                        <div className="relative inline-block group">
+                          <div className="px-2.5 py-1 rounded-lg text-[11px] font-mono bg-[#141620] hover:bg-white/[0.06] text-slate-300 border border-white/[0.08] flex items-center space-x-1.5 cursor-pointer transition-all">
+                            <Clock className="w-3.5 h-3.5 text-indigo-400" />
+                            <span className="text-slate-400">{t('accounts.todayUsage')}:</span>
+                            <strong className="text-indigo-300 font-bold">{totalUsage}</strong>
+                            <ChevronDown className="w-3 h-3 text-slate-500" />
+                          </div>
+
+                          {/* Popover Bubble */}
+                          <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block z-50 w-64 p-3 bg-[#0F1118] border border-white/[0.12] rounded-xl shadow-2xl backdrop-blur-xl pointer-events-auto">
+                            <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/[0.08]">
+                              <span className="text-[11px] font-bold text-slate-200 flex items-center space-x-1.5">
+                                <Clock className="w-3.5 h-3.5 text-indigo-400" />
+                                <span>{t('accounts.todayUsage')}</span>
+                              </span>
+                              <span className="text-xs font-mono font-bold text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-md">
+                                {totalUsage}
+                              </span>
+                            </div>
+
+                            {breakdowns.length === 0 ? (
+                              <div className="text-[10px] text-slate-400 italic py-1">
+                                {totalUsage === 0 ? 'No model request breakdown' : `Total: ${totalUsage}`}
+                              </div>
+                            ) : (
+                              <div className="space-y-2">
+                                {breakdowns.map((item, idx) => {
+                                  const ratio = item.limit ? Math.min(100, Math.round((item.count / item.limit) * 100)) : null;
+                                  return (
+                                    <div key={idx} className="space-y-1">
+                                      <div className="flex items-center justify-between text-[11px]">
+                                        <span className="text-slate-300 font-mono truncate max-w-[130px]" title={item.model}>
+                                          {item.model}
+                                        </span>
+                                        <span className="text-slate-400 font-mono font-semibold">
+                                          <strong className="text-slate-200">{item.count}</strong>
+                                          {item.limit !== undefined && <span className="text-slate-500 text-[10px]"> / {item.limit}</span>}
+                                        </span>
+                                      </div>
+                                      {ratio !== null && (
+                                        <div className="w-full bg-[#0A0C10] rounded-full h-1.5 overflow-hidden border border-white/[0.06]">
+                                          <div
+                                            className={`h-full rounded-full transition-all ${
+                                              ratio >= 90 ? 'bg-rose-500' : ratio >= 70 ? 'bg-amber-500' : 'bg-indigo-500'
+                                            }`}
+                                            style={{ width: `${ratio}%` }}
+                                          />
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                            <div className="absolute left-6 top-full -mt-px w-2.5 h-2.5 bg-[#0F1118] border-r border-b border-white/[0.12] transform rotate-45" />
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Actions */}
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end space-x-1.5">
+                          {/* Enable / Disable */}
+                          <button
+                            onClick={() => handleToggleDisabled(acc.index, isManuallyDisabled)}
+                            disabled={actionLoading}
+                            className={`p-1.5 rounded-lg border transition-all text-xs flex items-center justify-center ${
+                              isManuallyDisabled
+                                ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                                : 'bg-[#141620] hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 border-white/[0.08] hover:border-rose-500/30'
+                            }`}
+                            title={isManuallyDisabled ? t('accounts.toggleEnable') : t('accounts.toggleDisable')}
+                          >
+                            <Power className="w-3.5 h-3.5" />
+                          </button>
+
+                          {/* Set as Current */}
+                          <button
+                            onClick={() => handleSetCurrent(acc.index)}
+                            disabled={actionLoading || isCurrent || isManuallyDisabled}
+                            className={`p-1.5 rounded-lg border transition-all text-xs ${
+                              isCurrent
+                                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 cursor-default'
+                                : 'bg-[#141620] hover:bg-indigo-500/20 text-slate-400 hover:text-indigo-300 border-white/[0.08] hover:border-indigo-500/30 disabled:opacity-20'
+                            }`}
+                            title={isCurrent ? t('accounts.isCurrentAccount') : t('accounts.setAsCurrent')}
+                          >
+                            <ArrowRightLeft className="w-3.5 h-3.5" />
+                          </button>
+
+                          {/* Download JSON */}
+                          <button
+                            onClick={() => handleDownloadSingle(acc.index)}
+                            disabled={actionLoading}
+                            className="p-1.5 bg-[#141620] hover:bg-white/[0.06] text-slate-400 hover:text-slate-200 border border-white/[0.08] hover:border-white/[0.15] rounded-lg text-xs transition-all"
+                            title={t('accounts.downloadCredential')}
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                          </button>
+
+                          {/* Delete Button */}
+                          <button
+                            onClick={() => {
+                              if (isCurrent) {
+                                setDeleteConfirm({ index: acc.index, email: acc.name || '', isCurrent: true });
+                              } else {
+                                setDeleteConfirm({ index: acc.index, email: acc.name || '', isCurrent: false });
+                              }
+                            }}
+                            disabled={actionLoading}
+                            className="p-1.5 bg-[#141620] hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-white/[0.08] hover:border-rose-500/30 rounded-lg text-xs transition-all"
+                            title={t('accounts.deleteAccount')}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Floating Action Bar when rows are selected */}
+      {selectedIndices.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="backdrop-blur-xl bg-[#151824]/95 border border-white/[0.15] shadow-2xl rounded-2xl px-5 py-3 flex items-center space-x-4">
+            <div className="flex items-center space-x-2 text-xs font-semibold text-white pr-2 border-r border-white/[0.1]">
+              <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
+              <span>{selectedIndices.length} accounts selected</span>
+            </div>
+
+            {/* Batch Enable */}
+            <button
+              onClick={() => handleBatchToggleDisabled(false)}
+              disabled={actionLoading}
+              className="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all active:scale-95"
+            >
+              <Power className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Enable</span>
+            </button>
+
+            {/* Batch Disable */}
+            <button
+              onClick={() => handleBatchToggleDisabled(true)}
+              disabled={actionLoading}
+              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all active:scale-95"
+            >
+              <Power className="w-3.5 h-3.5 text-slate-400" />
+              <span>Disable</span>
+            </button>
+
+            {/* Batch Download */}
+            <button
+              onClick={handleBatchDownload}
+              disabled={actionLoading}
+              className="px-3 py-1.5 bg-[#1C1F2E] hover:bg-white/[0.1] text-slate-200 border border-white/[0.1] rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all active:scale-95"
+            >
+              <Download className="w-3.5 h-3.5 text-slate-400" />
+              <span>Download ZIP</span>
+            </button>
+
+            {/* Batch Delete */}
+            <button
+              onClick={() => setBatchDeleteConfirm(true)}
+              disabled={actionLoading}
+              className="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all shadow-[0_0_12px_rgba(244,63,94,0.3)] active:scale-95"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-white" />
+              <span>Delete</span>
+            </button>
+
+            {/* Clear Selection */}
+            <button
+              onClick={() => setSelectedIndices([])}
+              className="p-1.5 text-slate-400 hover:text-white rounded-lg transition-colors"
+              title="Clear selection"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       )}
 
       {/* Upstream Terminal Logs Section */}
-      <div className="bg-slate-900/90 border border-slate-800/80 rounded-2xl overflow-hidden shadow-lg">
+      <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-2xl overflow-hidden shadow-lg">
         {/* Terminal Header */}
         <div
           onClick={() => setIsLogsExpanded(!isLogsExpanded)}
-          className="px-4 py-3 bg-slate-900 border-b border-slate-800 flex items-center justify-between cursor-pointer select-none hover:bg-slate-800/50 transition-colors"
+          className="px-4 py-3 bg-[#141620] border-b border-white/[0.08] flex items-center justify-between cursor-pointer select-none hover:bg-white/[0.02] transition-colors"
         >
-          <div className="flex items-center space-x-2">
-            <span className="text-sm">🖥️</span>
+          <div className="flex items-center space-x-2.5">
+            <FileText className="w-4 h-4 text-indigo-400" />
             <span className="text-xs font-bold text-slate-200">{t('accounts.upstreamLogsTitle')}</span>
             {data?.logCount !== undefined && (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-slate-800 text-slate-400 border border-slate-700">
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-slate-800 text-slate-400 border border-slate-700/60">
                 {data.logCount}
               </span>
             )}
             {isLogsExpanded && (
-              <span className="flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block"></span>
+              <span className="flex items-center space-x-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-[0_0_8px_rgba(16,185,129,0.15)]">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
                 <span>{t('accounts.livePolling')}</span>
               </span>
             )}
@@ -907,7 +1140,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                     type="checkbox"
                     checked={autoScrollLogs}
                     onChange={(e) => setAutoScrollLogs(e.target.checked)}
-                    className="w-3.5 h-3.5 rounded bg-slate-950 border-slate-700 text-blue-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                    className="w-3.5 h-3.5 rounded bg-[#0A0C10] border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
                   />
                   <span className="text-[11px]">{t('accounts.autoScroll')}</span>
                 </label>
@@ -915,10 +1148,19 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                 {data?.logs && (
                   <button
                     onClick={handleCopyLogs}
-                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-[11px] text-slate-300 hover:text-white transition-all flex items-center space-x-1"
+                    className="px-2.5 py-1 bg-[#1A1C28] hover:bg-white/[0.08] border border-white/[0.08] rounded-lg text-[11px] text-slate-300 hover:text-white transition-all flex items-center space-x-1"
                   >
-                    <span>{copiedLogs ? '✓' : '📋'}</span>
-                    <span>{copiedLogs ? t('accounts.copiedLogs') : t('accounts.copyLogs')}</span>
+                    {copiedLogs ? (
+                      <>
+                        <Check className="w-3 h-3 text-emerald-400" />
+                        <span>{t('accounts.copiedLogs')}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3 h-3 text-slate-400" />
+                        <span>{t('accounts.copyLogs')}</span>
+                      </>
+                    )}
                   </button>
                 )}
               </>
@@ -926,19 +1168,17 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
 
             <button
               onClick={() => setIsLogsExpanded(!isLogsExpanded)}
-              className="p-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-slate-400 hover:text-white transition-all"
+              className="p-1 bg-[#1A1C28] hover:bg-white/[0.08] border border-white/[0.08] rounded-lg text-slate-400 hover:text-white transition-all"
               title={isLogsExpanded ? 'Collapse' : 'Expand'}
             >
-              <svg className={`w-3.5 h-3.5 transform transition-transform ${isLogsExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
+              <ChevronDown className={`w-3.5 h-3.5 transform transition-transform ${isLogsExpanded ? 'rotate-180' : ''}`} />
             </button>
           </div>
         </div>
 
         {/* Terminal Log Viewport */}
         {isLogsExpanded && (
-          <div className="p-4 bg-slate-950 text-slate-300 font-mono text-[11px] leading-relaxed max-h-80 overflow-y-auto select-text whitespace-pre-wrap">
+          <div className="p-4 bg-[#07090E] text-slate-300 font-mono text-[11px] leading-relaxed max-h-80 overflow-y-auto select-text whitespace-pre-wrap">
             {data?.logs ? (
               <div className="space-y-0.5">
                 {data.logs.split('\n').map((line, idx) => {
@@ -977,14 +1217,14 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
 
       {/* Delete Confirmation Modal */}
       {deleteConfirm && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <h3 className="text-sm font-bold text-slate-100 flex items-center space-x-2">
-              <span className="text-rose-400">⚠️</span>
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-[#0F1118] border border-white/[0.12] rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
+            <h3 className="text-sm font-bold text-white flex items-center space-x-2">
+              <AlertTriangle className="w-4 h-4 text-rose-400" />
               <span>{t('accounts.confirmDeleteTitle')}</span>
             </h3>
 
-            <p className="text-xs text-slate-300">
+            <p className="text-xs text-slate-300 leading-relaxed">
               {t('accounts.confirmDeleteMessage', {
                 index: deleteConfirm.index,
                 email: deleteConfirm.email
@@ -1007,7 +1247,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
               <button
                 onClick={() => handleDeleteSingle(deleteConfirm.index, deleteConfirm.isCurrent)}
                 disabled={actionLoading}
-                className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-semibold transition-all shadow-lg"
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-semibold transition-all shadow-[0_0_12px_rgba(244,63,94,0.3)]"
               >
                 {t('accounts.confirm')}
               </button>
@@ -1018,14 +1258,14 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
 
       {/* Batch Delete Modal */}
       {batchDeleteConfirm && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <h3 className="text-sm font-bold text-slate-100 flex items-center space-x-2">
-              <span className="text-rose-400">⚠️</span>
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-[#0F1118] border border-white/[0.12] rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
+            <h3 className="text-sm font-bold text-white flex items-center space-x-2">
+              <AlertTriangle className="w-4 h-4 text-rose-400" />
               <span>{t('accounts.batchDelete')}</span>
             </h3>
 
-            <p className="text-xs text-slate-300">
+            <p className="text-xs text-slate-300 leading-relaxed">
               {t('accounts.confirmBatchDeleteMessage', { count: selectedIndices.length })}
             </p>
 
@@ -1039,7 +1279,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
               <button
                 onClick={handleBatchDelete}
                 disabled={actionLoading}
-                className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-semibold transition-all shadow-lg"
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-semibold transition-all shadow-[0_0_12px_rgba(244,63,94,0.3)]"
               >
                 {t('accounts.confirm')}
               </button>
@@ -1050,10 +1290,10 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
 
       {/* Deduplicate Confirmation Modal */}
       {dedupConfirm && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <h3 className="text-sm font-bold text-slate-100 flex items-center space-x-2">
-              <span className="text-amber-400">🧹</span>
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-[#0F1118] border border-white/[0.12] rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
+            <h3 className="text-sm font-bold text-white flex items-center space-x-2">
+              <Layers className="w-4 h-4 text-amber-400" />
               <span>{t('accounts.confirmDeduplicateTitle')}</span>
             </h3>
 
@@ -1071,7 +1311,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
               <button
                 onClick={handleDeduplicate}
                 disabled={actionLoading}
-                className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-semibold transition-all shadow-lg"
+                className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-semibold transition-all shadow-[0_0_12px_rgba(245,158,11,0.3)]"
               >
                 {t('accounts.confirm')}
               </button>
