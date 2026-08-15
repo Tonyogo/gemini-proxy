@@ -1,4 +1,18 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
+import {
+  Activity,
+  Zap,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  BarChart3,
+  Layers,
+  Cpu,
+  TrendingUp,
+  Server,
+  ArrowUpRight,
+  ShieldCheck
+} from 'lucide-react';
 import { useTranslation } from '../i18n/LanguageContext';
 
 interface TimeSeriesPoint {
@@ -36,18 +50,57 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
     loadData(range);
   }, [adminKey, range]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64 text-slate-400">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mr-3"></div>
-        {t('dashboard.loading')}
-      </div>
-    );
-  }
-
   const cfg = status?.config || {};
   const timeSeries: TimeSeriesPoint[] = stats?.timeSeries || [];
   const N = timeSeries.length;
+
+  // Cumulative model metrics summary
+  const modelStatsSummary = useMemo(() => {
+    const summary: Record<string, { requests: number; totalDuration: number; durationCount: number }> = {};
+    let totalReqs = 0;
+
+    timeSeries.forEach(p => {
+      if (p.models) {
+        Object.entries(p.models).forEach(([model, count]) => {
+          if (!summary[model]) {
+            summary[model] = { requests: 0, totalDuration: 0, durationCount: 0 };
+          }
+          summary[model].requests += count;
+          totalReqs += count;
+        });
+      }
+      if (p.modelDurations) {
+        Object.entries(p.modelDurations).forEach(([model, dur]) => {
+          if (!summary[model]) {
+            summary[model] = { requests: 0, totalDuration: 0, durationCount: 0 };
+          }
+          summary[model].totalDuration += dur;
+          summary[model].durationCount += 1;
+        });
+      }
+    });
+
+    return {
+      totalRequests: totalReqs,
+      list: Object.entries(summary)
+        .map(([model, data]) => ({
+          model,
+          requests: data.requests,
+          percentage: totalReqs > 0 ? (data.requests / totalReqs) * 100 : 0,
+          avgLatency: data.durationCount > 0 ? Math.round(data.totalDuration / data.durationCount) : 0,
+        }))
+        .sort((a, b) => b.requests - a.requests)
+    };
+  }, [timeSeries]);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-72 text-slate-400 space-y-3">
+        <div className="w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div>
+        <span className="text-xs font-mono tracking-wide text-slate-400">{t('dashboard.loading')}</span>
+      </div>
+    );
+  }
 
   // SVG dimensions & margins
   const svgWidth = 600;
@@ -92,7 +145,6 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
   // Determine which X-axis labels to display
   const getXLabelIndices = () => {
     if (N <= 6) return Array.from({ length: N }, (_, i) => i);
-    // Select 4-6 evenly spaced indices including 0 and N-1
     const step = Math.max(1, Math.floor(N / 4));
     const indices: number[] = [];
     for (let i = 0; i < N; i += step) {
@@ -131,7 +183,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
 
   // Model Distribution Chart calculations
   const allModels = Array.from(new Set(timeSeries.flatMap(p => Object.keys(p.models || {}))));
-  const modelColors = ['#06b6d4', '#a855f7', '#f59e0b', '#10b981', '#f43f5e', '#3b82f6'];
+  const modelColors = ['#6366F1', '#38BDF8', '#10B981', '#F59E0B', '#EC4899', '#A855F7', '#14B8A6'];
   const getModelColor = (modelName: string, index: number) => {
     return modelColors[index % modelColors.length];
   };
@@ -176,27 +228,28 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
     `.replace(/\s+/g, ' ').trim();
   };
 
-  // Helper for rendering horizontal grid lines
+  // Subtle dashed horizontal grid lines
   const renderGridLines = (limit: number, formatVal?: (v: number) => string) => {
     const ticks = [0, limit / 2, limit];
     return ticks.map((tick, i) => {
       const y = yMax - (tick / limit) * plottingHeight;
       const formatted = formatVal ? formatVal(Math.round(tick)) : Math.round(tick);
       return (
-        <g key={i} className="opacity-40">
+        <g key={i} className="opacity-70">
           <line
             x1={paddingLeft}
             y1={y}
             x2={svgWidth - paddingRight}
             y2={y}
-            stroke="#1e293b"
+            stroke="rgba(255, 255, 255, 0.04)"
+            strokeDasharray="4 4"
             strokeWidth="1"
           />
           <text
             x={paddingLeft - 8}
             y={y + 3}
             textAnchor="end"
-            className="text-[10px] fill-slate-400 font-mono select-none"
+            className="text-[10px] fill-slate-500 font-mono select-none"
           >
             {formatted}
           </text>
@@ -223,25 +276,40 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
     return `M ${points.join(' L ')}`;
   };
 
+  // Calculations for KPI Cards
+  const totalLogsCount = stats?.totalLogs || 0;
+  const totalSuccessCount = stats?.successCount || 0;
+  const totalErrorCount = stats?.errorCount || 0;
+  const errorRatePercent = totalLogsCount > 0 ? ((totalErrorCount / totalLogsCount) * 100).toFixed(1) : '0.0';
+
   return (
-    <div className="space-y-8 max-w-7xl mx-auto font-sans">
+    <div className="space-y-8 max-w-7xl mx-auto font-sans pb-8">
       {/* Top Banner: Status & Metrics */}
       <div>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-          <h2 className="text-xl font-bold text-slate-100 tracking-tight">{t('dashboard.title')}</h2>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
+          <div>
+            <h2 className="text-xl font-bold text-slate-100 tracking-tight flex items-center space-x-2">
+              <span>{t('dashboard.title')}</span>
+              <span className="text-[11px] font-mono font-medium px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                v1.0.0
+              </span>
+            </h2>
+          </div>
 
-          {/* Time Range Selector */}
-          <div className="flex items-center space-x-2 bg-slate-900 border border-slate-800/80 p-1 rounded-xl">
-            <span className="text-[10px] text-slate-500 uppercase font-bold px-2 select-none">{t('dashboard.timeRange')}</span>
+          {/* Modern Time Range Selector */}
+          <div className="flex items-center space-x-1.5 bg-[#0F1118]/90 border border-white/[0.08] p-1 rounded-xl shadow-inner">
+            <span className="text-[10px] text-slate-500 uppercase font-semibold px-2 tracking-wider select-none">
+              {t('dashboard.timeRange')}
+            </span>
             {([6, 12, 24, 48] as const).map((r) => (
               <button
                 key={r}
                 type="button"
                 onClick={() => setRange(r)}
-                className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                className={`px-3 py-1 rounded-lg text-xs font-mono font-medium transition-all ${
                   range === r
-                    ? 'bg-blue-600/90 text-white shadow'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+                    ? 'bg-indigo-600 text-white shadow-[0_0_12px_rgba(99,102,241,0.35)]'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
                 }`}
               >
                 {t(`dashboard.range${r}h`)}
@@ -249,43 +317,104 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
             ))}
           </div>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {/* Status Card */}
-          <div className="bg-slate-800/80 backdrop-blur border border-slate-700/60 p-5 rounded-xl shadow-lg">
-            <div className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2">{t('dashboard.statusCard')}</div>
-            <div className="flex items-center space-x-2">
-              <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+
+        {/* 4 Modern Linear/SaaS KPI Stat Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Card 1: Server Status */}
+          <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl p-5 hover:border-indigo-500/30 transition-all group shadow-lg relative overflow-hidden">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-slate-400 text-xs font-medium uppercase tracking-wider">
+                {t('dashboard.statusCard')}
               </span>
-              <span className="text-xl font-bold text-emerald-400">{t('dashboard.online')}</span>
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <Server className="w-4 h-4" />
+              </div>
             </div>
-            <div className="text-xs text-slate-500 mt-2">{t('dashboard.uptime')}: {status ? `${Math.floor(status.uptime)}s` : 'N/A'}</div>
-          </div>
-
-          {/* Total Transactions */}
-          <div className="bg-slate-800/80 backdrop-blur border border-slate-700/60 p-5 rounded-xl shadow-lg">
-            <div className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2">{t('dashboard.totalTransactions')}</div>
-            <div className="text-2xl font-extrabold text-blue-400">{stats ? stats.totalLogs : 0}</div>
-            <div className="text-xs text-slate-500 mt-2">{t('dashboard.sampledRequests')}</div>
-          </div>
-
-          {/* Average Latency */}
-          <div className="bg-slate-800/80 backdrop-blur border border-slate-700/60 p-5 rounded-xl shadow-lg">
-            <div className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2">{t('dashboard.averageLatency')}</div>
-            <div className="text-2xl font-extrabold text-purple-400">{stats ? `${stats.avgDurationMs}` : 0} <span className="text-sm font-normal text-slate-400">ms</span></div>
-            <div className="text-xs text-slate-500 mt-2">{t('dashboard.upstreamTimeoutLimit').replace('{limit}', String(cfg.upstreamTimeoutMs || 180000))}</div>
-          </div>
-
-          {/* Success vs Errors */}
-          <div className="bg-slate-800/80 backdrop-blur border border-slate-700/60 p-5 rounded-xl shadow-lg">
-            <div className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-2">{t('dashboard.successVsErrors')}</div>
-            <div className="flex items-center space-x-3 mt-1">
-              <span className="text-lg font-bold text-emerald-400">✓ {stats?.successCount || 0}</span>
-              <span className="text-slate-600">/</span>
-              <span className="text-lg font-bold text-rose-400">✗ {stats?.errorCount || 0}</span>
+            <div className="flex items-baseline space-x-2.5">
+              <span className="relative flex h-2.5 w-2.5 self-center">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              </span>
+              <span className="text-2xl font-mono font-bold tracking-tight text-slate-100">
+                {t('dashboard.online')}
+              </span>
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
+                HEALTHY
+              </span>
             </div>
-            <div className="text-xs text-slate-500 mt-2">{t('dashboard.recentRatio')}</div>
+            <div className="text-[11px] text-slate-500 font-mono mt-3 flex items-center space-x-1.5">
+              <span>{t('dashboard.uptime')}:</span>
+              <span className="text-slate-300 font-semibold">{status ? `${Math.floor(status.uptime)}s` : 'N/A'}</span>
+            </div>
+          </div>
+
+          {/* Card 2: Total Requests */}
+          <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl p-5 hover:border-indigo-500/30 transition-all group shadow-lg relative overflow-hidden">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-slate-400 text-xs font-medium uppercase tracking-wider">
+                {t('dashboard.totalTransactions')}
+              </span>
+              <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <Zap className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="flex items-baseline justify-between">
+              <div className="text-2xl font-mono font-bold tracking-tight text-slate-100">
+                {totalLogsCount.toLocaleString()}
+              </div>
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-medium">
+                {range}H TOTAL
+              </span>
+            </div>
+            <div className="text-[11px] text-slate-500 mt-3 truncate">
+              {t('dashboard.sampledRequests')}
+            </div>
+          </div>
+
+          {/* Card 3: Average Latency */}
+          <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl p-5 hover:border-indigo-500/30 transition-all group shadow-lg relative overflow-hidden">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-slate-400 text-xs font-medium uppercase tracking-wider">
+                {t('dashboard.averageLatency')}
+              </span>
+              <div className="w-8 h-8 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center group-hover:scale-105 transition-transform">
+                <Clock className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="flex items-baseline space-x-1.5">
+              <div className="text-2xl font-mono font-bold tracking-tight text-slate-100">
+                {stats ? stats.avgDurationMs : 0}
+              </div>
+              <span className="text-xs font-mono text-purple-400 font-medium">ms</span>
+            </div>
+            <div className="text-[11px] text-slate-500 mt-3 truncate font-mono">
+              {t('dashboard.upstreamTimeoutLimit').replace('{limit}', String(cfg.upstreamTimeoutMs || 180000))}
+            </div>
+          </div>
+
+          {/* Card 4: Success vs Errors */}
+          <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl p-5 hover:border-indigo-500/30 transition-all group shadow-lg relative overflow-hidden">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-slate-400 text-xs font-medium uppercase tracking-wider">
+                {t('dashboard.successVsErrors')}
+              </span>
+              <div className={`w-8 h-8 rounded-lg ${totalErrorCount > 0 ? 'bg-rose-500/10 border border-rose-500/20 text-rose-400' : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'} flex items-center justify-center group-hover:scale-105 transition-transform`}>
+                {totalErrorCount > 0 ? <AlertCircle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-baseline space-x-2 font-mono">
+                <span className="text-xl font-bold text-emerald-400">{totalSuccessCount}</span>
+                <span className="text-slate-600 font-bold">/</span>
+                <span className="text-xl font-bold text-rose-400">{totalErrorCount}</span>
+              </div>
+              <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded font-medium ${totalErrorCount > 0 ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'}`}>
+                {errorRatePercent}% ERR
+              </span>
+            </div>
+            <div className="text-[11px] text-slate-500 mt-3 truncate">
+              {t('dashboard.recentRatio')}
+            </div>
           </div>
         </div>
       </div>
@@ -293,18 +422,21 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
       {/* SVG Trend Charts Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Chart 1: Volume Trend */}
-        <div className="bg-slate-800/80 backdrop-blur border border-slate-700/60 rounded-xl p-5 shadow-lg relative flex flex-col h-[320px]">
-          <h3 className="text-sm font-bold text-slate-200 mb-4 tracking-wide uppercase text-xs flex items-center justify-between">
-            <span>{t('dashboard.volumeChartTitle')}</span>
+        <div className="bg-[#0F1118]/90 border border-white/[0.08] hover:border-white/[0.12] rounded-xl p-5 shadow-lg relative flex flex-col h-[320px] transition-colors group">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-xs font-semibold text-slate-200 tracking-wider uppercase flex items-center space-x-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+              <span>{t('dashboard.volumeChartTitle')}</span>
+            </h3>
             {hoveredIndex !== null && timeSeries[hoveredIndex] && (
-              <span className="text-cyan-400 font-mono text-xs lowercase">
+              <span className="text-indigo-400 font-mono text-xs px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20">
                 {timeSeries[hoveredIndex].total} reqs
               </span>
             )}
-          </h3>
+          </div>
 
           {N === 0 ? (
-            <div className="flex-1 flex items-center justify-center text-slate-500 text-xs italic bg-slate-900/40 rounded-lg border border-slate-800/60">
+            <div className="flex-1 flex items-center justify-center text-slate-500 text-xs italic bg-black/20 rounded-lg border border-white/[0.04]">
               {t('dashboard.noData')}
             </div>
           ) : (
@@ -317,8 +449,8 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
               >
                 <defs>
                   <linearGradient id="volumeAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.22" />
-                    <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.00" />
+                    <stop offset="0%" stopColor="#6366F1" stopOpacity="0.25" />
+                    <stop offset="100%" stopColor="#6366F1" stopOpacity="0.00" />
                   </linearGradient>
                 </defs>
 
@@ -331,8 +463,8 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                   y1={yMax}
                   x2={svgWidth - paddingRight}
                   y2={yMax}
-                  stroke="#334155"
-                  strokeWidth="1.5"
+                  stroke="rgba(255, 255, 255, 0.08)"
+                  strokeWidth="1"
                 />
 
                 {/* Area under curve */}
@@ -345,7 +477,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                   <path
                     d={volumeLinePath}
                     fill="none"
-                    stroke="#06b6d4"
+                    stroke="#6366F1"
                     strokeWidth="2.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -355,7 +487,6 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                 {/* X-axis labels */}
                 {labelIndices.map(idx => {
                   const rawTime = timeSeries[idx].time;
-                  // If formatted as "YYYY-MM-DD HH:00", split and only show "HH:00" to keep labels clean
                   const displayLabel = rawTime.includes(' ') ? rawTime.split(' ')[1] : rawTime;
                   return (
                     <text
@@ -363,7 +494,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                       x={getX(idx)}
                       y={yMax + 16}
                       textAnchor="middle"
-                      className="text-[10px] fill-slate-400 font-mono select-none"
+                      className="text-[10px] fill-slate-500 font-mono select-none"
                     >
                       {displayLabel}
                     </text>
@@ -377,10 +508,9 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                     y1={yMin}
                     x2={getX(hoveredIndex)}
                     y2={yMax}
-                    stroke="#06b6d4"
+                    stroke="rgba(99, 102, 241, 0.6)"
                     strokeWidth="1"
                     strokeDasharray="3 3"
-                    className="opacity-80"
                   />
                 )}
 
@@ -390,46 +520,56 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                     cx={getX(hoveredIndex)}
                     cy={getYVolume(timeSeries[hoveredIndex].total)}
                     r="5"
-                    fill="#06b6d4"
-                    stroke="#1e293b"
-                    strokeWidth="2"
+                    fill="#6366F1"
+                    stroke="#0F1118"
+                    strokeWidth="2.5"
                     className="animate-pulse"
                   />
                 )}
               </svg>
 
-              {/* Synchronized Hover Tooltip Overlay */}
+              {/* Glassmorphic Hover Tooltip Overlay */}
               {hoveredIndex !== null && timeSeries[hoveredIndex] && (
                 <div
-                  className="absolute z-10 bg-slate-900/95 border border-slate-700/80 text-[11px] p-2 rounded-lg shadow-xl pointer-events-none space-y-1 backdrop-blur-sm"
+                  className="absolute z-20 backdrop-blur-xl bg-[#151824]/95 border border-white/[0.12] shadow-2xl rounded-xl p-3.5 text-xs pointer-events-none space-y-2 min-w-[190px]"
                   style={{
                     left: `${((getX(hoveredIndex) - paddingLeft) / plottingWidth) * 85 + 8}%`,
-                    top: '15%',
+                    top: '10%',
                     transform: hoveredIndex > N / 2 ? 'translateX(-105%)' : 'translateX(5%)',
                   }}
                 >
-                  <div className="font-bold text-slate-300 font-mono border-b border-slate-800 pb-0.5 mb-1 text-center">
-                    {timeSeries[hoveredIndex].time}
+                  <div className="font-semibold text-slate-200 font-mono border-b border-white/[0.08] pb-1.5 mb-1 flex items-center justify-between">
+                    <span>{timeSeries[hoveredIndex].time}</span>
+                    <span className="text-[10px] text-slate-400">{timeSeries[hoveredIndex].total} reqs</span>
                   </div>
                   {timeSeries[hoveredIndex].total === 0 ? (
                     <div className="text-center text-slate-500 italic py-1">
                       {t('dashboard.noRequestsInPeriod')}
                     </div>
                   ) : (
-                    <>
-                      <div className="flex justify-between space-x-4">
+                    <div className="space-y-1.5 font-mono">
+                      <div className="flex justify-between items-center text-[11px]">
                         <span className="text-slate-400">Total:</span>
-                        <span className="font-bold text-cyan-400 font-mono">{timeSeries[hoveredIndex].total}</span>
+                        <span className="font-bold text-indigo-400">{timeSeries[hoveredIndex].total}</span>
                       </div>
-                      <div className="flex justify-between space-x-4">
+                      <div className="flex justify-between items-center text-[11px]">
                         <span className="text-slate-400">Success:</span>
-                        <span className="font-bold text-emerald-400 font-mono">{timeSeries[hoveredIndex].success}</span>
+                        <span className="font-bold text-emerald-400">{timeSeries[hoveredIndex].success}</span>
                       </div>
-                      <div className="flex justify-between space-x-4">
+                      <div className="flex justify-between items-center text-[11px]">
                         <span className="text-slate-400">Error:</span>
-                        <span className="font-bold text-rose-400 font-mono">{timeSeries[hoveredIndex].error}</span>
+                        <span className="font-bold text-rose-400">{timeSeries[hoveredIndex].error}</span>
                       </div>
-                    </>
+                      {/* Mini Ratio Bar */}
+                      <div className="w-full bg-rose-500/20 h-1.5 rounded-full overflow-hidden flex mt-2">
+                        <div
+                          className="bg-emerald-500 h-full rounded-full transition-all"
+                          style={{
+                            width: `${(timeSeries[hoveredIndex].success / (timeSeries[hoveredIndex].total || 1)) * 100}%`
+                          }}
+                        />
+                      </div>
+                    </div>
                   )}
                 </div>
               )}
@@ -438,16 +578,19 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
         </div>
 
         {/* Chart 2: Average Latency Trend */}
-        <div className="bg-slate-800/80 backdrop-blur border border-slate-700/60 rounded-xl p-5 shadow-lg relative flex flex-col h-[320px]">
+        <div className="bg-[#0F1118]/90 border border-white/[0.08] hover:border-white/[0.12] rounded-xl p-5 shadow-lg relative flex flex-col h-[320px] transition-colors group">
           <div className="mb-2">
-            <h3 className="text-sm font-bold text-slate-200 mb-2 tracking-wide uppercase text-[10px] flex items-center justify-between">
-              <span>{t('dashboard.latencyChartTitle')}</span>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-xs font-semibold text-slate-200 tracking-wider uppercase flex items-center space-x-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                <span>{t('dashboard.latencyChartTitle')}</span>
+              </h3>
               {hoveredIndex !== null && timeSeries[hoveredIndex] && (
-                <span className="text-purple-400 font-mono text-xs lowercase">
+                <span className="text-purple-400 font-mono text-xs px-2 py-0.5 rounded bg-purple-500/10 border border-purple-500/20">
                   {timeSeries[hoveredIndex].total > 0 ? `${timeSeries[hoveredIndex].avgDurationMs} ms` : t('dashboard.noSampling')}
                 </span>
               )}
-            </h3>
+            </div>
 
             {/* Model Legend for Latency */}
             {allModels.length > 0 && (
@@ -463,7 +606,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
           </div>
 
           {N === 0 ? (
-            <div className="flex-1 flex items-center justify-center text-slate-500 text-xs italic bg-slate-900/40 rounded-lg border border-slate-800/60">
+            <div className="flex-1 flex items-center justify-center text-slate-500 text-xs italic bg-black/20 rounded-lg border border-white/[0.04]">
               {t('dashboard.noData')}
             </div>
           ) : (
@@ -483,8 +626,8 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                   y1={yMax}
                   x2={svgWidth - paddingRight}
                   y2={yMax}
-                  stroke="#334155"
-                  strokeWidth="1.5"
+                  stroke="rgba(255, 255, 255, 0.08)"
+                  strokeWidth="1"
                 />
 
                 {/* Polylines for each active model */}
@@ -528,7 +671,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                           cy={getYLatency(dur)}
                           r="2.5"
                           fill={mColor}
-                          stroke="#1e293b"
+                          stroke="#0F1118"
                           strokeWidth="1"
                         />
                       );
@@ -542,7 +685,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                       cy={getYLatency(p.avgDurationMs)}
                       r="2.5"
                       fill="#a855f7"
-                      stroke="#1e293b"
+                      stroke="#0F1118"
                       strokeWidth="1"
                     />
                   ))
@@ -558,7 +701,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                       x={getX(idx)}
                       y={yMax + 16}
                       textAnchor="middle"
-                      className="text-[10px] fill-slate-400 font-mono select-none"
+                      className="text-[10px] fill-slate-500 font-mono select-none"
                     >
                       {displayLabel}
                     </text>
@@ -572,25 +715,24 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                     y1={yMin}
                     x2={getX(hoveredIndex)}
                     y2={yMax}
-                    stroke="#a855f7"
+                    stroke="rgba(168, 85, 247, 0.6)"
                     strokeWidth="1"
                     strokeDasharray="3 3"
-                    className="opacity-80"
                   />
                 )}
               </svg>
 
-              {/* Synchronized Hover Tooltip Overlay */}
+              {/* Glassmorphic Hover Tooltip Overlay */}
               {hoveredIndex !== null && timeSeries[hoveredIndex] && (
                 <div
-                  className="absolute z-10 bg-slate-900/95 border border-slate-700/80 text-[11px] p-2.5 rounded-lg shadow-xl pointer-events-none space-y-1 backdrop-blur-sm min-w-[180px] max-w-[280px]"
+                  className="absolute z-20 backdrop-blur-xl bg-[#151824]/95 border border-white/[0.12] shadow-2xl rounded-xl p-3.5 text-xs pointer-events-none space-y-2 min-w-[200px] max-w-[290px]"
                   style={{
                     left: `${((getX(hoveredIndex) - paddingLeft) / plottingWidth) * 85 + 8}%`,
-                    top: '15%',
+                    top: '10%',
                     transform: hoveredIndex > N / 2 ? 'translateX(-105%)' : 'translateX(5%)',
                   }}
                 >
-                  <div className="font-bold text-slate-300 font-mono border-b border-slate-800 pb-0.5 mb-1 text-center">
+                  <div className="font-semibold text-slate-200 font-mono border-b border-white/[0.08] pb-1.5 mb-1 text-center">
                     {timeSeries[hoveredIndex].time}
                   </div>
                   {timeSeries[hoveredIndex].total === 0 ? (
@@ -598,10 +740,10 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                       {t('dashboard.noSampling')}
                     </div>
                   ) : (
-                    <>
-                      <div className="flex justify-between space-x-4 border-b border-slate-800/80 pb-1 mb-1">
-                        <span className="text-slate-400 font-semibold shrink-0">Overall Avg:</span>
-                        <span className="font-bold text-purple-400 font-mono shrink-0">
+                    <div className="space-y-1.5 font-mono">
+                      <div className="flex justify-between items-center text-[11px] border-b border-white/[0.06] pb-1">
+                        <span className="text-slate-400 font-medium">Overall Avg:</span>
+                        <span className="font-bold text-purple-400">
                           {timeSeries[hoveredIndex].avgDurationMs} ms
                         </span>
                       </div>
@@ -609,18 +751,18 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                         const mDur = timeSeries[hoveredIndex].modelDurations?.[model] || 0;
                         const mColor = getModelColor(model, mIdx);
                         return (
-                          <div key={model} className="flex items-center justify-between gap-3" title={model}>
+                          <div key={model} className="flex items-center justify-between gap-3 text-[11px]" title={model}>
                             <span className="flex items-center space-x-1.5 min-w-0 text-slate-300" style={{ color: mColor }}>
                               <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: mColor }}></span>
-                              <span className="font-mono break-all leading-tight">{model}:</span>
+                              <span className="truncate max-w-[130px]">{model}:</span>
                             </span>
-                            <span className="font-bold font-mono shrink-0" style={{ color: mColor }}>
+                            <span className="font-bold shrink-0" style={{ color: mColor }}>
                               {mDur} ms
                             </span>
                           </div>
                         );
                       })}
-                    </>
+                    </div>
                   )}
                 </div>
               )}
@@ -629,18 +771,21 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
         </div>
 
         {/* Chart 3: Success vs Error Distribution */}
-        <div className="bg-slate-800/80 backdrop-blur border border-slate-700/60 rounded-xl p-5 shadow-lg relative flex flex-col h-[320px]">
-          <h3 className="text-sm font-bold text-slate-200 mb-4 tracking-wide uppercase text-xs flex items-center justify-between">
-            <span>{t('dashboard.successErrorChartTitle')}</span>
+        <div className="bg-[#0F1118]/90 border border-white/[0.08] hover:border-white/[0.12] rounded-xl p-5 shadow-lg relative flex flex-col h-[320px] transition-colors group">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-xs font-semibold text-slate-200 tracking-wider uppercase flex items-center space-x-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              <span>{t('dashboard.successErrorChartTitle')}</span>
+            </h3>
             {hoveredIndex !== null && timeSeries[hoveredIndex] && (
-              <span className="text-emerald-400 font-mono text-xs">
+              <span className="text-emerald-400 font-mono text-xs px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
                 {timeSeries[hoveredIndex].success}✓ / {timeSeries[hoveredIndex].error}✗
               </span>
             )}
-          </h3>
+          </div>
 
           {N === 0 ? (
-            <div className="flex-1 flex items-center justify-center text-slate-500 text-xs italic bg-slate-900/40 rounded-lg border border-slate-800/60">
+            <div className="flex-1 flex items-center justify-center text-slate-500 text-xs italic bg-black/20 rounded-lg border border-white/[0.04]">
               {t('dashboard.noData')}
             </div>
           ) : (
@@ -660,8 +805,8 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                   y1={yMax}
                   x2={svgWidth - paddingRight}
                   y2={yMax}
-                  stroke="#334155"
-                  strokeWidth="1.5"
+                  stroke="rgba(255, 255, 255, 0.08)"
+                  strokeWidth="1"
                 />
 
                 {/* Stacked Columns with rounded data-ends and gap separators */}
@@ -699,10 +844,10 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                       {hSuccess > 0 && (
                         <path
                           d={p.error === 0
-                            ? getRoundedTopBarPath(x, ySuccess, barWidth, hSuccess, 4)
+                            ? getRoundedTopBarPath(x, ySuccess, barWidth, hSuccess, 3)
                             : `M ${x} ${yMax} L ${x} ${ySuccess} L ${x + barWidth} ${ySuccess} L ${x + barWidth} ${yMax} Z`
                           }
-                          fill="#10b981"
+                          fill="#10B981"
                           className="transition-colors duration-200"
                         />
                       )}
@@ -710,8 +855,8 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                       {/* Error Bar */}
                       {hError > 0 && (
                         <path
-                          d={getRoundedTopBarPath(x, yError, barWidth, hError, 4)}
-                          fill="#f43f5e"
+                          d={getRoundedTopBarPath(x, yError, barWidth, hError, 3)}
+                          fill="#F43F5E"
                           className="transition-colors duration-200"
                         />
                       )}
@@ -722,7 +867,6 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                 {/* X-axis labels */}
                 {labelIndices.map(idx => {
                   const rawTime = timeSeries[idx].time;
-                  // If formatted as "YYYY-MM-DD HH:00", split and only show "HH:00" to keep labels clean
                   const displayLabel = rawTime.includes(' ') ? rawTime.split(' ')[1] : rawTime;
                   return (
                     <text
@@ -730,7 +874,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                       x={getX(idx)}
                       y={yMax + 16}
                       textAnchor="middle"
-                      className="text-[10px] fill-slate-400 font-mono select-none"
+                      className="text-[10px] fill-slate-500 font-mono select-none"
                     >
                       {displayLabel}
                     </text>
@@ -738,17 +882,17 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                 })}
               </svg>
 
-              {/* Synchronized Hover Tooltip Overlay */}
+              {/* Glassmorphic Hover Tooltip Overlay */}
               {hoveredIndex !== null && timeSeries[hoveredIndex] && (
                 <div
-                  className="absolute z-10 bg-slate-900/95 border border-slate-700/80 text-[11px] p-2 rounded-lg shadow-xl pointer-events-none space-y-1 backdrop-blur-sm"
+                  className="absolute z-20 backdrop-blur-xl bg-[#151824]/95 border border-white/[0.12] shadow-2xl rounded-xl p-3.5 text-xs pointer-events-none space-y-2 min-w-[190px]"
                   style={{
                     left: `${((getX(hoveredIndex) - paddingLeft) / plottingWidth) * 85 + 8}%`,
-                    top: '15%',
+                    top: '10%',
                     transform: hoveredIndex > N / 2 ? 'translateX(-105%)' : 'translateX(5%)',
                   }}
                 >
-                  <div className="font-bold text-slate-300 font-mono border-b border-slate-800 pb-0.5 mb-1 text-center">
+                  <div className="font-semibold text-slate-200 font-mono border-b border-white/[0.08] pb-1.5 mb-1 text-center">
                     {timeSeries[hoveredIndex].time}
                   </div>
                   {timeSeries[hoveredIndex].total === 0 ? (
@@ -756,22 +900,22 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                       {t('dashboard.noRequestsInPeriod')}
                     </div>
                   ) : (
-                    <>
-                      <div className="flex justify-between space-x-4">
+                    <div className="space-y-1.5 font-mono">
+                      <div className="flex justify-between items-center text-[11px]">
                         <span className="text-slate-400">Success Ratio:</span>
-                        <span className="font-bold text-emerald-400 font-mono">
+                        <span className="font-bold text-emerald-400">
                           {((timeSeries[hoveredIndex].success / (timeSeries[hoveredIndex].total || 1)) * 100).toFixed(1)}%
                         </span>
                       </div>
-                      <div className="flex justify-between space-x-4">
+                      <div className="flex justify-between items-center text-[11px]">
                         <span className="text-slate-400">Success (✓):</span>
-                        <span className="font-bold text-emerald-400 font-mono">{timeSeries[hoveredIndex].success}</span>
+                        <span className="font-bold text-emerald-400">{timeSeries[hoveredIndex].success}</span>
                       </div>
-                      <div className="flex justify-between space-x-4">
+                      <div className="flex justify-between items-center text-[11px]">
                         <span className="text-slate-400">Errors (✗):</span>
-                        <span className="font-bold text-rose-400 font-mono">{timeSeries[hoveredIndex].error}</span>
+                        <span className="font-bold text-rose-400">{timeSeries[hoveredIndex].error}</span>
                       </div>
-                    </>
+                    </div>
                   )}
                 </div>
               )}
@@ -780,16 +924,19 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
         </div>
 
         {/* Chart 4: Model Distribution Trend */}
-        <div className="bg-slate-800/80 backdrop-blur border border-slate-700/60 rounded-xl p-5 shadow-lg relative flex flex-col h-[320px]">
+        <div className="bg-[#0F1118]/90 border border-white/[0.08] hover:border-white/[0.12] rounded-xl p-5 shadow-lg relative flex flex-col h-[320px] transition-colors group">
           <div className="mb-2">
-            <h3 className="text-sm font-bold text-slate-200 mb-2 tracking-wide uppercase text-[10px] flex items-center justify-between">
-              <span>{t('dashboard.modelChartTitle')}</span>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-xs font-semibold text-slate-200 tracking-wider uppercase flex items-center space-x-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-500"></span>
+                <span>{t('dashboard.modelChartTitle')}</span>
+              </h3>
               {hoveredIndex !== null && timeSeries[hoveredIndex] && (
-                <span className="text-cyan-400 font-mono text-xs">
+                <span className="text-cyan-400 font-mono text-xs px-2 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/20">
                   {allModels.length} models
                 </span>
               )}
-            </h3>
+            </div>
 
             {/* Model Legend */}
             {allModels.length > 0 && (
@@ -805,7 +952,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
           </div>
 
           {N === 0 ? (
-            <div className="flex-1 flex items-center justify-center text-slate-500 text-xs italic bg-slate-900/40 rounded-lg border border-slate-800/60">
+            <div className="flex-1 flex items-center justify-center text-slate-500 text-xs italic bg-black/20 rounded-lg border border-white/[0.04]">
               {t('dashboard.noData')}
             </div>
           ) : (
@@ -825,8 +972,8 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                   y1={yMax}
                   x2={svgWidth - paddingRight}
                   y2={yMax}
-                  stroke="#334155"
-                  strokeWidth="1.5"
+                  stroke="rgba(255, 255, 255, 0.08)"
+                  strokeWidth="1"
                 />
 
                 {/* Polylines for each active model */}
@@ -858,7 +1005,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                         cy={getYModel(count)}
                         r="2.5"
                         fill={mColor}
-                        stroke="#1e293b"
+                        stroke="#0F1118"
                         strokeWidth="1"
                       />
                     );
@@ -875,7 +1022,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                       x={getX(idx)}
                       y={yMax + 16}
                       textAnchor="middle"
-                      className="text-[10px] fill-slate-400 font-mono select-none"
+                      className="text-[10px] fill-slate-500 font-mono select-none"
                     >
                       {displayLabel}
                     </text>
@@ -889,10 +1036,9 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                     y1={yMin}
                     x2={getX(hoveredIndex)}
                     y2={yMax}
-                    stroke="#06b6d4"
+                    stroke="rgba(6, 182, 212, 0.6)"
                     strokeWidth="1"
                     strokeDasharray="3 3"
-                    className="opacity-80"
                   />
                 )}
 
@@ -908,7 +1054,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                         cy={getYModel(count)}
                         r="5.5"
                         fill={mColor}
-                        stroke="#1e293b"
+                        stroke="#0F1118"
                         strokeWidth="2"
                         className="animate-pulse"
                       />
@@ -917,35 +1063,37 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                 )}
               </svg>
 
-              {/* Synchronized Hover Tooltip Overlay */}
+              {/* Glassmorphic Hover Tooltip Overlay */}
               {hoveredIndex !== null && timeSeries[hoveredIndex] && (
                 <div
-                  className="absolute z-10 bg-slate-900/95 border border-slate-700/80 text-[11px] p-2.5 rounded-lg shadow-xl pointer-events-none space-y-1 backdrop-blur-sm min-w-[180px] max-w-[280px]"
+                  className="absolute z-20 backdrop-blur-xl bg-[#151824]/95 border border-white/[0.12] shadow-2xl rounded-xl p-3.5 text-xs pointer-events-none space-y-2 min-w-[200px] max-w-[290px]"
                   style={{
                     left: `${((getX(hoveredIndex) - paddingLeft) / plottingWidth) * 85 + 8}%`,
-                    top: '15%',
+                    top: '10%',
                     transform: hoveredIndex > N / 2 ? 'translateX(-105%)' : 'translateX(5%)',
                   }}
                 >
-                  <div className="font-bold text-slate-300 font-mono border-b border-slate-800 pb-0.5 mb-1 text-center">
+                  <div className="font-semibold text-slate-200 font-mono border-b border-white/[0.08] pb-1.5 mb-1 text-center">
                     {timeSeries[hoveredIndex].time}
                   </div>
                   {allModels.length === 0 ? (
                     <div className="text-slate-500 italic text-center p-1">No active models</div>
                   ) : (
-                    allModels.map((model, mIdx) => {
-                      const count = timeSeries[hoveredIndex].models?.[model] || 0;
-                      const mColor = getModelColor(model, mIdx);
-                      return (
-                        <div key={model} className="flex items-center justify-between gap-3" title={model}>
-                          <div className="flex items-center space-x-1.5 min-w-0 text-slate-400">
-                            <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: mColor }}></span>
-                            <span className="font-mono break-all leading-tight">{model}:</span>
+                    <div className="space-y-1.5 font-mono">
+                      {allModels.map((model, mIdx) => {
+                        const count = timeSeries[hoveredIndex].models?.[model] || 0;
+                        const mColor = getModelColor(model, mIdx);
+                        return (
+                          <div key={model} className="flex items-center justify-between gap-3 text-[11px]" title={model}>
+                            <div className="flex items-center space-x-1.5 min-w-0 text-slate-300">
+                              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: mColor }}></span>
+                              <span className="truncate max-w-[130px]">{model}:</span>
+                            </div>
+                            <span className="font-bold shrink-0" style={{ color: mColor }}>{count}</span>
                           </div>
-                          <span className="font-bold font-mono shrink-0" style={{ color: mColor }}>{count}</span>
-                        </div>
-                      );
-                    })
+                        );
+                      })}
+                    </div>
                   )}
                 </div>
               )}
@@ -953,6 +1101,113 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
           )}
         </div>
       </div>
+
+      {/* Model Performance & System Matrix */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Matrix 1: Model Distribution & Performance Breakdown */}
+        <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl p-5 shadow-lg relative flex flex-col">
+          <div className="flex items-center justify-between mb-4 border-b border-white/[0.06] pb-3">
+            <h3 className="text-xs font-semibold text-slate-200 tracking-wider uppercase flex items-center space-x-2">
+              <Layers className="w-4 h-4 text-indigo-400" />
+              <span>Model Performance Matrix</span>
+            </h3>
+            <span className="text-[10px] font-mono text-slate-400 bg-white/[0.04] px-2 py-0.5 rounded border border-white/[0.06]">
+              {modelStatsSummary.list.length} Models Tracked
+            </span>
+          </div>
+
+          {modelStatsSummary.list.length === 0 ? (
+            <div className="flex-1 flex items-center justify-center text-slate-500 text-xs italic py-8">
+              {t('dashboard.noData')}
+            </div>
+          ) : (
+            <div className="space-y-3.5 flex-1">
+              {modelStatsSummary.list.map((item, idx) => {
+                const color = getModelColor(item.model, idx);
+                return (
+                  <div key={item.model} className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs font-mono">
+                      <div className="flex items-center space-x-2 min-w-0">
+                        <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                        <span className="text-slate-200 font-medium truncate max-w-[200px]" title={item.model}>
+                          {item.model}
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-3 text-slate-400 shrink-0">
+                        <span className="text-purple-400 bg-purple-500/10 px-1.5 py-0.5 rounded border border-purple-500/20 text-[10px]">
+                          ~{item.avgLatency}ms
+                        </span>
+                        <span className="text-slate-200 font-semibold">{item.requests} reqs</span>
+                        <span className="text-[10px] text-slate-500 w-10 text-right font-medium">
+                          {item.percentage.toFixed(0)}%
+                        </span>
+                      </div>
+                    </div>
+                    {/* Slim Progress Bar */}
+                    <div className="w-full bg-white/[0.04] h-1.5 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{
+                          width: `${Math.max(item.percentage, 2)}%`,
+                          backgroundColor: color
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Matrix 2: System Configuration & Runtime Matrix */}
+        <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl p-5 shadow-lg relative flex flex-col">
+          <div className="flex items-center justify-between mb-4 border-b border-white/[0.06] pb-3">
+            <h3 className="text-xs font-semibold text-slate-200 tracking-wider uppercase flex items-center space-x-2">
+              <Cpu className="w-4 h-4 text-emerald-400" />
+              <span>System Runtime Matrix</span>
+            </h3>
+            <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+              ACTIVE
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1 font-mono text-xs">
+            <div className="p-3 rounded-lg bg-black/20 border border-white/[0.04] flex flex-col justify-between">
+              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">LOG_LEVEL</span>
+              <span className="text-slate-200 font-bold mt-1 uppercase text-indigo-400">{cfg.logLevel || 'info'}</span>
+            </div>
+
+            <div className="p-3 rounded-lg bg-black/20 border border-white/[0.04] flex flex-col justify-between">
+              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">UPSTREAM_TIMEOUT</span>
+              <span className="text-slate-200 font-bold mt-1 text-purple-400">{cfg.upstreamTimeoutMs || 180000}ms</span>
+            </div>
+
+            <div className="p-3 rounded-lg bg-black/20 border border-white/[0.04] flex flex-col justify-between">
+              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">SYSTEM_ROLE_TO_INSTRUCTION</span>
+              <span className={`text-[11px] font-bold mt-1 ${cfg.systemRoleToInstruction ? 'text-emerald-400' : 'text-slate-400'}`}>
+                {cfg.systemRoleToInstruction ? 'TRUE (INJECT)' : 'FALSE (INLINE)'}
+              </span>
+            </div>
+
+            <div className="p-3 rounded-lg bg-black/20 border border-white/[0.04] flex flex-col justify-between">
+              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">LOG_RETENTION_DAYS</span>
+              <span className="text-slate-200 font-bold mt-1 text-sky-400">{cfg.logRetentionDays ?? 3} Days</span>
+            </div>
+
+            <div className="p-3 rounded-lg bg-black/20 border border-white/[0.04] flex flex-col justify-between">
+              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">TIME_ZONE</span>
+              <span className="text-slate-200 font-bold mt-1 text-slate-300 truncate">{cfg.timeZone || 'Asia/Shanghai'}</span>
+            </div>
+
+            <div className="p-3 rounded-lg bg-black/20 border border-white/[0.04] flex flex-col justify-between">
+              <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">COUNT_TOKENS_MODEL</span>
+              <span className="text-slate-200 font-bold mt-1 text-amber-400 truncate">{cfg.countTokensModel || 'Default Model'}</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
+
