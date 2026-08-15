@@ -1,4 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  LayoutDashboard,
+  Users,
+  FileText,
+  Terminal,
+  Play,
+  Settings,
+  Globe,
+  LogOut,
+  PanelLeftClose,
+  PanelLeftOpen,
+  RefreshCw,
+  Lock,
+  ShieldCheck,
+  KeyRound,
+  ChevronRight,
+  Sparkles,
+  Zap
+} from 'lucide-react';
 import DashboardView from './components/DashboardView';
 import AccountsView from './components/AccountsView';
 import LogsView from './components/LogsView';
@@ -7,18 +26,54 @@ import TerminalLogsView from './components/TerminalLogsView';
 import ConfigModal from './components/ConfigModal';
 import { useTranslation } from './i18n/LanguageContext';
 
+type TabType = 'dashboard' | 'accounts' | 'logs' | 'terminal' | 'playground';
+
+interface NavItem {
+  id: TabType;
+  icon: React.ElementType;
+  shortcut: string;
+}
+
+const NAV_ITEMS: NavItem[] = [
+  { id: 'dashboard', icon: LayoutDashboard, shortcut: '⌘1' },
+  { id: 'accounts', icon: Users, shortcut: '⌘2' },
+  { id: 'logs', icon: FileText, shortcut: '⌘3' },
+  { id: 'terminal', icon: Terminal, shortcut: '⌘4' },
+  { id: 'playground', icon: Play, shortcut: '⌘5' },
+];
+
 export default function App() {
   const { t, lang, setLang } = useTranslation();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'accounts' | 'logs' | 'terminal' | 'playground'>('dashboard');
+  const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const [adminKey, setAdminKey] = useState(localStorage.getItem('adminKey') || '');
   const [inputKey, setInputKey] = useState(localStorage.getItem('adminKey') || '');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [authError, setAuthError] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+
+  // Sidebar Collapse State
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
+    return localStorage.getItem('sidebar_collapsed') === 'true';
+  });
 
   // Modal State
   const [isConfigModalOpen, setIsConfigModalOpen] = useState<boolean>(false);
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
+
+  const toggleSidebar = () => {
+    setIsSidebarCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem('sidebar_collapsed', String(next));
+      return next;
+    });
+  };
+
+  const handleRefresh = useCallback(() => {
+    setIsRefreshing(true);
+    setRefreshTrigger(prev => prev + 1);
+    setTimeout(() => setIsRefreshing(false), 600);
+  }, []);
 
   const verifyAuth = async (keyToTest: string) => {
     setLoading(true);
@@ -50,6 +105,22 @@ export default function App() {
     verifyAuth(adminKey);
   }, []);
 
+  // Keyboard shortcut listeners (Cmd/Ctrl + 1..5)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey) {
+        const num = parseInt(e.key, 10);
+        if (num >= 1 && num <= NAV_ITEMS.length) {
+          e.preventDefault();
+          setActiveTab(NAV_ITEMS[num - 1].id);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     verifyAuth(inputKey);
@@ -62,68 +133,120 @@ export default function App() {
     setIsAuthenticated(false);
   };
 
+  // Loading Screen
   if (loading && isAuthenticated === null) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-950 text-slate-300 font-mono text-xs">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mr-3"></div>
-        {lang === 'zh' ? '正在验证安全凭证...' : 'Verifying Security Credentials...'}
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#090A0F] text-slate-300 font-mono text-xs selection:bg-indigo-500 selection:text-white">
+        <div className="relative flex items-center justify-center mb-4">
+          <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+            <Zap className="w-6 h-6 animate-pulse text-indigo-400" />
+          </div>
+          <div className="absolute inset-0 rounded-2xl bg-indigo-500/20 blur-xl animate-pulse"></div>
+        </div>
+        <div className="flex items-center space-x-2 text-slate-400">
+          <span className="inline-block w-2 h-2 rounded-full bg-indigo-500 animate-ping"></span>
+          <span>{lang === 'zh' ? '正在验证安全凭据...' : 'Verifying Security Credentials...'}</span>
+        </div>
       </div>
     );
   }
 
+  // Modern Linear-style Authentication Screen
   if (!isAuthenticated) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-950 p-4">
-        <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl space-y-6">
-          <div className="text-center space-y-2">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400 mb-2">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 002-2H6a2 2 0 0-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
+      <div className="relative flex items-center justify-center min-h-screen bg-[#090A0F] p-4 overflow-hidden selection:bg-indigo-500 selection:text-white">
+        {/* Background ambient lighting */}
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-transparent rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute bottom-10 right-10 w-80 h-80 bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative w-full max-w-md bg-[#0F1118]/95 backdrop-blur-xl border border-white/[0.08] rounded-2xl p-8 shadow-2xl space-y-6">
+          {/* Header & Lock Badge */}
+          <div className="text-center space-y-3">
+            <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-gradient-to-b from-indigo-500/15 to-purple-500/5 border border-indigo-500/30 text-indigo-400 shadow-[0_0_20px_rgba(99,102,241,0.15)] mb-1">
+              <Lock className="w-6 h-6" />
             </div>
-            <h1 className="text-xl font-bold text-slate-100 tracking-tight">
-              {lang === 'zh' ? 'Gemini 代理控制台' : 'Gemini Proxy Console'}
-            </h1>
-            <p className="text-xs text-slate-400">
-              {lang === 'zh' ? '输入管理员密钥以访问控制台和调试器' : 'Enter Admin Secret Key to access Dashboard & Debugger'}
-            </p>
+            <div>
+              <div className="flex items-center justify-center space-x-2">
+                <h1 className="text-xl font-semibold text-slate-100 tracking-tight">
+                  {lang === 'zh' ? 'Gemini 代理控制台' : 'Gemini Proxy Console'}
+                </h1>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+                  v1.0
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-1">
+                {lang === 'zh' ? '输入管理员密钥以访问控制台和调试器' : 'Enter Admin Secret Key to access Dashboard & Debugger'}
+              </p>
+            </div>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">{t('nav.adminKeyPlaceholder')}</label>
-              <input
-                type="password"
-                value={inputKey}
-                onChange={(e) => setInputKey(e.target.value)}
-                placeholder={t('nav.adminKeyPlaceholder')}
-                className="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 focus:outline-none focus:border-blue-500 font-mono"
-              />
+            <div className="space-y-1.5">
+              <label className="flex items-center justify-between text-xs font-medium text-slate-300">
+                <span className="flex items-center space-x-1.5">
+                  <KeyRound className="w-3.5 h-3.5 text-slate-400" />
+                  <span>{t('nav.adminKeyPlaceholder')}</span>
+                </span>
+              </label>
+              <div className="relative">
+                <input
+                  type="password"
+                  value={inputKey}
+                  onChange={(e) => setInputKey(e.target.value)}
+                  placeholder={t('nav.adminKeyPlaceholder')}
+                  autoFocus
+                  className="w-full bg-[#090A0F] border border-white/[0.1] hover:border-white/[0.2] focus:border-indigo-500/80 rounded-xl px-4 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/40 font-mono transition-all"
+                />
+              </div>
             </div>
 
             {authError && (
-              <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs text-center font-medium">
-                {authError}
+              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center space-x-2 font-medium">
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0 animate-ping" />
+                <span className="truncate">{authError}</span>
               </div>
             )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 rounded-xl font-semibold text-xs text-white transition-all shadow-lg"
+              className="w-full py-2.5 bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 disabled:opacity-50 text-white rounded-xl font-medium text-xs transition-all shadow-[0_0_20px_rgba(99,102,241,0.25)] hover:shadow-[0_0_25px_rgba(99,102,241,0.4)] active:scale-[0.99] flex items-center justify-center space-x-2"
             >
-              {loading ? (lang === 'zh' ? '正在认证...' : 'Authenticating...') : t('nav.login')}
+              {loading ? (
+                <>
+                  <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>{lang === 'zh' ? '正在认证...' : 'Authenticating...'}</span>
+                </>
+              ) : (
+                <>
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>{t('nav.login')}</span>
+                </>
+              )}
             </button>
           </form>
+
+          {/* Language Switcher in Login */}
+          <div className="flex items-center justify-between pt-2 border-t border-white/[0.06] text-xs">
+            <button
+              type="button"
+              onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
+              className="text-slate-400 hover:text-slate-200 transition-colors flex items-center space-x-1.5 py-1 px-2 rounded-lg hover:bg-white/[0.04]"
+            >
+              <Globe className="w-3.5 h-3.5" />
+              <span>{lang === 'zh' ? 'Switch to English' : '切换至中文'}</span>
+            </button>
+            <span className="text-[11px] text-slate-500 font-mono">Gemini Studio Proxy</span>
+          </div>
 
           <p className="text-[11px] text-slate-500 text-center leading-relaxed">
             {lang === 'zh' ? (
               <>
-                注意：如果后端 <code className="text-slate-400 font-mono">.env</code> 中未设置 <code className="text-slate-400 font-mono">ADMIN_SECRET_KEY</code>，请留空并直接点击登录。
+                注意：如果后端 <code className="text-slate-400 font-mono bg-white/[0.04] px-1 py-0.5 rounded border border-white/[0.06]">.env</code> 中未设置 <code className="text-slate-400 font-mono bg-white/[0.04] px-1 py-0.5 rounded border border-white/[0.06]">ADMIN_SECRET_KEY</code>，请留空并直接点击登录。
               </>
             ) : (
               <>
-                Note: If <code className="text-slate-400 font-mono">ADMIN_SECRET_KEY</code> is not set in backend .env, leave blank and click Unlock directly.
+                Note: If <code className="text-slate-400 font-mono bg-white/[0.04] px-1 py-0.5 rounded border border-white/[0.06]">ADMIN_SECRET_KEY</code> is not set in backend .env, leave blank and click Login directly.
               </>
             )}
           </p>
@@ -132,78 +255,230 @@ export default function App() {
     );
   }
 
+  // Active view title mapping for breadcrumbs
+  const getActiveTabTitle = () => {
+    return t(`nav.${activeTab}`);
+  };
+
   return (
-    <div className="flex flex-col min-h-screen bg-slate-950 text-slate-100 font-sans">
-      <header className="bg-slate-900/90 backdrop-blur border-b border-slate-800/80 px-6 py-3.5 flex items-center justify-between sticky top-0 z-50">
-        <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 rounded-lg bg-blue-600/20 border border-blue-500/40 flex items-center justify-center text-blue-400 font-bold text-sm">
-            GP
+    <div className="flex min-h-screen bg-[#090A0F] text-slate-100 font-sans selection:bg-indigo-500 selection:text-white antialiased">
+      {/* Collapsible Sidebar */}
+      <aside
+        className={`fixed top-0 bottom-0 left-0 z-40 flex flex-col bg-[#0C0E14] border-r border-white/[0.06] transition-all duration-300 ease-in-out ${
+          isSidebarCollapsed ? 'w-16' : 'w-60'
+        }`}
+      >
+        {/* Brand Logo Header */}
+        <div className="h-14 px-4 flex items-center justify-between border-b border-white/[0.06] shrink-0">
+          <div className="flex items-center space-x-3 overflow-hidden">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500/20 via-purple-500/20 to-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold text-xs shrink-0 shadow-[0_0_12px_rgba(99,102,241,0.2)]">
+              <Zap className="w-4 h-4 text-indigo-400" />
+            </div>
+            {!isSidebarCollapsed && (
+              <div className="flex items-center space-x-2 min-w-0 overflow-hidden">
+                <span className="font-semibold text-sm text-slate-100 tracking-tight truncate">
+                  Gemini Proxy
+                </span>
+                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 shrink-0">
+                  PRO
+                </span>
+              </div>
+            )}
           </div>
-          <span className="font-bold text-md text-slate-100 tracking-tight">Gemini Proxy</span>
-          <span className="text-[10px] uppercase font-bold bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 px-2 py-0.5 rounded-full">
-            {lang === 'zh' ? '已认证' : 'Authenticated'}
-          </span>
         </div>
 
-        <nav className="flex space-x-2 bg-slate-950/60 p-1 rounded-xl border border-slate-800/80">
-          {(['dashboard', 'accounts', 'logs', 'terminal', 'playground'] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                activeTab === tab
-                  ? 'bg-blue-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
-              }`}
-            >
-              {t(`nav.${tab}`)}
-            </button>
-          ))}
+        {/* Navigation Items */}
+        <nav className="flex-1 px-2.5 py-4 space-y-1.5 overflow-y-auto">
+          {NAV_ITEMS.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            const title = t(`nav.${item.id}`);
+
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                title={isSidebarCollapsed ? `${title} (${item.shortcut})` : undefined}
+                className={`relative w-full flex items-center rounded-xl text-xs font-medium transition-all group ${
+                  isSidebarCollapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2.5 space-x-3'
+                } ${
+                  isActive
+                    ? 'bg-gradient-to-r from-indigo-500/15 via-purple-500/10 to-transparent text-white border border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.08)]'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04] border border-transparent'
+                }`}
+              >
+                {/* Active Indicator Bar */}
+                {isActive && (
+                  <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.8)]" />
+                )}
+
+                <Icon
+                  className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-110 ${
+                    isActive ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-200'
+                  }`}
+                />
+
+                {!isSidebarCollapsed && (
+                  <div className="flex items-center justify-between flex-1 min-w-0">
+                    <span className="truncate">{title}</span>
+                    <kbd className={`text-[10px] font-mono px-1.5 py-0.5 rounded border transition-colors ${
+                      isActive
+                        ? 'bg-indigo-500/20 border-indigo-500/30 text-indigo-300'
+                        : 'bg-white/[0.03] border-white/[0.06] text-slate-500 group-hover:text-slate-400'
+                    }`}>
+                      {item.shortcut}
+                    </kbd>
+                  </div>
+                )}
+              </button>
+            );
+          })}
         </nav>
 
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
-            className="bg-slate-700/80 hover:bg-slate-600 text-slate-200 text-xs px-2.5 py-1.5 rounded-lg border border-slate-600 transition-colors font-medium flex items-center space-x-1"
+        {/* Sidebar Footer Controls */}
+        <div className="p-2.5 border-t border-white/[0.06] space-y-1 shrink-0 bg-[#0A0C11]/50">
+          {/* Live Connection Status */}
+          <div
+            className={`flex items-center px-3 py-2 rounded-xl text-xs text-slate-400 transition-colors ${
+              isSidebarCollapsed ? 'justify-center px-0' : 'space-x-2.5'
+            }`}
+            title={lang === 'zh' ? '系统运行正常' : 'System Online'}
           >
-            <span>🌐</span>
-            <span>{lang === 'zh' ? 'English' : '中文'}</span>
-          </button>
+            <div className="relative flex items-center justify-center shrink-0">
+              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              <span className="absolute w-2 h-2 rounded-full bg-emerald-400 animate-ping opacity-75" />
+            </div>
+            {!isSidebarCollapsed && (
+              <span className="text-[11px] font-mono text-emerald-400 truncate">
+                {lang === 'zh' ? '服务运行中' : 'Proxy Active'}
+              </span>
+            )}
+          </div>
 
+          {/* Settings Button */}
           <button
             onClick={() => setIsConfigModalOpen(true)}
-            className="px-3 py-1.5 bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 rounded-lg text-xs text-slate-300 hover:text-white transition-all flex items-center space-x-1.5"
-            title="Configure Proxy Settings"
+            title={isSidebarCollapsed ? t('nav.configTitle') : undefined}
+            className={`w-full flex items-center rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-white/[0.04] transition-colors ${
+              isSidebarCollapsed ? 'justify-center p-2.5' : 'px-3 py-2 space-x-2.5'
+            }`}
           >
-            <span>⚙️</span>
-            <span>{t('nav.configTitle')}</span>
+            <Settings className="w-4 h-4 shrink-0" />
+            {!isSidebarCollapsed && <span className="truncate">{t('nav.configTitle')}</span>}
           </button>
 
+          {/* Language Switcher */}
+          <button
+            onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
+            title={isSidebarCollapsed ? (lang === 'zh' ? 'Switch to English' : '切换至中文') : undefined}
+            className={`w-full flex items-center rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-white/[0.04] transition-colors ${
+              isSidebarCollapsed ? 'justify-center p-2.5' : 'px-3 py-2 space-x-2.5'
+            }`}
+          >
+            <Globe className="w-4 h-4 shrink-0" />
+            {!isSidebarCollapsed && (
+              <span className="truncate">{lang === 'zh' ? 'English (EN)' : '中文 (ZH)'}</span>
+            )}
+          </button>
+
+          {/* Logout Button */}
           <button
             onClick={handleLogout}
-            className="px-3 py-1.5 bg-slate-800/80 hover:bg-rose-600/20 hover:border-rose-500/40 border border-slate-700/60 rounded-lg text-xs text-slate-300 hover:text-rose-300 transition-all flex items-center space-x-1.5"
+            title={isSidebarCollapsed ? t('nav.logout') : undefined}
+            className={`w-full flex items-center rounded-xl text-xs font-medium text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors ${
+              isSidebarCollapsed ? 'justify-center p-2.5' : 'px-3 py-2 space-x-2.5'
+            }`}
           >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </svg>
-            <span>{t('nav.logout')}</span>
+            <LogOut className="w-4 h-4 shrink-0" />
+            {!isSidebarCollapsed && <span className="truncate">{t('nav.logout')}</span>}
           </button>
         </div>
-      </header>
+      </aside>
 
-      <main className="flex-1 p-6">
-        {activeTab === 'dashboard' && (
-          <DashboardView
-            key={refreshTrigger}
-            adminKey={adminKey}
-          />
-        )}
-        {activeTab === 'accounts' && <AccountsView adminKey={adminKey} />}
-        {activeTab === 'logs' && <LogsView adminKey={adminKey} />}
-        {activeTab === 'terminal' && <TerminalLogsView adminKey={adminKey} />}
-        {activeTab === 'playground' && <PlaygroundView />}
-      </main>
+      {/* Main Content Area */}
+      <div
+        className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out ${
+          isSidebarCollapsed ? 'pl-16' : 'pl-60'
+        }`}
+      >
+        {/* Minimal Glass Top Bar */}
+        <header className="h-14 backdrop-blur-md bg-[#090A0F]/80 border-b border-white/[0.06] px-6 flex items-center justify-between sticky top-0 z-30">
+          {/* Left Breadcrumbs & Sidebar Toggle */}
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={toggleSidebar}
+              title={isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-white/[0.05] transition-colors border border-transparent hover:border-white/[0.06]"
+            >
+              {isSidebarCollapsed ? (
+                <PanelLeftOpen className="w-4 h-4" />
+              ) : (
+                <PanelLeftClose className="w-4 h-4" />
+              )}
+            </button>
 
+            <div className="h-4 w-px bg-white/[0.08]" />
+
+            <div className="flex items-center space-x-2 text-xs font-medium">
+              <span className="text-slate-500">Gemini Proxy</span>
+              <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
+              <span className="text-slate-200 font-semibold">{getActiveTabTitle()}</span>
+            </div>
+          </div>
+
+          {/* Right Action Controls */}
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={handleRefresh}
+              title={lang === 'zh' ? '刷新当前视图' : 'Refresh Active View'}
+              className="px-2.5 py-1.5 bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.08] hover:border-white/[0.15] rounded-lg text-xs text-slate-300 hover:text-white transition-all flex items-center space-x-1.5 shadow-sm active:scale-95"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-slate-400 ${isRefreshing ? 'animate-spin text-indigo-400' : ''}`} />
+              <span className="hidden sm:inline text-[11px]">{lang === 'zh' ? '刷新' : 'Refresh'}</span>
+            </button>
+
+            <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-mono">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="hidden sm:inline">{lang === 'zh' ? '在线' : 'Online'}</span>
+            </div>
+          </div>
+        </header>
+
+        {/* Main View Workspace */}
+        <main className="flex-1 p-6">
+          {activeTab === 'dashboard' && (
+            <DashboardView
+              key={refreshTrigger}
+              adminKey={adminKey}
+            />
+          )}
+          {activeTab === 'accounts' && (
+            <AccountsView
+              key={refreshTrigger}
+              adminKey={adminKey}
+            />
+          )}
+          {activeTab === 'logs' && (
+            <LogsView
+              key={refreshTrigger}
+              adminKey={adminKey}
+            />
+          )}
+          {activeTab === 'terminal' && (
+            <TerminalLogsView
+              key={refreshTrigger}
+              adminKey={adminKey}
+            />
+          )}
+          {activeTab === 'playground' && (
+            <PlaygroundView
+              key={refreshTrigger}
+            />
+          )}
+        </main>
+      </div>
+
+      {/* Global Config Modal */}
       <ConfigModal
         isOpen={isConfigModalOpen}
         onClose={() => setIsConfigModalOpen(false)}
