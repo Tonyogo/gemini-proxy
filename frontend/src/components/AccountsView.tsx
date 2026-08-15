@@ -516,7 +516,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
 
   // State Machine Badges with modern Linear styles
   const renderStatusBadge = (acc: AccountDetail) => {
-    const rawConcurrent = (acc.concurrentStatus || '').toUpperCase();
+    const rawConcurrent = (acc.concurrentStatus || '').toUpperCase().trim();
     const isManuallyDisabled = Boolean(acc.isDisabled || (acc as any).disabled === true || acc.status === 'disabled');
 
     // 1. Explicitly Suspended / Rate Limited
@@ -539,12 +539,24 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
       );
     }
 
-    // 3. Activated (active running in pool)
-    if (rawConcurrent === 'ACTIVATED' || (!rawConcurrent && acc.status === 'active')) {
+    // 3. Activated / Idle / Busy / Active (running in pool)
+    if (
+      rawConcurrent === 'ACTIVATED' ||
+      rawConcurrent === 'IDLE' ||
+      rawConcurrent === 'ACTIVE' ||
+      rawConcurrent === 'BUSY' ||
+      (!rawConcurrent && acc.status === 'active')
+    ) {
+      const label = rawConcurrent === 'IDLE'
+        ? t('accounts.statusIdle', '就绪')
+        : rawConcurrent === 'BUSY'
+        ? t('accounts.statusBusy', '满载')
+        : t('accounts.statusActivated', '已激活');
+
       return (
         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-[0_0_8px_rgba(16,185,129,0.15)] flex items-center space-x-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse" />
-          <span>{t('accounts.statusActivated')}</span>
+          <span>{label}</span>
         </span>
       );
     }
@@ -569,7 +581,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
       );
     }
 
-    // 6. Inactive
+    // 6. Inactive / Unknown
     return (
       <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-slate-800/40 text-slate-400 border border-slate-700/50 flex items-center space-x-1.5">
         <span className="w-1.5 h-1.5 rounded-full bg-slate-600 inline-block" />
@@ -849,7 +861,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                                 <button
                                   onClick={() => handleCopyAccountName(acc.index, acc.name)}
                                   className="text-slate-500 hover:text-slate-300 transition-colors"
-                                  title="Copy Account Email/Name"
+                                  title={t('accounts.copyAccountName', '复制账号邮箱/名称')}
                                 >
                                   {copiedKeyIndex === acc.index ? (
                                     <Check className="w-3 h-3 text-emerald-400" />
@@ -1067,7 +1079,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
           <div className="backdrop-blur-xl bg-[#151824]/95 border border-white/[0.15] shadow-2xl rounded-2xl px-5 py-3 flex items-center space-x-4">
             <div className="flex items-center space-x-2 text-xs font-semibold text-white pr-2 border-r border-white/[0.1]">
               <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
-              <span>{selectedIndices.length} accounts selected</span>
+              <span>{t('accounts.batchSelected', `${selectedIndices.length} accounts selected`).replace('{count}', String(selectedIndices.length))}</span>
             </div>
 
             {/* Batch Enable */}
@@ -1077,7 +1089,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
               className="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all active:scale-95"
             >
               <Power className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Enable</span>
+              <span>{t('accounts.batchEnable', 'Enable')}</span>
             </button>
 
             {/* Batch Disable */}
@@ -1087,7 +1099,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
               className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all active:scale-95"
             >
               <Power className="w-3.5 h-3.5 text-slate-400" />
-              <span>Disable</span>
+              <span>{t('accounts.batchDisable', 'Disable')}</span>
             </button>
 
             {/* Batch Download */}
@@ -1097,7 +1109,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
               className="px-3 py-1.5 bg-[#1C1F2E] hover:bg-white/[0.1] text-slate-200 border border-white/[0.1] rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all active:scale-95"
             >
               <Download className="w-3.5 h-3.5 text-slate-400" />
-              <span>Download ZIP</span>
+              <span>{t('accounts.batchDownload')}</span>
             </button>
 
             {/* Batch Delete */}
@@ -1107,14 +1119,14 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
               className="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all shadow-[0_0_12px_rgba(244,63,94,0.3)] active:scale-95"
             >
               <Trash2 className="w-3.5 h-3.5 text-white" />
-              <span>Delete</span>
+              <span>{t('accounts.batchDelete')}</span>
             </button>
 
             {/* Clear Selection */}
             <button
               onClick={() => setSelectedIndices([])}
               className="p-1.5 text-slate-400 hover:text-white rounded-lg transition-colors"
-              title="Clear selection"
+              title={t('accounts.clearSelection', 'Clear selection')}
             >
               <X className="w-4 h-4" />
             </button>

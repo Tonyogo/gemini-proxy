@@ -108,12 +108,58 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
     setDetailLoading(true);
     const headers: Record<string, string> = adminKey ? { 'x-admin-key': adminKey } : {};
     fetch(`/api/admin/logs/${log.date}/${log.hour}/${log.filename}`, { headers })
-      .then(r => r.json())
+      .then(async r => {
+        if (!r.ok) {
+          // If detailed transaction JSON was not found, synthesize a fallback payload from log metadata
+          return {
+            timestamp: log.timestamp || new Date().toISOString(),
+            status: log.status || 200,
+            duration: log.duration,
+            path: log.reqPath || '/v1/messages',
+            model: log.model,
+            is_stream: log.isStream,
+            client_req: {
+              info: "Detailed transaction body file not found on disk. Showing indexed metadata.",
+              path: log.reqPath || '/v1/messages',
+              model: log.model || 'unknown',
+              stream: Boolean(log.isStream)
+            },
+            gem_req: {
+              model: log.model,
+              upstreamStatus: log.status
+            },
+            claude_res: {
+              status: log.status,
+              duration: log.duration
+            },
+            gem_res: null
+          };
+        }
+        return r.json();
+      })
       .then(data => {
         detailCacheRef.current.set(log.path, data);
         setSelectedLog(data);
       })
-      .catch(() => setSelectedLog(null))
+      .catch(() => {
+        const fallback = {
+          timestamp: log.timestamp || new Date().toISOString(),
+          status: log.status || 200,
+          duration: log.duration,
+          path: log.reqPath || '/v1/messages',
+          model: log.model,
+          is_stream: log.isStream,
+          client_req: {
+            path: log.reqPath || '/v1/messages',
+            model: log.model || 'unknown',
+            stream: Boolean(log.isStream)
+          },
+          gem_req: null,
+          claude_res: null,
+          gem_res: null
+        };
+        setSelectedLog(fallback);
+      })
       .finally(() => setDetailLoading(false));
   };
 

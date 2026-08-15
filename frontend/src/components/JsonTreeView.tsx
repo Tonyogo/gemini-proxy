@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { ChevronRight, ChevronDown, Copy, Check, ChevronsUpDown } from 'lucide-react';
+import { useTranslation } from '../i18n/LanguageContext';
 
 interface JsonNodeProps {
   name?: string;
@@ -242,6 +243,7 @@ export default function JsonTreeView({
   data: any;
   initialExpandedDepth?: number;
 }) {
+  const { t } = useTranslation();
   // Compute initial paths based on initialExpandedDepth
   const defaultExpanded = useMemo(() => {
     const paths = collectPaths(data, initialExpandedDepth);
@@ -297,7 +299,7 @@ export default function JsonTreeView({
       <div className="flex items-center justify-between px-3 py-1.5 bg-slate-900/80 border-b border-slate-800/80 select-none text-[11px]">
         <div className="flex items-center space-x-1.5 text-slate-400">
           <ChevronsUpDown className="w-3.5 h-3.5 text-indigo-400" />
-          <span className="font-mono text-[10px] text-slate-300 font-semibold">JSON Inspector</span>
+          <span className="font-mono text-[10px] text-slate-300 font-semibold">{t('logs.jsonInspector', 'JSON 检查器')}</span>
         </div>
         <div className="flex items-center space-x-1">
           <button
@@ -305,14 +307,14 @@ export default function JsonTreeView({
             className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/50 text-[10px] transition-colors"
             title="Expand all nodes"
           >
-            Expand All
+            {t('logs.expandAll', '全部展开')}
           </button>
           <button
             onClick={handleCollapseAll}
             className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/50 text-[10px] transition-colors"
             title="Collapse all nodes"
           >
-            Collapse All
+            {t('logs.collapseAll', '全部折叠')}
           </button>
           <button
             onClick={handleCopyAll}
@@ -322,12 +324,12 @@ export default function JsonTreeView({
             {copiedAll ? (
               <>
                 <Check className="w-2.5 h-2.5 text-emerald-400" />
-                <span className="text-emerald-400">Copied</span>
+                <span className="text-emerald-400">{t('logs.copied', '已复制')}</span>
               </>
             ) : (
               <>
                 <Copy className="w-2.5 h-2.5" />
-                <span>Copy JSON</span>
+                <span>{t('logs.copy', '复制 JSON')}</span>
               </>
             )}
           </button>
