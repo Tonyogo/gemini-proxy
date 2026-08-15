@@ -154,23 +154,23 @@ export default function ConcurrentTestModal({
   const progressPercent = totalRequests > 0 ? Math.round((completedCount / totalRequests) * 100) : 0;
 
   return (
-    <div className="backdrop-blur-xl bg-black/60 fixed inset-0 flex items-center justify-center z-50 p-4 animate-in fade-in duration-200 font-sans">
+    <div className="backdrop-blur-xl bg-black/60 fixed inset-0 flex items-center justify-center z-50 p-2 sm:p-4 animate-in fade-in duration-200 font-sans">
       <div className="bg-[#0F1118] border border-white/[0.1] rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header with benchmark title and warning badge */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.08] bg-[#121520]">
-          <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-purple-600/30 to-pink-600/30 border border-purple-500/30 flex items-center justify-center text-purple-400 font-bold shadow-inner">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-white/[0.08] bg-[#121520]">
+          <div className="flex items-center space-x-3 min-w-0">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-purple-600/30 to-pink-600/30 border border-purple-500/30 flex items-center justify-center text-purple-400 font-bold shadow-inner shrink-0">
               <Zap className="w-4 h-4 text-purple-400" />
             </div>
-            <div>
-              <div className="flex items-center space-x-2">
-                <h3 className="text-sm font-bold text-white">{t('concurrentTest.title')}</h3>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 flex items-center space-x-1">
+            <div className="min-w-0">
+              <div className="flex items-center space-x-2 truncate">
+                <h3 className="text-sm font-bold text-white truncate">{t('concurrentTest.title')}</h3>
+                <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 items-center space-x-1 shrink-0">
                   <AlertTriangle className="w-3 h-3 text-amber-400" />
                   <span>Pressure Benchmark</span>
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[10px] sm:text-[11px] text-slate-400 truncate">
                 {t('concurrentTest.sub').replace('{method}', targetMethod).replace('{url}', targetUrl)}
               </p>
             </div>
@@ -183,7 +183,7 @@ export default function ConcurrentTestModal({
           </button>
         </div>
 
-        <div className="p-6 overflow-y-auto space-y-5 flex-1">
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-5 flex-1">
           {/* Configuration Controls */}
           <div className="bg-[#121520] p-5 rounded-2xl border border-white/[0.06] space-y-4">
             <div className="flex items-center space-x-2 text-xs font-bold text-purple-400 uppercase tracking-wider">

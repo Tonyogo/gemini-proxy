@@ -440,13 +440,14 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
               {t('dashboard.noData')}
             </div>
           ) : (
-            <div className="relative flex-1">
-              <svg
-                viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-                className="w-full h-full overflow-visible"
-                onMouseMove={handleMouseMove}
-                onMouseLeave={handleMouseLeave}
-              >
+            <div className="relative flex-1 overflow-x-auto overflow-y-hidden">
+              <div className="min-w-[480px] sm:min-w-full h-full relative">
+                <svg
+                  viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+                  className="w-full h-full overflow-visible"
+                  onMouseMove={handleMouseMove}
+                  onMouseLeave={handleMouseLeave}
+                >
                 <defs>
                   <linearGradient id="volumeAreaGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#6366F1" stopOpacity="0.25" />
@@ -574,8 +575,9 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                 </div>
               )}
             </div>
-          )}
-        </div>
+          </div>
+        )}
+      </div>
 
         {/* Chart 2: Average Latency Trend */}
         <div className="bg-[#0F1118]/90 border border-white/[0.08] hover:border-white/[0.12] rounded-xl p-5 shadow-lg relative flex flex-col h-[320px] transition-colors group">
@@ -610,13 +612,14 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
               {t('dashboard.noData')}
             </div>
           ) : (
-            <div className="relative flex-1">
-              <svg
-                viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-                className="w-full h-full overflow-visible"
-                onMouseMove={handleMouseMove}
-                onMouseLeave={handleMouseLeave}
-              >
+            <div className="relative flex-1 overflow-x-auto overflow-y-hidden">
+              <div className="min-w-[480px] sm:min-w-full h-full relative">
+                <svg
+                  viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+                  className="w-full h-full overflow-visible"
+                  onMouseMove={handleMouseMove}
+                  onMouseLeave={handleMouseLeave}
+                >
                 {/* Gridlines */}
                 {renderGridLines(latencyLimit, v => `${v}ms`)}
 
@@ -767,10 +770,11 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                 </div>
               )}
             </div>
-          )}
-        </div>
+          </div>
+        )}
+      </div>
 
-        {/* Chart 3: Success vs Error Distribution */}
+      {/* Chart 3: Success vs Error Distribution */}
         <div className="bg-[#0F1118]/90 border border-white/[0.08] hover:border-white/[0.12] rounded-xl p-5 shadow-lg relative flex flex-col h-[320px] transition-colors group">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-xs font-semibold text-slate-200 tracking-wider uppercase flex items-center space-x-2">
@@ -789,13 +793,14 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
               {t('dashboard.noData')}
             </div>
           ) : (
-            <div className="relative flex-1">
-              <svg
-                viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-                className="w-full h-full overflow-visible"
-                onMouseMove={handleMouseMove}
-                onMouseLeave={handleMouseLeave}
-              >
+            <div className="relative flex-1 overflow-x-auto overflow-y-hidden">
+              <div className="min-w-[480px] sm:min-w-full h-full relative">
+                <svg
+                  viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+                  className="w-full h-full overflow-visible"
+                  onMouseMove={handleMouseMove}
+                  onMouseLeave={handleMouseLeave}
+                >
                 {/* Gridlines */}
                 {renderGridLines(stackedLimit)}
 
@@ -920,10 +925,11 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                 </div>
               )}
             </div>
-          )}
-        </div>
+          </div>
+        )}
+      </div>
 
-        {/* Chart 4: Model Distribution Trend */}
+      {/* Chart 4: Model Distribution Trend */}
         <div className="bg-[#0F1118]/90 border border-white/[0.08] hover:border-white/[0.12] rounded-xl p-5 shadow-lg relative flex flex-col h-[320px] transition-colors group">
           <div className="mb-2">
             <div className="flex items-center justify-between mb-2">
@@ -956,13 +962,14 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
               {t('dashboard.noData')}
             </div>
           ) : (
-            <div className="relative flex-1">
-              <svg
-                viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-                className="w-full h-full overflow-visible"
-                onMouseMove={handleMouseMove}
-                onMouseLeave={handleMouseLeave}
-              >
+            <div className="relative flex-1 overflow-x-auto overflow-y-hidden">
+              <div className="min-w-[480px] sm:min-w-full h-full relative">
+                <svg
+                  viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+                  className="w-full h-full overflow-visible"
+                  onMouseMove={handleMouseMove}
+                  onMouseLeave={handleMouseLeave}
+                >
                 {/* Gridlines */}
                 {renderGridLines(modelLimit)}
 
@@ -1098,11 +1105,12 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                 </div>
               )}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
+    </div>
 
-      {/* Model Performance & System Matrix */}
+    {/* Model Performance & System Matrix */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Matrix 1: Model Distribution & Performance Breakdown */}
         <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl p-5 shadow-lg relative flex flex-col">

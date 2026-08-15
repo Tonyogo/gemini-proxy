@@ -16,7 +16,9 @@ import {
   KeyRound,
   ChevronRight,
   Sparkles,
-  Zap
+  Zap,
+  Menu,
+  X
 } from 'lucide-react';
 import DashboardView from './components/DashboardView';
 import AccountsView from './components/AccountsView';
@@ -52,10 +54,28 @@ export default function App() {
   const [loading, setLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
-  // Sidebar Collapse State
+  // Sidebar Collapse State (Desktop) & Mobile Drawer State
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
     return localStorage.getItem('sidebar_collapsed') === 'true';
   });
+  const [isMobileOpen, setIsMobileOpen] = useState<boolean>(false);
+
+  // Close mobile drawer on route/tab change
+  const handleTabChange = (tabId: TabType) => {
+    setActiveTab(tabId);
+    setIsMobileOpen(false);
+  };
+
+  // Close mobile drawer on window resize to desktop
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        setIsMobileOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Modal State
   const [isConfigModalOpen, setIsConfigModalOpen] = useState<boolean>(false);
@@ -262,10 +282,22 @@ export default function App() {
 
   return (
     <div className="flex min-h-screen bg-[#090A0F] text-slate-100 font-sans selection:bg-indigo-500 selection:text-white antialiased">
-      {/* Collapsible Sidebar */}
+      {/* Mobile Backdrop Overlay */}
+      {isMobileOpen && (
+        <div
+          onClick={() => setIsMobileOpen(false)}
+          className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm md:hidden animate-in fade-in duration-200"
+        />
+      )}
+
+      {/* Collapsible Sidebar (Desktop fixed + Mobile Slide-out Drawer) */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-40 flex flex-col bg-[#0C0E14] border-r border-white/[0.06] transition-all duration-300 ease-in-out ${
-          isSidebarCollapsed ? 'w-16' : 'w-60'
+        className={`fixed top-0 bottom-0 left-0 z-50 flex flex-col bg-[#0C0E14] border-r border-white/[0.06] transition-all duration-300 ease-in-out ${
+          // Mobile state: slide in from left
+          isMobileOpen ? 'translate-x-0 w-64 shadow-2xl' : '-translate-x-full md:translate-x-0'
+        } ${
+          // Desktop state width
+          isSidebarCollapsed ? 'md:w-16' : 'md:w-60'
         }`}
       >
         {/* Brand Logo Header */}
@@ -274,7 +306,7 @@ export default function App() {
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500/20 via-purple-500/20 to-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold text-xs shrink-0 shadow-[0_0_12px_rgba(99,102,241,0.2)]">
               <Zap className="w-4 h-4 text-indigo-400" />
             </div>
-            {!isSidebarCollapsed && (
+            {(!isSidebarCollapsed || isMobileOpen) && (
               <div className="flex items-center space-x-2 min-w-0 overflow-hidden">
                 <span className="font-semibold text-sm text-slate-100 tracking-tight truncate">
                   Gemini Proxy
@@ -285,6 +317,14 @@ export default function App() {
               </div>
             )}
           </div>
+
+          {/* Close button inside mobile drawer */}
+          <button
+            onClick={() => setIsMobileOpen(false)}
+            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.05] md:hidden"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
         {/* Navigation Items */}
@@ -297,10 +337,10 @@ export default function App() {
             return (
               <button
                 key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                title={isSidebarCollapsed ? `${title} (${item.shortcut})` : undefined}
+                onClick={() => handleTabChange(item.id)}
+                title={isSidebarCollapsed && !isMobileOpen ? `${title} (${item.shortcut})` : undefined}
                 className={`relative w-full flex items-center rounded-xl text-xs font-medium transition-all group ${
-                  isSidebarCollapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2.5 space-x-3'
+                  isSidebarCollapsed && !isMobileOpen ? 'justify-center px-0 py-2.5' : 'px-3 py-2.5 space-x-3'
                 } ${
                   isActive
                     ? 'bg-gradient-to-r from-indigo-500/15 via-purple-500/10 to-transparent text-white border border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.08)]'
@@ -318,7 +358,7 @@ export default function App() {
                   }`}
                 />
 
-                {!isSidebarCollapsed && (
+                {(!isSidebarCollapsed || isMobileOpen) && (
                   <div className="flex items-center justify-between flex-1 min-w-0">
                     <span className="truncate">{title}</span>
                     <kbd className={`text-[10px] font-mono px-1.5 py-0.5 rounded border transition-colors ${
@@ -340,7 +380,7 @@ export default function App() {
           {/* Live Connection Status */}
           <div
             className={`flex items-center px-3 py-2 rounded-xl text-xs text-slate-400 transition-colors ${
-              isSidebarCollapsed ? 'justify-center px-0' : 'space-x-2.5'
+              isSidebarCollapsed && !isMobileOpen ? 'justify-center px-0' : 'space-x-2.5'
             }`}
             title={lang === 'zh' ? '系统运行正常' : 'System Online'}
           >
@@ -348,7 +388,7 @@ export default function App() {
               <span className="w-2 h-2 rounded-full bg-emerald-400" />
               <span className="absolute w-2 h-2 rounded-full bg-emerald-400 animate-ping opacity-75" />
             </div>
-            {!isSidebarCollapsed && (
+            {(!isSidebarCollapsed || isMobileOpen) && (
               <span className="text-[11px] font-mono text-emerald-400 truncate">
                 {lang === 'zh' ? '服务运行中' : 'Proxy Active'}
               </span>
@@ -357,26 +397,29 @@ export default function App() {
 
           {/* Settings Button */}
           <button
-            onClick={() => setIsConfigModalOpen(true)}
-            title={isSidebarCollapsed ? t('nav.configTitle') : undefined}
+            onClick={() => {
+              setIsConfigModalOpen(true);
+              setIsMobileOpen(false);
+            }}
+            title={isSidebarCollapsed && !isMobileOpen ? t('nav.configTitle') : undefined}
             className={`w-full flex items-center rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-white/[0.04] transition-colors ${
-              isSidebarCollapsed ? 'justify-center p-2.5' : 'px-3 py-2 space-x-2.5'
+              isSidebarCollapsed && !isMobileOpen ? 'justify-center p-2.5' : 'px-3 py-2 space-x-2.5'
             }`}
           >
             <Settings className="w-4 h-4 shrink-0" />
-            {!isSidebarCollapsed && <span className="truncate">{t('nav.configTitle')}</span>}
+            {(!isSidebarCollapsed || isMobileOpen) && <span className="truncate">{t('nav.configTitle')}</span>}
           </button>
 
           {/* Language Switcher */}
           <button
             onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
-            title={isSidebarCollapsed ? (lang === 'zh' ? 'Switch to English' : '切换至中文') : undefined}
+            title={isSidebarCollapsed && !isMobileOpen ? (lang === 'zh' ? 'Switch to English' : '切换至中文') : undefined}
             className={`w-full flex items-center rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-white/[0.04] transition-colors ${
-              isSidebarCollapsed ? 'justify-center p-2.5' : 'px-3 py-2 space-x-2.5'
+              isSidebarCollapsed && !isMobileOpen ? 'justify-center p-2.5' : 'px-3 py-2 space-x-2.5'
             }`}
           >
             <Globe className="w-4 h-4 shrink-0" />
-            {!isSidebarCollapsed && (
+            {(!isSidebarCollapsed || isMobileOpen) && (
               <span className="truncate">{lang === 'zh' ? 'English (EN)' : '中文 (ZH)'}</span>
             )}
           </button>
@@ -384,13 +427,13 @@ export default function App() {
           {/* Logout Button */}
           <button
             onClick={handleLogout}
-            title={isSidebarCollapsed ? t('nav.logout') : undefined}
+            title={isSidebarCollapsed && !isMobileOpen ? t('nav.logout') : undefined}
             className={`w-full flex items-center rounded-xl text-xs font-medium text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors ${
-              isSidebarCollapsed ? 'justify-center p-2.5' : 'px-3 py-2 space-x-2.5'
+              isSidebarCollapsed && !isMobileOpen ? 'justify-center p-2.5' : 'px-3 py-2 space-x-2.5'
             }`}
           >
             <LogOut className="w-4 h-4 shrink-0" />
-            {!isSidebarCollapsed && <span className="truncate">{t('nav.logout')}</span>}
+            {(!isSidebarCollapsed || isMobileOpen) && <span className="truncate">{t('nav.logout')}</span>}
           </button>
         </div>
       </aside>
@@ -398,17 +441,27 @@ export default function App() {
       {/* Main Content Area */}
       <div
         className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out ${
-          isSidebarCollapsed ? 'pl-16' : 'pl-60'
-        }`}
+          isSidebarCollapsed ? 'md:pl-16' : 'md:pl-60'
+        } pl-0`}
       >
         {/* Minimal Glass Top Bar */}
-        <header className="h-14 backdrop-blur-md bg-[#090A0F]/80 border-b border-white/[0.06] px-6 flex items-center justify-between sticky top-0 z-30">
+        <header className="h-14 backdrop-blur-md bg-[#090A0F]/80 border-b border-white/[0.06] px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30">
           {/* Left Breadcrumbs & Sidebar Toggle */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            {/* Mobile Hamburger Menu Toggle */}
+            <button
+              onClick={() => setIsMobileOpen(true)}
+              title="Open Navigation"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-white/[0.05] transition-colors border border-transparent hover:border-white/[0.06] md:hidden"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+
+            {/* Desktop Sidebar Toggle */}
             <button
               onClick={toggleSidebar}
               title={isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-white/[0.05] transition-colors border border-transparent hover:border-white/[0.06]"
+              className="hidden md:inline-flex p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-white/[0.05] transition-colors border border-transparent hover:border-white/[0.06]"
             >
               {isSidebarCollapsed ? (
                 <PanelLeftOpen className="w-4 h-4" />
@@ -419,10 +472,10 @@ export default function App() {
 
             <div className="h-4 w-px bg-white/[0.08]" />
 
-            <div className="flex items-center space-x-2 text-xs font-medium">
-              <span className="text-slate-500">Gemini Proxy</span>
-              <ChevronRight className="w-3.5 h-3.5 text-slate-600" />
-              <span className="text-slate-200 font-semibold">{getActiveTabTitle()}</span>
+            <div className="flex items-center space-x-1.5 sm:space-x-2 text-xs font-medium">
+              <span className="hidden sm:inline text-slate-500">Gemini Proxy</span>
+              <ChevronRight className="hidden sm:inline w-3.5 h-3.5 text-slate-600" />
+              <span className="text-slate-200 font-semibold truncate max-w-[140px] sm:max-w-none">{getActiveTabTitle()}</span>
             </div>
           </div>
 
@@ -437,7 +490,7 @@ export default function App() {
               <span className="hidden sm:inline text-[11px]">{lang === 'zh' ? '刷新' : 'Refresh'}</span>
             </button>
 
-            <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-mono">
+            <div className="flex items-center space-x-1.5 px-2 sm:px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-mono">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               <span className="hidden sm:inline">{lang === 'zh' ? '在线' : 'Online'}</span>
             </div>
@@ -445,7 +498,7 @@ export default function App() {
         </header>
 
         {/* Main View Workspace */}
-        <main className="flex-1 p-6">
+        <main className="flex-1 p-3 sm:p-6 overflow-x-hidden">
           {activeTab === 'dashboard' && (
             <DashboardView
               key={refreshTrigger}

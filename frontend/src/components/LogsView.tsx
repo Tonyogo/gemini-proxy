@@ -219,10 +219,10 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
   };
 
   return (
-    <div className="flex gap-4 max-w-7xl mx-auto items-start h-[calc(100vh-6.5rem)] min-h-[720px]">
+    <div className="flex flex-col md:flex-row gap-4 max-w-7xl mx-auto items-stretch md:items-start min-h-[600px] md:h-[calc(100vh-6.5rem)]">
       {/* Left Column (Request Master List) */}
       {!sidebarCollapsed && (
-        <div className="w-88 shrink-0 bg-slate-900/90 border border-slate-800/90 rounded-2xl p-3.5 shadow-xl flex flex-col h-full transition-all">
+        <div className="w-full md:w-88 shrink-0 bg-slate-900/90 border border-slate-800/90 rounded-2xl p-3.5 shadow-xl flex flex-col max-h-[480px] md:max-h-none md:h-full transition-all">
           {/* Header Bar */}
           <div className="flex items-center justify-between pb-3 mb-2.5 border-b border-slate-800/80">
             <div className="flex items-center space-x-2">

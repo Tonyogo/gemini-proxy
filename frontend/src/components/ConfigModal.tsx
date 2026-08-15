@@ -245,19 +245,19 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
   ];
 
   return (
-    <div className="backdrop-blur-xl bg-black/60 fixed inset-0 flex items-center justify-center z-50 p-4 animate-in fade-in duration-200 font-sans">
-      <div className="bg-[#0F1118] border border-white/[0.1] rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="backdrop-blur-xl bg-black/60 fixed inset-0 flex items-center justify-center z-50 p-2 sm:p-4 animate-in fade-in duration-200 font-sans">
+      <div className="bg-[#0F1118] border border-white/[0.1] rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.08] bg-[#121520]">
-          <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600/30 to-purple-600/30 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold shadow-inner">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-white/[0.08] bg-[#121520]">
+          <div className="flex items-center space-x-3 min-w-0">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-indigo-600/30 to-purple-600/30 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold shadow-inner shrink-0">
               <Settings className="w-4 h-4 text-indigo-400" />
             </div>
-            <div>
-              <h2 className="text-sm font-bold text-white flex items-center space-x-2">
+            <div className="min-w-0">
+              <h2 className="text-sm font-bold text-white flex items-center space-x-2 truncate">
                 <span>{t('config.modalTitle')}</span>
               </h2>
-              <p className="text-[11px] text-slate-400">{t('config.modalSub')}</p>
+              <p className="text-[10px] sm:text-[11px] text-slate-400 truncate">{t('config.modalSub')}</p>
             </div>
           </div>
           <button
@@ -269,7 +269,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
         </div>
 
         {/* Linear Styled Tab Pills */}
-        <div className="flex items-center space-x-1.5 px-6 py-2.5 border-b border-white/[0.06] bg-[#0A0C12] overflow-x-auto">
+        <div className="flex items-center space-x-1.5 px-3 sm:px-6 py-2.5 border-b border-white/[0.06] bg-[#0A0C12] overflow-x-auto">
           {TABS.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;

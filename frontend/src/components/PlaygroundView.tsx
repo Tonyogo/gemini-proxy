@@ -402,41 +402,43 @@ export default function PlaygroundView() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-4 h-[calc(100vh-6.5rem)] min-h-[700px] flex flex-col font-sans">
+    <div className="max-w-7xl mx-auto space-y-4 flex flex-col font-sans min-h-[600px] md:h-[calc(100vh-6.5rem)]">
       {/* Top Controls Header Workbench */}
       <div className="bg-[#0F1118]/90 backdrop-blur-md border border-white/[0.08] p-3.5 rounded-2xl shadow-xl flex flex-wrap items-center justify-between gap-3">
         {/* Left Side: Brand badge & Key input */}
-        <div className="flex items-center space-x-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600/30 to-purple-600/30 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold shadow-inner">
-            <Terminal className="w-4 h-4 text-indigo-400" />
-          </div>
-          <div>
-            <div className="flex items-center space-x-2">
-              <h2 className="text-xs font-bold text-white tracking-wide uppercase">{t('playground.title')}</h2>
-              <span className="px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
-                v1.0
-              </span>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center space-x-3">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600/30 to-purple-600/30 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold shadow-inner">
+              <Terminal className="w-4 h-4 text-indigo-400" />
             </div>
-            <p className="text-[10px] text-slate-400">{t('playground.subtitle')}</p>
+            <div>
+              <div className="flex items-center space-x-2">
+                <h2 className="text-xs font-bold text-white tracking-wide uppercase">{t('playground.title')}</h2>
+                <span className="px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
+                  v1.0
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-400">{t('playground.subtitle')}</p>
+            </div>
           </div>
 
           <div className="h-6 w-[1px] bg-white/[0.08] mx-1 hidden sm:block" />
 
           {/* Gemini API Key input with icon */}
-          <div className="relative flex items-center">
+          <div className="relative flex items-center w-full sm:w-auto">
             <Key className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 pointer-events-none" />
             <input
               type="password"
               value={apiKey}
               onChange={(e) => handleKeyChange(e.target.value)}
               placeholder={t('playground.apiKeyPlaceholder')}
-              className="bg-[#151824] border border-white/[0.08] rounded-xl pl-8 pr-2.5 py-1.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500/80 font-mono w-48 transition-all"
+              className="bg-[#151824] border border-white/[0.08] rounded-xl pl-8 pr-2.5 py-1.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500/80 font-mono w-full sm:w-48 transition-all"
             />
           </div>
         </div>
 
         {/* Right Side: Workbench Selectors & Actions */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
           {/* Model Selector */}
           <div className="flex items-center space-x-1.5 bg-[#151824] border border-white/[0.08] rounded-xl px-2.5 py-1">
             <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
