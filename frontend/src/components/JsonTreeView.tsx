@@ -21,36 +21,9 @@ export function JsonNode({
   expandedKeys,
   toggleKey,
 }: JsonNodeProps) {
-  const [copiedValue, setCopiedValue] = useState(false);
-  const [copiedPath, setCopiedPath] = useState(false);
-
   const isObject = value !== null && typeof value === 'object';
   const isArray = Array.isArray(value);
   const isExpanded = expandedKeys.has(path);
-
-  const handleCopyValue = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    try {
-      const textToCopy = typeof value === 'object' && value !== null ? JSON.stringify(value, null, 2) : String(value);
-      navigator.clipboard.writeText(textToCopy);
-      setCopiedValue(true);
-      setTimeout(() => setCopiedValue(false), 1500);
-    } catch {
-      // fallback
-    }
-  };
-
-  const handleCopyPath = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!path) return;
-    try {
-      navigator.clipboard.writeText(path);
-      setCopiedPath(true);
-      setTimeout(() => setCopiedPath(false), 1500);
-    } catch {
-      // fallback
-    }
-  };
 
   if (!isObject) {
     let valueColor = 'text-emerald-300'; // string default
@@ -69,7 +42,7 @@ export function JsonNode({
     }
 
     return (
-      <div className="font-mono text-[11px] leading-relaxed flex items-center justify-between group/line hover:bg-slate-800/50 px-1.5 py-0.5 rounded transition-colors">
+      <div className="font-mono text-[11px] leading-relaxed flex items-center justify-between hover:bg-slate-800/50 px-1.5 py-0.5 rounded transition-colors">
         <div className="flex items-start space-x-1.5 min-w-0 pr-2">
           {name && (
             <span className="text-indigo-300 font-semibold shrink-0 select-none">
@@ -78,43 +51,6 @@ export function JsonNode({
           )}
           <span className={`break-all ${valueColor}`}>{displayValue}</span>
           {!isLast && <span className="text-slate-600 select-none">,</span>}
-        </div>
-
-        {/* Hover Quick Action Buttons */}
-        <div className="opacity-0 group-hover/line:opacity-100 transition-opacity flex items-center space-x-1 shrink-0 select-none pl-2">
-          {path && (
-            <button
-              onClick={handleCopyPath}
-              title={`Copy path: ${path}`}
-              className="text-[9px] px-1.5 py-0.5 rounded bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-slate-200 border border-slate-700/60 flex items-center space-x-1 transition-colors"
-            >
-              {copiedPath ? (
-                <>
-                  <Check className="w-2.5 h-2.5 text-emerald-400" />
-                  <span className="text-emerald-400">Path</span>
-                </>
-              ) : (
-                <span>Path</span>
-              )}
-            </button>
-          )}
-          <button
-            onClick={handleCopyValue}
-            title="Copy value"
-            className="text-[9px] px-1.5 py-0.5 rounded bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-slate-200 border border-slate-700/60 flex items-center space-x-1 transition-colors"
-          >
-            {copiedValue ? (
-              <>
-                <Check className="w-2.5 h-2.5 text-emerald-400" />
-                <span className="text-emerald-400">Copied</span>
-              </>
-            ) : (
-              <>
-                <Copy className="w-2.5 h-2.5" />
-                <span>Value</span>
-              </>
-            )}
-          </button>
         </div>
       </div>
     );
@@ -129,14 +65,14 @@ export function JsonNode({
     <div className="font-mono text-[11px] leading-relaxed">
       <div
         onClick={() => toggleKey(path)}
-        className="flex items-center justify-between cursor-pointer hover:bg-slate-800/50 px-1.5 py-0.5 rounded select-none group/line transition-colors"
+        className="flex items-center justify-between cursor-pointer hover:bg-slate-800/50 px-1.5 py-0.5 rounded select-none transition-colors"
       >
         <div className="flex items-center space-x-1.5 min-w-0 pr-2">
-          <span className="text-slate-500 group-hover/line:text-slate-300 w-3.5 h-3.5 flex items-center justify-center shrink-0 transition-transform">
+          <span className="text-slate-500 hover:text-slate-300 w-3.5 h-3.5 flex items-center justify-center shrink-0 transition-transform">
             {isExpanded ? (
               <ChevronDown className="w-3.5 h-3.5 text-indigo-400/80" />
             ) : (
-              <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover/line:text-slate-300" />
+              <ChevronRight className="w-3.5 h-3.5 text-slate-500 hover:text-slate-300" />
             )}
           </span>
           {name && (
@@ -153,43 +89,6 @@ export function JsonNode({
               {!isLast && <span className="text-slate-600">,</span>}
             </span>
           )}
-        </div>
-
-        {/* Hover Quick Action Buttons */}
-        <div className="opacity-0 group-hover/line:opacity-100 transition-opacity flex items-center space-x-1 shrink-0 select-none pl-2">
-          {path && (
-            <button
-              onClick={handleCopyPath}
-              title={`Copy path: ${path}`}
-              className="text-[9px] px-1.5 py-0.5 rounded bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-slate-200 border border-slate-700/60 flex items-center space-x-1 transition-colors"
-            >
-              {copiedPath ? (
-                <>
-                  <Check className="w-2.5 h-2.5 text-emerald-400" />
-                  <span className="text-emerald-400">Path</span>
-                </>
-              ) : (
-                <span>Path</span>
-              )}
-            </button>
-          )}
-          <button
-            onClick={handleCopyValue}
-            title="Copy JSON object"
-            className="text-[9px] px-1.5 py-0.5 rounded bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-slate-200 border border-slate-700/60 flex items-center space-x-1 transition-colors"
-          >
-            {copiedValue ? (
-              <>
-                <Check className="w-2.5 h-2.5 text-emerald-400" />
-                <span className="text-emerald-400">Copied</span>
-              </>
-            ) : (
-              <>
-                <Copy className="w-2.5 h-2.5" />
-                <span>JSON</span>
-              </>
-            )}
-          </button>
         </div>
       </div>
 
