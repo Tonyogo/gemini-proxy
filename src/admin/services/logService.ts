@@ -3,6 +3,7 @@ import * as path from 'path';
 import config from '../../../config/default';
 import metricsService from './metricsService';
 import { LogIndexRecord } from '../../services/payloadLogger';
+import claudeTranslator from '../../services/claudeTranslator';
 
 export interface LogItem {
   date: string;
@@ -130,7 +131,8 @@ class LogService {
                   fallbackIsStream = true;
                 }
 
-                const modelName = parsed.client_req?.model || parsed.claude_res?.model || null;
+                const rawModel = parsed.claude_res?.model || parsed.client_req?.model || null;
+                const modelName = rawModel ? claudeTranslator.getCleanModelName(rawModel) : null;
                 const transactionId = file.replace(/^transaction_/, '').replace(/\.json$/, '');
 
                 targetRecords.push({

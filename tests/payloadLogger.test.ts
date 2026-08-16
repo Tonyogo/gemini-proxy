@@ -123,6 +123,40 @@ describe('PayloadLogger Service', () => {
     await fs.unlink(customFilePath).catch(() => {});
     await fs.unlink(indexPath).catch(() => {});
   });
+
+  it('records cleanModelName when MODEL_MAPPINGS is configured', async () => {
+    config.modelMappings = {
+      'claude-3-5-sonnet-20241022': 'gemini-2.5-flash'
+    };
+
+    const transactionId = `test_mapped_${Date.now()}`;
+    await payloadLogger.saveTransaction(
+      transactionId,
+      { model: 'claude-3-5-sonnet-20241022', stream: false },
+      { contents: [] },
+      { candidates: [] },
+      { type: 'message', model: 'gemini-2.5-flash' },
+      150,
+      '/v1/messages',
+      200,
+      false
+    );
+
+    const debugDir = (payloadLogger as any)._getTargetDir();
+    const indexPath = path.join(debugDir, '..', 'index.jsonl');
+    expect(existsSync(indexPath)).toBe(true);
+
+    const content = readFileSync(indexPath, 'utf8');
+    const lines = content.trim().split('\n');
+    const record = JSON.parse(lines[lines.length - 1]);
+    expect(record.model).toBe('gemini-2.5-flash');
+
+    // Clean up
+    const customFilePath = path.join(debugDir, `transaction_${transactionId}.json`);
+    await fs.unlink(customFilePath).catch(() => {});
+    await fs.unlink(indexPath).catch(() => {});
+    config.modelMappings = {};
+  });
 });
 
 describe('PayloadLogger Sanitization', () => {
