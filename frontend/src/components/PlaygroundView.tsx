@@ -45,7 +45,7 @@ const PRESETS: Record<PresetKey, any> = {
     stream: true
   },
   toolUse: {
-    model: "gemini-2.5-flash",
+    model: "gemini-flash-latest",
     max_tokens: 1024,
     tools: [
       {
@@ -67,7 +67,7 @@ const PRESETS: Record<PresetKey, any> = {
     stream: false
   },
   vision: {
-    model: "gemini-2.5-flash",
+    model: "gemini-flash-latest",
     max_tokens: 1024,
     messages: [
       {
@@ -91,7 +91,7 @@ const PRESETS: Record<PresetKey, any> = {
     stream: true
   },
   thinkingMode: {
-    model: "gemini-2.5-pro",
+    model: "gemini-pro-latest",
     max_tokens: 2048,
     thinking: {
       type: "enabled",
@@ -448,11 +448,9 @@ export default function PlaygroundView() {
               className="bg-transparent text-xs text-slate-200 focus:outline-none font-mono cursor-pointer"
             >
               <option value="gemini-3.1-flash-lite" className="bg-[#0F1118]">gemini-3.1-flash-lite</option>
-              <option value="gemini-2.5-flash" className="bg-[#0F1118]">gemini-2.5-flash</option>
-              <option value="gemini-2.5-pro" className="bg-[#0F1118]">gemini-2.5-pro</option>
-              <option value="gemini-2.5-flash-thinking" className="bg-[#0F1118]">gemini-2.5-flash-thinking</option>
-              <option value="claude-3-7-sonnet-20250219" className="bg-[#0F1118]">claude-3-7-sonnet</option>
-              <option value="claude-3-5-sonnet-20241022" className="bg-[#0F1118]">claude-3-5-sonnet</option>
+              <option value="gemini-pro-latest" className="bg-[#0F1118]">gemini-pro-latest</option>
+              <option value="gemini-flash-latest" className="bg-[#0F1118]">gemini-flash-latest</option>
+              <option value="gemini-flash-lite-latest" className="bg-[#0F1118]">gemini-flash-lite-latest</option>
             </select>
           </div>
 
