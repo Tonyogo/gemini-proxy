@@ -265,10 +265,10 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
   };
 
   return (
-    <div className="flex flex-col md:flex-row gap-4 max-w-7xl mx-auto items-stretch md:items-start min-h-[700px] md:h-[calc(100vh-6.5rem)]">
+    <div className="flex flex-col md:flex-row gap-4 max-w-7xl mx-auto items-stretch min-h-[700px] md:h-[calc(100vh-6.5rem)]">
       {/* Left Column (Request Master List) */}
       {!sidebarCollapsed && (
-        <div className="w-full md:w-88 shrink-0 bg-slate-900/90 border border-slate-800/90 rounded-2xl p-3.5 shadow-xl flex flex-col h-[460px] md:h-full transition-all">
+        <div className="w-full md:w-80 lg:w-[340px] shrink-0 bg-slate-900/90 border border-slate-800/90 rounded-2xl p-3.5 shadow-xl flex flex-col h-[460px] md:h-full transition-all">
           {/* Header Bar */}
           <div className="flex items-center justify-between pb-3 mb-2.5 border-b border-slate-800/80">
             <div className="flex items-center space-x-2">
