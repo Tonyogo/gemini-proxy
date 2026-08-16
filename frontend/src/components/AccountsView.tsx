@@ -864,7 +864,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                   return (
                     <tr
                       key={acc.index}
-                      className={`hover:bg-[#151824]/80 transition-colors group ${
+                      className={`hover:bg-[#151824]/80 transition-colors ${
                         isCurrent
                           ? 'bg-emerald-950/20'
                           : isChecked
