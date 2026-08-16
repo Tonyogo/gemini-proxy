@@ -171,21 +171,39 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
   const isSystemBusy = Boolean(data?.status?.isSystemBusy);
 
   const totalCount = accounts.length;
+
   const activatedCount = accounts.filter(a => {
-    const cStatus = (a.concurrentStatus || '').toUpperCase();
-    return cStatus === 'ACTIVATED' || (cStatus === '' && !a.isDisabled && a.status === 'active');
+    const isManuallyDisabled = Boolean(a.isDisabled || (a as any).disabled === true || a.status === 'disabled');
+    if (isManuallyDisabled) return false;
+    const cStatus = (a.concurrentStatus || '').toUpperCase().trim();
+    return cStatus === 'ACTIVATED' || (!cStatus && a.status === 'active');
   }).length;
 
   const activatingCount = accounts.filter(a => {
-    const cStatus = (a.concurrentStatus || '').toUpperCase();
-    return cStatus === 'ACTIVATING' || a.isRotation;
+    const isManuallyDisabled = Boolean(a.isDisabled || (a as any).disabled === true || a.status === 'disabled');
+    if (isManuallyDisabled) return false;
+    const cStatus = (a.concurrentStatus || '').toUpperCase().trim();
+    return cStatus === 'ACTIVATING';
   }).length;
 
-  const disabledCount = accounts.filter(a => a.isDisabled || (a as any).disabled === true || a.status === 'disabled').length;
+  const retiredCount = accounts.filter(a => {
+    const isManuallyDisabled = Boolean(a.isDisabled || (a as any).disabled === true || a.status === 'disabled');
+    if (isManuallyDisabled) return false;
+    const cStatus = (a.concurrentStatus || '').toUpperCase().trim();
+    return cStatus === 'RETIRED';
+  }).length;
+
+  const disabledCount = accounts.filter(a => {
+    const isManuallyDisabled = Boolean(a.isDisabled || (a as any).disabled === true || a.status === 'disabled');
+    const cStatus = (a.concurrentStatus || '').toUpperCase().trim();
+    return isManuallyDisabled || cStatus === 'DISABLED';
+  }).length;
 
   const inactiveCount = accounts.filter(a => {
-    const cStatus = (a.concurrentStatus || '').toUpperCase();
-    return cStatus === 'INACTIVE' || cStatus === 'RETIRED';
+    const isManuallyDisabled = Boolean(a.isDisabled || (a as any).disabled === true || a.status === 'disabled');
+    if (isManuallyDisabled) return false;
+    const cStatus = (a.concurrentStatus || '').toUpperCase().trim();
+    return cStatus === 'INACTIVE' || (!cStatus && a.status !== 'active');
   }).length;
 
   const inFlightCount = accounts.reduce((acc, cur) => acc + (cur.inFlight || 0), 0);
@@ -203,18 +221,21 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
 
       // Status filter
       if (statusFilter !== 'ALL') {
-        const cStatus = (acc.concurrentStatus || '').toUpperCase();
+        const cStatus = (acc.concurrentStatus || '').toUpperCase().trim();
         const isManuallyDisabled = Boolean(acc.isDisabled || (acc as any).disabled === true || acc.status === 'disabled');
 
         if (statusFilter === 'ACTIVATED') {
           if (isManuallyDisabled) return false;
           if (cStatus !== 'ACTIVATED' && !(cStatus === '' && acc.status === 'active')) return false;
         } else if (statusFilter === 'ACTIVATING') {
-          if (cStatus !== 'ACTIVATING' && !acc.isRotation) return false;
+          if (isManuallyDisabled || cStatus !== 'ACTIVATING') return false;
+        } else if (statusFilter === 'RETIRED') {
+          if (isManuallyDisabled || cStatus !== 'RETIRED') return false;
         } else if (statusFilter === 'DISABLED') {
           if (!isManuallyDisabled && cStatus !== 'DISABLED') return false;
         } else if (statusFilter === 'INACTIVE') {
-          if (cStatus !== 'INACTIVE' && cStatus !== 'RETIRED') return false;
+          if (isManuallyDisabled) return false;
+          if (cStatus !== 'INACTIVE' && !(cStatus === '' && acc.status !== 'active')) return false;
         } else if (statusFilter === 'ISSUES') {
           if (!acc.isInvalid && !acc.isDuplicate && !acc.isExpired && !acc.isSuspended) return false;
         }
@@ -520,7 +541,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     const isManuallyDisabled = Boolean(acc.isDisabled || (acc as any).disabled === true || acc.status === 'disabled');
 
     // 1. Explicitly Suspended / Rate Limited
-    if (acc.isSuspended || rawConcurrent === 'SUSPENDED') {
+    if (acc.isSuspended) {
       return (
         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center space-x-1.5 shadow-[0_0_8px_rgba(244,63,94,0.1)]">
           <span className="w-1.5 h-1.5 rounded-full bg-rose-400 inline-block" />
@@ -539,53 +560,41 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
       );
     }
 
-    // 3. Activated / Idle / Busy / Active (running in pool)
-    if (
-      rawConcurrent === 'ACTIVATED' ||
-      rawConcurrent === 'IDLE' ||
-      rawConcurrent === 'ACTIVE' ||
-      rawConcurrent === 'BUSY' ||
-      (!rawConcurrent && acc.status === 'active')
-    ) {
-      const label = rawConcurrent === 'IDLE'
-        ? t('accounts.statusIdle', '就绪')
-        : rawConcurrent === 'BUSY'
-        ? t('accounts.statusBusy', '满载')
-        : t('accounts.statusActivated', '已激活');
-
+    // 3. ACTIVATED (已解卡且可用)
+    if (rawConcurrent === 'ACTIVATED' || (!rawConcurrent && acc.status === 'active')) {
       return (
         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-[0_0_8px_rgba(16,185,129,0.15)] flex items-center space-x-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse" />
-          <span>{label}</span>
+          <span>{t('accounts.statusActivated', '已激活')}</span>
         </span>
       );
     }
 
-    // 4. Activating / Rotating
-    if (rawConcurrent === 'ACTIVATING' || acc.isRotation) {
+    // 4. ACTIVATING (正在激活)
+    if (rawConcurrent === 'ACTIVATING') {
       return (
         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center space-x-1.5 shadow-[0_0_8px_rgba(99,102,241,0.15)]">
           <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 inline-block animate-ping" />
-          <span>{acc.isRotation ? t('accounts.statusRotation', '轮换中') : t('accounts.statusActivating')}</span>
+          <span>{t('accounts.statusActivating', '激活中...')}</span>
         </span>
       );
     }
 
-    // 5. Retired (completed quota / cool down)
+    // 5. RETIRED (下线退休，释放 Context)
     if (rawConcurrent === 'RETIRED') {
       return (
         <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center space-x-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
-          <span>{t('accounts.statusRetired')}</span>
+          <span>{t('accounts.statusRetired', '已下线')}</span>
         </span>
       );
     }
 
-    // 6. Inactive / Unknown
+    // 6. INACTIVE (初始 / 未解卡)
     return (
       <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-slate-800/40 text-slate-400 border border-slate-700/50 flex items-center space-x-1.5">
         <span className="w-1.5 h-1.5 rounded-full bg-slate-600 inline-block" />
-        <span>{t('accounts.statusInactive')}</span>
+        <span>{t('accounts.statusInactive', '未激活')}</span>
       </span>
     );
   };
@@ -623,7 +632,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
         </div>
 
         {/* Stats Chips */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
           {/* Total Accounts */}
           <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl px-3.5 py-2 flex items-center space-x-3">
             <div className="p-2 rounded-lg bg-slate-800/60 text-slate-300 border border-white/[0.04]">
@@ -650,7 +659,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
             </div>
           </div>
 
-          {/* Activating / Rotating */}
+          {/* Activating */}
           <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl px-3.5 py-2 flex items-center space-x-3">
             <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
               <Sparkles className="w-3.5 h-3.5" />
@@ -663,16 +672,42 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
             </div>
           </div>
 
-          {/* Inactive / Disabled */}
+          {/* Retired */}
+          <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl px-3.5 py-2 flex items-center space-x-3">
+            <div className="p-2 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
+              <Clock className="w-3.5 h-3.5" />
+            </div>
+            <div>
+              <div className="text-[10px] font-medium text-amber-400 uppercase tracking-wider">
+                {t('accounts.retiredAccounts', '已下线')}
+              </div>
+              <div className="text-base font-bold text-amber-300 font-mono">{retiredCount}</div>
+            </div>
+          </div>
+
+          {/* Inactive */}
           <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl px-3.5 py-2 flex items-center space-x-3">
             <div className="p-2 rounded-lg bg-slate-800/50 text-slate-400 border border-slate-700/40">
               <Power className="w-3.5 h-3.5" />
             </div>
             <div>
               <div className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
+                {t('accounts.inactiveAccounts', '未激活')}
+              </div>
+              <div className="text-base font-bold text-slate-300 font-mono">{inactiveCount}</div>
+            </div>
+          </div>
+
+          {/* Disabled */}
+          <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl px-3.5 py-2 flex items-center space-x-3">
+            <div className="p-2 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20">
+              <AlertCircle className="w-3.5 h-3.5" />
+            </div>
+            <div>
+              <div className="text-[10px] font-medium text-rose-400 uppercase tracking-wider">
                 {t('accounts.disabledAccounts')}
               </div>
-              <div className="text-base font-bold text-slate-400 font-mono">{disabledCount + inactiveCount}</div>
+              <div className="text-base font-bold text-rose-300 font-mono">{disabledCount}</div>
             </div>
           </div>
         </div>
@@ -712,8 +747,9 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
               <option value="ALL">{t('accounts.filterAll', '全部状态')} ({totalCount})</option>
               <option value="ACTIVATED">{t('accounts.filterActivated', '已激活')} ({activatedCount})</option>
               <option value="ACTIVATING">{t('accounts.filterActivating', '激活中')} ({activatingCount})</option>
-              <option value="DISABLED">{t('accounts.filterDisabled', '已禁用')} ({disabledCount})</option>
+              <option value="RETIRED">{t('accounts.filterRetired', '已下线')} ({retiredCount})</option>
               <option value="INACTIVE">{t('accounts.filterInactive', '未激活')} ({inactiveCount})</option>
+              <option value="DISABLED">{t('accounts.filterDisabled', '已禁用')} ({disabledCount})</option>
               <option value="ISSUES">{t('accounts.filterIssues', '凭据异常 / 已过期')}</option>
             </select>
             <ChevronDown className="w-3.5 h-3.5 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
