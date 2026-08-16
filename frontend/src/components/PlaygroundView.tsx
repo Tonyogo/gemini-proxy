@@ -404,7 +404,7 @@ export default function PlaygroundView() {
   return (
     <div className="max-w-7xl mx-auto space-y-4 flex flex-col font-sans min-h-[600px] md:h-[calc(100vh-6.5rem)]">
       {/* Top Controls Header Workbench */}
-      <div className="bg-[#0F1118]/90 backdrop-blur-md border border-white/[0.08] p-3.5 rounded-2xl shadow-xl flex flex-wrap items-center justify-between gap-3">
+      <div className="bg-[#0F1118]/90 backdrop-blur-md border border-white/[0.08] p-3.5 rounded-2xl shadow-xl flex flex-wrap items-center justify-between gap-3 relative z-30">
         {/* Left Side: Brand badge & Key input */}
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center space-x-3">
@@ -520,7 +520,7 @@ export default function PlaygroundView() {
             </button>
 
             {showPresetsDropdown && (
-              <div className="absolute right-0 mt-2 w-48 bg-[#0F1118] border border-white/[0.1] rounded-xl shadow-2xl z-30 py-1 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
+              <div className="absolute right-0 mt-2 w-48 bg-[#0F1118] border border-white/[0.1] rounded-xl shadow-2xl z-50 py-1 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
                 <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-white/[0.06]">
                   Quick Fill Templates
                 </div>
