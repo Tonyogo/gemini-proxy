@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Editor from '@monaco-editor/react';
 import {
   Play,
@@ -23,7 +23,11 @@ import {
   Braces,
   RotateCcw,
   AlignLeft,
-  ChevronDown
+  ChevronDown,
+  MessageSquare,
+  Network,
+  Cpu,
+  FileText
 } from 'lucide-react';
 import JsonTreeView from './JsonTreeView';
 import SseStreamPreview from './SseStreamPreview';
@@ -32,7 +36,7 @@ import { defineGeminiProxyTheme } from '../utils/monacoTheme';
 import { useTranslation } from '../i18n/LanguageContext';
 
 type EndpointOption = 'messages' | 'count_tokens' | 'custom';
-
+type ViewMode = 'message' | 'tree' | 'stream' | 'raw';
 type PresetKey = 'basicChat' | 'toolUse' | 'vision' | 'thinkingMode';
 
 const PRESETS: Record<PresetKey, any> = {
@@ -138,9 +142,10 @@ export default function PlaygroundView() {
   const [loading, setLoading] = useState(false);
   const [latency, setLatency] = useState<number | null>(null);
   const [tokenCount, setTokenCount] = useState<number | null>(null);
-  const [viewMode, setViewMode] = useState<'preview' | 'raw'>('preview');
+  const [viewMode, setViewMode] = useState<ViewMode>('message');
   const [copiedCurl, setCopiedCurl] = useState<boolean>(false);
   const [copiedResponse, setCopiedResponse] = useState<boolean>(false);
+  const [copiedAnswer, setCopiedAnswer] = useState<boolean>(false);
   const [showConcurrentModal, setShowConcurrentModal] = useState<boolean>(false);
   const [showPresetsDropdown, setShowPresetsDropdown] = useState<boolean>(false);
   const presetsRef = useRef<HTMLDivElement>(null);
@@ -267,6 +272,70 @@ export default function PlaygroundView() {
     navigator.clipboard.writeText(responseRaw);
     setCopiedResponse(true);
     setTimeout(() => setCopiedResponse(false), 2000);
+  };
+
+  // Extract structured message parts (text, thinking, tool calls) from response
+  const parsedMessageView = useMemo(() => {
+    let text = '';
+    let thinking = '';
+    const toolCalls: any[] = [];
+
+    if (isStreamingActive && responseStreamChunks.length > 0) {
+      for (const chunk of responseStreamChunks) {
+        // Claude Stream delta
+        if (chunk.type === 'content_block_delta') {
+          if (chunk.delta?.type === 'text_delta') {
+            text += chunk.delta.text || '';
+          } else if (chunk.delta?.type === 'thinking_delta') {
+            thinking += chunk.delta.thinking || '';
+          }
+        }
+        // Gemini Stream parts
+        if (chunk.candidates && chunk.candidates[0]?.content?.parts) {
+          for (const part of chunk.candidates[0].content.parts) {
+            if (part.text) text += part.text;
+            if (part.thought) thinking += part.thought;
+            if (part.functionCall) toolCalls.push(part.functionCall);
+          }
+        }
+      }
+    } else if (responseJson) {
+      // Claude Non-Stream format
+      if (Array.isArray(responseJson.content)) {
+        for (const block of responseJson.content) {
+          if (block.type === 'text') {
+            text += block.text || '';
+          } else if (block.type === 'thinking') {
+            thinking += block.thinking || '';
+          } else if (block.type === 'tool_use') {
+            toolCalls.push({ name: block.name, args: block.input });
+          }
+        }
+      }
+      // Gemini Non-Stream format
+      if (responseJson.candidates && responseJson.candidates[0]?.content?.parts) {
+        for (const part of responseJson.candidates[0].content.parts) {
+          if (part.text) text += part.text;
+          if (part.thought) thinking += part.thought;
+          if (part.functionCall) toolCalls.push(part.functionCall);
+        }
+      }
+      // Error format
+      if (!text && responseJson.error) {
+        text = typeof responseJson.error === 'string'
+          ? responseJson.error
+          : responseJson.error.message || JSON.stringify(responseJson.error, null, 2);
+      }
+    }
+
+    return { text: text.trim(), thinking: thinking.trim(), toolCalls };
+  }, [isStreamingActive, responseStreamChunks, responseJson]);
+
+  const handleCopyAnswer = () => {
+    const content = parsedMessageView.text || responseRaw;
+    navigator.clipboard.writeText(content);
+    setCopiedAnswer(true);
+    setTimeout(() => setCopiedAnswer(false), 2000);
   };
 
   const handleSend = async () => {
@@ -698,51 +767,149 @@ export default function PlaygroundView() {
             <div className="flex items-center space-x-2">
               <div className="flex bg-[#151824] p-0.5 rounded-xl border border-white/[0.08] text-xs">
                 <button
-                  onClick={() => setViewMode('preview')}
+                  type="button"
+                  onClick={() => setViewMode('message')}
                   className={`px-2.5 py-1 rounded-lg font-semibold transition-all text-[11px] flex items-center space-x-1 ${
-                    viewMode === 'preview'
-                      ? 'bg-emerald-600 text-white shadow'
+                    viewMode === 'message'
+                      ? 'bg-indigo-600 text-white shadow'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
+                  title="Render clean assistant answer message"
                 >
-                  <Eye className="w-3 h-3" />
-                  <span>{t('playground.preview')}</span>
+                  <MessageSquare className="w-3 h-3" />
+                  <span>{t('playground.tabMessage')}</span>
                 </button>
                 <button
+                  type="button"
+                  onClick={() => setViewMode('tree')}
+                  className={`px-2.5 py-1 rounded-lg font-semibold transition-all text-[11px] flex items-center space-x-1 ${
+                    viewMode === 'tree'
+                      ? 'bg-indigo-600 text-white shadow'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                  title="Inspect response JSON structure"
+                >
+                  <Network className="w-3 h-3" />
+                  <span>{t('playground.tabTree')}</span>
+                </button>
+                {isStreamingActive && (
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('stream')}
+                    className={`px-2.5 py-1 rounded-lg font-semibold transition-all text-[11px] flex items-center space-x-1 ${
+                      viewMode === 'stream'
+                        ? 'bg-indigo-600 text-white shadow'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                    title="View EventSource chunk timeline"
+                  >
+                    <Layers className="w-3 h-3" />
+                    <span>{t('playground.tabStream')}</span>
+                  </button>
+                )}
+                <button
+                  type="button"
                   onClick={() => setViewMode('raw')}
                   className={`px-2.5 py-1 rounded-lg font-semibold transition-all text-[11px] flex items-center space-x-1 ${
                     viewMode === 'raw'
-                      ? 'bg-emerald-600 text-white shadow'
+                      ? 'bg-indigo-600 text-white shadow'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
+                  title="View raw transport string"
                 >
                   <Code className="w-3 h-3" />
-                  <span>{t('playground.rawText')}</span>
+                  <span>{t('playground.tabRaw')}</span>
                 </button>
               </div>
 
-              <button
-                onClick={handleCopyResponse}
-                className="p-1.5 bg-[#151824] hover:bg-[#1C2030] border border-white/[0.08] hover:border-white/[0.15] rounded-xl text-slate-400 hover:text-white transition-colors"
-                title="Copy response body"
-              >
-                {copiedResponse ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-              </button>
+              {viewMode === 'message' && (
+                <button
+                  type="button"
+                  onClick={handleCopyAnswer}
+                  className="p-1.5 bg-[#151824] hover:bg-[#1C2030] border border-white/[0.08] hover:border-white/[0.15] rounded-xl text-slate-400 hover:text-white transition-colors"
+                  title={t('playground.copyAnswer')}
+                >
+                  {copiedAnswer ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                </button>
+              )}
+
+              {viewMode !== 'message' && (
+                <button
+                  type="button"
+                  onClick={handleCopyResponse}
+                  className="p-1.5 bg-[#151824] hover:bg-[#1C2030] border border-white/[0.08] hover:border-white/[0.15] rounded-xl text-slate-400 hover:text-white transition-colors"
+                  title="Copy full response body"
+                >
+                  {copiedResponse ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                </button>
+              )}
             </div>
           </div>
 
-          <div className="flex-1 rounded-xl overflow-hidden border border-white/[0.06] bg-[#020617] overflow-y-auto p-1">
-            {viewMode === 'preview' ? (
-              isStreamingActive ? (
-                <div className="p-2">
-                  <SseStreamPreview streamData={responseStreamChunks} />
-                </div>
-              ) : (
-                <div className="p-3">
-                  <JsonTreeView data={responseJson} />
-                </div>
-              )
-            ) : (
+          <div className="flex-1 rounded-xl overflow-hidden border border-white/[0.06] bg-[#020617] overflow-y-auto p-2 sm:p-3">
+            {viewMode === 'message' && (
+              <div className="space-y-3">
+                {/* Thinking Process Bubble (if model returned thinking) */}
+                {parsedMessageView.thinking && (
+                  <details className="bg-purple-950/25 border border-purple-800/40 rounded-xl p-3 text-purple-200 transition-all group open:shadow-inner" open>
+                    <summary className="font-bold text-xs uppercase cursor-pointer text-purple-300 flex items-center justify-between select-none">
+                      <div className="flex items-center space-x-2">
+                        <Flame className="w-3.5 h-3.5 text-purple-400 animate-pulse" />
+                        <span>{t('playground.thinkingProcess')}</span>
+                      </div>
+                      <span className="text-[10px] font-mono font-normal text-purple-400/80 bg-purple-900/40 px-2 py-0.5 rounded-full border border-purple-700/30">
+                        {t('playground.thinkingChars').replace('{count}', String(parsedMessageView.thinking.length))}
+                      </span>
+                    </summary>
+                    <div className="mt-2.5 font-mono text-xs text-purple-200 leading-relaxed whitespace-pre-wrap max-h-56 overflow-y-auto bg-purple-950/50 p-3 rounded-lg border border-purple-800/40">
+                      {parsedMessageView.thinking}
+                    </div>
+                  </details>
+                )}
+
+                {/* Tool Calls Rendering */}
+                {parsedMessageView.toolCalls.length > 0 && (
+                  <div className="space-y-2">
+                    {parsedMessageView.toolCalls.map((tc, idx) => (
+                      <div key={idx} className="bg-blue-950/20 border border-blue-800/40 rounded-xl p-3 space-y-1.5 font-mono text-xs">
+                        <div className="flex items-center space-x-2 text-blue-300 font-bold">
+                          <Code className="w-3.5 h-3.5 text-blue-400" />
+                          <span>{t('playground.toolCall').replace('{name}', tc.name || 'unknown')}</span>
+                        </div>
+                        <div className="bg-[#0A0E1A] p-2.5 rounded-lg border border-blue-900/40 overflow-x-auto text-[11px] text-blue-200">
+                          <pre>{JSON.stringify(tc.args || tc.input || {}, null, 2)}</pre>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Main Text Content */}
+                {parsedMessageView.text ? (
+                  <div className="bg-[#0B0D14] border border-white/[0.06] rounded-xl p-4 text-slate-100 font-sans text-xs sm:text-sm leading-relaxed whitespace-pre-wrap shadow-inner selection:bg-indigo-500 selection:text-white">
+                    {parsedMessageView.text}
+                  </div>
+                ) : !parsedMessageView.thinking && parsedMessageView.toolCalls.length === 0 ? (
+                  <div className="text-slate-500 font-mono text-xs italic p-4 text-center">
+                    {responseRaw && responseRaw !== t('playground.initialResponse') ? responseRaw : t('playground.noContent')}
+                  </div>
+                ) : null}
+              </div>
+            )}
+
+            {viewMode === 'tree' && (
+              <div className="p-2">
+                <JsonTreeView data={responseJson || (responseStreamChunks.length > 0 ? responseStreamChunks : { response: responseRaw })} />
+              </div>
+            )}
+
+            {viewMode === 'stream' && (
+              <div className="p-2">
+                <SseStreamPreview streamData={responseStreamChunks} />
+              </div>
+            )}
+
+            {viewMode === 'raw' && (
               <Editor
                 height="100%"
                 language={responseRaw.startsWith('{') ? 'json' : 'plaintext'}
