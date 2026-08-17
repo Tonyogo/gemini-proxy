@@ -23,11 +23,7 @@ import {
   Braces,
   RotateCcw,
   AlignLeft,
-  ChevronDown,
-  MessageSquare,
-  Network,
-  Cpu,
-  FileText
+  ChevronDown
 } from 'lucide-react';
 import JsonTreeView from './JsonTreeView';
 import SseStreamPreview from './SseStreamPreview';
@@ -36,7 +32,7 @@ import { defineGeminiProxyTheme } from '../utils/monacoTheme';
 import { useTranslation } from '../i18n/LanguageContext';
 
 type EndpointOption = 'messages' | 'count_tokens' | 'custom';
-type ViewMode = 'message' | 'tree' | 'stream' | 'raw';
+type ViewMode = 'preview' | 'raw';
 type PresetKey = 'basicChat' | 'toolUse' | 'vision' | 'thinkingMode';
 
 const PRESETS: Record<PresetKey, any> = {
@@ -582,42 +578,42 @@ export default function PlaygroundView() {
               className="px-2.5 py-1 bg-[#151824] hover:bg-[#1C2030] border border-white/[0.08] hover:border-white/[0.15] text-slate-300 rounded-xl text-xs font-semibold transition-all flex items-center space-x-1.5"
             >
               <Sliders className="w-3.5 h-3.5 text-purple-400" />
-              <span>Presets</span>
+              <span>{t('playground.presetsBtn')}</span>
               <ChevronDown className="w-3 h-3 text-slate-500" />
             </button>
 
             {showPresetsDropdown && (
               <div className="absolute right-0 mt-2 w-48 bg-[#0F1118] border border-white/[0.1] rounded-xl shadow-2xl z-50 py-1 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
                 <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-white/[0.06]">
-                  Quick Fill Templates
+                  {t('playground.presetsTitle')}
                 </div>
                 <button
                   onClick={() => handleSelectPreset('basicChat')}
                   className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/[0.05] transition-colors flex items-center space-x-2"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>Basic Chat (Stream)</span>
+                  <span>{t('playground.presetBasicChat')}</span>
                 </button>
                 <button
                   onClick={() => handleSelectPreset('toolUse')}
                   className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/[0.05] transition-colors flex items-center space-x-2"
                 >
                   <Code className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Tool Use (Function Call)</span>
+                  <span>{t('playground.presetToolUse')}</span>
                 </button>
                 <button
                   onClick={() => handleSelectPreset('vision')}
                   className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/[0.05] transition-colors flex items-center space-x-2"
                 >
                   <Eye className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Vision & Multimodal</span>
+                  <span>{t('playground.presetVision')}</span>
                 </button>
                 <button
                   onClick={() => handleSelectPreset('thinkingMode')}
                   className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/[0.05] transition-colors flex items-center space-x-2"
                 >
                   <Flame className="w-3.5 h-3.5 text-rose-400" />
-                  <span>Thinking Mode (CoT)</span>
+                  <span>{t('playground.presetThinking')}</span>
                 </button>
               </div>
             )}
@@ -726,29 +722,32 @@ export default function PlaygroundView() {
 
         {/* Right Column: Response Preview Panel */}
         <div className="bg-[#0F1118]/80 backdrop-blur-md border border-white/[0.08] rounded-2xl p-4 flex flex-col h-full overflow-hidden shadow-xl">
-          <div className="flex items-center justify-between pb-3 mb-2 border-b border-white/[0.06]">
-            <div className="flex items-center space-x-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
-              <span className="font-bold text-emerald-400 text-xs uppercase tracking-wider">
-                {t('playground.responseOutput')}
-              </span>
+          <div className="flex items-center justify-between pb-3 mb-2 border-b border-white/[0.06] gap-2 min-w-0">
+            {/* Left side: title and compact status badges */}
+            <div className="flex items-center space-x-2 min-w-0 flex-wrap gap-y-1">
+              <div className="flex items-center space-x-1.5 shrink-0">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]" />
+                <span className="font-bold text-emerald-400 text-xs uppercase tracking-wider">
+                  {t('playground.responseOutput')}
+                </span>
+              </div>
 
               {/* Status Code Badge */}
               {statusCode !== null && (
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border ${
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border shrink-0 ${
                   statusCode >= 200 && statusCode < 300
                     ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
                     : statusCode === 429
                     ? 'bg-amber-500/15 border-amber-500/30 text-amber-300'
                     : 'bg-rose-500/15 border-rose-500/30 text-rose-300'
                 }`}>
-                  HTTP {statusCode}
+                  {statusCode}
                 </span>
               )}
 
               {/* Latency badge */}
               {latency !== null && (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-purple-500/15 border border-purple-500/30 text-purple-300 flex items-center space-x-1">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-purple-500/15 border border-purple-500/30 text-purple-300 flex items-center space-x-1 shrink-0">
                   <Clock className="w-2.5 h-2.5 text-purple-400" />
                   <span>{latency}ms</span>
                 </span>
@@ -756,160 +755,115 @@ export default function PlaygroundView() {
 
               {/* Token Counter badge */}
               {tokenCount !== null && (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 flex items-center space-x-1">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 flex items-center space-x-1 shrink-0">
                   <Sparkles className="w-2.5 h-2.5 text-indigo-400" />
-                  <span>{tokenCount} tokens</span>
+                  <span>{tokenCount} tok</span>
                 </span>
               )}
             </div>
 
-            {/* View Mode Selectors & Copy */}
-            <div className="flex items-center space-x-2">
-              <div className="flex bg-[#151824] p-0.5 rounded-xl border border-white/[0.08] text-xs">
+            {/* Right side: Clean 2-Mode Toggle & Copy */}
+            <div className="flex items-center space-x-2 shrink-0">
+              <div className="flex bg-[#151824] p-0.5 rounded-xl border border-white/[0.08] text-xs shrink-0">
                 <button
                   type="button"
-                  onClick={() => setViewMode('message')}
-                  className={`px-2.5 py-1 rounded-lg font-semibold transition-all text-[11px] flex items-center space-x-1 ${
-                    viewMode === 'message'
-                      ? 'bg-indigo-600 text-white shadow'
+                  onClick={() => setViewMode('preview')}
+                  className={`px-2.5 py-1 rounded-lg font-semibold transition-all text-[11px] flex items-center space-x-1.5 ${
+                    viewMode === 'preview'
+                      ? 'bg-emerald-600 text-white shadow'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
-                  title="Render clean assistant answer message"
+                  title="Render clean preview output"
                 >
-                  <MessageSquare className="w-3 h-3" />
-                  <span>{t('playground.tabMessage')}</span>
+                  <Eye className="w-3 h-3" />
+                  <span>{t('playground.preview')}</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('tree')}
-                  className={`px-2.5 py-1 rounded-lg font-semibold transition-all text-[11px] flex items-center space-x-1 ${
-                    viewMode === 'tree'
-                      ? 'bg-indigo-600 text-white shadow'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                  title="Inspect response JSON structure"
-                >
-                  <Network className="w-3 h-3" />
-                  <span>{t('playground.tabTree')}</span>
-                </button>
-                {isStreamingActive && (
-                  <button
-                    type="button"
-                    onClick={() => setViewMode('stream')}
-                    className={`px-2.5 py-1 rounded-lg font-semibold transition-all text-[11px] flex items-center space-x-1 ${
-                      viewMode === 'stream'
-                        ? 'bg-indigo-600 text-white shadow'
-                        : 'text-slate-400 hover:text-slate-200'
-                    }`}
-                    title="View EventSource chunk timeline"
-                  >
-                    <Layers className="w-3 h-3" />
-                    <span>{t('playground.tabStream')}</span>
-                  </button>
-                )}
                 <button
                   type="button"
                   onClick={() => setViewMode('raw')}
-                  className={`px-2.5 py-1 rounded-lg font-semibold transition-all text-[11px] flex items-center space-x-1 ${
+                  className={`px-2.5 py-1 rounded-lg font-semibold transition-all text-[11px] flex items-center space-x-1.5 ${
                     viewMode === 'raw'
-                      ? 'bg-indigo-600 text-white shadow'
+                      ? 'bg-emerald-600 text-white shadow'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                   title="View raw transport string"
                 >
                   <Code className="w-3 h-3" />
-                  <span>{t('playground.tabRaw')}</span>
+                  <span>{t('playground.rawText')}</span>
                 </button>
               </div>
 
-              {viewMode === 'message' && (
-                <button
-                  type="button"
-                  onClick={handleCopyAnswer}
-                  className="p-1.5 bg-[#151824] hover:bg-[#1C2030] border border-white/[0.08] hover:border-white/[0.15] rounded-xl text-slate-400 hover:text-white transition-colors"
-                  title={t('playground.copyAnswer')}
-                >
-                  {copiedAnswer ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                </button>
-              )}
-
-              {viewMode !== 'message' && (
-                <button
-                  type="button"
-                  onClick={handleCopyResponse}
-                  className="p-1.5 bg-[#151824] hover:bg-[#1C2030] border border-white/[0.08] hover:border-white/[0.15] rounded-xl text-slate-400 hover:text-white transition-colors"
-                  title="Copy full response body"
-                >
-                  {copiedResponse ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={handleCopyResponse}
+                className="p-1.5 bg-[#151824] hover:bg-[#1C2030] border border-white/[0.08] hover:border-white/[0.15] rounded-xl text-slate-400 hover:text-white transition-colors shrink-0"
+                title="Copy response body"
+              >
+                {copiedResponse ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              </button>
             </div>
           </div>
 
           <div className="flex-1 rounded-xl overflow-hidden border border-white/[0.06] bg-[#020617] overflow-y-auto p-2 sm:p-3">
-            {viewMode === 'message' && (
-              <div className="space-y-3">
-                {/* Thinking Process Bubble (if model returned thinking) */}
-                {parsedMessageView.thinking && (
-                  <details className="bg-purple-950/25 border border-purple-800/40 rounded-xl p-3 text-purple-200 transition-all group open:shadow-inner" open>
-                    <summary className="font-bold text-xs uppercase cursor-pointer text-purple-300 flex items-center justify-between select-none">
-                      <div className="flex items-center space-x-2">
-                        <Flame className="w-3.5 h-3.5 text-purple-400 animate-pulse" />
-                        <span>{t('playground.thinkingProcess')}</span>
+            {viewMode === 'preview' ? (
+              isStreamingActive ? (
+                <div className="p-1">
+                  <SseStreamPreview streamData={responseStreamChunks} />
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {/* Thinking Process Bubble (if model returned thinking) */}
+                  {parsedMessageView.thinking && (
+                    <details className="bg-purple-950/25 border border-purple-800/40 rounded-xl p-3 text-purple-200 transition-all group open:shadow-inner" open>
+                      <summary className="font-bold text-xs uppercase cursor-pointer text-purple-300 flex items-center justify-between select-none">
+                        <div className="flex items-center space-x-2">
+                          <Flame className="w-3.5 h-3.5 text-purple-400 animate-pulse" />
+                          <span>{t('playground.thinkingProcess')}</span>
+                        </div>
+                        <span className="text-[10px] font-mono font-normal text-purple-400/80 bg-purple-900/40 px-2 py-0.5 rounded-full border border-purple-700/30">
+                          {t('playground.thinkingChars').replace('{count}', String(parsedMessageView.thinking.length))}
+                        </span>
+                      </summary>
+                      <div className="mt-2.5 font-mono text-xs text-purple-200 leading-relaxed whitespace-pre-wrap max-h-56 overflow-y-auto bg-purple-950/50 p-3 rounded-lg border border-purple-800/40">
+                        {parsedMessageView.thinking}
                       </div>
-                      <span className="text-[10px] font-mono font-normal text-purple-400/80 bg-purple-900/40 px-2 py-0.5 rounded-full border border-purple-700/30">
-                        {t('playground.thinkingChars').replace('{count}', String(parsedMessageView.thinking.length))}
-                      </span>
-                    </summary>
-                    <div className="mt-2.5 font-mono text-xs text-purple-200 leading-relaxed whitespace-pre-wrap max-h-56 overflow-y-auto bg-purple-950/50 p-3 rounded-lg border border-purple-800/40">
-                      {parsedMessageView.thinking}
+                    </details>
+                  )}
+
+                  {/* Tool Calls Rendering */}
+                  {parsedMessageView.toolCalls.length > 0 && (
+                    <div className="space-y-2">
+                      {parsedMessageView.toolCalls.map((tc, idx) => (
+                        <div key={idx} className="bg-blue-950/20 border border-blue-800/40 rounded-xl p-3 space-y-1.5 font-mono text-xs">
+                          <div className="flex items-center space-x-2 text-blue-300 font-bold">
+                            <Code className="w-3.5 h-3.5 text-blue-400" />
+                            <span>{t('playground.toolCall').replace('{name}', tc.name || 'unknown')}</span>
+                          </div>
+                          <div className="bg-[#0A0E1A] p-2.5 rounded-lg border border-blue-900/40 overflow-x-auto text-[11px] text-blue-200">
+                            <pre>{JSON.stringify(tc.args || tc.input || {}, null, 2)}</pre>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  </details>
-                )}
+                  )}
 
-                {/* Tool Calls Rendering */}
-                {parsedMessageView.toolCalls.length > 0 && (
-                  <div className="space-y-2">
-                    {parsedMessageView.toolCalls.map((tc, idx) => (
-                      <div key={idx} className="bg-blue-950/20 border border-blue-800/40 rounded-xl p-3 space-y-1.5 font-mono text-xs">
-                        <div className="flex items-center space-x-2 text-blue-300 font-bold">
-                          <Code className="w-3.5 h-3.5 text-blue-400" />
-                          <span>{t('playground.toolCall').replace('{name}', tc.name || 'unknown')}</span>
-                        </div>
-                        <div className="bg-[#0A0E1A] p-2.5 rounded-lg border border-blue-900/40 overflow-x-auto text-[11px] text-blue-200">
-                          <pre>{JSON.stringify(tc.args || tc.input || {}, null, 2)}</pre>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Main Text Content */}
-                {parsedMessageView.text ? (
-                  <div className="bg-[#0B0D14] border border-white/[0.06] rounded-xl p-4 text-slate-100 font-sans text-xs sm:text-sm leading-relaxed whitespace-pre-wrap shadow-inner selection:bg-indigo-500 selection:text-white">
-                    {parsedMessageView.text}
-                  </div>
-                ) : !parsedMessageView.thinking && parsedMessageView.toolCalls.length === 0 ? (
-                  <div className="text-slate-500 font-mono text-xs italic p-4 text-center">
-                    {responseRaw && responseRaw !== t('playground.initialResponse') ? responseRaw : t('playground.noContent')}
-                  </div>
-                ) : null}
-              </div>
-            )}
-
-            {viewMode === 'tree' && (
-              <div className="p-2">
-                <JsonTreeView data={responseJson || (responseStreamChunks.length > 0 ? responseStreamChunks : { response: responseRaw })} />
-              </div>
-            )}
-
-            {viewMode === 'stream' && (
-              <div className="p-2">
-                <SseStreamPreview streamData={responseStreamChunks} />
-              </div>
-            )}
-
-            {viewMode === 'raw' && (
+                  {/* Main Text Content */}
+                  {parsedMessageView.text ? (
+                    <div className="bg-[#0B0D14] border border-white/[0.06] rounded-xl p-4 text-slate-100 font-sans text-xs sm:text-sm leading-relaxed whitespace-pre-wrap shadow-inner selection:bg-indigo-500 selection:text-white">
+                      {parsedMessageView.text}
+                    </div>
+                  ) : responseJson ? (
+                    <div className="p-1">
+                      <JsonTreeView data={responseJson} />
+                    </div>
+                  ) : (
+                    <div className="text-slate-500 font-mono text-xs italic p-4 text-center">
+                      {responseRaw && responseRaw !== t('playground.initialResponse') ? responseRaw : t('playground.noContent')}
+                    </div>
+                  )}
+                </div>
+              )
+            ) : (
               <Editor
                 height="100%"
                 language={responseRaw.startsWith('{') ? 'json' : 'plaintext'}
