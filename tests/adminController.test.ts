@@ -39,6 +39,21 @@ describe('Admin API Endpoints', () => {
     expect(res.body).toHaveProperty('mappings');
   });
 
+  test('GET /api/admin/stats defaults to today range and supports custom range parameters', async () => {
+    const resToday = await request(app).get('/api/admin/stats');
+    expect(resToday.status).toBe(200);
+    expect(resToday.body).toHaveProperty('timeSeries');
+    expect(Array.isArray(resToday.body.timeSeries)).toBe(true);
+
+    const res24h = await request(app).get('/api/admin/stats?range=24');
+    expect(res24h.status).toBe(200);
+    expect(res24h.body.timeSeries.length).toBe(24);
+
+    const resExplicitToday = await request(app).get('/api/admin/stats?range=today');
+    expect(resExplicitToday.status).toBe(200);
+    expect(resExplicitToday.body).toHaveProperty('timeSeries');
+  });
+
   test('GET /api/admin/logs returns paginated list', async () => {
     const res = await request(app).get('/api/admin/logs');
     expect(res.status).toBe(200);

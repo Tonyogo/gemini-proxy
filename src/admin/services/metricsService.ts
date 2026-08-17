@@ -203,12 +203,51 @@ class MetricsService {
     this.updateBucket(hourKey, isError, duration, modelName);
   }
 
-  public getStats(rangeHours = 24) {
+  public getStats(rangeParam: number | 'today' = 24) {
     const now = new Date();
     const trailingHours: string[] = [];
-    for (let i = rangeHours - 1; i >= 0; i--) {
-      const d = new Date(now.getTime() - i * 3600 * 1000);
-      trailingHours.push(this.getHourKey(d));
+
+    if (rangeParam === 'today') {
+      try {
+        const timeZone = config.timeZone || 'Asia/Shanghai';
+        const formatter = new Intl.DateTimeFormat('en-US', {
+          timeZone,
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          hourCycle: 'h23'
+        });
+        const parts = formatter.formatToParts(now);
+        const getPart = (t: string) => parts.find(p => p.type === t)?.value || '00';
+        let currentHour = parseInt(getPart('hour'), 10);
+        if (currentHour === 24) currentHour = 0;
+
+        let hoursCount = 0;
+        if (currentHour >= 15) {
+          hoursCount = currentHour - 15 + 1;
+        } else {
+          hoursCount = currentHour + 24 - 15 + 1;
+        }
+
+        for (let i = hoursCount - 1; i >= 0; i--) {
+          const d = new Date(now.getTime() - i * 3600 * 1000);
+          trailingHours.push(this.getHourKey(d));
+        }
+      } catch {
+        const currentHour = now.getHours();
+        let hoursCount = currentHour >= 15 ? currentHour - 15 + 1 : currentHour + 24 - 15 + 1;
+        for (let i = hoursCount - 1; i >= 0; i--) {
+          const d = new Date(now.getTime() - i * 3600 * 1000);
+          trailingHours.push(this.getHourKey(d));
+        }
+      }
+    } else {
+      const rangeHours = typeof rangeParam === 'number' ? rangeParam : 24;
+      for (let i = rangeHours - 1; i >= 0; i--) {
+        const d = new Date(now.getTime() - i * 3600 * 1000);
+        trailingHours.push(this.getHourKey(d));
+      }
     }
 
     let rangeTotalLogs = 0;
@@ -257,7 +296,7 @@ class MetricsService {
       }
     });
 
-    if (rangeHours === 24) {
+    if (rangeParam === 24) {
       rangeTotalLogs = this.totalLogs;
       rangeSuccessCount = this.successCount;
       rangeErrorCount = this.errorCount;

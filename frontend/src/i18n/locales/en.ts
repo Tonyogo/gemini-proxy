@@ -112,6 +112,7 @@ export const en = {
     modelMappingsTitle: "3. Active Model Mappings (MODEL_MAPPINGS)",
     modelMappingsSub: "Declarative model aliasing rules that transparently redirect requests to target models",
     days: "Days",
+    rangeToday: "Today",
     range6h: "6h",
     range12h: "12h",
     range24h: "24h",

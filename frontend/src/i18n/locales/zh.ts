@@ -114,6 +114,7 @@ export const zh: Translations = {
     modelMappingsTitle: "3. 活动模型映射 (MODEL_MAPPINGS)",
     modelMappingsSub: "声明式模型别名规则，透明地重定向请求到目标模型",
     days: "天",
+    rangeToday: "今日",
     range6h: "6h",
     range12h: "12h",
     range24h: "24h",

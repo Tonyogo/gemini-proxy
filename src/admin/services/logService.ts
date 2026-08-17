@@ -229,7 +229,7 @@ class LogService {
     return JSON.parse(data);
   }
 
-  public async getStats(rangeHours?: number): Promise<any> {
+  public async getStats(rangeHours?: number | 'today'): Promise<any> {
     return metricsService.getStats(rangeHours);
   }
 }

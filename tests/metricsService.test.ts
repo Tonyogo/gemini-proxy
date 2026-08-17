@@ -253,7 +253,7 @@ describe('MetricsService Initialization via index.jsonl', () => {
 
     await metricsService.init();
 
-    const stats = metricsService.getStats();
+    const stats = metricsService.getStats(24);
     // 3 logs total across all days
     expect(stats.totalLogs).toBe(3);
     // Only today & yesterday hydrated for stats
@@ -261,5 +261,17 @@ describe('MetricsService Initialization via index.jsonl', () => {
     expect(stats.errorCount).toBe(1);   // yesterday (500)
     expect(stats.sampleSize).toBe(1);   // only today (status 200) duration recorded
     expect(stats.avgDurationMs).toBe(150); // only today duration (150)
+  });
+
+  it('correctly calculates today 15:00 cutoff time series', () => {
+    metricsService.resetForTesting();
+    const statsToday = metricsService.getStats('today');
+    expect(statsToday).toHaveProperty('timeSeries');
+    expect(Array.isArray(statsToday.timeSeries)).toBe(true);
+    expect(statsToday.timeSeries.length).toBeGreaterThanOrEqual(1);
+    expect(statsToday.timeSeries.length).toBeLessThanOrEqual(24);
+
+    const firstHour = statsToday.timeSeries[0].time;
+    expect(firstHour.endsWith('15:00')).toBe(true);
   });
 });

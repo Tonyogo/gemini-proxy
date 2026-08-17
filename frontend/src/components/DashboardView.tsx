@@ -30,7 +30,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
   const [status, setStatus] = useState<any>(null);
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [range, setRange] = useState<number>(24);
+  const [range, setRange] = useState<number | 'today'>('today');
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
   const loadData = (currentRange = range) => {
@@ -301,7 +301,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
             <span className="text-[10px] text-slate-500 uppercase font-semibold px-2 tracking-wider select-none">
               {t('dashboard.timeRange')}
             </span>
-            {([6, 12, 24, 48] as const).map((r) => (
+            {(['today', 6, 12, 24, 48] as const).map((r) => (
               <button
                 key={r}
                 type="button"
@@ -312,7 +312,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                     : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
                 }`}
               >
-                {t(`dashboard.range${r}h`)}
+                {r === 'today' ? t('dashboard.rangeToday') : t(`dashboard.range${r}h`)}
               </button>
             ))}
           </div>
@@ -363,7 +363,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                 {totalLogsCount.toLocaleString()}
               </div>
               <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-medium">
-                {range}H TOTAL
+                {range === 'today' ? 'TODAY TOTAL' : `${range}H TOTAL`}
               </span>
             </div>
             <div className="text-[11px] text-slate-500 mt-3 truncate">
