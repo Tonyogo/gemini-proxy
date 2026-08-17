@@ -237,11 +237,11 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
   };
 
   const TABS = [
-    { id: 'general', label: 'General & Logs', icon: Sliders },
-    { id: 'upstream', label: 'Proxy & Upstream', icon: Globe },
-    { id: 'instructions', label: 'System Instruction', icon: FileCode },
-    { id: 'mappings', label: 'Model Mapping', icon: ArrowRightLeft },
-    { id: 'security', label: 'Security & Reset', icon: ShieldCheck }
+    { id: 'general', label: t('config.tabGeneral'), icon: Sliders },
+    { id: 'upstream', label: t('config.tabUpstream'), icon: Globe },
+    { id: 'instructions', label: t('config.tabInstructions'), icon: FileCode },
+    { id: 'mappings', label: t('config.tabMappings'), icon: ArrowRightLeft },
+    { id: 'security', label: t('config.tabSecurity'), icon: ShieldCheck }
   ];
 
   return (
@@ -312,7 +312,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                 <div className="bg-[#121520] p-5 rounded-2xl border border-white/[0.06] space-y-4">
                   <div className="flex items-center space-x-2 text-xs font-bold text-indigo-400 uppercase tracking-wider">
                     <Sliders className="w-3.5 h-3.5 text-indigo-400" />
-                    <span>General Runtime & Logging Policies</span>
+                    <span>{t('config.generalGroup')}</span>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -323,12 +323,12 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                         onChange={(e) => setLogLevel(e.target.value)}
                         className="w-full bg-[#151824] border border-white/[0.08] rounded-xl p-2.5 text-xs text-slate-100 font-mono focus:outline-none focus:border-indigo-500"
                       >
-                        <option value="error">error (minimal)</option>
-                        <option value="warn">warn</option>
-                        <option value="info">info (recommended)</option>
-                        <option value="debug">debug (verbose)</option>
+                        <option value="error">{t('config.logLevelError')}</option>
+                        <option value="warn">{t('config.logLevelWarn')}</option>
+                        <option value="info">{t('config.logLevelInfo')}</option>
+                        <option value="debug">{t('config.logLevelDebug')}</option>
                       </select>
-                      <p className="text-[10px] text-slate-400">Terminal & system logging verbosity level.</p>
+                      <p className="text-[10px] text-slate-400">{t('config.logLevelDesc')}</p>
                     </div>
 
                     <div className="space-y-1.5">
@@ -352,7 +352,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                 <div className="bg-[#121520] p-5 rounded-2xl border border-white/[0.06] space-y-4">
                   <div className="flex items-center space-x-2 text-xs font-bold text-blue-400 uppercase tracking-wider">
                     <Globe className="w-3.5 h-3.5 text-blue-400" />
-                    <span>Upstream Gemini Gateway & Timeouts</span>
+                    <span>{t('config.upstreamGroup')}</span>
                   </div>
 
                   <div className="space-y-4">
@@ -367,7 +367,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                         />
                         <span className="absolute right-3 top-2.5 text-xs text-slate-500 font-mono">ms</span>
                       </div>
-                      <p className="text-[10px] text-slate-400">Maximum waiting duration before aborting upstream Gemini HTTP calls.</p>
+                      <p className="text-[10px] text-slate-400">{t('config.upstreamTimeoutDesc')}</p>
                     </div>
 
                     <div className="space-y-1.5">
@@ -565,26 +565,26 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                 <div className="bg-[#121520] p-5 rounded-2xl border border-white/[0.06] space-y-4">
                   <div className="flex items-center space-x-2 text-xs font-bold text-purple-400 uppercase tracking-wider">
                     <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />
-                    <span>Security & Environment Recovery</span>
+                    <span>{t('config.securityGroup')}</span>
                   </div>
 
                   <div className="bg-[#151824] p-4 rounded-xl border border-white/[0.06] space-y-2">
                     <div className="flex items-center space-x-2 text-xs font-semibold text-slate-200">
                       <Info className="w-4 h-4 text-indigo-400" />
-                      <span>Admin Management Secret</span>
+                      <span>{t('config.adminSecretTitle')}</span>
                     </div>
                     <p className="text-[11px] text-slate-400 leading-relaxed">
-                      All live configuration updates are protected with the <code className="text-indigo-300 font-mono">x-admin-key</code> header. Changes are hot-reloaded dynamically into the runtime context.
+                      {t('config.adminSecretDesc')}
                     </p>
                   </div>
 
                   <div className="bg-rose-950/20 border border-rose-800/30 p-4 rounded-xl space-y-3">
                     <div className="flex items-center space-x-2 text-xs font-bold text-rose-300">
                       <AlertCircle className="w-4 h-4 text-rose-400" />
-                      <span>Factory Environment Reset</span>
+                      <span>{t('config.factoryResetTitle')}</span>
                     </div>
                     <p className="text-[11px] text-slate-400">
-                      Discard all live dynamic runtime overrides and revert directly to the baseline configuration defined in <code className="text-slate-300 font-mono">.env</code>.
+                      {t('config.factoryResetDesc')}
                     </p>
                     <button
                       type="button"
@@ -603,7 +603,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
             {/* Modal Footer */}
             <div className="flex items-center justify-between pt-4 border-t border-white/[0.08]">
               <span className="text-[11px] text-slate-500 font-mono">
-                Changes take effect immediately upon saving
+                {t('config.footerNote')}
               </span>
 
               <div className="flex items-center space-x-3">
