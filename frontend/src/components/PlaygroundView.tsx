@@ -549,75 +549,79 @@ export default function PlaygroundView() {
                   value={customPath}
                   onChange={(e) => setCustomPath(e.target.value)}
                   placeholder="/v1/..."
-                  className="bg-[#090A0F] border border-white/[0.1] rounded-lg px-2 py-0.5 text-xs text-slate-100 font-mono w-28 focus:outline-none"
+                  className="bg-[#090A0F] border border-white/[0.1] rounded-lg px-2.5 py-0.5 text-xs text-slate-100 font-mono w-44 sm:w-64 focus:outline-none focus:border-indigo-500/80 transition-all"
                 />
               </div>
             )}
           </div>
 
-          {/* Stream Toggle Pill */}
-          <button
-            type="button"
-            onClick={handleToggleStreamInBody}
-            className={`px-2.5 py-1 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition-all border ${
-              isStreamChecked
-                ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.15)]'
-                : 'bg-[#151824] border-white/[0.08] text-slate-400 hover:text-slate-200'
-            }`}
-            title="Toggle stream: true/false in payload"
-          >
-            <Zap className={`w-3 h-3 ${isStreamChecked ? 'text-emerald-400' : 'text-slate-500'}`} />
-            <span>Stream</span>
-            <span className={`w-1.5 h-1.5 rounded-full ${isStreamChecked ? 'bg-emerald-400 animate-pulse' : 'bg-slate-600'}`} />
-          </button>
-
-          {/* Quick Fill Presets Dropdown */}
-          <div className="relative" ref={presetsRef}>
+          {/* Stream Toggle Pill (Only relevant for non-custom /v1/messages) */}
+          {endpointOption !== 'custom' && (
             <button
-              onClick={() => setShowPresetsDropdown(!showPresetsDropdown)}
-              className="px-2.5 py-1 bg-[#151824] hover:bg-[#1C2030] border border-white/[0.08] hover:border-white/[0.15] text-slate-300 rounded-xl text-xs font-semibold transition-all flex items-center space-x-1.5"
+              type="button"
+              onClick={handleToggleStreamInBody}
+              className={`px-2.5 py-1 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition-all border ${
+                isStreamChecked
+                  ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.15)]'
+                  : 'bg-[#151824] border-white/[0.08] text-slate-400 hover:text-slate-200'
+              }`}
+              title="Toggle stream: true/false in payload"
             >
-              <Sliders className="w-3.5 h-3.5 text-purple-400" />
-              <span>{t('playground.presetsBtn')}</span>
-              <ChevronDown className="w-3 h-3 text-slate-500" />
+              <Zap className={`w-3 h-3 ${isStreamChecked ? 'text-emerald-400' : 'text-slate-500'}`} />
+              <span>Stream</span>
+              <span className={`w-1.5 h-1.5 rounded-full ${isStreamChecked ? 'bg-emerald-400 animate-pulse' : 'bg-slate-600'}`} />
             </button>
+          )}
 
-            {showPresetsDropdown && (
-              <div className="absolute right-0 mt-2 w-48 bg-[#0F1118] border border-white/[0.1] rounded-xl shadow-2xl z-50 py-1 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
-                <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-white/[0.06]">
-                  {t('playground.presetsTitle')}
+          {/* Quick Fill Presets Dropdown (Only relevant for non-custom endpoints) */}
+          {endpointOption !== 'custom' && (
+            <div className="relative" ref={presetsRef}>
+              <button
+                onClick={() => setShowPresetsDropdown(!showPresetsDropdown)}
+                className="px-2.5 py-1 bg-[#151824] hover:bg-[#1C2030] border border-white/[0.08] hover:border-white/[0.15] text-slate-300 rounded-xl text-xs font-semibold transition-all flex items-center space-x-1.5"
+              >
+                <Sliders className="w-3.5 h-3.5 text-purple-400" />
+                <span>{t('playground.presetsBtn')}</span>
+                <ChevronDown className="w-3 h-3 text-slate-500" />
+              </button>
+
+              {showPresetsDropdown && (
+                <div className="absolute right-0 mt-2 w-48 bg-[#0F1118] border border-white/[0.1] rounded-xl shadow-2xl z-50 py-1 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
+                  <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-white/[0.06]">
+                    {t('playground.presetsTitle')}
+                  </div>
+                  <button
+                    onClick={() => handleSelectPreset('basicChat')}
+                    className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/[0.05] transition-colors flex items-center space-x-2"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>{t('playground.presetBasicChat')}</span>
+                  </button>
+                  <button
+                    onClick={() => handleSelectPreset('toolUse')}
+                    className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/[0.05] transition-colors flex items-center space-x-2"
+                  >
+                    <Code className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>{t('playground.presetToolUse')}</span>
+                  </button>
+                  <button
+                    onClick={() => handleSelectPreset('vision')}
+                    className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/[0.05] transition-colors flex items-center space-x-2"
+                  >
+                    <Eye className="w-3.5 h-3.5 text-amber-400" />
+                    <span>{t('playground.presetVision')}</span>
+                  </button>
+                  <button
+                    onClick={() => handleSelectPreset('thinkingMode')}
+                    className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/[0.05] transition-colors flex items-center space-x-2"
+                  >
+                    <Flame className="w-3.5 h-3.5 text-rose-400" />
+                    <span>{t('playground.presetThinking')}</span>
+                  </button>
                 </div>
-                <button
-                  onClick={() => handleSelectPreset('basicChat')}
-                  className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/[0.05] transition-colors flex items-center space-x-2"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>{t('playground.presetBasicChat')}</span>
-                </button>
-                <button
-                  onClick={() => handleSelectPreset('toolUse')}
-                  className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/[0.05] transition-colors flex items-center space-x-2"
-                >
-                  <Code className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>{t('playground.presetToolUse')}</span>
-                </button>
-                <button
-                  onClick={() => handleSelectPreset('vision')}
-                  className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/[0.05] transition-colors flex items-center space-x-2"
-                >
-                  <Eye className="w-3.5 h-3.5 text-amber-400" />
-                  <span>{t('playground.presetVision')}</span>
-                </button>
-                <button
-                  onClick={() => handleSelectPreset('thinkingMode')}
-                  className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/[0.05] transition-colors flex items-center space-x-2"
-                >
-                  <Flame className="w-3.5 h-3.5 text-rose-400" />
-                  <span>{t('playground.presetThinking')}</span>
-                </button>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
 
           {/* Copy cURL */}
           <button
