@@ -774,7 +774,7 @@ class ClaudeTranslator {
     let type = 'api_error';
     if (status === 400 || status === 404) type = 'invalid_request_error';
     if (status === 401 || status === 403) {
-      status = 422;
+      status = 502;
       type = 'api_error';
     }
     if (status === 429) type = 'rate_limit_error';

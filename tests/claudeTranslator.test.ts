@@ -877,14 +877,14 @@ describe('Claude Translator Ephemeral Messages Filtering', () => {
 });
 
 describe('ClaudeTranslator - normalizeError Status Code Mapping', () => {
-  it('remaps 403 and 401 upstream errors to 422 with api_error type to prevent CLI process exit', () => {
+  it('remaps 403 and 401 upstream errors to 502 with api_error type', () => {
     const err403 = translator.normalizeError({ status: 403, message: 'User location is not supported' });
-    expect(err403.status).toEqual(422);
+    expect(err403.status).toEqual(502);
     expect(err403.payload.error.type).toEqual('api_error');
     expect(err403.payload.error.message).toEqual('User location is not supported');
 
     const err401 = translator.normalizeError({ status: 401, message: 'API key expired' });
-    expect(err401.status).toEqual(422);
+    expect(err401.status).toEqual(502);
     expect(err401.payload.error.type).toEqual('api_error');
     expect(err401.payload.error.message).toEqual('API key expired');
   });
