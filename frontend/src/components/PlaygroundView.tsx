@@ -138,7 +138,7 @@ export default function PlaygroundView() {
   const [loading, setLoading] = useState(false);
   const [latency, setLatency] = useState<number | null>(null);
   const [tokenCount, setTokenCount] = useState<number | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>('message');
+  const [viewMode, setViewMode] = useState<ViewMode>('preview');
   const [copiedCurl, setCopiedCurl] = useState<boolean>(false);
   const [copiedResponse, setCopiedResponse] = useState<boolean>(false);
   const [copiedAnswer, setCopiedAnswer] = useState<boolean>(false);
