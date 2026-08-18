@@ -13,9 +13,11 @@ describe('App Route Mounting', () => {
     expect(res.body).toHaveProperty('uptime');
   });
 
-  test('mounts /ui static endpoint with SPA fallback', async () => {
-    const res = await request(app).get('/ui/dashboard');
-    // Either 200 (if html exists) or 404 (if dist/frontend not yet built), but route is handled
-    expect([200, 404]).toContain(res.status);
+  test('mounts root and SPA fallback static endpoint', async () => {
+    const resRoot = await request(app).get('/');
+    expect([200, 404]).toContain(resRoot.status);
+
+    const resDashboard = await request(app).get('/dashboard');
+    expect([200, 404]).toContain(resDashboard.status);
   });
 });
