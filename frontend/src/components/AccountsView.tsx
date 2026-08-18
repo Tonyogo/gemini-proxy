@@ -610,7 +610,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-24">
+    <div className="space-y-6 max-w-7xl mx-auto pb-6">
       {/* Toast */}
       {toastMessage && (
         <div
