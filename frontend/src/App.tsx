@@ -44,9 +44,14 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'playground', icon: Play, shortcut: '⌘5' },
 ];
 
+const VALID_TABS: TabType[] = ['dashboard', 'accounts', 'logs', 'terminal', 'playground'];
+
 export default function App() {
   const { t, lang, setLang } = useTranslation();
-  const [activeTab, setActiveTab] = useState<TabType>('dashboard');
+  const [activeTab, setActiveTab] = useState<TabType>(() => {
+    const saved = localStorage.getItem('admin_active_tab') as TabType;
+    return VALID_TABS.includes(saved) ? saved : 'dashboard';
+  });
   const [adminKey, setAdminKey] = useState(localStorage.getItem('adminKey') || '');
   const [inputKey, setInputKey] = useState(localStorage.getItem('adminKey') || '');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -60,9 +65,10 @@ export default function App() {
   });
   const [isMobileOpen, setIsMobileOpen] = useState<boolean>(false);
 
-  // Close mobile drawer on route/tab change
+  // Close mobile drawer on route/tab change and persist to localStorage
   const handleTabChange = (tabId: TabType) => {
     setActiveTab(tabId);
+    localStorage.setItem('admin_active_tab', tabId);
     setIsMobileOpen(false);
   };
 
@@ -132,7 +138,7 @@ export default function App() {
         const num = parseInt(e.key, 10);
         if (num >= 1 && num <= NAV_ITEMS.length) {
           e.preventDefault();
-          setActiveTab(NAV_ITEMS[num - 1].id);
+          handleTabChange(NAV_ITEMS[num - 1].id);
         }
       }
     };

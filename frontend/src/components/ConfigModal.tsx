@@ -37,9 +37,19 @@ interface MappingEntry {
 
 type TabType = 'general' | 'upstream' | 'instructions' | 'mappings' | 'security';
 
+const VALID_CONFIG_TABS: TabType[] = ['general', 'upstream', 'instructions', 'mappings', 'security'];
+
 export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: ConfigModalProps) {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<TabType>('general');
+  const [activeTab, setActiveTab] = useState<TabType>(() => {
+    const saved = localStorage.getItem('admin_config_tab') as TabType;
+    return VALID_CONFIG_TABS.includes(saved) ? saved : 'general';
+  });
+
+  const handleTabChange = (tabId: TabType) => {
+    setActiveTab(tabId);
+    localStorage.setItem('admin_config_tab', tabId);
+  };
 
   const [systemRoleToInstruction, setSystemRoleToInstruction] = useState<boolean>(false);
   const [customSystemInstruction, setCustomSystemInstruction] = useState<string>('');
@@ -314,7 +324,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
               <button
                 key={tab.id}
                 type="button"
-                onClick={() => setActiveTab(tab.id as TabType)}
+                onClick={() => handleTabChange(tab.id as TabType)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center space-x-2 whitespace-nowrap transition-all ${
                   isActive
                     ? 'bg-indigo-600/20 border border-indigo-500/40 text-indigo-300 shadow-[0_0_12px_rgba(99,102,241,0.2)]'
