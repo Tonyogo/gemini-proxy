@@ -59,8 +59,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState('');
 
-  useEffect(() => {
-    if (!isOpen) return;
+  const fetchConfig = () => {
     setLoading(true);
     const headers: Record<string, string> = adminKey ? { 'x-admin-key': adminKey } : {};
     fetch('/api/admin/status', { headers })
@@ -106,6 +105,11 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
       })
       .catch(() => {})
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    fetchConfig();
   }, [isOpen, adminKey]);
 
   if (!isOpen) return null;
@@ -223,11 +227,10 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
 
       if (res.ok) {
         setToast(t('config.toastSaved'));
+        if (onSaved) onSaved();
         setTimeout(() => {
           setToast('');
-          if (onSaved) onSaved();
-          onClose();
-        }, 1000);
+        }, 2000);
       } else {
         alert(t('config.alertSaveFail'));
       }
@@ -254,11 +257,11 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
         });
         if (res.ok) {
           setToast(t('config.toastReset'));
+          if (onSaved) onSaved();
+          fetchConfig();
           setTimeout(() => {
             setToast('');
-            if (onSaved) onSaved();
-            onClose();
-          }, 1000);
+          }, 2000);
         } else {
           alert(t('config.alertResetFail'));
         }
