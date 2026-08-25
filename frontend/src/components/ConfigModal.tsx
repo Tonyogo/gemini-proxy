@@ -32,6 +32,7 @@ interface MappingEntry {
   id: string;
   source: string;
   target: string;
+  strategy?: string;
 }
 
 type TabType = 'general' | 'upstream' | 'instructions' | 'mappings' | 'security';
@@ -83,11 +84,23 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
 
           const mappings = data.config.modelMappings || {};
           setModelMappingsRaw(JSON.stringify(mappings, null, 2));
-          const entries: MappingEntry[] = Object.entries(mappings).map(([source, target]) => ({
-            id: Math.random().toString(36).substring(2, 9),
-            source,
-            target: String(target)
-          }));
+          const entries: MappingEntry[] = Object.entries(mappings).map(([source, val]) => {
+            if (val && typeof val === 'object' && 'target' in val) {
+              const targetObj = val as { target: string; strategy?: string };
+              return {
+                id: Math.random().toString(36).substring(2, 9),
+                source,
+                target: String(targetObj.target || ''),
+                strategy: targetObj.strategy || ''
+              };
+            }
+            return {
+              id: Math.random().toString(36).substring(2, 9),
+              source,
+              target: String(val || ''),
+              strategy: ''
+            };
+          });
           setMappingEntries(entries);
         }
       })
@@ -98,19 +111,28 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
   if (!isOpen) return null;
 
   const updateRawFromEntries = (entries: MappingEntry[]) => {
-    const obj: Record<string, string> = {};
+    const obj: Record<string, any> = {};
     for (const e of entries) {
       if (e.source.trim()) {
-        obj[e.source.trim()] = e.target.trim();
+        const targetTrimmed = e.target.trim();
+        const strategyTrimmed = e.strategy?.trim();
+        if (strategyTrimmed) {
+          obj[e.source.trim()] = {
+            target: targetTrimmed,
+            strategy: strategyTrimmed
+          };
+        } else {
+          obj[e.source.trim()] = targetTrimmed;
+        }
       }
     }
     setModelMappingsRaw(JSON.stringify(obj, null, 2));
   };
 
   const handleAddMapping = () => {
-    const newEntries = [
+    const newEntries: MappingEntry[] = [
       ...mappingEntries,
-      { id: Math.random().toString(36).substring(2, 9), source: '', target: '' }
+      { id: Math.random().toString(36).substring(2, 9), source: '', target: '', strategy: '' }
     ];
     setMappingEntries(newEntries);
     updateRawFromEntries(newEntries);
@@ -122,7 +144,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
     updateRawFromEntries(newEntries);
   };
 
-  const handleEntryChange = (id: string, field: 'source' | 'target', value: string) => {
+  const handleEntryChange = (id: string, field: 'source' | 'target' | 'strategy', value: string) => {
     const newEntries = mappingEntries.map(e => e.id === id ? { ...e, [field]: value } : e);
     setMappingEntries(newEntries);
     updateRawFromEntries(newEntries);
@@ -139,11 +161,23 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
     try {
       const parsed = JSON.parse(val);
       if (typeof parsed === 'object' && parsed !== null) {
-        const entries: MappingEntry[] = Object.entries(parsed).map(([source, target]) => ({
-          id: Math.random().toString(36).substring(2, 9),
-          source,
-          target: String(target)
-        }));
+        const entries: MappingEntry[] = Object.entries(parsed).map(([source, mappingVal]) => {
+          if (mappingVal && typeof mappingVal === 'object' && 'target' in mappingVal) {
+            const targetObj = mappingVal as { target: string; strategy?: string };
+            return {
+              id: Math.random().toString(36).substring(2, 9),
+              source,
+              target: String(targetObj.target || ''),
+              strategy: targetObj.strategy || ''
+            };
+          }
+          return {
+            id: Math.random().toString(36).substring(2, 9),
+            source,
+            target: String(mappingVal || ''),
+            strategy: ''
+          };
+        });
         setMappingEntries(entries);
       }
     } catch {
@@ -501,7 +535,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                           {t('config.emptyMappings')}
                         </div>
                       ) : (
-                        <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                        <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
                           {mappingEntries.map((entry) => (
                             <div key={entry.id} className="flex items-center space-x-2">
                               <input
@@ -509,16 +543,27 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                 value={entry.source}
                                 onChange={(e) => handleEntryChange(entry.id, 'source', e.target.value)}
                                 placeholder={t('config.sourceModel')}
-                                className="flex-1 bg-[#151824] border border-white/[0.08] rounded-xl p-2 text-xs text-slate-100 font-mono focus:outline-none focus:border-amber-500"
+                                className="flex-1 min-w-0 bg-[#151824] border border-white/[0.08] rounded-xl p-2 text-xs text-slate-100 font-mono focus:outline-none focus:border-amber-500"
                               />
-                              <span className="text-slate-500 font-bold text-xs">→</span>
+                              <span className="text-slate-500 font-bold text-xs shrink-0">→</span>
                               <input
                                 type="text"
                                 value={entry.target}
                                 onChange={(e) => handleEntryChange(entry.id, 'target', e.target.value)}
                                 placeholder={t('config.targetModel')}
-                                className="flex-1 bg-[#151824] border border-white/[0.08] rounded-xl p-2 text-xs text-amber-300 font-mono focus:outline-none focus:border-amber-500"
+                                className="flex-1 min-w-0 bg-[#151824] border border-white/[0.08] rounded-xl p-2 text-xs text-amber-300 font-mono focus:outline-none focus:border-amber-500"
                               />
+                              <select
+                                value={entry.strategy || ''}
+                                onChange={(e) => handleEntryChange(entry.id, 'strategy', e.target.value)}
+                                className="bg-[#151824] border border-white/[0.08] rounded-xl p-2 text-[11px] text-slate-300 font-mono focus:outline-none focus:border-amber-500 shrink-0"
+                                title={t('config.strategy')}
+                              >
+                                <option value="">{t('config.strategyDefault')}</option>
+                                <option value="least-used">{t('config.strategyLeastUsed')}</option>
+                                <option value="round-robin">{t('config.strategyRoundRobin')}</option>
+                                <option value="weighted">{t('config.strategyWeighted')}</option>
+                              </select>
                               <button
                                 type="button"
                                 onClick={() => handleToggleHigh(entry.id, entry.target)}
@@ -535,7 +580,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                               <button
                                 type="button"
                                 onClick={() => handleRemoveMapping(entry.id)}
-                                className="p-2 text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 rounded-xl transition-colors text-xs"
+                                className="p-2 text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 rounded-xl transition-colors text-xs shrink-0"
                                 title="Remove mapping"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />

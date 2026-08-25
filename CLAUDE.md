@@ -52,7 +52,7 @@ This is a **stateless API proxy** that translates Anthropic Claude Messages API 
   - `RUNTIME_CONTEXT_TAG`: Configurable wrapper tag name (default `runtime-context`).
   - `UPSTREAM_TIMEOUT_MS`: Timeout for upstream Gemini requests in milliseconds (default `180000`).
   - `CUSTOM_SYSTEM_INSTRUCTION`: Optional custom system instructions injected into upstream calls.
-  - `MODEL_MAPPINGS`: Optional JSON mapping dictionary to alias or redirect model requests.
+  - `MODEL_MAPPINGS`: Optional JSON mapping dictionary to alias or redirect model requests (supports string target or `{ target, strategy }` with `least-used`, `round-robin`, `weighted` sent via `x-scheduling-strategy` header).
 
 ## Code Style & Guidelines
 

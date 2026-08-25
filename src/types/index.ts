@@ -67,3 +67,15 @@ export interface ModelConfig {
   display_name: string;
   created_at: string;
 }
+
+export type SchedulingStrategy = 'least-used' | 'round-robin' | 'weighted';
+
+export interface ModelMappingTargetConfig {
+  target: string;
+  strategy?: SchedulingStrategy;
+}
+
+export type ModelMappingValue = string | ModelMappingTargetConfig;
+
+export type ModelMappingsConfig = Record<string, ModelMappingValue>;
+

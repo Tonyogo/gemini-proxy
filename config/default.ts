@@ -1,10 +1,11 @@
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 import { existsSync, readFileSync, promises as fs } from 'fs';
+import { ModelMappingsConfig } from '../src/types';
 
 dotenv.config();
 
-let parsedModelMappings: Record<string, string> = {};
+let parsedModelMappings: ModelMappingsConfig = {};
 if (process.env.MODEL_MAPPINGS) {
   try {
     parsedModelMappings = JSON.parse(process.env.MODEL_MAPPINGS);
@@ -52,7 +53,7 @@ if (existsSync(runtimeJsonPath)) {
 
 const getEnvConfig = () => ({
   logLevel: (process.env.LOG_LEVEL || 'info') as string,
-  modelMappings: parsedModelMappings as Record<string, string>,
+  modelMappings: parsedModelMappings as ModelMappingsConfig,
   ephemeralUserMessages: parsedEphemeralUserMessages as string[],
   ephemeralSystemMessages: parsedEphemeralSystemMessages as string[],
   customSystemInstruction: (process.env.CUSTOM_SYSTEM_INSTRUCTION || '') as string,

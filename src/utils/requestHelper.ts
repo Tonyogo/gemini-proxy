@@ -36,6 +36,17 @@ export function extractTimeoutMs(req: Request): number {
 }
 
 /**
+ * Extracts per-request scheduling strategy from 'x-scheduling-strategy' header.
+ */
+export function extractClientSchedulingStrategy(req: Request): string | null {
+  const headerValue = req.headers['x-scheduling-strategy'];
+  if (typeof headerValue === 'string' && headerValue.trim()) {
+    return headerValue.trim();
+  }
+  return null;
+}
+
+/**
  * Normalizes and builds the absolute upstream Gemini URL for proxying.
  */
 export function getUpstreamUrl(pathAndQuery: string): string {

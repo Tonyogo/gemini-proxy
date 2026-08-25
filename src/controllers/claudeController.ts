@@ -9,6 +9,7 @@ import { StreamLifecycleManager } from '../utils/streamLifecycleManager';
 import {
   extractClientKey,
   extractTimeoutMs,
+  extractClientSchedulingStrategy,
   getUpstreamUrl,
   generateTransactionId,
   buildUpstreamHeaders
@@ -46,8 +47,16 @@ class ClaudeController {
         return res.status(401).json(errPayload);
       }
 
-      const { googleRequest, cleanModelName, isStream } = claudeTranslator.translateClaudeToGoogle(clientReq);
+      const { googleRequest, cleanModelName, strategy, isStream } = claudeTranslator.translateClaudeToGoogle(clientReq);
       gemReq = googleRequest;
+
+      // Determine effective scheduling strategy: mapping config takes precedence over client header
+      const clientStrategy = extractClientSchedulingStrategy(req);
+      const effectiveStrategy = strategy || clientStrategy;
+      const customUpstreamHeaders: Record<string, string> = {};
+      if (effectiveStrategy) {
+        customUpstreamHeaders['x-scheduling-strategy'] = effectiveStrategy;
+      }
 
       if (isStream) {
         const streamManager = new StreamLifecycleManager({ req, res, transactionId, timeoutMs });
@@ -58,7 +67,7 @@ class ClaudeController {
         try {
           const response = await fetch(targetUrl, {
             method: 'POST',
-            headers: buildUpstreamHeaders(apiKey),
+            headers: buildUpstreamHeaders(apiKey, customUpstreamHeaders),
             body: JSON.stringify(gemReq),
             signal: streamManager.signal
           });
@@ -239,7 +248,7 @@ class ClaudeController {
       try {
         const response = await fetch(targetUrl, {
           method: 'POST',
-          headers: buildUpstreamHeaders(apiKey),
+          headers: buildUpstreamHeaders(apiKey, customUpstreamHeaders),
           body: JSON.stringify(gemReq),
           signal: streamManager.signal
         });

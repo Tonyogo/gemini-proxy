@@ -234,3 +234,91 @@ describe('POST /v1/messages (Timeout Handling)', () => {
   });
 });
 
+describe('POST /v1/messages (Scheduling Strategy Header)', () => {
+  const fetchMock = require('node-fetch');
+
+  beforeEach(() => {
+    fetchMock.mockClear();
+    config.modelMappings = {};
+  });
+
+  it('injects x-scheduling-strategy header from model mapping configuration', async () => {
+    config.modelMappings = {
+      'claude-3-7-sonnet': {
+        target: 'gemini-2.5-pro',
+        strategy: 'round-robin'
+      }
+    };
+
+    await request(app)
+      .post('/v1/messages')
+      .set('x-api-key', 'client-key')
+      .send({
+        model: 'claude-3-7-sonnet',
+        messages: [{ role: 'user', content: 'Hello' }]
+      });
+
+    expect(fetchMock).toHaveBeenCalled();
+    const lastCallHeaders = fetchMock.mock.calls[0][1].headers;
+    expect(lastCallHeaders['x-scheduling-strategy']).toEqual('round-robin');
+  });
+
+  it('passes through client x-scheduling-strategy when mapping does not configure one', async () => {
+    config.modelMappings = {
+      'claude-3-7-sonnet': 'gemini-2.5-pro'
+    };
+
+    await request(app)
+      .post('/v1/messages')
+      .set('x-api-key', 'client-key')
+      .set('x-scheduling-strategy', 'least-used')
+      .send({
+        model: 'claude-3-7-sonnet',
+        messages: [{ role: 'user', content: 'Hello' }]
+      });
+
+    expect(fetchMock).toHaveBeenCalled();
+    const lastCallHeaders = fetchMock.mock.calls[0][1].headers;
+    expect(lastCallHeaders['x-scheduling-strategy']).toEqual('least-used');
+  });
+
+  it('mapping configured strategy overrides client supplied header', async () => {
+    config.modelMappings = {
+      'claude-3-7-sonnet': {
+        target: 'gemini-2.5-pro',
+        strategy: 'weighted'
+      }
+    };
+
+    await request(app)
+      .post('/v1/messages')
+      .set('x-api-key', 'client-key')
+      .set('x-scheduling-strategy', 'round-robin')
+      .send({
+        model: 'claude-3-7-sonnet',
+        messages: [{ role: 'user', content: 'Hello' }]
+      });
+
+    expect(fetchMock).toHaveBeenCalled();
+    const lastCallHeaders = fetchMock.mock.calls[0][1].headers;
+    expect(lastCallHeaders['x-scheduling-strategy']).toEqual('weighted');
+  });
+
+  it('does not send x-scheduling-strategy if none configured or provided', async () => {
+    config.modelMappings = {};
+
+    await request(app)
+      .post('/v1/messages')
+      .set('x-api-key', 'client-key')
+      .send({
+        model: 'gemini-2.5-flash',
+        messages: [{ role: 'user', content: 'Hello' }]
+      });
+
+    expect(fetchMock).toHaveBeenCalled();
+    const lastCallHeaders = fetchMock.mock.calls[0][1].headers;
+    expect(lastCallHeaders['x-scheduling-strategy']).toBeUndefined();
+  });
+});
+
+

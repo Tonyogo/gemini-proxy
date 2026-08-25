@@ -749,6 +749,7 @@ describe('Claude Translator Model Name Mapping', () => {
     } as any;
     const resultPro = translatorWithMapping.translateClaudeToGoogle(payloadPro);
     expect(resultPro.cleanModelName).toEqual('gemini-flash-latest'); // Mapped to flash-latest!
+    expect(resultPro.strategy).toBeUndefined();
 
     // 4. Translate Claude request using custom model 'claude-to-gemini-custom'
     const payloadCustom = {
@@ -757,6 +758,47 @@ describe('Claude Translator Model Name Mapping', () => {
     } as any;
     const resultCustom = translatorWithMapping.translateClaudeToGoogle(payloadCustom);
     expect(resultCustom.cleanModelName).toEqual('gemini-2.5-pro'); // Mapped to 2.5-pro!
+    expect(resultCustom.strategy).toBeUndefined();
+  });
+
+  it('correctly maps configured object aliases with scheduling strategy', () => {
+    config.modelMappings = {
+      'claude-3-7-sonnet': {
+        target: 'gemini-2.5-pro',
+        strategy: 'round-robin'
+      },
+      'claude-3-5-haiku': {
+        target: 'gemini-2.5-flash',
+        strategy: 'least-used'
+      },
+      'claude-weighted': {
+        target: 'gemini-2.5-flash-high',
+        strategy: 'weighted'
+      }
+    };
+
+    const translatorWithMapping = new (translator.constructor as any)();
+
+    const res1 = translatorWithMapping.translateClaudeToGoogle({
+      model: 'claude-3-7-sonnet',
+      messages: [{ role: 'user', content: 'Hello' }]
+    } as any);
+    expect(res1.cleanModelName).toEqual('gemini-2.5-pro');
+    expect(res1.strategy).toEqual('round-robin');
+
+    const res2 = translatorWithMapping.translateClaudeToGoogle({
+      model: 'claude-3-5-haiku',
+      messages: [{ role: 'user', content: 'Hello' }]
+    } as any);
+    expect(res2.cleanModelName).toEqual('gemini-2.5-flash');
+    expect(res2.strategy).toEqual('least-used');
+
+    const res3 = translatorWithMapping.translateClaudeToGoogle({
+      model: 'claude-weighted',
+      messages: [{ role: 'user', content: 'Hello' }]
+    } as any);
+    expect(res3.cleanModelName).toEqual('gemini-2.5-flash-high');
+    expect(res3.strategy).toEqual('weighted');
   });
 });
 

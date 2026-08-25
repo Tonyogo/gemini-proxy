@@ -1,21 +1,45 @@
 import config from '../../config/default';
 import logger from '../utils/logger';
-import { ClaudeRequest, GeminiRequest, GeminiContent, GeminiPart, GeminiModelsResponse } from '../types';
+import {
+  ClaudeRequest,
+  GeminiRequest,
+  GeminiContent,
+  GeminiPart,
+  GeminiModelsResponse,
+  SchedulingStrategy
+} from '../types';
 
 const BYPASS_SIGNATURE = 'context_engineering_is_the_way_to_go';
 
 class ClaudeTranslator {
   /**
    * Dynamically resolves raw model aliases against config.modelMappings
+   * Supports both plain string target and object target { target, strategy }
    */
-  public getCleanModelName(rawModel: string): string {
-    if (!rawModel) return rawModel;
+  public getModelMappingInfo(rawModel: string): { targetModel: string; strategy?: SchedulingStrategy } {
+    if (!rawModel) return { targetModel: rawModel };
     if (config.modelMappings && typeof config.modelMappings === 'object') {
-      if (config.modelMappings[rawModel]) {
-        return config.modelMappings[rawModel];
+      const mapping = config.modelMappings[rawModel];
+      if (mapping) {
+        if (typeof mapping === 'string') {
+          return { targetModel: mapping };
+        }
+        if (typeof mapping === 'object' && mapping.target) {
+          return {
+            targetModel: mapping.target,
+            strategy: mapping.strategy
+          };
+        }
       }
     }
-    return rawModel.replace(/^models\//, '');
+    return { targetModel: rawModel.replace(/^models\//, '') };
+  }
+
+  /**
+   * Dynamically resolves raw model aliases against config.modelMappings
+   */
+  public getCleanModelName(rawModel: string): string {
+    return this.getModelMappingInfo(rawModel).targetModel;
   }
 
   public _convertSchemaToGemini(obj: any, isResponseSchema: boolean = false, isProperties: boolean = false): any {
@@ -271,10 +295,12 @@ class ClaudeTranslator {
       throw { status: 400, message: "Missing required parameter: 'model'" };
     }
 
-    let cleanModelName = this.getCleanModelName(rawModel);
+    const mappingInfo = this.getModelMappingInfo(rawModel);
+    let cleanModelName = mappingInfo.targetModel;
     if (!cleanModelName) {
       cleanModelName = rawModel.replace(/^models\//, '');
     }
+    const mappingStrategy = mappingInfo.strategy;
 
     let systemInstruction: any = null;
 
@@ -490,6 +516,7 @@ class ClaudeTranslator {
     return {
       googleRequest,
       cleanModelName,
+      strategy: mappingStrategy,
       isStream: claudeBody.stream === true
     };
   }

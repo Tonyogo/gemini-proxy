@@ -29,7 +29,11 @@ describe('Dynamic Config Hot-Reload in Translator', () => {
   it('immediately applies MODEL_MAPPINGS changes without server restart', async () => {
     await updateConfig({
       modelMappings: {
-        'my-custom-alias': 'gemini-1.5-flash-target'
+        'my-custom-alias': 'gemini-1.5-flash-target',
+        'my-strategy-alias': {
+          target: 'gemini-2.5-pro',
+          strategy: 'least-used'
+        }
       }
     });
 
@@ -40,6 +44,15 @@ describe('Dynamic Config Hot-Reload in Translator', () => {
 
     const result = translator.translateClaudeToGoogle(payload);
     expect(result.cleanModelName).toBe('gemini-1.5-flash-target');
+
+    const payload2 = {
+      model: 'my-strategy-alias',
+      messages: [{ role: 'user', content: 'Hi' }]
+    } as any;
+
+    const result2 = translator.translateClaudeToGoogle(payload2);
+    expect(result2.cleanModelName).toBe('gemini-2.5-pro');
+    expect(result2.strategy).toBe('least-used');
   });
 
   it('immediately applies RUNTIME_CONTEXT_TAG changes without server restart', async () => {
