@@ -51,7 +51,8 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
   const [totalLogs, setTotalLogs] = useState<number>(0);
 
   // Copy feedback states
-  const [copiedCurl, setCopiedCurl] = useState(false);
+  const [copiedClaudeCurl, setCopiedClaudeCurl] = useState(false);
+  const [copiedGeminiCurl, setCopiedGeminiCurl] = useState(false);
   const [copiedJson, setCopiedJson] = useState(false);
 
   const fetchLogs = (forceAutoJump = false, customDate?: string, customHour?: string, pageNum = page, limitNum = limit) => {
@@ -231,8 +232,8 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
     });
   }, [logs, statusFilter, searchFilter]);
 
-  // Copy cURL command for current log
-  const handleCopyCurl = () => {
+  // Copy Claude cURL command for current log
+  const handleCopyClaudeCurl = () => {
     if (!selectedLog) return;
     try {
       const origin = window.location.origin;
@@ -245,8 +246,54 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
       }`;
 
       navigator.clipboard.writeText(curlCmd);
-      setCopiedCurl(true);
-      setTimeout(() => setCopiedCurl(false), 2000);
+      setCopiedClaudeCurl(true);
+      setTimeout(() => setCopiedClaudeCurl(false), 2000);
+    } catch {
+      // fallback
+    }
+  };
+
+  // Copy Upstream Gemini cURL command for current log
+  const handleCopyGeminiCurl = () => {
+    if (!selectedLog) return;
+    try {
+      const baseUrl = 'https://generativelanguage.googleapis.com';
+      const cleanModelName = (selectedLog.model || 'gemini-2.5-pro').replace(/^models\//, '');
+      const reqPath = selectedLog.path || selectedLog.reqPath || '/v1/messages';
+      const isStream = Boolean(selectedLog.is_stream || selectedLog.isStream || selectedLog.client_req?.stream);
+
+      let targetUrl = `${baseUrl}/v1beta/models/${cleanModelName}:generateContent`;
+      let method = 'POST';
+      let bodyData = selectedLog.gem_req;
+
+      if (reqPath.startsWith('/v1/models')) {
+        method = 'GET';
+        if (reqPath === '/v1/models' || reqPath === '/v1/models/') {
+          targetUrl = `${baseUrl}/v1beta/models`;
+        } else {
+          const modelId = reqPath.replace(/^\/v1\/models\/?/, '');
+          targetUrl = `${baseUrl}/v1beta/models/${modelId}`;
+        }
+        bodyData = null;
+      } else if (reqPath.includes('count_tokens')) {
+        targetUrl = `${baseUrl}/v1beta/models/${cleanModelName}:countTokens`;
+      } else if (isStream) {
+        targetUrl = `${baseUrl}/v1beta/models/${cleanModelName}:streamGenerateContent?alt=sse`;
+      }
+
+      const body = bodyData ? JSON.stringify(bodyData, null, 2) : '';
+      const headers = [
+        '-H "Content-Type: application/json"',
+        '-H "x-goog-api-key: YOUR_GEMINI_API_KEY"'
+      ];
+
+      const curlCmd = `curl -X ${method} "${targetUrl}" \\\n  ${headers.join(' \\\n  ')}${
+        body && method !== 'GET' ? ` \\\n  -d '${body.replace(/'/g, "'\\''")}'` : ''
+      }`;
+
+      navigator.clipboard.writeText(curlCmd);
+      setCopiedGeminiCurl(true);
+      setTimeout(() => setCopiedGeminiCurl(false), 2000);
     } catch {
       // fallback
     }
@@ -662,19 +709,37 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
             {selectedLog && (
               <div className="flex items-center space-x-1.5">
                 <button
-                  onClick={handleCopyCurl}
+                  onClick={handleCopyClaudeCurl}
                   className="px-2.5 py-1.5 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-xs font-mono flex items-center space-x-1 transition-colors"
-                  title="Copy cURL command"
+                  title="Copy Claude proxy cURL command"
                 >
-                  {copiedCurl ? (
+                  {copiedClaudeCurl ? (
                     <>
                       <Check className="w-3 h-3 text-emerald-400" />
-                      <span className="text-emerald-400">{t('logs.curlCopied', 'cURL 已复制！')}</span>
+                      <span className="text-emerald-400">{t('logs.claudeCurlCopied', 'Claude cURL 已复制！')}</span>
                     </>
                   ) : (
                     <>
-                      <Terminal className="w-3 h-3" />
-                      <span>{t('logs.copyCurl', '复制 cURL')}</span>
+                      <Terminal className="w-3 h-3 text-indigo-400" />
+                      <span>{t('logs.copyClaudeCurl', 'Claude cURL')}</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  onClick={handleCopyGeminiCurl}
+                  className="px-2.5 py-1.5 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-xs font-mono flex items-center space-x-1 transition-colors"
+                  title="Copy upstream Gemini cURL command"
+                >
+                  {copiedGeminiCurl ? (
+                    <>
+                      <Check className="w-3 h-3 text-emerald-400" />
+                      <span className="text-emerald-400">{t('logs.geminiCurlCopied', 'Gemini cURL 已复制！')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Terminal className="w-3 h-3 text-emerald-400" />
+                      <span>{t('logs.copyGeminiCurl', 'Gemini cURL')}</span>
                     </>
                   )}
                 </button>
