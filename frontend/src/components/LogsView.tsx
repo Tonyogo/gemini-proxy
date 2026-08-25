@@ -49,6 +49,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
   const [page, setPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(50);
   const [totalLogs, setTotalLogs] = useState<number>(0);
+  const [geminiBaseUrl, setGeminiBaseUrl] = useState<string>('https://generativelanguage.googleapis.com');
 
   // Copy feedback states
   const [copiedClaudeCurl, setCopiedClaudeCurl] = useState(false);
@@ -97,6 +98,15 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
 
   useEffect(() => {
     fetchLogs(true);
+    const headers: Record<string, string> = adminKey ? { 'x-admin-key': adminKey } : {};
+    fetch('/api/admin/status', { headers })
+      .then(r => r.json())
+      .then(data => {
+        if (data?.config?.geminiBaseUrl) {
+          setGeminiBaseUrl(data.config.geminiBaseUrl);
+        }
+      })
+      .catch(() => {});
   }, [adminKey]);
 
   const loadDetail = (log: any) => {
@@ -240,8 +250,9 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
       const targetUrl = `${origin}${selectedLog.path || '/v1/messages'}`;
       const method = selectedLog.method || 'POST';
       const body = selectedLog.client_req ? JSON.stringify(selectedLog.client_req, null, 2) : '';
+      const apiKeyToUse = adminKey || 'YOUR_API_KEY';
 
-      const curlCmd = `curl -X ${method} "${targetUrl}" \\\n  -H "Content-Type: application/json" \\\n  -H "x-api-key: YOUR_API_KEY"${
+      const curlCmd = `curl -X ${method} "${targetUrl}" \\\n  -H "Content-Type: application/json" \\\n  -H "x-api-key: ${apiKeyToUse}"${
         body ? ` \\\n  -d '${body.replace(/'/g, "'\\''")}'` : ''
       }`;
 
@@ -257,10 +268,11 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
   const handleCopyGeminiCurl = () => {
     if (!selectedLog) return;
     try {
-      const baseUrl = 'https://generativelanguage.googleapis.com';
+      const baseUrl = (geminiBaseUrl || 'https://generativelanguage.googleapis.com').replace(/\/+$/, '');
       const cleanModelName = (selectedLog.model || 'gemini-2.5-pro').replace(/^models\//, '');
       const reqPath = selectedLog.path || selectedLog.reqPath || '/v1/messages';
       const isStream = Boolean(selectedLog.is_stream || selectedLog.isStream || selectedLog.client_req?.stream);
+      const apiKeyToUse = adminKey || 'YOUR_GEMINI_API_KEY';
 
       let targetUrl = `${baseUrl}/v1beta/models/${cleanModelName}:generateContent`;
       let method = 'POST';
@@ -284,7 +296,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
       const body = bodyData ? JSON.stringify(bodyData, null, 2) : '';
       const headers = [
         '-H "Content-Type: application/json"',
-        '-H "x-goog-api-key: YOUR_GEMINI_API_KEY"'
+        `-H "x-goog-api-key: ${apiKeyToUse}"`
       ];
 
       const curlCmd = `curl -X ${method} "${targetUrl}" \\\n  ${headers.join(' \\\n  ')}${

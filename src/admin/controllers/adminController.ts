@@ -13,6 +13,7 @@ class AdminController {
       memoryUsage: process.memoryUsage(),
       config: {
         logLevel: config.logLevel,
+        geminiBaseUrl: config.geminiBaseUrl,
         systemRoleToInstruction: config.systemRoleToInstruction,
         runtimeContextTag: config.runtimeContextTag,
         upstreamTimeoutMs: config.upstreamTimeoutMs,
@@ -84,6 +85,7 @@ class AdminController {
         message: 'Configuration updated successfully',
         config: {
           logLevel: config.logLevel,
+          geminiBaseUrl: config.geminiBaseUrl,
           systemRoleToInstruction: config.systemRoleToInstruction,
           runtimeContextTag: config.runtimeContextTag,
           upstreamTimeoutMs: config.upstreamTimeoutMs,
@@ -92,8 +94,8 @@ class AdminController {
           timeZone: config.timeZone,
           logRetentionDays: config.logRetentionDays,
           countTokensModel: config.countTokensModel,
-        ephemeralUserMessages: config.ephemeralUserMessages,
-        ephemeralSystemMessages: config.ephemeralSystemMessages
+          ephemeralUserMessages: config.ephemeralUserMessages,
+          ephemeralSystemMessages: config.ephemeralSystemMessages
         }
       });
     } catch (err: any) {
