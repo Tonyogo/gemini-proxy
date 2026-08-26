@@ -374,104 +374,112 @@ class ClaudeTranslator {
     const contents: GeminiContent[] = [];
     const toolIdToNameMap = new Map<string, string>();
 
-    if (inputMessages.length > 0) {
-      for (const msg of inputMessages) {
-        if (msg.role === 'system') {
-          if (config.systemRoleToInstruction) {
-            // Skip inline insertion when systemRoleToInstruction switch is active
-            continue;
-          }
-          // Default behavior: Map inline system roles to user role and wrap inside <runtime-context> tags
-          contents.push({
-            role: 'user',
-            parts: wrapSystemMessageContent(msg.content)
-          });
-          continue;
-        }
+    const parseUserMessageParts = (msg: any): GeminiPart[] => {
+      const parts: GeminiPart[] = [];
+      if (typeof msg.content === 'string') {
+        parts.push({ text: msg.content });
+      } else if (Array.isArray(msg.content)) {
+        for (const block of msg.content) {
+          if (block.type === 'text') {
+            parts.push({ text: block.text });
+          } else if (block.type === 'image' || block.type === 'document') {
+            const mediaPart = this._extractMediaPart(block);
+            if (mediaPart) {
+              parts.push(mediaPart);
+            }
+          } else if (block.type === 'tool_use') {
+            toolIdToNameMap.set(block.id, block.name);
+            const geminiCallId = block.id.startsWith('toolu_g_') ? block.id.substring(8) : block.id;
+            parts.push({
+              functionCall: {
+                name: block.name,
+                args: block.input || {},
+                id: geminiCallId
+              },
+              thoughtSignature: BYPASS_SIGNATURE
+            });
+          } else if (block.type === 'tool_result') {
+            const matchedName = toolIdToNameMap.get(block.tool_use_id) || 'unknown_tool';
+            const geminiResponseId = block.tool_use_id && block.tool_use_id.startsWith('toolu_g_') ? block.tool_use_id.substring(8) : block.tool_use_id;
 
-        const role = msg.role === 'assistant' ? 'model' : 'user';
-        const parts: GeminiPart[] = [];
+            let resultText: any = block.content;
+            const imageParts: any[] = [];
 
-        if (typeof msg.content === 'string') {
-          parts.push({ text: msg.content });
-        } else if (Array.isArray(msg.content)) {
-          for (const block of msg.content) {
-            if (block.type === 'text') {
-              parts.push({ text: block.text });
-            } else if (block.type === 'image' || block.type === 'document') {
-              const mediaPart = this._extractMediaPart(block);
-              if (mediaPart) {
-                parts.push(mediaPart);
-              }
-            } else if (block.type === 'tool_use') {
-              toolIdToNameMap.set(block.id, block.name);
-              // Extract Gemini ID if block.id starts with "toolu_g_"
-              const geminiCallId = block.id.startsWith('toolu_g_') ? block.id.substring(8) : block.id;
-              parts.push({
-                functionCall: {
-                  name: block.name,
-                  args: block.input || {},
-                  id: geminiCallId
-                },
-                thoughtSignature: BYPASS_SIGNATURE
-              });
-            } else if (block.type === 'tool_result') {
-              const matchedName = toolIdToNameMap.get(block.tool_use_id) || 'unknown_tool';
-              const geminiResponseId = block.tool_use_id && block.tool_use_id.startsWith('toolu_g_') ? block.tool_use_id.substring(8) : block.tool_use_id;
-
-              /*
-               * NOTE ON MULTI-TURN TOOL CALLING & SYSTEM INSTRUCTIONS (e.g. Claude Code "Skill" tool):
-               *
-               * Historically, some clients (like Claude Code CLI) emitted a "Skill" tool result followed by
-               * a disconnected user text block containing massive instructions. Translators used to
-               * perform lookahead splicing here to merge them to prevent Gemini empty-response (NATURAL_STOP) issues.
-               *
-               * To maintain a pure, stateless translation layer without mutating request payload structures
-               * or introducing leaky abstractions for specific tool suites, we translate blocks exactly as received.
-               *
-               * If you experience empty responses during skill execution, ensure that the client tool returns
-               * the complete instructional content directly inside the tool_result content payload, rather than
-               * split across disjoint sibling text blocks.
-               */
-
-              let resultText: any = block.content;
-              const imageParts: any[] = [];
-
-              if (Array.isArray(block.content)) {
-                const textCollector: string[] = [];
-                for (const item of block.content) {
-                  if (typeof item === 'string') {
-                    textCollector.push(item);
-                  } else if (item && item.type === 'text') {
-                    if (item.text) textCollector.push(item.text);
-                  } else {
-                    const mediaPart = this._extractMediaPart(item);
-                    if (mediaPart) {
-                      imageParts.push(mediaPart);
-                    }
+            if (Array.isArray(block.content)) {
+              const textCollector: string[] = [];
+              for (const item of block.content) {
+                if (typeof item === 'string') {
+                  textCollector.push(item);
+                } else if (item && item.type === 'text') {
+                  if (item.text) textCollector.push(item.text);
+                } else {
+                  const mediaPart = this._extractMediaPart(item);
+                  if (mediaPart) {
+                    imageParts.push(mediaPart);
                   }
                 }
-                resultText = textCollector.join('\n');
               }
-
-              const functionResponseObj: any = {
-                name: matchedName,
-                response: { result: resultText },
-                id: geminiResponseId
-              };
-
-              if (imageParts.length > 0) {
-                functionResponseObj.parts = imageParts;
-              }
-
-              parts.push({
-                functionResponse: functionResponseObj
-              });
+              resultText = textCollector.join('\n');
             }
+
+            const functionResponseObj: any = {
+              name: matchedName,
+              response: { result: resultText },
+              id: geminiResponseId
+            };
+
+            if (imageParts.length > 0) {
+              functionResponseObj.parts = imageParts;
+            }
+
+            parts.push({
+              functionResponse: functionResponseObj
+            });
           }
         }
-        contents.push({ role, parts });
       }
+      return parts;
+    };
+
+    if (inputMessages.length > 0) {
+      let pendingUserSegment: { systemParts: GeminiPart[]; userParts: GeminiPart[] } | null = null;
+
+      const flushUserSegment = () => {
+        if (!pendingUserSegment) return;
+        const combinedParts = [...pendingUserSegment.systemParts, ...pendingUserSegment.userParts];
+        if (combinedParts.length > 0) {
+          contents.push({
+            role: 'user',
+            parts: combinedParts
+          });
+        }
+        pendingUserSegment = null;
+      };
+
+      for (const msg of inputMessages) {
+        if (msg.role === 'assistant') {
+          flushUserSegment();
+          contents.push({
+            role: 'model',
+            parts: parseUserMessageParts(msg)
+          });
+        } else if (msg.role === 'system') {
+          if (config.systemRoleToInstruction) {
+            continue;
+          }
+          if (!pendingUserSegment) {
+            pendingUserSegment = { systemParts: [], userParts: [] };
+          }
+          pendingUserSegment.systemParts.push(...wrapSystemMessageContent(msg.content));
+        } else {
+          // role === 'user' (or any other non-assistant role)
+          if (!pendingUserSegment) {
+            pendingUserSegment = { systemParts: [], userParts: [] };
+          }
+          pendingUserSegment.userParts.push(...parseUserMessageParts(msg));
+        }
+      }
+      flushUserSegment();
     }
 
     // Generic consecutive same-role blocks merging to prevent alternating role constraint violations
