@@ -201,6 +201,24 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
     return `M ${points.join(' L ')}`;
   };
 
+  // Stacked/Bar top-rounded path generator
+  const getRoundedTopBarPath = (x: number, y: number, w: number, h: number, r: number) => {
+    if (h <= 0) return '';
+    const radius = Math.min(r, h, w / 2);
+    if (radius <= 0) {
+      return `M ${x} ${y + h} L ${x} ${y} L ${x + w} ${y} L ${x + w} ${y + h} Z`;
+    }
+    return `
+      M ${x} ${y + h}
+      L ${x} ${y + radius}
+      A ${radius} ${radius} 0 0 1 ${x + radius} ${y}
+      L ${x + w - radius} ${y}
+      A ${radius} ${radius} 0 0 1 ${x + w} ${y + radius}
+      L ${x + w} ${y + h}
+      Z
+    `.replace(/\s+/g, ' ').trim();
+  };
+
   // Subtle dashed horizontal grid lines
   const renderGridLines = (limit: number, formatVal?: (v: number) => string) => {
     const ticks = [0, limit / 2, limit];
