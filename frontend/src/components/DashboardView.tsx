@@ -27,6 +27,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState<number | 'today'>('today');
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const [analyticsTab, setAnalyticsTab] = useState<'latency' | 'distribution'>('latency');
 
   const loadData = (currentRange = range) => {
     setLoading(true);
@@ -551,22 +552,54 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
             )}
           </div>
 
-          {/* Chart 2: Multi-Model Latency Analysis */}
+          {/* Chart 2: Tab-Switchable Model Analytics (Latency vs Distribution) */}
           <div className="bg-[#0F1118]/90 border border-white/[0.08] hover:border-white/[0.12] rounded-xl p-5 shadow-lg relative flex flex-col h-[320px] transition-colors group">
             <div className="mb-2">
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-xs font-semibold text-slate-200 tracking-wider uppercase flex items-center space-x-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
-                  <span>{t('dashboard.latencyChartTitle')}</span>
-                </h3>
+                {/* Tab Switcher Buttons */}
+                <div className="flex items-center space-x-1 bg-black/40 border border-white/[0.06] p-0.5 rounded-lg">
+                  <button
+                    type="button"
+                    onClick={() => setAnalyticsTab('latency')}
+                    className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
+                      analyticsTab === 'latency'
+                        ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30 shadow-sm font-semibold'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                    <span>{t('dashboard.latencyTab', '响应延迟 (ms)')}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAnalyticsTab('distribution')}
+                    className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
+                      analyticsTab === 'distribution'
+                        ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shadow-sm font-semibold'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-500"></span>
+                    <span>{t('dashboard.distributionTab', '请求分布')}</span>
+                  </button>
+                </div>
+
+                {/* Active Hover Metric Badge */}
                 {hoveredIndex !== null && timeSeries[hoveredIndex] && (
-                  <span className="text-purple-400 font-mono text-xs px-2 py-0.5 rounded bg-purple-500/10 border border-purple-500/20">
-                    {timeSeries[hoveredIndex].total > 0 ? `${timeSeries[hoveredIndex].avgDurationMs} ms` : t('dashboard.noSampling')}
+                  <span className={`font-mono text-xs px-2 py-0.5 rounded border ${
+                    analyticsTab === 'latency'
+                      ? 'text-purple-400 bg-purple-500/10 border-purple-500/20'
+                      : 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20'
+                  }`}>
+                    {analyticsTab === 'latency'
+                      ? (timeSeries[hoveredIndex].total > 0 ? `${timeSeries[hoveredIndex].avgDurationMs} ms` : t('dashboard.noSampling'))
+                      : `${allModels.length} models`
+                    }
                   </span>
                 )}
               </div>
 
-              {/* Model Legend for Latency */}
+              {/* Model Legend */}
               {allModels.length > 0 && (
                 <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-slate-400">
                   {allModels.map((model, idx) => (
@@ -593,7 +626,10 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                     onMouseLeave={handleMouseLeave}
                   >
                     {/* Gridlines */}
-                    {renderGridLines(latencyLimit, v => `${v}ms`)}
+                    {analyticsTab === 'latency'
+                      ? renderGridLines(latencyLimit, v => `${v}ms`)
+                      : renderGridLines(modelLimit)
+                    }
 
                     {/* X-axis baseline */}
                     <line
@@ -606,9 +642,36 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                     />
 
                     {/* Polylines for each active model */}
-                    {allModels.length > 0 ? (
+                    {analyticsTab === 'latency' ? (
+                      allModels.length > 0 ? (
+                        allModels.map((model, idx) => {
+                          const mPath = getModelLatencyPath(model);
+                          if (!mPath) return null;
+                          return (
+                            <path
+                              key={model}
+                              d={mPath}
+                              fill="none"
+                              stroke={getModelColor(model, idx)}
+                              strokeWidth="2.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            />
+                          );
+                        })
+                      ) : (
+                        <path
+                          d={`M ${timeSeries.map((p, i) => `${getX(i)},${getYLatency(p.avgDurationMs)}`).join(' L ')}`}
+                          fill="none"
+                          stroke="#a855f7"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      )
+                    ) : (
                       allModels.map((model, idx) => {
-                        const mPath = getModelLatencyPath(model);
+                        const mPath = getModelPath(model);
                         if (!mPath) return null;
                         return (
                           <path
@@ -622,28 +685,51 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                           />
                         );
                       })
-                    ) : (
-                      <path
-                        d={`M ${timeSeries.map((p, i) => `${getX(i)},${getYLatency(p.avgDurationMs)}`).join(' L ')}`}
-                        fill="none"
-                        stroke="#a855f7"
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
                     )}
 
                     {/* Node points for each active model across all time points */}
-                    {allModels.length > 0 ? (
+                    {analyticsTab === 'latency' ? (
+                      allModels.length > 0 ? (
+                        allModels.map((model, mIdx) => {
+                          const mColor = getModelColor(model, mIdx);
+                          return timeSeries.map((p, i) => {
+                            const dur = p.modelDurations?.[model] || 0;
+                            return (
+                              <circle
+                                key={`latency-${model}-${i}`}
+                                cx={getX(i)}
+                                cy={getYLatency(dur)}
+                                r="2.5"
+                                fill={mColor}
+                                stroke="#0F1118"
+                                strokeWidth="1"
+                              />
+                            );
+                          });
+                        })
+                      ) : (
+                        timeSeries.map((p, i) => (
+                          <circle
+                            key={`latency-overall-${i}`}
+                            cx={getX(i)}
+                            cy={getYLatency(p.avgDurationMs)}
+                            r="2.5"
+                            fill="#a855f7"
+                            stroke="#0F1118"
+                            strokeWidth="1"
+                          />
+                        ))
+                      )
+                    ) : (
                       allModels.map((model, mIdx) => {
                         const mColor = getModelColor(model, mIdx);
                         return timeSeries.map((p, i) => {
-                          const dur = p.modelDurations?.[model] || 0;
+                          const count = p.models?.[model] || 0;
                           return (
                             <circle
-                              key={`latency-${model}-${i}`}
+                              key={`dist-${model}-${i}`}
                               cx={getX(i)}
-                              cy={getYLatency(dur)}
+                              cy={getYModel(count)}
                               r="2.5"
                               fill={mColor}
                               stroke="#0F1118"
@@ -652,18 +738,6 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                           );
                         });
                       })
-                    ) : (
-                      timeSeries.map((p, i) => (
-                        <circle
-                          key={`latency-overall-${i}`}
-                          cx={getX(i)}
-                          cy={getYLatency(p.avgDurationMs)}
-                          r="2.5"
-                          fill="#a855f7"
-                          stroke="#0F1118"
-                          strokeWidth="1"
-                        />
-                      ))
                     )}
 
                     {/* X-axis labels */}
@@ -690,10 +764,30 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                         y1={yMin}
                         x2={getX(hoveredIndex)}
                         y2={yMax}
-                        stroke="rgba(168, 85, 247, 0.6)"
+                        stroke={analyticsTab === 'latency' ? 'rgba(168, 85, 247, 0.6)' : 'rgba(6, 182, 212, 0.6)'}
                         strokeWidth="1"
                         strokeDasharray="3 3"
                       />
+                    )}
+
+                    {/* Highlighted active node dots on hover for Distribution Tab */}
+                    {analyticsTab === 'distribution' && hoveredIndex !== null && timeSeries[hoveredIndex] && (
+                      allModels.map((model, mIdx) => {
+                        const count = timeSeries[hoveredIndex].models?.[model] || 0;
+                        const mColor = getModelColor(model, mIdx);
+                        return (
+                          <circle
+                            key={`hover-${model}`}
+                            cx={getX(hoveredIndex)}
+                            cy={getYModel(count)}
+                            r="5.5"
+                            fill={mColor}
+                            stroke="#0F1118"
+                            strokeWidth="2"
+                            className="animate-pulse"
+                          />
+                        );
+                      })
                     )}
                   </svg>
 
@@ -712,9 +806,9 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                       </div>
                       {timeSeries[hoveredIndex].total === 0 ? (
                         <div className="text-center text-slate-500 italic py-1">
-                          {t('dashboard.noSampling')}
+                          {analyticsTab === 'latency' ? t('dashboard.noSampling') : t('dashboard.noRequestsInPeriod')}
                         </div>
-                      ) : (
+                      ) : analyticsTab === 'latency' ? (
                         <div className="space-y-1.5 font-mono">
                           <div className="flex justify-between items-center text-[11px] border-b border-white/[0.06] pb-1">
                             <span className="text-slate-400 font-medium">Overall Avg:</span>
@@ -734,6 +828,22 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                                 <span className="font-bold shrink-0" style={{ color: mColor }}>
                                   {mDur} ms
                                 </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="space-y-1.5 font-mono">
+                          {allModels.map((model, mIdx) => {
+                            const count = timeSeries[hoveredIndex].models?.[model] || 0;
+                            const mColor = getModelColor(model, mIdx);
+                            return (
+                              <div key={model} className="flex items-center justify-between gap-3 text-[11px]" title={model}>
+                                <div className="flex items-center space-x-1.5 min-w-0 text-slate-300">
+                                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: mColor }}></span>
+                                  <span className="truncate max-w-[130px]">{model}:</span>
+                                </div>
+                                <span className="font-bold shrink-0" style={{ color: mColor }}>{count}</span>
                               </div>
                             );
                           })}
@@ -758,186 +868,6 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
           {/* System Runtime Configuration Matrix */}
           <SystemRuntimeMatrix config={cfg} />
         </div>
-      </div>
-
-      {/* Tier 4: Bottom Advanced Analytics Section (Full Width) */}
-      <div className="bg-[#0F1118]/90 border border-white/[0.08] hover:border-white/[0.12] rounded-xl p-5 shadow-lg relative flex flex-col h-[320px] transition-colors group">
-        <div className="mb-2">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-xs font-semibold text-slate-200 tracking-wider uppercase flex items-center space-x-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan-500"></span>
-              <span>{t('dashboard.modelChartTitle')}</span>
-            </h3>
-            {hoveredIndex !== null && timeSeries[hoveredIndex] && (
-              <span className="text-cyan-400 font-mono text-xs px-2 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/20">
-                {allModels.length} models
-              </span>
-            )}
-          </div>
-
-          {/* Model Legend */}
-          {allModels.length > 0 && (
-            <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-slate-400">
-              {allModels.map((model, idx) => (
-                <div key={model} className="flex items-center space-x-1 font-mono">
-                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: getModelColor(model, idx) }}></span>
-                  <span className="truncate max-w-[120px]" title={model}>{model}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {N === 0 ? (
-          <div className="flex-1 flex items-center justify-center text-slate-500 text-xs italic bg-black/20 rounded-lg border border-white/[0.04]">
-            {t('dashboard.noData')}
-          </div>
-        ) : (
-          <div className="relative flex-1 overflow-x-auto overflow-y-hidden">
-            <div className="min-w-[480px] sm:min-w-full h-full relative">
-              <svg
-                viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-                className="w-full h-full overflow-visible"
-                onMouseMove={handleMouseMove}
-                onMouseLeave={handleMouseLeave}
-              >
-                {/* Gridlines */}
-                {renderGridLines(modelLimit)}
-
-                {/* X-axis baseline */}
-                <line
-                  x1={paddingLeft}
-                  y1={yMax}
-                  x2={svgWidth - paddingRight}
-                  y2={yMax}
-                  stroke="rgba(255, 255, 255, 0.08)"
-                  strokeWidth="1"
-                />
-
-                {/* Polylines for each active model */}
-                {allModels.map((model, idx) => {
-                  const mPath = getModelPath(model);
-                  if (!mPath) return null;
-                  return (
-                    <path
-                      key={model}
-                      d={mPath}
-                      fill="none"
-                      stroke={getModelColor(model, idx)}
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  );
-                })}
-
-                {/* Small node points for each active model */}
-                {allModels.map((model, mIdx) => {
-                  const mColor = getModelColor(model, mIdx);
-                  return timeSeries.map((p, i) => {
-                    const count = p.models?.[model] || 0;
-                    return (
-                      <circle
-                        key={`${model}-${i}`}
-                        cx={getX(i)}
-                        cy={getYModel(count)}
-                        r="2.5"
-                        fill={mColor}
-                        stroke="#0F1118"
-                        strokeWidth="1"
-                      />
-                    );
-                  });
-                })}
-
-                {/* X-axis labels */}
-                {labelIndices.map(idx => {
-                  const rawTime = timeSeries[idx].time;
-                  const displayLabel = rawTime.includes(' ') ? rawTime.split(' ')[1] : rawTime;
-                  return (
-                    <text
-                      key={idx}
-                      x={getX(idx)}
-                      y={yMax + 16}
-                      textAnchor="middle"
-                      className="text-[10px] fill-slate-500 font-mono select-none"
-                    >
-                      {displayLabel}
-                    </text>
-                  );
-                })}
-
-                {/* Active Hover Crosshair Line */}
-                {hoveredIndex !== null && (
-                  <line
-                    x1={getX(hoveredIndex)}
-                    y1={yMin}
-                    x2={getX(hoveredIndex)}
-                    y2={yMax}
-                    stroke="rgba(6, 182, 212, 0.6)"
-                    strokeWidth="1"
-                    strokeDasharray="3 3"
-                  />
-                )}
-
-                {/* Highlighted active node dots on hover */}
-                {hoveredIndex !== null && timeSeries[hoveredIndex] && (
-                  allModels.map((model, mIdx) => {
-                    const count = timeSeries[hoveredIndex].models?.[model] || 0;
-                    const mColor = getModelColor(model, mIdx);
-                    return (
-                      <circle
-                        key={`hover-${model}`}
-                        cx={getX(hoveredIndex)}
-                        cy={getYModel(count)}
-                        r="5.5"
-                        fill={mColor}
-                        stroke="#0F1118"
-                        strokeWidth="2"
-                        className="animate-pulse"
-                      />
-                    );
-                  })
-                )}
-              </svg>
-
-              {/* Glassmorphic Hover Tooltip Overlay */}
-              {hoveredIndex !== null && timeSeries[hoveredIndex] && (
-                <div
-                  className="absolute z-20 backdrop-blur-xl bg-[#151824]/95 border border-white/[0.12] shadow-2xl rounded-xl p-3.5 text-xs pointer-events-none space-y-2 min-w-[200px] max-w-[290px]"
-                  style={{
-                    left: `${((getX(hoveredIndex) - paddingLeft) / plottingWidth) * 85 + 8}%`,
-                    top: '10%',
-                    transform: hoveredIndex > N / 2 ? 'translateX(-105%)' : 'translateX(5%)',
-                  }}
-                >
-                  <div className="font-semibold text-slate-200 font-mono border-b border-white/[0.08] pb-1.5 mb-1 text-center">
-                    {timeSeries[hoveredIndex].time}
-                  </div>
-                  {allModels.length === 0 ? (
-                    <div className="text-slate-500 italic text-center p-1">No active models</div>
-                  ) : (
-                    <div className="space-y-1.5 font-mono">
-                      {allModels.map((model, mIdx) => {
-                        const count = timeSeries[hoveredIndex].models?.[model] || 0;
-                        const mColor = getModelColor(model, mIdx);
-                        return (
-                          <div key={model} className="flex items-center justify-between gap-3 text-[11px]" title={model}>
-                            <div className="flex items-center space-x-1.5 min-w-0 text-slate-300">
-                              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: mColor }}></span>
-                              <span className="truncate max-w-[130px]">{model}:</span>
-                            </div>
-                            <span className="font-bold shrink-0" style={{ color: mColor }}>{count}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
