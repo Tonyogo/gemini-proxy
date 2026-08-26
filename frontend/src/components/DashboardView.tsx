@@ -231,15 +231,6 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
     });
   };
 
-  // Build Area and Line paths for Volume
-  let volumeAreaPath = '';
-  let volumeLinePath = '';
-  if (N > 0) {
-    const points = timeSeries.map((p, i) => `${getX(i)},${getYVolume(p.total)}`);
-    volumeLinePath = `M ${points.join(' L ')}`;
-    volumeAreaPath = `M ${getX(0)},${yMax} L ${points.join(' L ')} L ${getX(N - 1)},${yMax} Z`;
-  }
-
   const getModelLatencyPath = (modelName: string) => {
     if (N === 0) return '';
     const points = timeSeries.map((p, i) => {
@@ -422,9 +413,13 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                     onMouseLeave={handleMouseLeave}
                   >
                     <defs>
-                      <linearGradient id="volumeAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#6366F1" stopOpacity="0.25" />
-                        <stop offset="100%" stopColor="#6366F1" stopOpacity="0.00" />
+                      <linearGradient id="volumeBarGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#6366F1" stopOpacity="0.95" />
+                        <stop offset="100%" stopColor="#4F46E5" stopOpacity="0.70" />
+                      </linearGradient>
+                      <linearGradient id="volumeBarHoverGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#818CF8" stopOpacity="1" />
+                        <stop offset="100%" stopColor="#6366F1" stopOpacity="0.85" />
                       </linearGradient>
                     </defs>
 
@@ -441,22 +436,40 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                       strokeWidth="1"
                     />
 
-                    {/* Area under curve */}
-                    {volumeAreaPath && (
-                      <path d={volumeAreaPath} fill="url(#volumeAreaGrad)" />
-                    )}
+                    {/* Bar columns */}
+                    {timeSeries.map((p, i) => {
+                      const barWidth = Math.min(18, Math.max(6, (plottingWidth / N) * 0.45));
+                      const x = getX(i) - barWidth / 2;
+                      const h = (p.total / volumeLimit) * plottingHeight;
+                      const y = yMax - h;
+                      const isHovered = hoveredIndex === i;
 
-                    {/* Polyline */}
-                    {volumeLinePath && (
-                      <path
-                        d={volumeLinePath}
-                        fill="none"
-                        stroke="#6366F1"
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    )}
+                      return (
+                        <g key={i}>
+                          {/* Column Hover Background Guide */}
+                          {isHovered && (
+                            <rect
+                              x={getX(i) - barWidth * 1.2}
+                              y={yMin}
+                              width={barWidth * 2.4}
+                              height={plottingHeight}
+                              fill="rgba(255, 255, 255, 0.04)"
+                              rx="4"
+                              className="pointer-events-none"
+                            />
+                          )}
+
+                          {/* Top-rounded Bar */}
+                          {h > 0 && (
+                            <path
+                              d={getRoundedTopBarPath(x, y, barWidth, h, 3)}
+                              fill={isHovered ? "url(#volumeBarHoverGrad)" : "url(#volumeBarGrad)"}
+                              className="transition-all duration-150"
+                            />
+                          )}
+                        </g>
+                      );
+                    })}
 
                     {/* X-axis labels */}
                     {labelIndices.map(idx => {
@@ -485,19 +498,6 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                         stroke="rgba(99, 102, 241, 0.6)"
                         strokeWidth="1"
                         strokeDasharray="3 3"
-                      />
-                    )}
-
-                    {/* Active Hover Dot */}
-                    {hoveredIndex !== null && timeSeries[hoveredIndex] && (
-                      <circle
-                        cx={getX(hoveredIndex)}
-                        cy={getYVolume(timeSeries[hoveredIndex].total)}
-                        r="5"
-                        fill="#6366F1"
-                        stroke="#0F1118"
-                        strokeWidth="2.5"
-                        className="animate-pulse"
                       />
                     )}
                   </svg>
