@@ -19,10 +19,12 @@ import {
   Minimize2,
   Search,
   Sparkles,
-  Terminal
+  Terminal,
+  MessageSquare
 } from 'lucide-react';
 import JsonTreeView from './JsonTreeView';
 import SseStreamPreview from './SseStreamPreview';
+import ConversationView from './ConversationView';
 import { defineGeminiProxyTheme } from '../utils/monacoTheme';
 import { useTranslation } from '../i18n/LanguageContext';
 
@@ -42,7 +44,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
   const [statusFilter, setStatusFilter] = useState<'all' | '2xx' | '4xx' | '5xx'>('all');
   const [searchFilter, setSearchFilter] = useState<string>('');
 
-  const [activeTab, setActiveTab] = useState<'payload' | 'response'>('payload');
+  const [activeTab, setActiveTab] = useState<'payload' | 'response' | 'chat'>('payload');
   const [viewMode, setViewMode] = useState<'preview' | 'raw'>('preview');
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   const [hourCount, setHourCount] = useState<number>(0);
@@ -663,7 +665,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
               )}
             </button>
 
-            {/* Subtabs: Payload vs Response */}
+            {/* Subtabs: Payload vs Response vs Chat */}
             <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-semibold">
               <button
                 onClick={() => setActiveTab('payload')}
@@ -686,6 +688,17 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
               >
                 <span>📥</span>
                 <span>{t('logs.response')}</span>
+              </button>
+              <button
+                onClick={() => setActiveTab('chat')}
+                className={`px-3 py-1.5 rounded-lg transition-all flex items-center space-x-1.5 ${
+                  activeTab === 'chat'
+                    ? 'bg-indigo-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                <span>{t('logs.chatTab', '💬 对话视图')}</span>
               </button>
             </div>
           </div>
@@ -983,6 +996,10 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                   )}
                 </div>
               </div>
+            )}
+
+            {activeTab === 'chat' && (
+              <ConversationView log={selectedLog} />
             )}
           </div>
         ) : (
