@@ -64,6 +64,75 @@ describe('Claude to Gemini Request Translation', () => {
     expect(result.googleRequest.contents[0].parts[1].text).toEqual('Hello');
   });
 
+  it('translates [user, system] sequence placing system message parts before user parts', () => {
+    const claudePayload = {
+      model: 'gemini-3.5-flash',
+      messages: [
+        { role: 'user', content: 'Hello user prompt' },
+        { role: 'system', content: 'Contextual system instruction' }
+      ]
+    } as any;
+    const result = translator.translateClaudeToGoogle(claudePayload);
+
+    expect(result.googleRequest.contents.length).toEqual(1);
+    expect(result.googleRequest.contents[0].role).toEqual('user');
+    expect(result.googleRequest.contents[0].parts.length).toEqual(2);
+    expect(result.googleRequest.contents[0].parts[0].text).toEqual(
+      '<runtime-context>\nContextual system instruction\n</runtime-context>'
+    );
+    expect(result.googleRequest.contents[0].parts[1].text).toEqual('Hello user prompt');
+  });
+
+  it('translates interleaved user and system messages preserving stable relative order with system first', () => {
+    const claudePayload = {
+      model: 'gemini-3.5-flash',
+      messages: [
+        { role: 'user', content: 'User 1' },
+        { role: 'system', content: 'System 1' },
+        { role: 'user', content: 'User 2' },
+        { role: 'system', content: 'System 2' }
+      ]
+    } as any;
+    const result = translator.translateClaudeToGoogle(claudePayload);
+
+    expect(result.googleRequest.contents.length).toEqual(1);
+    expect(result.googleRequest.contents[0].role).toEqual('user');
+    expect(result.googleRequest.contents[0].parts.map((p: any) => p.text)).toEqual([
+      '<runtime-context>\nSystem 1\n</runtime-context>',
+      '<runtime-context>\nSystem 2\n</runtime-context>',
+      'User 1',
+      'User 2'
+    ]);
+  });
+
+  it('translates tool_result with system message placing system message first', () => {
+    const claudePayload = {
+      model: 'gemini-3.5-flash',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'toolu_123',
+              content: 'Tool execution result'
+            }
+          ]
+        },
+        { role: 'system', content: 'Instruction after tool' }
+      ]
+    } as any;
+    const result = translator.translateClaudeToGoogle(claudePayload);
+
+    expect(result.googleRequest.contents.length).toEqual(1);
+    expect(result.googleRequest.contents[0].role).toEqual('user');
+    expect(result.googleRequest.contents[0].parts.length).toEqual(2);
+    expect(result.googleRequest.contents[0].parts[0].text).toEqual(
+      '<runtime-context>\nInstruction after tool\n</runtime-context>'
+    );
+    expect(result.googleRequest.contents[0].parts[1].functionResponse).toBeDefined();
+  });
+
   it('translates images', () => {
     const claudePayload = {
       model: 'gemini-3.1-flash-lite',
