@@ -15,7 +15,7 @@ describe('Admin API Endpoints', () => {
 
   afterAll(async () => {
     await updateConfig({
-      runtimeContextTag: 'runtime-context',
+      runtimeContextTag: 'system-context',
       systemRoleToInstruction: false
     });
   });
@@ -121,7 +121,7 @@ describe('Admin API Endpoints', () => {
       });
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('ok');
-    expect(res.body.config.runtimeContextTag).toBe('runtime-context');
+    expect(res.body.config.runtimeContextTag).toBe('system-context');
   });
 
   it('GET /api/admin/logs/:date/:hour/:filename sets 1-hour immutable Cache-Control header', async () => {

@@ -13,7 +13,7 @@
 - **数据与逻辑完美解耦 (`models.json`)**：将所有 Claude 的模型详细信息以及其到 Gemini 的映射关系高度整合在 `config/models.json` 配置文件中。未来增加新模型映射、添加别名，均只需在此单文件里增改一行，**无需改动并重新编译任何逻辑代码**。
 - **全功能翻译转换**：
   - 系统提示词（System Prompt）映射与自定义控制：支持 `SYSTEM_ROLE_TO_INSTRUCTION` 开关控制将 `role: 'system'` 消息映射至 Gemini 的 `systemInstruction` 中，并自动按标题前缀进行增量去重（仅保留最新版系统指令）。
-  - 可配置的运行时上下文标签：支持通过 `RUNTIME_CONTEXT_TAG` 环境变量（默认 `runtime-context`）自定义系统提示词的包裹标签。
+  - 可配置的运行时上下文标签：支持通过 `RUNTIME_CONTEXT_TAG` 环境变量（默认 `system-context`）自定义系统提示词的包裹标签。
   - 多轮复杂对话及角色（User / Assistant / Tool）自动映射。
   - 多模态与文档支持：支持 Base64 图片及 PDF/文档类型（`type === 'document'`）数据的自动抽取与转换，完美支持包含文档与图片的 `tool_result` 工具执行结果。
   - 智能思考（Thinking Mode）：支持 Claude `thinking` 参数与 Gemini 思考预算的自动映射与 Token 统计。
@@ -90,8 +90,8 @@ TRANSACTION_LOGS_DIR=logs
 # 是否将消息中的 role='system' 路由至 systemInstruction 并按标题去重 (默认 false)
 SYSTEM_ROLE_TO_INSTRUCTION=false
 
-# 运行时上下文包裹标签名 (默认 runtime-context)
-RUNTIME_CONTEXT_TAG=runtime-context
+# 运行时上下文包裹标签名 (默认 system-context)
+RUNTIME_CONTEXT_TAG=system-context
 
 # 上游 Gemini 请求超时毫秒数 (默认 180000ms / 3分钟)
 UPSTREAM_TIMEOUT_MS=180000

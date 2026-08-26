@@ -57,7 +57,7 @@ describe('Claude to Gemini Request Translation', () => {
     // Combined message parts (was role: system merged into next role: user block)
     expect(result.googleRequest.contents[0].role).toEqual('user');
     expect(result.googleRequest.contents[0].parts[0].text).toEqual(
-      '<runtime-context>\nThis is a message system prompt\n</runtime-context>'
+      '<system-context>\nThis is a message system prompt\n</system-context>'
     );
 
     // Second part of merged message (was role: user)
@@ -78,7 +78,7 @@ describe('Claude to Gemini Request Translation', () => {
     expect(result.googleRequest.contents[0].role).toEqual('user');
     expect(result.googleRequest.contents[0].parts.length).toEqual(2);
     expect(result.googleRequest.contents[0].parts[0].text).toEqual(
-      '<runtime-context>\nContextual system instruction\n</runtime-context>'
+      '<system-context>\nContextual system instruction\n</system-context>'
     );
     expect(result.googleRequest.contents[0].parts[1].text).toEqual('Hello user prompt');
   });
@@ -98,8 +98,8 @@ describe('Claude to Gemini Request Translation', () => {
     expect(result.googleRequest.contents.length).toEqual(1);
     expect(result.googleRequest.contents[0].role).toEqual('user');
     expect(result.googleRequest.contents[0].parts.map((p: any) => p.text)).toEqual([
-      '<runtime-context>\nSystem 1\n</runtime-context>',
-      '<runtime-context>\nSystem 2\n</runtime-context>',
+      '<system-context>\nSystem 1\n</system-context>',
+      '<system-context>\nSystem 2\n</system-context>',
       'User 1',
       'User 2'
     ]);
@@ -128,7 +128,7 @@ describe('Claude to Gemini Request Translation', () => {
     expect(result.googleRequest.contents[0].role).toEqual('user');
     expect(result.googleRequest.contents[0].parts.length).toEqual(2);
     expect(result.googleRequest.contents[0].parts[0].text).toEqual(
-      '<runtime-context>\nInstruction after tool\n</runtime-context>'
+      '<system-context>\nInstruction after tool\n</system-context>'
     );
     expect(result.googleRequest.contents[0].parts[1].functionResponse).toBeDefined();
   });

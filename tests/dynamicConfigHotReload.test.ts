@@ -6,7 +6,7 @@ describe('Dynamic Config Hot-Reload in Translator', () => {
     // Reset config to defaults
     await updateConfig({
       customSystemInstruction: '',
-      runtimeContextTag: 'runtime-context',
+      runtimeContextTag: 'system-context',
       systemRoleToInstruction: false,
       modelMappings: {}
     });

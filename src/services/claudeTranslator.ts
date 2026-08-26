@@ -339,7 +339,7 @@ class ClaudeTranslator {
       appendSystemContent(config.customSystemInstruction);
     }
 
-    const tag = config.runtimeContextTag || 'runtime-context';
+    const tag = config.runtimeContextTag || 'system-context';
 
     const wrapSystemMessageContent = (content: any): GeminiPart[] => {
       const parts: GeminiPart[] = [];

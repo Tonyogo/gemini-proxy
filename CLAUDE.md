@@ -49,7 +49,7 @@ This is a **stateless API proxy** that translates Anthropic Claude Messages API 
   - `ADMIN_SECRET_KEY`: Key protecting `/api/admin/*` management endpoints (`x-admin-key`).
   - `ENABLE_UI`: Boolean flag to enable/disable static web console hosting at `/ui` (default `true`).
   - `SYSTEM_ROLE_TO_INSTRUCTION`: Boolean switch (`true`/`false`) to route inline `role: 'system'` messages to `systemInstruction`.
-  - `RUNTIME_CONTEXT_TAG`: Configurable wrapper tag name (default `runtime-context`).
+  - `RUNTIME_CONTEXT_TAG`: Configurable wrapper tag name (default `system-context`).
   - `UPSTREAM_TIMEOUT_MS`: Timeout for upstream Gemini requests in milliseconds (default `180000`).
   - `CUSTOM_SYSTEM_INSTRUCTION`: Optional custom system instructions injected into upstream calls.
   - `MODEL_MAPPINGS`: Optional JSON mapping dictionary to alias or redirect model requests (supports string target or `{ target, strategy }` with `least-used`, `round-robin`, `weighted` sent via `x-scheduling-strategy` header).
