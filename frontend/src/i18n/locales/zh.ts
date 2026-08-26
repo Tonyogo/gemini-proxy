@@ -176,7 +176,20 @@ export const zh: Translations = {
     copied: "已复制",
     prevPage: "上一页",
     nextPage: "下一页",
-    showingRange: "第 {start}-{end} 条，共 {total} 条"
+    showingRange: "第 {start}-{end} 条，共 {total} 条",
+    chatTab: "💬 对话视图",
+    systemPrompt: "系统提示词 (System Prompt)",
+    thinking: "思考过程",
+    thinkingChars: "{count} 字符",
+    toolCall: "工具调用: {name}",
+    toolResult: "工具执行结果: {name}",
+    noMessages: "当前请求未包含可回放的对话消息上下文。",
+    copyMessage: "复制内容",
+    messageCopied: "已复制！",
+    collapse: "收起",
+    expand: "展开",
+    assistant: "Claude Assistant",
+    user: "User"
   },
   terminal: {
     title: "服务端终端输出",

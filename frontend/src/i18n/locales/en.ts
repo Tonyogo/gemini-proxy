@@ -174,7 +174,20 @@ export const en = {
     copied: "Copied",
     prevPage: "Prev",
     nextPage: "Next",
-    showingRange: "{start}-{end} of {total}"
+    showingRange: "{start}-{end} of {total}",
+    chatTab: "💬 Chat View",
+    systemPrompt: "System Prompt",
+    thinking: "Thinking Process",
+    thinkingChars: "{count} chars",
+    toolCall: "Tool Call: {name}",
+    toolResult: "Tool Result: {name}",
+    noMessages: "No conversation messages in this log.",
+    copyMessage: "Copy message",
+    messageCopied: "Copied!",
+    collapse: "Collapse",
+    expand: "Expand",
+    assistant: "Claude Assistant",
+    user: "User"
   },
   terminal: {
     title: "Server Terminal Output",
