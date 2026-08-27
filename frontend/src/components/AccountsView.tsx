@@ -98,8 +98,10 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
 
   // Upstream Terminal Logs Collapse & State
   const [isLogsExpanded, setIsLogsExpanded] = useState<boolean>(false);
+  const [enableLivePolling, setEnableLivePolling] = useState<boolean>(true);
   const [autoScrollLogs, setAutoScrollLogs] = useState<boolean>(true);
   const [copiedLogs, setCopiedLogs] = useState<boolean>(false);
+  const [refreshingLogs, setRefreshingLogs] = useState<boolean>(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const terminalLogsEndRef = useRef<HTMLDivElement>(null);
@@ -158,9 +160,9 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     return () => window.removeEventListener('click', handleClickOutside);
   }, []);
 
-  // Periodic 3s refresh when terminal logs are expanded
+  // Periodic 3s refresh when terminal logs are expanded and live polling is enabled
   useEffect(() => {
-    if (!isLogsExpanded) return;
+    if (!isLogsExpanded || !enableLivePolling) return;
 
     fetchStatus(true);
     const timer = setInterval(() => {
@@ -168,7 +170,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     }, 3000);
 
     return () => clearInterval(timer);
-  }, [isLogsExpanded, adminKey]);
+  }, [isLogsExpanded, enableLivePolling, adminKey]);
 
   useEffect(() => {
     if (autoScrollLogs && isLogsExpanded && terminalLogsEndRef.current) {
@@ -504,6 +506,18 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     navigator.clipboard.writeText(data.logs);
     setCopiedLogs(true);
     setTimeout(() => setCopiedLogs(false), 2000);
+  };
+
+  const handleManualRefreshLogs = async () => {
+    if (refreshingLogs) return;
+    setRefreshingLogs(true);
+    try {
+      await fetchStatus(true);
+    } finally {
+      setTimeout(() => {
+        setRefreshingLogs(false);
+      }, 400);
+    }
   };
 
   const handleCopyAccountName = (index: number, name: string | null) => {
@@ -1205,16 +1219,45 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
               </span>
             )}
             {isLogsExpanded && (
-              <span className="flex items-center space-x-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-[0_0_8px_rgba(16,185,129,0.15)]">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
-                <span>{t('accounts.livePolling')}</span>
-              </span>
+              enableLivePolling ? (
+                <span className="flex items-center space-x-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-[0_0_8px_rgba(16,185,129,0.15)]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
+                  <span>{t('accounts.livePolling')}</span>
+                </span>
+              ) : (
+                <span className="flex items-center space-x-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-400/90 border border-amber-500/20">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400/70 inline-block" />
+                  <span>{t('accounts.pollingPaused')}</span>
+                </span>
+              )
             )}
           </div>
 
           <div className="flex items-center space-x-3 text-xs" onClick={(e) => e.stopPropagation()}>
             {isLogsExpanded && (
               <>
+                <label className="flex items-center space-x-1.5 text-slate-400 hover:text-slate-200 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={enableLivePolling}
+                    onChange={(e) => setEnableLivePolling(e.target.checked)}
+                    className="w-3.5 h-3.5 rounded bg-[#0A0C10] border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                  />
+                  <span className="text-[11px]">{t('accounts.livePollingToggle')}</span>
+                </label>
+
+                {!enableLivePolling && (
+                  <button
+                    onClick={handleManualRefreshLogs}
+                    disabled={refreshingLogs}
+                    className="px-2 py-1 bg-[#1A1C28] hover:bg-white/[0.08] border border-white/[0.08] rounded-lg text-[11px] text-slate-300 hover:text-white transition-all flex items-center space-x-1 disabled:opacity-50"
+                    title={t('accounts.refreshLogs')}
+                  >
+                    <RefreshCw className={`w-3 h-3 text-slate-400 ${refreshingLogs ? 'animate-spin text-indigo-400' : ''}`} />
+                    <span>{t('accounts.refreshLogs')}</span>
+                  </button>
+                )}
+
                 <label className="flex items-center space-x-1.5 text-slate-400 hover:text-slate-200 cursor-pointer select-none">
                   <input
                     type="checkbox"

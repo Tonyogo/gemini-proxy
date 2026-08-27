@@ -151,8 +151,13 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
         return r.json();
       })
       .then(data => {
-        detailCacheRef.current.set(log.path, data);
-        setSelectedLog(data);
+        const enriched = {
+          ...data,
+          model: log.model || data.model || data.client_req?.model,
+          isStream: data.isStream !== undefined ? data.isStream : (data.is_stream !== undefined ? data.is_stream : log.isStream)
+        };
+        detailCacheRef.current.set(log.path, enriched);
+        setSelectedLog(enriched);
       })
       .catch(() => {
         const fallback = {
@@ -811,12 +816,6 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                 </span>
               )}
 
-              {selectedLog.model && (
-                <span className="bg-purple-500/10 text-purple-300 border border-purple-500/20 px-2 py-0.5 rounded-md font-medium">
-                  Model: {selectedLog.model}
-                </span>
-              )}
-
               {selectedLog.isStream && (
                 <span className="bg-blue-500/10 text-blue-300 border border-blue-500/20 px-2 py-0.5 rounded-md font-bold">
                   STREAM
@@ -825,6 +824,12 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
             </div>
 
             <div className="flex items-center space-x-2 text-slate-400">
+              {selectedLog.model && (
+                <span className="bg-purple-500/10 text-purple-300 border border-purple-500/20 px-2 py-0.5 rounded-md font-medium">
+                  Model: {selectedLog.model}
+                </span>
+              )}
+
               {selectedLog.duration !== undefined && selectedLog.duration !== null && (
                 <span className="bg-slate-900 border border-slate-800 px-2 py-0.5 rounded-md text-slate-300">
                   Latency: {selectedLog.duration}ms

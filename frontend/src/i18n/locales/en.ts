@@ -89,7 +89,10 @@ export const en = {
     copyLogs: "Copy Logs",
     copiedLogs: "Copied!",
     autoScroll: "Auto-scroll",
-    livePolling: "Live polling (3s)"
+    livePolling: "Live polling (3s)",
+    pollingPaused: "Polling Paused",
+    livePollingToggle: "Live Polling",
+    refreshLogs: "Refresh"
   },
   dashboard: {
     title: "Proxy System Overview",

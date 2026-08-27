@@ -91,7 +91,10 @@ export const zh: Translations = {
     copyLogs: "复制日志",
     copiedLogs: "已复制！",
     autoScroll: "自动滚动",
-    livePolling: "实时轮询中 (3s)"
+    livePolling: "实时轮询中 (3s)",
+    pollingPaused: "轮询已暂停",
+    livePollingToggle: "实时轮询",
+    refreshLogs: "刷新"
   },
   dashboard: {
     title: "代理系统概览",
