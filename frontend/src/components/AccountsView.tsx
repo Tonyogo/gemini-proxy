@@ -92,6 +92,44 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
   const [batchDeleteConfirm, setBatchDeleteConfirm] = useState<boolean>(false);
   const [dedupConfirm, setDedupConfirm] = useState<boolean>(false);
   const [activePopoverIndex, setActivePopoverIndex] = useState<number | null>(null);
+  const [popoverPlacement, setPopoverPlacement] = useState<'top' | 'bottom'>('bottom');
+
+  const handleTogglePopover = (e: React.MouseEvent<HTMLElement>, index: number) => {
+    e.stopPropagation();
+    if (activePopoverIndex === index) {
+      setActivePopoverIndex(null);
+    } else {
+      const rect = e.currentTarget.getBoundingClientRect();
+      // Calculate available viewport space above and below the trigger button
+      const spaceAbove = rect.top;
+      const spaceBelow = window.innerHeight - rect.bottom;
+
+      // If space above is less than 300px, pop downward; otherwise check available space below
+      if (spaceAbove < 300) {
+        setPopoverPlacement('bottom');
+      } else if (spaceBelow < 300) {
+        setPopoverPlacement('top');
+      } else {
+        // When plenty of space is available on both sides, prefer downward popup to avoid sticky header
+        setPopoverPlacement('bottom');
+      }
+      setActivePopoverIndex(index);
+    }
+  };
+
+  const handleMouseEnterPopover = (e: React.MouseEvent<HTMLElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const spaceAbove = rect.top;
+    const spaceBelow = window.innerHeight - rect.bottom;
+
+    if (spaceAbove < 300) {
+      setPopoverPlacement('bottom');
+    } else if (spaceBelow < 300) {
+      setPopoverPlacement('top');
+    } else {
+      setPopoverPlacement('bottom');
+    }
+  };
 
   // Clipboard feedback map for account keys/names
   const [copiedKeyIndex, setCopiedKeyIndex] = useState<number | null>(null);
@@ -872,8 +910,6 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                   const totalUsage = getTotalUsage(acc.usage);
                   const breakdowns = getModelBreakdowns(acc.usage);
                   const hasContext = Boolean(acc.hasContext);
-                  // Render popover downwards for top 2 rows to avoid being clipped by container overflow/header
-                  const isTopRow = accIdx < 2;
 
                   return (
                     <tr
@@ -996,13 +1032,13 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
 
                       {/* Quota & Usage */}
                       <td className="px-4 py-3">
-                        <div className="relative inline-block group">
+                        <div
+                          className="relative inline-block group"
+                          onMouseEnter={handleMouseEnterPopover}
+                        >
                           <button
                             type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setActivePopoverIndex(prev => prev === acc.index ? null : acc.index);
-                            }}
+                            onClick={(e) => handleTogglePopover(e, acc.index)}
                             className="px-2.5 py-1 rounded-lg text-[11px] font-mono bg-[#141620] hover:bg-white/[0.06] text-slate-300 border border-white/[0.08] flex items-center space-x-1.5 cursor-pointer transition-all focus:outline-none"
                           >
                             <Clock className="w-3.5 h-3.5 text-indigo-400" />
@@ -1014,7 +1050,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                           {/* Popover Bubble */}
                           <div
                             className={`absolute left-0 ${
-                              isTopRow ? 'top-full mt-2' : 'bottom-full mb-2'
+                              popoverPlacement === 'bottom' ? 'top-full mt-2' : 'bottom-full mb-2'
                             } ${
                               activePopoverIndex === acc.index ? 'block' : 'hidden group-hover:block'
                             } z-50 w-64 p-3 bg-[#0F1118] border border-white/[0.12] rounded-xl shadow-2xl backdrop-blur-xl pointer-events-auto`}
@@ -1034,7 +1070,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                                 {totalUsage === 0 ? 'No model request breakdown' : `Total: ${totalUsage}`}
                               </div>
                             ) : (
-                              <div className="space-y-2">
+                              <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
                                 {breakdowns.map((item, idx) => {
                                   const ratio = item.limit ? Math.min(100, Math.round((item.count / item.limit) * 100)) : null;
                                   return (
@@ -1066,7 +1102,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                             {/* Pointer Arrow */}
                             <div
                               className={`absolute left-6 ${
-                                isTopRow
+                                popoverPlacement === 'bottom'
                                   ? 'bottom-full -mb-px border-l border-t'
                                   : 'top-full -mt-px border-r border-b'
                               } w-2.5 h-2.5 bg-[#0F1118] border-white/[0.12] transform rotate-45`}
