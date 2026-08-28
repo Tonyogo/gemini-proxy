@@ -594,7 +594,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
         });
       }
     }
-    return list;
+    return list.sort((a, b) => b.count - a.count);
   };
 
   // State Machine Badges with modern Linear styles
