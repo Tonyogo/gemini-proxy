@@ -24,7 +24,8 @@ import {
   AlertTriangle,
   ArrowRightLeft,
   X,
-  ExternalLink
+  ExternalLink,
+  ArrowDownCircle
 } from 'lucide-react';
 import { useTranslation } from '../i18n/LanguageContext';
 
