@@ -93,6 +93,14 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
   const [dedupConfirm, setDedupConfirm] = useState<boolean>(false);
   const [activePopoverIndex, setActivePopoverIndex] = useState<number | null>(null);
   const [popoverPlacement, setPopoverPlacement] = useState<'top' | 'bottom'>('bottom');
+  const [expandedMobileUsage, setExpandedMobileUsage] = useState<Record<number, boolean>>({});
+
+  const toggleMobileUsage = (index: number) => {
+    setExpandedMobileUsage(prev => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
+  };
 
   const handleTogglePopover = (e: React.MouseEvent<HTMLElement>, index: number) => {
     e.stopPropagation();
@@ -694,82 +702,82 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
         </div>
 
         {/* Stats Chips */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+        <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-2.5">
           {/* Total Accounts */}
-          <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl px-3.5 py-2 flex items-center space-x-3">
-            <div className="p-2 rounded-lg bg-slate-800/60 text-slate-300 border border-white/[0.04]">
+          <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl p-2 sm:px-3.5 sm:py-2 flex flex-col sm:flex-row items-start sm:items-center space-y-1 sm:space-y-0 sm:space-x-3">
+            <div className="p-1.5 sm:p-2 rounded-lg bg-slate-800/60 text-slate-300 border border-white/[0.04]">
               <Users className="w-3.5 h-3.5" />
             </div>
-            <div>
-              <div className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
+            <div className="min-w-0">
+              <div className="text-[9px] sm:text-[10px] font-medium text-slate-400 uppercase tracking-wider truncate">
                 {t('accounts.totalAccounts')}
               </div>
-              <div className="text-base font-bold text-slate-100 font-mono">{totalCount}</div>
+              <div className="text-sm sm:text-base font-bold text-slate-100 font-mono">{totalCount}</div>
             </div>
           </div>
 
           {/* Activated */}
-          <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl px-3.5 py-2 flex items-center space-x-3">
-            <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl p-2 sm:px-3.5 sm:py-2 flex flex-col sm:flex-row items-start sm:items-center space-y-1 sm:space-y-0 sm:space-x-3">
+            <div className="p-1.5 sm:p-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
               <CheckCircle2 className="w-3.5 h-3.5" />
             </div>
-            <div>
-              <div className="text-[10px] font-medium text-emerald-400 uppercase tracking-wider">
+            <div className="min-w-0">
+              <div className="text-[9px] sm:text-[10px] font-medium text-emerald-400 uppercase tracking-wider truncate">
                 {t('accounts.activeAccounts')}
               </div>
-              <div className="text-base font-bold text-emerald-300 font-mono">{activatedCount}</div>
+              <div className="text-sm sm:text-base font-bold text-emerald-300 font-mono">{activatedCount}</div>
             </div>
           </div>
 
           {/* Activating */}
-          <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl px-3.5 py-2 flex items-center space-x-3">
-            <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+          <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl p-2 sm:px-3.5 sm:py-2 flex flex-col sm:flex-row items-start sm:items-center space-y-1 sm:space-y-0 sm:space-x-3">
+            <div className="p-1.5 sm:p-2 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
               <Sparkles className="w-3.5 h-3.5" />
             </div>
-            <div>
-              <div className="text-[10px] font-medium text-indigo-400 uppercase tracking-wider">
+            <div className="min-w-0">
+              <div className="text-[9px] sm:text-[10px] font-medium text-indigo-400 uppercase tracking-wider truncate">
                 {t('accounts.activatingAccounts')}
               </div>
-              <div className="text-base font-bold text-indigo-300 font-mono">{activatingCount}</div>
+              <div className="text-sm sm:text-base font-bold text-indigo-300 font-mono">{activatingCount}</div>
             </div>
           </div>
 
           {/* Retired */}
-          <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl px-3.5 py-2 flex items-center space-x-3">
-            <div className="p-2 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
+          <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl p-2 sm:px-3.5 sm:py-2 flex flex-col sm:flex-row items-start sm:items-center space-y-1 sm:space-y-0 sm:space-x-3">
+            <div className="p-1.5 sm:p-2 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
               <Clock className="w-3.5 h-3.5" />
             </div>
-            <div>
-              <div className="text-[10px] font-medium text-amber-400 uppercase tracking-wider">
+            <div className="min-w-0">
+              <div className="text-[9px] sm:text-[10px] font-medium text-amber-400 uppercase tracking-wider truncate">
                 {t('accounts.retiredAccounts', '已下线')}
               </div>
-              <div className="text-base font-bold text-amber-300 font-mono">{retiredCount}</div>
+              <div className="text-sm sm:text-base font-bold text-amber-300 font-mono">{retiredCount}</div>
             </div>
           </div>
 
           {/* Inactive */}
-          <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl px-3.5 py-2 flex items-center space-x-3">
-            <div className="p-2 rounded-lg bg-slate-800/50 text-slate-400 border border-slate-700/40">
+          <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl p-2 sm:px-3.5 sm:py-2 flex flex-col sm:flex-row items-start sm:items-center space-y-1 sm:space-y-0 sm:space-x-3">
+            <div className="p-1.5 sm:p-2 rounded-lg bg-slate-800/50 text-slate-400 border border-slate-700/40">
               <Power className="w-3.5 h-3.5" />
             </div>
-            <div>
-              <div className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">
+            <div className="min-w-0">
+              <div className="text-[9px] sm:text-[10px] font-medium text-slate-400 uppercase tracking-wider truncate">
                 {t('accounts.inactiveAccounts', '未激活')}
               </div>
-              <div className="text-base font-bold text-slate-300 font-mono">{inactiveCount}</div>
+              <div className="text-sm sm:text-base font-bold text-slate-300 font-mono">{inactiveCount}</div>
             </div>
           </div>
 
           {/* Disabled */}
-          <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl px-3.5 py-2 flex items-center space-x-3">
-            <div className="p-2 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20">
+          <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl p-2 sm:px-3.5 sm:py-2 flex flex-col sm:flex-row items-start sm:items-center space-y-1 sm:space-y-0 sm:space-x-3">
+            <div className="p-1.5 sm:p-2 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20">
               <AlertCircle className="w-3.5 h-3.5" />
             </div>
-            <div>
-              <div className="text-[10px] font-medium text-rose-400 uppercase tracking-wider">
+            <div className="min-w-0">
+              <div className="text-[9px] sm:text-[10px] font-medium text-rose-400 uppercase tracking-wider truncate">
                 {t('accounts.disabledAccounts')}
               </div>
-              <div className="text-base font-bold text-rose-300 font-mono">{disabledCount}</div>
+              <div className="text-sm sm:text-base font-bold text-rose-300 font-mono">{disabledCount}</div>
             </div>
           </div>
         </div>
@@ -883,358 +891,583 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-white/[0.08] bg-[#141620] text-[11px] font-medium tracking-wider text-slate-400 uppercase select-none">
-                  <th className="w-10 px-4 py-3 text-center">
-                    <input
-                      type="checkbox"
-                      checked={filteredAccounts.length > 0 && selectedIndices.length === filteredAccounts.length}
-                      onChange={handleSelectAll}
-                      className="w-4 h-4 rounded bg-[#0A0C10] border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
-                    />
-                  </th>
-                  <th className="px-3 py-3 w-16">{t('accounts.tableIndex', '序号')}</th>
-                  <th className="px-4 py-3 min-w-[200px]">{t('accounts.tableAccount', '账号 / 凭据标识')}</th>
-                  <th className="px-4 py-3">{t('accounts.tableStatus', '状态')}</th>
-                  <th className="px-4 py-3">{t('accounts.tableQuota', '配额与今日用量')}</th>
-                  <th className="px-4 py-3 text-right">{t('accounts.tableActions', '操作')}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/[0.04] text-xs">
-                {filteredAccounts.map((acc, accIdx) => {
-                  const isCurrent = acc.index === currentAuthIndex;
-                  const isChecked = selectedIndices.includes(acc.index);
-                  const isManuallyDisabled = Boolean(acc.isDisabled || (acc as any).disabled === true || acc.status === 'disabled');
-                  const totalUsage = getTotalUsage(acc.usage);
-                  const breakdowns = getModelBreakdowns(acc.usage);
-                  const hasContext = Boolean(acc.hasContext);
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-white/[0.08] bg-[#141620] text-[11px] font-medium tracking-wider text-slate-400 uppercase select-none">
+                    <th className="w-10 px-4 py-3 text-center">
+                      <input
+                        type="checkbox"
+                        checked={filteredAccounts.length > 0 && selectedIndices.length === filteredAccounts.length}
+                        onChange={handleSelectAll}
+                        className="w-4 h-4 rounded bg-[#0A0C10] border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                      />
+                    </th>
+                    <th className="px-3 py-3 w-16">{t('accounts.tableIndex', '序号')}</th>
+                    <th className="px-4 py-3 min-w-[200px]">{t('accounts.tableAccount', '账号 / 凭据标识')}</th>
+                    <th className="px-4 py-3">{t('accounts.tableStatus', '状态')}</th>
+                    <th className="px-4 py-3">{t('accounts.tableQuota', '配额与今日用量')}</th>
+                    <th className="px-4 py-3 text-right">{t('accounts.tableActions', '操作')}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/[0.04] text-xs">
+                  {filteredAccounts.map((acc) => {
+                    const isCurrent = acc.index === currentAuthIndex;
+                    const isChecked = selectedIndices.includes(acc.index);
+                    const isManuallyDisabled = Boolean(acc.isDisabled || (acc as any).disabled === true || acc.status === 'disabled');
+                    const totalUsage = getTotalUsage(acc.usage);
+                    const breakdowns = getModelBreakdowns(acc.usage);
+                    const hasContext = Boolean(acc.hasContext);
 
-                  return (
-                    <tr
-                      key={acc.index}
-                      className={`hover:bg-[#151824]/80 transition-colors ${
-                        isCurrent
-                          ? 'bg-emerald-950/20'
-                          : isChecked
-                          ? 'bg-indigo-950/20'
-                          : isManuallyDisabled
-                          ? 'opacity-60 bg-black/20'
-                          : ''
-                      }`}
-                    >
-                      {/* Checkbox */}
-                      <td className="w-10 px-4 py-3 text-center">
+                    return (
+                      <tr
+                        key={acc.index}
+                        className={`hover:bg-[#151824]/80 transition-colors ${
+                          isCurrent
+                            ? 'bg-emerald-950/20'
+                            : isChecked
+                            ? 'bg-indigo-950/20'
+                            : isManuallyDisabled
+                            ? 'opacity-60 bg-black/20'
+                            : ''
+                        }`}
+                      >
+                        {/* Checkbox */}
+                        <td className="w-10 px-4 py-3 text-center">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => handleSelectOne(acc.index)}
+                            className="w-4 h-4 rounded bg-[#0A0C10] border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                          />
+                        </td>
+
+                        {/* Index */}
+                        <td className="px-3 py-3 font-mono text-xs font-semibold text-slate-400">
+                          #{acc.index}
+                        </td>
+
+                        {/* Name & Identifiers */}
+                        <td className="px-4 py-3">
+                          <div className="flex items-center space-x-2">
+                            <div className="flex flex-col min-w-0">
+                              <div className="flex items-center space-x-2">
+                                <span
+                                  className={`font-medium truncate max-w-xs md:max-w-sm ${
+                                    isManuallyDisabled
+                                      ? 'text-slate-400 line-through decoration-slate-600'
+                                      : 'text-slate-100'
+                                  }`}
+                                >
+                                  {acc.name || `Account #${acc.index}`}
+                                </span>
+                                {acc.name && (
+                                  <button
+                                    onClick={() => handleCopyAccountName(acc.index, acc.name)}
+                                    className="text-slate-500 hover:text-slate-300 transition-colors"
+                                    title={t('accounts.copyAccountName', '复制账号邮箱/名称')}
+                                  >
+                                    {copiedKeyIndex === acc.index ? (
+                                      <Check className="w-3 h-3 text-emerald-400" />
+                                    ) : (
+                                      <Copy className="w-3 h-3" />
+                                    )}
+                                  </button>
+                                )}
+                              </div>
+                              {acc.canonicalIndex !== null && acc.canonicalIndex !== undefined && (
+                                <span className="text-[10px] text-slate-500 font-mono">
+                                  canonical #{acc.canonicalIndex}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Status Badges */}
+                        <td className="px-4 py-3">
+                          <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
+                            {/* hasContext Indicator */}
+                            <div
+                              title={hasContext ? 'Context Ready (Browser session active)' : 'No Context'}
+                              className={`px-1.5 py-0.5 rounded flex items-center justify-center cursor-help transition-all ${
+                                hasContext
+                                  ? 'bg-amber-500/15 text-amber-300 border border-amber-500/40 shadow-sm shadow-amber-500/20'
+                                  : 'bg-slate-800/40 text-slate-600 border border-slate-800/60 opacity-60'
+                              }`}
+                            >
+                              <Zap
+                                className={`w-3.5 h-3.5 ${
+                                  hasContext ? 'text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.6)] fill-amber-400' : 'text-slate-600'
+                                }`}
+                              />
+                            </div>
+
+                            {/* Dynamic Status Badge */}
+                            {renderStatusBadge(acc)}
+
+                            {isCurrent && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm">
+                                {t('accounts.currentBadge')}
+                              </span>
+                            )}
+
+                            {acc.isInvalid && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/30">
+                                {t('accounts.invalidBadge')}
+                              </span>
+                            )}
+
+                            {acc.isDuplicate && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                                {t('accounts.duplicateBadge')}
+                              </span>
+                            )}
+
+                            {acc.isExpired && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/30">
+                                {t('accounts.expiredBadge')}
+                              </span>
+                            )}
+
+                            {(acc.inFlight || 0) > 0 && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-purple-500/20 text-purple-300 border border-purple-500/40">
+                                {t('accounts.inFlight')}: {acc.inFlight}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* Quota & Usage */}
+                        <td className="px-4 py-3">
+                          <div
+                            className="relative inline-block group"
+                            onMouseEnter={handleMouseEnterPopover}
+                          >
+                            <button
+                              type="button"
+                              onClick={(e) => handleTogglePopover(e, acc.index)}
+                              className="px-2.5 py-1 rounded-lg text-[11px] font-mono bg-[#141620] hover:bg-white/[0.06] text-slate-300 border border-white/[0.08] flex items-center space-x-1.5 cursor-pointer transition-all focus:outline-none"
+                            >
+                              <Clock className="w-3.5 h-3.5 text-indigo-400" />
+                              <span className="text-slate-400">{t('accounts.todayUsage')}:</span>
+                              <strong className="text-indigo-300 font-bold">{totalUsage}</strong>
+                              <ChevronDown className="w-3 h-3 text-slate-500" />
+                            </button>
+
+                            {/* Popover Bubble */}
+                            <div
+                              className={`absolute left-0 sm:left-auto sm:right-0 md:left-0 ${
+                                popoverPlacement === 'bottom' ? 'top-full mt-2' : 'bottom-full mb-2'
+                              } ${
+                                activePopoverIndex === acc.index ? 'block' : 'hidden group-hover:block'
+                              } z-50 w-64 max-w-[85vw] p-3 bg-[#0F1118] border border-white/[0.12] rounded-xl shadow-2xl backdrop-blur-xl pointer-events-auto`}
+                            >
+                              <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/[0.08]">
+                                <span className="text-[11px] font-bold text-slate-200 flex items-center space-x-1.5">
+                                  <Clock className="w-3.5 h-3.5 text-indigo-400" />
+                                  <span>{t('accounts.todayUsage')}</span>
+                                </span>
+                                <span className="text-xs font-mono font-bold text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-md">
+                                  {totalUsage}
+                                </span>
+                              </div>
+
+                              {breakdowns.length === 0 ? (
+                                <div className="text-[10px] text-slate-400 italic py-1">
+                                  {totalUsage === 0 ? 'No model request breakdown' : `Total: ${totalUsage}`}
+                                </div>
+                              ) : (
+                                <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                                  {breakdowns.map((item, idx) => {
+                                    const ratio = item.limit ? Math.min(100, Math.round((item.count / item.limit) * 100)) : null;
+                                    return (
+                                      <div key={idx} className="space-y-1">
+                                        <div className="flex items-center justify-between text-[11px]">
+                                          <span className="text-slate-300 font-mono truncate max-w-[130px]" title={item.model}>
+                                            {item.model}
+                                          </span>
+                                          <span className="text-slate-400 font-mono font-semibold">
+                                            <strong className="text-slate-200">{item.count}</strong>
+                                            {item.limit !== undefined && <span className="text-slate-500 text-[10px]"> / {item.limit}</span>}
+                                          </span>
+                                        </div>
+                                        {ratio !== null && (
+                                          <div className="w-full bg-[#0A0C10] rounded-full h-1.5 overflow-hidden border border-white/[0.06]">
+                                            <div
+                                              className={`h-full rounded-full transition-all ${
+                                                ratio >= 90 ? 'bg-rose-500' : ratio >= 70 ? 'bg-amber-500' : 'bg-indigo-500'
+                                              }`}
+                                              style={{ width: `${ratio}%` }}
+                                            />
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                              {/* Pointer Arrow */}
+                              <div
+                                className={`absolute left-6 ${
+                                  popoverPlacement === 'bottom'
+                                    ? 'bottom-full -mb-px border-l border-t'
+                                    : 'top-full -mt-px border-r border-b'
+                                } w-2.5 h-2.5 bg-[#0F1118] border-white/[0.12] transform rotate-45`}
+                              />
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Actions */}
+                        <td className="px-4 py-3 text-right">
+                          <div className="flex items-center justify-end space-x-1.5">
+                            {/* Enable / Disable */}
+                            <button
+                              onClick={() => handleToggleDisabled(acc.index, isManuallyDisabled)}
+                              disabled={actionLoading}
+                              className={`p-1.5 rounded-lg border transition-all text-xs flex items-center justify-center ${
+                                isManuallyDisabled
+                                  ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                                  : 'bg-[#141620] hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 border-white/[0.08] hover:border-rose-500/30'
+                              }`}
+                              title={isManuallyDisabled ? t('accounts.toggleEnable') : t('accounts.toggleDisable')}
+                            >
+                              <Power className="w-3.5 h-3.5" />
+                            </button>
+
+                            {/* Set as Current */}
+                            <button
+                              onClick={() => handleSetCurrent(acc.index)}
+                              disabled={actionLoading || isCurrent || isManuallyDisabled}
+                              className={`p-1.5 rounded-lg border transition-all text-xs ${
+                                isCurrent
+                                  ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 cursor-default'
+                                  : 'bg-[#141620] hover:bg-indigo-500/20 text-slate-400 hover:text-indigo-300 border-white/[0.08] hover:border-indigo-500/30 disabled:opacity-20'
+                              }`}
+                              title={isCurrent ? t('accounts.isCurrentAccount') : t('accounts.setAsCurrent')}
+                            >
+                              <ArrowRightLeft className="w-3.5 h-3.5" />
+                            </button>
+
+                            {/* Download JSON */}
+                            <button
+                              onClick={() => handleDownloadSingle(acc.index)}
+                              disabled={actionLoading}
+                              className="p-1.5 bg-[#141620] hover:bg-white/[0.06] text-slate-400 hover:text-slate-200 border border-white/[0.08] hover:border-white/[0.15] rounded-lg text-xs transition-all"
+                              title={t('accounts.downloadCredential')}
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                            </button>
+
+                            {/* Delete Button */}
+                            <button
+                              onClick={() => {
+                                if (isCurrent) {
+                                  setDeleteConfirm({ index: acc.index, email: acc.name || '', isCurrent: true });
+                                } else {
+                                  setDeleteConfirm({ index: acc.index, email: acc.name || '', isCurrent: false });
+                                }
+                              }}
+                              disabled={actionLoading}
+                              className="p-1.5 bg-[#141620] hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-white/[0.08] hover:border-rose-500/30 rounded-lg text-xs transition-all"
+                              title={t('accounts.deleteAccount')}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Native Card List View */}
+            <div className="block md:hidden divide-y divide-white/[0.06]">
+              {filteredAccounts.map((acc) => {
+                const isCurrent = acc.index === currentAuthIndex;
+                const isChecked = selectedIndices.includes(acc.index);
+                const isManuallyDisabled = Boolean(acc.isDisabled || (acc as any).disabled === true || acc.status === 'disabled');
+                const totalUsage = getTotalUsage(acc.usage);
+                const breakdowns = getModelBreakdowns(acc.usage);
+                const hasContext = Boolean(acc.hasContext);
+                const isUsageExpanded = Boolean(expandedMobileUsage[acc.index]);
+
+                return (
+                  <div
+                    key={acc.index}
+                    className={`p-3.5 transition-colors space-y-3 ${
+                      isCurrent
+                        ? 'bg-emerald-950/15'
+                        : isChecked
+                        ? 'bg-indigo-950/20'
+                        : isManuallyDisabled
+                        ? 'opacity-60 bg-black/20'
+                        : 'bg-[#0F1118]/60'
+                    }`}
+                  >
+                    {/* Card Header: Checkbox + Index + Badges */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center space-x-2 min-w-0">
                         <input
                           type="checkbox"
                           checked={isChecked}
                           onChange={() => handleSelectOne(acc.index)}
-                          className="w-4 h-4 rounded bg-[#0A0C10] border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                          className="w-4 h-4 rounded bg-[#0A0C10] border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer shrink-0"
                         />
-                      </td>
+                        <span className="font-mono text-xs font-bold text-slate-300">
+                          #{acc.index}
+                        </span>
 
-                      {/* Index */}
-                      <td className="px-3 py-3 font-mono text-xs font-semibold text-slate-400">
-                        #{acc.index}
-                      </td>
-
-                      {/* Name & Identifiers */}
-                      <td className="px-4 py-3">
-                        <div className="flex items-center space-x-2">
-                          <div className="flex flex-col min-w-0">
-                            <div className="flex items-center space-x-2">
-                              <span
-                                className={`font-medium truncate max-w-xs md:max-w-sm ${
-                                  isManuallyDisabled
-                                    ? 'text-slate-400 line-through decoration-slate-600'
-                                    : 'text-slate-100'
-                                }`}
-                              >
-                                {acc.name || `Account #${acc.index}`}
-                              </span>
-                              {acc.name && (
-                                <button
-                                  onClick={() => handleCopyAccountName(acc.index, acc.name)}
-                                  className="text-slate-500 hover:text-slate-300 transition-colors"
-                                  title={t('accounts.copyAccountName', '复制账号邮箱/名称')}
-                                >
-                                  {copiedKeyIndex === acc.index ? (
-                                    <Check className="w-3 h-3 text-emerald-400" />
-                                  ) : (
-                                    <Copy className="w-3 h-3" />
-                                  )}
-                                </button>
-                              )}
-                            </div>
-                            {acc.canonicalIndex !== null && acc.canonicalIndex !== undefined && (
-                              <span className="text-[10px] text-slate-500 font-mono">
-                                canonical #{acc.canonicalIndex}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Status Badges */}
-                      <td className="px-4 py-3">
-                        <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
-                          {/* hasContext Indicator */}
-                          <div
-                            title={hasContext ? 'Context Ready (Browser session active)' : 'No Context'}
-                            className={`px-1.5 py-0.5 rounded flex items-center justify-center cursor-help transition-all ${
-                              hasContext
-                                ? 'bg-amber-500/15 text-amber-300 border border-amber-500/40 shadow-sm shadow-amber-500/20'
-                                : 'bg-slate-800/40 text-slate-600 border border-slate-800/60 opacity-60'
-                            }`}
-                          >
-                            <Zap
-                              className={`w-3.5 h-3.5 ${
-                                hasContext ? 'text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.6)] fill-amber-400' : 'text-slate-600'
-                              }`}
-                            />
-                          </div>
-
-                          {/* Dynamic Status Badge */}
-                          {renderStatusBadge(acc)}
-
-                          {isCurrent && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm">
-                              {t('accounts.currentBadge')}
-                            </span>
-                          )}
-
-                          {acc.isInvalid && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/30">
-                              {t('accounts.invalidBadge')}
-                            </span>
-                          )}
-
-                          {acc.isDuplicate && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30">
-                              {t('accounts.duplicateBadge')}
-                            </span>
-                          )}
-
-                          {acc.isExpired && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/30">
-                              {t('accounts.expiredBadge')}
-                            </span>
-                          )}
-
-                          {(acc.inFlight || 0) > 0 && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-purple-500/20 text-purple-300 border border-purple-500/40">
-                              {t('accounts.inFlight')}: {acc.inFlight}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Quota & Usage */}
-                      <td className="px-4 py-3">
+                        {/* hasContext badge */}
                         <div
-                          className="relative inline-block group"
-                          onMouseEnter={handleMouseEnterPopover}
+                          title={hasContext ? 'Context Ready' : 'No Context'}
+                          className={`px-1.5 py-0.5 rounded flex items-center justify-center shrink-0 ${
+                            hasContext
+                              ? 'bg-amber-500/15 text-amber-300 border border-amber-500/40 shadow-sm shadow-amber-500/20'
+                              : 'bg-slate-800/40 text-slate-600 border border-slate-800/60 opacity-60'
+                          }`}
                         >
+                          <Zap
+                            className={`w-3 h-3 ${
+                              hasContext ? 'text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.6)] fill-amber-400' : 'text-slate-600'
+                            }`}
+                          />
+                        </div>
+
+                        {isCurrent && (
+                          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0">
+                            {t('accounts.currentBadge')}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center space-x-1 shrink-0">
+                        {renderStatusBadge(acc)}
+                      </div>
+                    </div>
+
+                    {/* Card Body: Account Identifier & Canonical */}
+                    <div className="bg-[#141622] border border-white/[0.04] rounded-xl p-2.5 space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span
+                          className={`text-xs font-mono font-medium truncate ${
+                            isManuallyDisabled
+                              ? 'text-slate-400 line-through decoration-slate-600'
+                              : 'text-slate-100'
+                          }`}
+                        >
+                          {acc.name || `Account #${acc.index}`}
+                        </span>
+
+                        {acc.name && (
                           <button
-                            type="button"
-                            onClick={(e) => handleTogglePopover(e, acc.index)}
-                            className="px-2.5 py-1 rounded-lg text-[11px] font-mono bg-[#141620] hover:bg-white/[0.06] text-slate-300 border border-white/[0.08] flex items-center space-x-1.5 cursor-pointer transition-all focus:outline-none"
+                            onClick={() => handleCopyAccountName(acc.index, acc.name)}
+                            className="p-1 rounded-lg text-slate-400 hover:text-white bg-white/[0.04] shrink-0 ml-2"
+                            title={t('accounts.copyAccountName', '复制账号邮箱/名称')}
                           >
-                            <Clock className="w-3.5 h-3.5 text-indigo-400" />
-                            <span className="text-slate-400">{t('accounts.todayUsage')}:</span>
-                            <strong className="text-indigo-300 font-bold">{totalUsage}</strong>
-                            <ChevronDown className="w-3 h-3 text-slate-500" />
-                          </button>
-
-                          {/* Popover Bubble */}
-                          <div
-                            className={`absolute left-0 sm:left-auto sm:right-0 md:left-0 ${
-                              popoverPlacement === 'bottom' ? 'top-full mt-2' : 'bottom-full mb-2'
-                            } ${
-                              activePopoverIndex === acc.index ? 'block' : 'hidden group-hover:block'
-                            } z-50 w-64 max-w-[85vw] p-3 bg-[#0F1118] border border-white/[0.12] rounded-xl shadow-2xl backdrop-blur-xl pointer-events-auto`}
-                          >
-                            <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/[0.08]">
-                              <span className="text-[11px] font-bold text-slate-200 flex items-center space-x-1.5">
-                                <Clock className="w-3.5 h-3.5 text-indigo-400" />
-                                <span>{t('accounts.todayUsage')}</span>
-                              </span>
-                              <span className="text-xs font-mono font-bold text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-md">
-                                {totalUsage}
-                              </span>
-                            </div>
-
-                            {breakdowns.length === 0 ? (
-                              <div className="text-[10px] text-slate-400 italic py-1">
-                                {totalUsage === 0 ? 'No model request breakdown' : `Total: ${totalUsage}`}
-                              </div>
+                            {copiedKeyIndex === acc.index ? (
+                              <Check className="w-3.5 h-3.5 text-emerald-400" />
                             ) : (
-                              <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                                {breakdowns.map((item, idx) => {
-                                  const ratio = item.limit ? Math.min(100, Math.round((item.count / item.limit) * 100)) : null;
-                                  return (
-                                    <div key={idx} className="space-y-1">
-                                      <div className="flex items-center justify-between text-[11px]">
-                                        <span className="text-slate-300 font-mono truncate max-w-[130px]" title={item.model}>
-                                          {item.model}
-                                        </span>
-                                        <span className="text-slate-400 font-mono font-semibold">
-                                          <strong className="text-slate-200">{item.count}</strong>
-                                          {item.limit !== undefined && <span className="text-slate-500 text-[10px]"> / {item.limit}</span>}
-                                        </span>
-                                      </div>
-                                      {ratio !== null && (
-                                        <div className="w-full bg-[#0A0C10] rounded-full h-1.5 overflow-hidden border border-white/[0.06]">
-                                          <div
-                                            className={`h-full rounded-full transition-all ${
-                                              ratio >= 90 ? 'bg-rose-500' : ratio >= 70 ? 'bg-amber-500' : 'bg-indigo-500'
-                                            }`}
-                                            style={{ width: `${ratio}%` }}
-                                          />
-                                        </div>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                              </div>
+                              <Copy className="w-3.5 h-3.5" />
                             )}
-                            {/* Pointer Arrow */}
-                            <div
-                              className={`absolute left-6 ${
-                                popoverPlacement === 'bottom'
-                                  ? 'bottom-full -mb-px border-l border-t'
-                                  : 'top-full -mt-px border-r border-b'
-                              } w-2.5 h-2.5 bg-[#0F1118] border-white/[0.12] transform rotate-45`}
-                            />
-                          </div>
+                          </button>
+                        )}
+                      </div>
+
+                      {acc.canonicalIndex !== null && acc.canonicalIndex !== undefined && (
+                        <div className="text-[10px] text-slate-500 font-mono">
+                          canonical #{acc.canonicalIndex}
                         </div>
-                      </td>
+                      )}
+                    </div>
 
-                      {/* Actions */}
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex items-center justify-end space-x-1.5">
-                          {/* Enable / Disable */}
-                          <button
-                            onClick={() => handleToggleDisabled(acc.index, isManuallyDisabled)}
-                            disabled={actionLoading}
-                            className={`p-1.5 rounded-lg border transition-all text-xs flex items-center justify-center ${
-                              isManuallyDisabled
-                                ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                                : 'bg-[#141620] hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 border-white/[0.08] hover:border-rose-500/30'
-                            }`}
-                            title={isManuallyDisabled ? t('accounts.toggleEnable') : t('accounts.toggleDisable')}
-                          >
-                            <Power className="w-3.5 h-3.5" />
-                          </button>
-
-                          {/* Set as Current */}
-                          <button
-                            onClick={() => handleSetCurrent(acc.index)}
-                            disabled={actionLoading || isCurrent || isManuallyDisabled}
-                            className={`p-1.5 rounded-lg border transition-all text-xs ${
-                              isCurrent
-                                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 cursor-default'
-                                : 'bg-[#141620] hover:bg-indigo-500/20 text-slate-400 hover:text-indigo-300 border-white/[0.08] hover:border-indigo-500/30 disabled:opacity-20'
-                            }`}
-                            title={isCurrent ? t('accounts.isCurrentAccount') : t('accounts.setAsCurrent')}
-                          >
-                            <ArrowRightLeft className="w-3.5 h-3.5" />
-                          </button>
-
-                          {/* Download JSON */}
-                          <button
-                            onClick={() => handleDownloadSingle(acc.index)}
-                            disabled={actionLoading}
-                            className="p-1.5 bg-[#141620] hover:bg-white/[0.06] text-slate-400 hover:text-slate-200 border border-white/[0.08] hover:border-white/[0.15] rounded-lg text-xs transition-all"
-                            title={t('accounts.downloadCredential')}
-                          >
-                            <Download className="w-3.5 h-3.5" />
-                          </button>
-
-                          {/* Delete Button */}
-                          <button
-                            onClick={() => {
-                              if (isCurrent) {
-                                setDeleteConfirm({ index: acc.index, email: acc.name || '', isCurrent: true });
-                              } else {
-                                setDeleteConfirm({ index: acc.index, email: acc.name || '', isCurrent: false });
-                              }
-                            }}
-                            disabled={actionLoading}
-                            className="p-1.5 bg-[#141620] hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-white/[0.08] hover:border-rose-500/30 rounded-lg text-xs transition-all"
-                            title={t('accounts.deleteAccount')}
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                    {/* Card Quota & In-Card Expandable Usage */}
+                    <div className="space-y-1.5">
+                      <button
+                        type="button"
+                        onClick={() => toggleMobileUsage(acc.index)}
+                        className="w-full px-3 py-2 rounded-xl text-xs font-mono bg-[#141622] hover:bg-[#1A1D2D] text-slate-300 border border-white/[0.06] flex items-center justify-between transition-colors"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <Clock className="w-3.5 h-3.5 text-indigo-400" />
+                          <span className="text-slate-400">{t('accounts.todayUsage')}:</span>
+                          <strong className="text-indigo-300 font-bold">{totalUsage}</strong>
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                        <div className="flex items-center space-x-1 text-slate-400 text-[11px]">
+                          <span>{breakdowns.length > 0 ? `${breakdowns.length} models` : 'Details'}</span>
+                          <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isUsageExpanded ? 'rotate-180 text-indigo-400' : ''}`} />
+                        </div>
+                      </button>
+
+                      {/* Expandable Model Usage Breakdown */}
+                      {isUsageExpanded && (
+                        <div className="p-3 bg-[#0C0E14] border border-white/[0.08] rounded-xl space-y-2.5 animate-in fade-in duration-150">
+                          {breakdowns.length === 0 ? (
+                            <div className="text-[11px] text-slate-500 italic text-center py-1">
+                              {totalUsage === 0 ? 'No model requests today' : `Total requests: ${totalUsage}`}
+                            </div>
+                          ) : (
+                            breakdowns.map((item, idx) => {
+                              const ratio = item.limit ? Math.min(100, Math.round((item.count / item.limit) * 100)) : null;
+                              return (
+                                <div key={idx} className="space-y-1">
+                                  <div className="flex items-center justify-between text-xs font-mono">
+                                    <span className="text-slate-300 truncate max-w-[180px]" title={item.model}>
+                                      {item.model}
+                                    </span>
+                                    <span className="text-slate-400 font-semibold">
+                                      <strong className="text-slate-200">{item.count}</strong>
+                                      {item.limit !== undefined && <span className="text-slate-500 text-[10px]"> / {item.limit}</span>}
+                                    </span>
+                                  </div>
+                                  {ratio !== null && (
+                                    <div className="w-full bg-white/[0.04] rounded-full h-1.5 overflow-hidden">
+                                      <div
+                                        className={`h-full rounded-full transition-all ${
+                                          ratio >= 90 ? 'bg-rose-500' : ratio >= 70 ? 'bg-amber-500' : 'bg-indigo-500'
+                                        }`}
+                                        style={{ width: `${ratio}%` }}
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Card Actions Footer: Big Touch Targets */}
+                    <div className="flex items-center gap-2 pt-1 border-t border-white/[0.04]">
+                      {/* Set as Current */}
+                      <button
+                        onClick={() => handleSetCurrent(acc.index)}
+                        disabled={actionLoading || isCurrent || isManuallyDisabled}
+                        className={`flex-1 py-1.5 px-2 rounded-lg border text-xs font-semibold flex items-center justify-center space-x-1.5 transition-all active:scale-95 ${
+                          isCurrent
+                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm'
+                            : 'bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border-indigo-500/40 disabled:opacity-30'
+                        }`}
+                      >
+                        <ArrowRightLeft className="w-3.5 h-3.5" />
+                        <span>{isCurrent ? t('accounts.isCurrentAccount', '当前账号') : t('accounts.setAsCurrent', '设为当前')}</span>
+                      </button>
+
+                      {/* Enable / Disable */}
+                      <button
+                        onClick={() => handleToggleDisabled(acc.index, isManuallyDisabled)}
+                        disabled={actionLoading}
+                        className={`py-1.5 px-2.5 rounded-lg border text-xs font-semibold flex items-center justify-center space-x-1 transition-all active:scale-95 ${
+                          isManuallyDisabled
+                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                            : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+                        }`}
+                      >
+                        <Power className="w-3.5 h-3.5" />
+                        <span>{isManuallyDisabled ? t('accounts.toggleEnable', '启用') : t('accounts.toggleDisable', '禁用')}</span>
+                      </button>
+
+                      {/* Download */}
+                      <button
+                        onClick={() => handleDownloadSingle(acc.index)}
+                        disabled={actionLoading}
+                        className="p-1.5 bg-[#141622] text-slate-400 border border-white/[0.08] rounded-lg text-xs hover:text-white"
+                        title={t('accounts.downloadCredential')}
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                      </button>
+
+                      {/* Delete */}
+                      <button
+                        onClick={() => {
+                          if (isCurrent) {
+                            setDeleteConfirm({ index: acc.index, email: acc.name || '', isCurrent: true });
+                          } else {
+                            setDeleteConfirm({ index: acc.index, email: acc.name || '', isCurrent: false });
+                          }
+                        }}
+                        disabled={actionLoading}
+                        className="p-1.5 bg-[#141622] hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-white/[0.08] hover:border-rose-500/30 rounded-lg text-xs"
+                        title={t('accounts.deleteAccount')}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
 
       {/* Floating Action Bar when rows are selected */}
       {selectedIndices.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <div className="backdrop-blur-xl bg-[#151824]/95 border border-white/[0.15] shadow-2xl rounded-2xl px-5 py-3 flex items-center space-x-4">
-            <div className="flex items-center space-x-2 text-xs font-semibold text-white pr-2 border-r border-white/[0.1]">
+        <div className="fixed bottom-16 md:bottom-6 left-1/2 -translate-x-1/2 z-40 animate-in fade-in slide-in-from-bottom-4 duration-300 w-[92vw] sm:w-auto max-w-lg">
+          <div className="backdrop-blur-xl bg-[#151824]/95 border border-white/[0.15] shadow-2xl rounded-2xl px-3 sm:px-5 py-2.5 sm:py-3 flex flex-wrap sm:flex-nowrap items-center justify-between sm:justify-start gap-2 sm:space-x-4">
+            <div className="flex items-center space-x-2 text-xs font-semibold text-white pr-2 border-r border-white/[0.1] shrink-0">
               <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
               <span>{t('accounts.batchSelected', `${selectedIndices.length} accounts selected`).replace('{count}', String(selectedIndices.length))}</span>
             </div>
 
-            {/* Batch Enable */}
-            <button
-              onClick={() => handleBatchToggleDisabled(false)}
-              disabled={actionLoading}
-              className="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all active:scale-95"
-            >
-              <Power className="w-3.5 h-3.5 text-emerald-400" />
-              <span>{t('accounts.batchEnable', 'Enable')}</span>
-            </button>
+            <div className="flex items-center space-x-1.5 sm:space-x-2 flex-wrap">
+              {/* Batch Enable */}
+              <button
+                onClick={() => handleBatchToggleDisabled(false)}
+                disabled={actionLoading}
+                className="px-2.5 sm:px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-lg text-xs font-semibold flex items-center space-x-1 transition-all active:scale-95"
+              >
+                <Power className="w-3.5 h-3.5 text-emerald-400" />
+                <span>{t('accounts.batchEnable', 'Enable')}</span>
+              </button>
 
-            {/* Batch Disable */}
-            <button
-              onClick={() => handleBatchToggleDisabled(true)}
-              disabled={actionLoading}
-              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all active:scale-95"
-            >
-              <Power className="w-3.5 h-3.5 text-slate-400" />
-              <span>{t('accounts.batchDisable', 'Disable')}</span>
-            </button>
+              {/* Batch Disable */}
+              <button
+                onClick={() => handleBatchToggleDisabled(true)}
+                disabled={actionLoading}
+                className="px-2.5 sm:px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-lg text-xs font-semibold flex items-center space-x-1 transition-all active:scale-95"
+              >
+                <Power className="w-3.5 h-3.5 text-slate-400" />
+                <span>{t('accounts.batchDisable', 'Disable')}</span>
+              </button>
 
-            {/* Batch Download */}
-            <button
-              onClick={handleBatchDownload}
-              disabled={actionLoading}
-              className="px-3 py-1.5 bg-[#1C1F2E] hover:bg-white/[0.1] text-slate-200 border border-white/[0.1] rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all active:scale-95"
-            >
-              <Download className="w-3.5 h-3.5 text-slate-400" />
-              <span>{t('accounts.batchDownload')}</span>
-            </button>
+              {/* Batch Download */}
+              <button
+                onClick={handleBatchDownload}
+                disabled={actionLoading}
+                className="p-1.5 sm:px-3 sm:py-1.5 bg-[#1C1F2E] hover:bg-white/[0.1] text-slate-200 border border-white/[0.1] rounded-lg text-xs font-semibold flex items-center space-x-1 transition-all active:scale-95"
+                title={t('accounts.batchDownload')}
+              >
+                <Download className="w-3.5 h-3.5 text-slate-400" />
+                <span className="hidden sm:inline">{t('accounts.batchDownload')}</span>
+              </button>
 
-            {/* Batch Delete */}
-            <button
-              onClick={() => setBatchDeleteConfirm(true)}
-              disabled={actionLoading}
-              className="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all shadow-[0_0_12px_rgba(244,63,94,0.3)] active:scale-95"
-            >
-              <Trash2 className="w-3.5 h-3.5 text-white" />
-              <span>{t('accounts.batchDelete')}</span>
-            </button>
+              {/* Batch Delete */}
+              <button
+                onClick={() => setBatchDeleteConfirm(true)}
+                disabled={actionLoading}
+                className="p-1.5 sm:px-3 sm:py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-semibold flex items-center space-x-1 transition-all shadow-[0_0_12px_rgba(244,63,94,0.3)] active:scale-95"
+                title={t('accounts.batchDelete')}
+              >
+                <Trash2 className="w-3.5 h-3.5 text-white" />
+                <span className="hidden sm:inline">{t('accounts.batchDelete')}</span>
+              </button>
 
-            {/* Clear Selection */}
-            <button
-              onClick={() => setSelectedIndices([])}
-              className="p-1.5 text-slate-400 hover:text-white rounded-lg transition-colors"
-              title={t('accounts.clearSelection', 'Clear selection')}
-            >
-              <X className="w-4 h-4" />
-            </button>
+              {/* Clear Selection */}
+              <button
+                onClick={() => setSelectedIndices([])}
+                className="p-1.5 text-slate-400 hover:text-white rounded-lg transition-colors"
+                title={t('accounts.clearSelection', 'Clear selection')}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </div>
       )}
