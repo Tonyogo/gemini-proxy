@@ -59,29 +59,16 @@ export default function App() {
   const [loading, setLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
-  // Sidebar Collapse State (Desktop) & Mobile Drawer State
+  // Sidebar Collapse State (Desktop)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
     return localStorage.getItem('sidebar_collapsed') === 'true';
   });
-  const [isMobileOpen, setIsMobileOpen] = useState<boolean>(false);
 
-  // Close mobile drawer on route/tab change and persist to localStorage
+  // Switch tab and persist to localStorage
   const handleTabChange = (tabId: TabType) => {
     setActiveTab(tabId);
     localStorage.setItem('admin_active_tab', tabId);
-    setIsMobileOpen(false);
   };
-
-  // Close mobile drawer on window resize to desktop
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth >= 768) {
-        setIsMobileOpen(false);
-      }
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   // Modal State
   const [isConfigModalOpen, setIsConfigModalOpen] = useState<boolean>(false);
@@ -288,22 +275,10 @@ export default function App() {
 
   return (
     <div className="flex min-h-screen bg-[#090A0F] text-slate-100 font-sans selection:bg-indigo-500 selection:text-white antialiased">
-      {/* Mobile Backdrop Overlay */}
-      {isMobileOpen && (
-        <div
-          onClick={() => setIsMobileOpen(false)}
-          className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm md:hidden animate-in fade-in duration-200"
-        />
-      )}
-
-      {/* Collapsible Sidebar (Desktop fixed + Mobile Slide-out Drawer) */}
+      {/* Collapsible Sidebar (Desktop only) */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-50 flex flex-col bg-[#0C0E14] border-r border-white/[0.06] transition-all duration-300 ease-in-out ${
-          // Mobile state: slide in from left
-          isMobileOpen ? 'translate-x-0 w-64 shadow-2xl' : '-translate-x-full md:translate-x-0'
-        } ${
-          // Desktop state width
-          isSidebarCollapsed ? 'md:w-16' : 'md:w-60'
+        className={`fixed top-0 bottom-0 left-0 z-40 hidden md:flex flex-col bg-[#0C0E14] border-r border-white/[0.06] transition-all duration-300 ease-in-out ${
+          isSidebarCollapsed ? 'w-16' : 'w-60'
         }`}
       >
         {/* Brand Logo Header */}
@@ -312,7 +287,7 @@ export default function App() {
             <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500/20 via-purple-500/20 to-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold text-xs shrink-0 shadow-[0_0_12px_rgba(99,102,241,0.2)]">
               <Zap className="w-4 h-4 text-indigo-400" />
             </div>
-            {(!isSidebarCollapsed || isMobileOpen) && (
+            {!isSidebarCollapsed && (
               <div className="flex items-center space-x-2 min-w-0 overflow-hidden">
                 <span className="font-semibold text-sm text-slate-100 tracking-tight truncate">
                   Gemini Proxy
@@ -323,14 +298,6 @@ export default function App() {
               </div>
             )}
           </div>
-
-          {/* Close button inside mobile drawer */}
-          <button
-            onClick={() => setIsMobileOpen(false)}
-            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.05] md:hidden"
-          >
-            <X className="w-5 h-5" />
-          </button>
         </div>
 
         {/* Navigation Items */}
@@ -344,9 +311,9 @@ export default function App() {
               <button
                 key={item.id}
                 onClick={() => handleTabChange(item.id)}
-                title={isSidebarCollapsed && !isMobileOpen ? `${title} (${item.shortcut})` : undefined}
+                title={isSidebarCollapsed ? `${title} (${item.shortcut})` : undefined}
                 className={`relative w-full flex items-center rounded-xl text-xs font-medium transition-all group ${
-                  isSidebarCollapsed && !isMobileOpen ? 'justify-center px-0 py-2.5' : 'px-3 py-2.5 space-x-3'
+                  isSidebarCollapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2.5 space-x-3'
                 } ${
                   isActive
                     ? 'bg-gradient-to-r from-indigo-500/15 via-purple-500/10 to-transparent text-white border border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.08)]'
@@ -364,7 +331,7 @@ export default function App() {
                   }`}
                 />
 
-                {(!isSidebarCollapsed || isMobileOpen) && (
+                {!isSidebarCollapsed && (
                   <div className="flex items-center justify-between flex-1 min-w-0">
                     <span className="truncate">{title}</span>
                     <kbd className={`text-[10px] font-mono px-1.5 py-0.5 rounded border transition-colors ${
@@ -386,7 +353,7 @@ export default function App() {
           {/* Live Connection Status */}
           <div
             className={`flex items-center px-3 py-2 rounded-xl text-xs text-slate-400 transition-colors ${
-              isSidebarCollapsed && !isMobileOpen ? 'justify-center px-0' : 'space-x-2.5'
+              isSidebarCollapsed ? 'justify-center px-0' : 'space-x-2.5'
             }`}
             title={lang === 'zh' ? '系统运行正常' : 'System Online'}
           >
@@ -394,7 +361,7 @@ export default function App() {
               <span className="w-2 h-2 rounded-full bg-emerald-400" />
               <span className="absolute w-2 h-2 rounded-full bg-emerald-400 animate-ping opacity-75" />
             </div>
-            {(!isSidebarCollapsed || isMobileOpen) && (
+            {!isSidebarCollapsed && (
               <span className="text-[11px] font-mono text-emerald-400 truncate">
                 {lang === 'zh' ? '服务运行中' : 'Proxy Active'}
               </span>
@@ -403,29 +370,26 @@ export default function App() {
 
           {/* Settings Button */}
           <button
-            onClick={() => {
-              setIsConfigModalOpen(true);
-              setIsMobileOpen(false);
-            }}
-            title={isSidebarCollapsed && !isMobileOpen ? t('nav.configTitle') : undefined}
+            onClick={() => setIsConfigModalOpen(true)}
+            title={isSidebarCollapsed ? t('nav.configTitle') : undefined}
             className={`w-full flex items-center rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-white/[0.04] transition-colors ${
-              isSidebarCollapsed && !isMobileOpen ? 'justify-center p-2.5' : 'px-3 py-2 space-x-2.5'
+              isSidebarCollapsed ? 'justify-center p-2.5' : 'px-3 py-2 space-x-2.5'
             }`}
           >
             <Settings className="w-4 h-4 shrink-0" />
-            {(!isSidebarCollapsed || isMobileOpen) && <span className="truncate">{t('nav.configTitle')}</span>}
+            {!isSidebarCollapsed && <span className="truncate">{t('nav.configTitle')}</span>}
           </button>
 
           {/* Language Switcher */}
           <button
             onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
-            title={isSidebarCollapsed && !isMobileOpen ? (lang === 'zh' ? 'Switch to English' : '切换至中文') : undefined}
+            title={isSidebarCollapsed ? (lang === 'zh' ? 'Switch to English' : '切换至中文') : undefined}
             className={`w-full flex items-center rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-white/[0.04] transition-colors ${
-              isSidebarCollapsed && !isMobileOpen ? 'justify-center p-2.5' : 'px-3 py-2 space-x-2.5'
+              isSidebarCollapsed ? 'justify-center p-2.5' : 'px-3 py-2 space-x-2.5'
             }`}
           >
             <Globe className="w-4 h-4 shrink-0" />
-            {(!isSidebarCollapsed || isMobileOpen) && (
+            {!isSidebarCollapsed && (
               <span className="truncate">{lang === 'zh' ? 'English (EN)' : '中文 (ZH)'}</span>
             )}
           </button>
@@ -433,13 +397,13 @@ export default function App() {
           {/* Logout Button */}
           <button
             onClick={handleLogout}
-            title={isSidebarCollapsed && !isMobileOpen ? t('nav.logout') : undefined}
+            title={isSidebarCollapsed ? t('nav.logout') : undefined}
             className={`w-full flex items-center rounded-xl text-xs font-medium text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors ${
-              isSidebarCollapsed && !isMobileOpen ? 'justify-center p-2.5' : 'px-3 py-2 space-x-2.5'
+              isSidebarCollapsed ? 'justify-center p-2.5' : 'px-3 py-2 space-x-2.5'
             }`}
           >
             <LogOut className="w-4 h-4 shrink-0" />
-            {(!isSidebarCollapsed || isMobileOpen) && <span className="truncate">{t('nav.logout')}</span>}
+            {!isSidebarCollapsed && <span className="truncate">{t('nav.logout')}</span>}
           </button>
         </div>
       </aside>
@@ -452,16 +416,12 @@ export default function App() {
       >
         {/* Minimal Glass Top Bar */}
         <header className="h-12 sm:h-14 backdrop-blur-md bg-[#090A0F]/80 border-b border-white/[0.06] px-3 sm:px-6 flex items-center justify-between sticky top-0 z-30">
-          {/* Left Breadcrumbs & Sidebar Toggle */}
+          {/* Left Breadcrumbs & Brand / Sidebar Toggle */}
           <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
-            {/* Mobile Hamburger Menu Toggle */}
-            <button
-              onClick={() => setIsMobileOpen(true)}
-              title="Open Navigation"
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-white/[0.05] transition-colors border border-transparent hover:border-white/[0.06] md:hidden shrink-0"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
+            {/* Mobile Brand Logo Icon */}
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500/20 via-purple-500/20 to-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold text-xs shrink-0 md:hidden shadow-[0_0_10px_rgba(99,102,241,0.2)]">
+              <Zap className="w-3.5 h-3.5 text-indigo-400" />
+            </div>
 
             {/* Desktop Sidebar Toggle */}
             <button
@@ -486,7 +446,8 @@ export default function App() {
           </div>
 
           {/* Right Action Controls */}
-          <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
+          <div className="flex items-center space-x-1 sm:space-x-2 shrink-0">
+            {/* Refresh Button */}
             <button
               onClick={handleRefresh}
               title={lang === 'zh' ? '刷新当前视图' : 'Refresh Active View'}
@@ -496,15 +457,43 @@ export default function App() {
               <span className="hidden sm:inline text-[11px]">{lang === 'zh' ? '刷新' : 'Refresh'}</span>
             </button>
 
-            <div className="flex items-center space-x-1.5 px-2 sm:px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-mono">
+            {/* Mobile Settings Button */}
+            <button
+              onClick={() => setIsConfigModalOpen(true)}
+              title={t('nav.configTitle')}
+              className="p-1.5 bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.08] hover:border-white/[0.15] rounded-lg text-xs text-slate-300 hover:text-white transition-all md:hidden active:scale-95"
+            >
+              <Settings className="w-3.5 h-3.5 text-slate-400" />
+            </button>
+
+            {/* Mobile Language Switcher */}
+            <button
+              onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
+              title={lang === 'zh' ? 'Switch to English' : '切换至中文'}
+              className="p-1.5 bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.08] hover:border-white/[0.15] rounded-lg text-xs text-slate-300 hover:text-white transition-all md:hidden active:scale-95 font-mono text-[10px]"
+            >
+              <Globe className="w-3.5 h-3.5 text-slate-400" />
+            </button>
+
+            {/* Mobile Logout Button */}
+            <button
+              onClick={handleLogout}
+              title={t('nav.logout')}
+              className="p-1.5 bg-white/[0.03] hover:bg-rose-500/20 border border-white/[0.08] hover:border-rose-500/30 rounded-lg text-xs text-slate-400 hover:text-rose-300 transition-all md:hidden active:scale-95"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
+
+            {/* Status Online Badge (Desktop) */}
+            <div className="hidden sm:flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-mono">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="hidden sm:inline">{lang === 'zh' ? '在线' : 'Online'}</span>
+              <span>{lang === 'zh' ? '在线' : 'Online'}</span>
             </div>
           </div>
         </header>
 
         {/* Main View Workspace */}
-        <main className="flex-1 p-2.5 sm:p-4 md:p-6 overflow-x-hidden pb-8">
+        <main className="flex-1 p-2.5 sm:p-4 md:p-6 overflow-x-hidden pb-20 md:pb-6">
           {activeTab === 'dashboard' && (
             <DashboardView
               key={refreshTrigger}
@@ -535,6 +524,39 @@ export default function App() {
             />
           )}
         </main>
+
+        {/* Fixed Mobile Bottom Navigation Bar */}
+        <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#0C0E14]/95 backdrop-blur-xl border-t border-white/[0.08] px-2 py-1 flex items-center justify-around md:hidden shadow-[0_-4px_20px_rgba(0,0,0,0.6)]">
+          {NAV_ITEMS.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            const title = t(`nav.${item.id}`);
+
+            return (
+              <button
+                key={item.id}
+                onClick={() => handleTabChange(item.id)}
+                className={`relative flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition-all ${
+                  isActive
+                    ? 'text-indigo-400 font-semibold'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <div className={`p-1 rounded-lg transition-transform ${
+                  isActive ? 'bg-indigo-500/15 scale-110 shadow-[0_0_12px_rgba(99,102,241,0.3)]' : ''
+                }`}>
+                  <Icon className={`w-4 h-4 ${isActive ? 'text-indigo-400' : 'text-slate-400'}`} />
+                </div>
+                <span className="text-[10px] mt-0.5 tracking-tight truncate max-w-[56px]">
+                  {title}
+                </span>
+                {isActive && (
+                  <span className="w-1 h-1 rounded-full bg-indigo-500 mt-0.5 shadow-[0_0_6px_rgba(99,102,241,0.8)]" />
+                )}
+              </button>
+            );
+          })}
+        </nav>
       </div>
 
       {/* Global Config Modal */}
