@@ -9,7 +9,9 @@ import {
   Radio,
   ArrowDownCircle,
   Clock,
-  Sparkles
+  Sparkles,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import { useTranslation } from '../i18n/LanguageContext';
 
@@ -29,6 +31,7 @@ export default function TerminalLogsView({ adminKey }: { adminKey: string }) {
   const [autoScroll, setAutoScroll] = useState<boolean>(true);
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -98,9 +101,16 @@ export default function TerminalLogsView({ adminKey }: { adminKey: string }) {
     let remaining = rawMessage;
     let timestampStr = '';
 
+    let shortTimeStr = '';
+
     if (timeMatch) {
       timestampStr = timeMatch[1];
       remaining = rawMessage.slice(timeMatch[0].length);
+      // Extract clean HH:mm:ss for mobile display
+      const timeOnlyMatch = timestampStr.match(/(\d{2}:\d{2}:\d{2})/);
+      if (timeOnlyMatch) {
+        shortTimeStr = timeOnlyMatch[1];
+      }
     }
 
     // Check for level tag like [INFO], [WARN], [ERROR], [DEBUG]
@@ -148,18 +158,19 @@ export default function TerminalLogsView({ adminKey }: { adminKey: string }) {
     const isJsonLike = remaining.trim().startsWith('{') || remaining.trim().startsWith('[');
 
     return (
-      <div className="flex items-start space-x-2 py-0.5 hover:bg-white/[0.03] px-2 rounded-md transition-colors leading-relaxed group">
+      <div className="flex items-start space-x-1.5 sm:space-x-2 py-0.5 hover:bg-white/[0.03] px-1.5 sm:px-2 rounded-md transition-colors leading-relaxed group">
         {timestampStr && (
-          <span className="text-slate-500 select-none font-mono text-[11px] shrink-0">
-            {timestampStr}
+          <span className="text-slate-500 select-none font-mono text-[10px] sm:text-[11px] shrink-0">
+            <span className="hidden sm:inline">{timestampStr}</span>
+            <span className="inline sm:hidden">{shortTimeStr || timestampStr}</span>
           </span>
         )}
         {levelTag && (
-          <span className={`text-[10px] px-1.5 py-0.2 rounded border shrink-0 uppercase select-none font-mono ${levelBadgeClass}`}>
+          <span className={`text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0.2 rounded border shrink-0 uppercase select-none font-mono ${levelBadgeClass}`}>
             {levelTag.replace(/[\[\]]/g, '')}
           </span>
         )}
-        <span className={`font-mono text-[12px] flex-1 break-all select-text ${textColorClass} ${isJsonLike ? 'text-cyan-200/90' : ''}`}>
+        <span className={`font-mono text-[11px] sm:text-xs flex-1 break-all select-text ${textColorClass} ${isJsonLike ? 'text-cyan-200/90' : ''}`}>
           {remaining}
         </span>
       </div>
@@ -167,9 +178,13 @@ export default function TerminalLogsView({ adminKey }: { adminKey: string }) {
   };
 
   return (
-    <div className="max-w-7xl mx-auto flex flex-col h-[calc(100vh-140px)] min-h-[500px] bg-[#0A0C10] border border-white/[0.08] rounded-2xl overflow-hidden shadow-2xl font-mono text-xs">
+    <div className={`mx-auto flex flex-col bg-[#0A0C10] border border-white/[0.08] overflow-hidden shadow-2xl font-mono text-xs transition-all ${
+      isFullscreen
+        ? 'fixed inset-0 z-50 rounded-none h-screen w-screen'
+        : 'max-w-7xl h-[calc(100vh-140px)] min-h-[500px] rounded-2xl'
+    }`}>
       {/* Top macOS / Linear style window toolbar */}
-      <div className="bg-[#0F1118] border-b border-white/[0.08] px-3 sm:px-4 py-2.5 sm:py-3 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 select-none">
+      <div className="bg-[#0F1118] border-b border-white/[0.08] px-3 sm:px-4 py-2 sm:py-2.5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 select-none">
         {/* Left: Window Dots & Title & Connection Pill */}
         <div className="flex items-center justify-between sm:justify-start space-x-2 sm:space-x-3">
           <div className="flex items-center space-x-2">
@@ -215,17 +230,17 @@ export default function TerminalLogsView({ adminKey }: { adminKey: string }) {
           </div>
         </div>
 
-        {/* Right: Controls (Search, Filter, AutoScroll, Copy, Clear) */}
-        <div className="flex items-center flex-wrap gap-2 justify-between sm:justify-end">
+        {/* Right: Controls (Search, Filter, AutoScroll, Copy, Clear, Fullscreen) */}
+        <div className="flex items-center gap-1.5 sm:gap-2 justify-between sm:justify-end">
           {/* Search Input */}
           <div className="relative flex-1 sm:flex-none">
-            <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-3 h-3 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder={t('terminal.searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-[#141622] border border-white/[0.08] text-slate-200 text-xs rounded-lg pl-8 pr-3 py-1.5 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all placeholder:text-slate-600 sm:w-36 md:w-52"
+              className="w-full bg-[#141622] border border-white/[0.08] text-slate-200 text-xs rounded-lg pl-7 pr-6 py-1 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all placeholder:text-slate-600 sm:w-32 md:w-44"
             />
             {searchTerm && (
               <button
@@ -239,19 +254,18 @@ export default function TerminalLogsView({ adminKey }: { adminKey: string }) {
 
           {/* Level Filter Dropdown */}
           <div className="relative flex items-center shrink-0">
-            <Filter className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 pointer-events-none" />
             <select
               value={levelFilter}
               onChange={(e) => setLevelFilter(e.target.value)}
-              className="bg-[#141622] border border-white/[0.08] text-slate-300 text-xs rounded-lg pl-8 pr-7 py-1.5 focus:outline-none focus:border-indigo-500/50 appearance-none cursor-pointer hover:border-white/[0.15] transition-all"
+              className="bg-[#141622] border border-white/[0.08] text-slate-300 text-[11px] rounded-lg px-2 py-1 focus:outline-none focus:border-indigo-500/50 appearance-none cursor-pointer hover:border-white/[0.15] transition-all pr-5"
             >
-              <option value="ALL">{t('terminal.allLevels')}</option>
+              <option value="ALL">ALL</option>
               <option value="INFO">INFO</option>
               <option value="WARN">WARN</option>
               <option value="ERROR">ERROR</option>
               <option value="DEBUG">DEBUG</option>
             </select>
-            <div className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-[10px]">
+            <div className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-slate-500 text-[8px]">
               ▼
             </div>
           </div>
@@ -259,7 +273,7 @@ export default function TerminalLogsView({ adminKey }: { adminKey: string }) {
           {/* Auto-scroll Toggle Pill */}
           <button
             onClick={() => setAutoScroll(!autoScroll)}
-            className={`px-2 py-1.5 rounded-lg border text-xs font-medium flex items-center space-x-1 transition-all select-none shrink-0 ${
+            className={`p-1.5 rounded-lg border text-xs font-medium flex items-center justify-center transition-all select-none shrink-0 ${
               autoScroll
                 ? 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30 shadow-[0_0_8px_rgba(99,102,241,0.15)]'
                 : 'bg-[#141622] text-slate-400 border-white/[0.08] hover:text-slate-200'
@@ -267,26 +281,19 @@ export default function TerminalLogsView({ adminKey }: { adminKey: string }) {
             title={t('terminal.autoScroll')}
           >
             <ArrowDownCircle className={`w-3.5 h-3.5 ${autoScroll ? 'text-indigo-400 animate-bounce' : ''}`} />
-            <span className="hidden sm:inline">{t('terminal.autoScroll')}</span>
           </button>
 
           {/* Copy All Button */}
           <button
             onClick={handleCopyAll}
             disabled={filteredLogs.length === 0}
-            className="px-2 py-1.5 bg-[#141622] hover:bg-white/[0.06] disabled:opacity-40 text-slate-300 border border-white/[0.08] rounded-lg text-xs font-medium flex items-center space-x-1 transition-all active:scale-95 shrink-0"
+            className="p-1.5 bg-[#141622] hover:bg-white/[0.06] disabled:opacity-40 text-slate-300 border border-white/[0.08] rounded-lg text-xs font-medium flex items-center justify-center transition-all active:scale-95 shrink-0"
             title="Copy Logs"
           >
             {copied ? (
-              <>
-                <Check className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-emerald-400">✓</span>
-              </>
+              <Check className="w-3.5 h-3.5 text-emerald-400" />
             ) : (
-              <>
-                <Copy className="w-3.5 h-3.5 text-slate-400" />
-                <span>Copy</span>
-              </>
+              <Copy className="w-3.5 h-3.5 text-slate-400" />
             )}
           </button>
 
@@ -298,6 +305,19 @@ export default function TerminalLogsView({ adminKey }: { adminKey: string }) {
             title={t('terminal.clear')}
           >
             <Trash2 className="w-3.5 h-3.5" />
+          </button>
+
+          {/* Fullscreen Toggle Button */}
+          <button
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            className="p-1.5 bg-[#141622] hover:bg-indigo-500/20 text-slate-400 hover:text-indigo-300 border border-white/[0.08] rounded-lg transition-all shrink-0"
+            title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+          >
+            {isFullscreen ? (
+              <Minimize2 className="w-3.5 h-3.5 text-indigo-400" />
+            ) : (
+              <Maximize2 className="w-3.5 h-3.5" />
+            )}
           </button>
         </div>
       </div>

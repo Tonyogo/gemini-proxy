@@ -1477,80 +1477,93 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
         {/* Terminal Header */}
         <div
           onClick={() => setIsLogsExpanded(!isLogsExpanded)}
-          className="px-4 py-3 bg-[#141620] border-b border-white/[0.08] flex items-center justify-between cursor-pointer select-none hover:bg-white/[0.02] transition-colors"
+          className="px-3.5 sm:px-4 py-2.5 sm:py-3 bg-[#141620] border-b border-white/[0.08] flex flex-wrap items-center justify-between gap-2 cursor-pointer select-none hover:bg-white/[0.02] transition-colors"
         >
-          <div className="flex items-center space-x-2.5">
-            <FileText className="w-4 h-4 text-indigo-400" />
-            <span className="text-xs font-bold text-slate-200">{t('accounts.upstreamLogsTitle')}</span>
+          <div className="flex items-center space-x-2 sm:space-x-2.5 min-w-0">
+            <FileText className="w-4 h-4 text-indigo-400 shrink-0" />
+            <span className="text-xs font-bold text-slate-200 truncate">{t('accounts.upstreamLogsTitle')}</span>
             {data?.logCount !== undefined && (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-slate-800 text-slate-400 border border-slate-700/60">
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-slate-800 text-slate-400 border border-slate-700/60 shrink-0">
                 {data.logCount}
               </span>
             )}
             {isLogsExpanded && (
               enableLivePolling ? (
-                <span className="flex items-center space-x-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-[0_0_8px_rgba(16,185,129,0.15)]">
+                <span className="flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-[0_0_8px_rgba(16,185,129,0.15)] shrink-0">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
-                  <span>{t('accounts.livePolling')}</span>
+                  <span className="hidden xs:inline">{t('accounts.livePolling')}</span>
                 </span>
               ) : (
-                <span className="flex items-center space-x-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-400/90 border border-amber-500/20">
+                <span className="flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-400/90 border border-amber-500/20 shrink-0">
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-400/70 inline-block" />
-                  <span>{t('accounts.pollingPaused')}</span>
+                  <span className="hidden xs:inline">{t('accounts.pollingPaused')}</span>
                 </span>
               )
             )}
           </div>
 
-          <div className="flex items-center space-x-3 text-xs" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center space-x-1.5 sm:space-x-2 text-xs shrink-0" onClick={(e) => e.stopPropagation()}>
             {isLogsExpanded && (
               <>
-                <label className="flex items-center space-x-1.5 text-slate-400 hover:text-slate-200 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={enableLivePolling}
-                    onChange={(e) => setEnableLivePolling(e.target.checked)}
-                    className="w-3.5 h-3.5 rounded bg-[#0A0C10] border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
-                  />
-                  <span className="text-[11px]">{t('accounts.livePollingToggle')}</span>
-                </label>
+                {/* Live Polling Toggle Button */}
+                <button
+                  type="button"
+                  onClick={() => setEnableLivePolling(!enableLivePolling)}
+                  className={`p-1.5 sm:px-2 sm:py-1 rounded-lg border text-xs font-medium flex items-center space-x-1 transition-all ${
+                    enableLivePolling
+                      ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30 shadow-sm'
+                      : 'bg-[#1A1C28] text-slate-400 border-white/[0.08] hover:text-slate-200'
+                  }`}
+                  title={t('accounts.livePollingToggle')}
+                >
+                  <Radio className={`w-3.5 h-3.5 ${enableLivePolling ? 'text-emerald-400 animate-pulse' : 'text-slate-500'}`} />
+                  <span className="hidden sm:inline text-[11px]">{t('accounts.livePollingToggle')}</span>
+                </button>
 
+                {/* Manual Refresh if polling paused */}
                 {!enableLivePolling && (
                   <button
                     onClick={handleManualRefreshLogs}
                     disabled={refreshingLogs}
-                    className="px-2 py-1 bg-[#1A1C28] hover:bg-white/[0.08] border border-white/[0.08] rounded-lg text-[11px] text-slate-300 hover:text-white transition-all flex items-center space-x-1 disabled:opacity-50"
+                    className="p-1.5 sm:px-2 sm:py-1 bg-[#1A1C28] hover:bg-white/[0.08] border border-white/[0.08] rounded-lg text-[11px] text-slate-300 hover:text-white transition-all flex items-center space-x-1 disabled:opacity-50"
                     title={t('accounts.refreshLogs')}
                   >
-                    <RefreshCw className={`w-3 h-3 text-slate-400 ${refreshingLogs ? 'animate-spin text-indigo-400' : ''}`} />
-                    <span>{t('accounts.refreshLogs')}</span>
+                    <RefreshCw className={`w-3.5 h-3.5 text-slate-400 ${refreshingLogs ? 'animate-spin text-indigo-400' : ''}`} />
+                    <span className="hidden md:inline">{t('accounts.refreshLogs')}</span>
                   </button>
                 )}
 
-                <label className="flex items-center space-x-1.5 text-slate-400 hover:text-slate-200 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={autoScrollLogs}
-                    onChange={(e) => setAutoScrollLogs(e.target.checked)}
-                    className="w-3.5 h-3.5 rounded bg-[#0A0C10] border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
-                  />
-                  <span className="text-[11px]">{t('accounts.autoScroll')}</span>
-                </label>
+                {/* Auto Scroll Toggle Button */}
+                <button
+                  type="button"
+                  onClick={() => setAutoScrollLogs(!autoScrollLogs)}
+                  className={`p-1.5 sm:px-2 sm:py-1 rounded-lg border text-xs font-medium flex items-center space-x-1 transition-all ${
+                    autoScrollLogs
+                      ? 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30'
+                      : 'bg-[#1A1C28] text-slate-400 border-white/[0.08] hover:text-slate-200'
+                  }`}
+                  title={t('accounts.autoScroll')}
+                >
+                  <ArrowDownCircle className={`w-3.5 h-3.5 ${autoScrollLogs ? 'text-indigo-400 animate-bounce' : 'text-slate-500'}`} />
+                  <span className="hidden sm:inline text-[11px]">{t('accounts.autoScroll')}</span>
+                </button>
 
+                {/* Copy Logs Button */}
                 {data?.logs && (
                   <button
                     onClick={handleCopyLogs}
-                    className="px-2.5 py-1 bg-[#1A1C28] hover:bg-white/[0.08] border border-white/[0.08] rounded-lg text-[11px] text-slate-300 hover:text-white transition-all flex items-center space-x-1"
+                    className="p-1.5 sm:px-2.5 sm:py-1 bg-[#1A1C28] hover:bg-white/[0.08] border border-white/[0.08] rounded-lg text-[11px] text-slate-300 hover:text-white transition-all flex items-center space-x-1"
+                    title={t('accounts.copyLogs')}
                   >
                     {copiedLogs ? (
                       <>
-                        <Check className="w-3 h-3 text-emerald-400" />
-                        <span>{t('accounts.copiedLogs')}</span>
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        <span className="hidden sm:inline">{t('accounts.copiedLogs')}</span>
                       </>
                     ) : (
                       <>
-                        <Copy className="w-3 h-3 text-slate-400" />
-                        <span>{t('accounts.copyLogs')}</span>
+                        <Copy className="w-3.5 h-3.5 text-slate-400" />
+                        <span className="hidden sm:inline">{t('accounts.copyLogs')}</span>
                       </>
                     )}
                   </button>
