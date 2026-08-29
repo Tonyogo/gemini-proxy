@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Users,
   Search,
@@ -92,9 +93,10 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
   const [deleteConfirm, setDeleteConfirm] = useState<{ index: number; email: string; isCurrent: boolean } | null>(null);
   const [batchDeleteConfirm, setBatchDeleteConfirm] = useState<boolean>(false);
   const [dedupConfirm, setDedupConfirm] = useState<boolean>(false);
-  const [activePopoverIndex, setActivePopoverIndex] = useState<number | null>(null);
-  const [popoverPlacement, setPopoverPlacement] = useState<'top' | 'bottom'>('bottom');
+  const [popoverAnchor, setPopoverAnchor] = useState<{ index: number; rect: DOMRect } | null>(null);
   const [expandedMobileUsage, setExpandedMobileUsage] = useState<Record<number, boolean>>({});
+
+  const popoverRef = useRef<HTMLDivElement>(null);
 
   const toggleMobileUsage = (index: number) => {
     setExpandedMobileUsage(prev => ({
@@ -105,39 +107,17 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
 
   const handleTogglePopover = (e: React.MouseEvent<HTMLElement>, index: number) => {
     e.stopPropagation();
-    if (activePopoverIndex === index) {
-      setActivePopoverIndex(null);
+    if (popoverAnchor?.index === index) {
+      setPopoverAnchor(null);
     } else {
       const rect = e.currentTarget.getBoundingClientRect();
-      // Calculate available viewport space above and below the trigger button
-      const spaceAbove = rect.top;
-      const spaceBelow = window.innerHeight - rect.bottom;
-
-      // If space above is less than 300px, pop downward; otherwise check available space below
-      if (spaceAbove < 300) {
-        setPopoverPlacement('bottom');
-      } else if (spaceBelow < 300) {
-        setPopoverPlacement('top');
-      } else {
-        // When plenty of space is available on both sides, prefer downward popup to avoid sticky header
-        setPopoverPlacement('bottom');
-      }
-      setActivePopoverIndex(index);
+      setPopoverAnchor({ index, rect });
     }
   };
 
-  const handleMouseEnterPopover = (e: React.MouseEvent<HTMLElement>) => {
+  const handleMouseEnterPopover = (e: React.MouseEvent<HTMLElement>, index: number) => {
     const rect = e.currentTarget.getBoundingClientRect();
-    const spaceAbove = rect.top;
-    const spaceBelow = window.innerHeight - rect.bottom;
-
-    if (spaceAbove < 300) {
-      setPopoverPlacement('bottom');
-    } else if (spaceBelow < 300) {
-      setPopoverPlacement('top');
-    } else {
-      setPopoverPlacement('bottom');
-    }
+    setPopoverAnchor({ index, rect });
   };
 
   // Clipboard feedback map for account keys/names
@@ -198,14 +178,33 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     fetchStatus();
   }, [adminKey]);
 
-  // Click outside listener to dismiss open popovers
+  // Click outside / scroll / resize / keydown listener to dismiss open popovers
   useEffect(() => {
-    const handleClickOutside = () => {
-      setActivePopoverIndex(null);
+    if (!popoverAnchor) return;
+
+    const handleDismiss = (e: Event) => {
+      // If pointerdown happened inside popover bubble, don't dismiss
+      if (e.type === 'pointerdown' && popoverRef.current && popoverRef.current.contains(e.target as Node)) {
+        return;
+      }
+      if (e.type === 'keydown' && (e as KeyboardEvent).key !== 'Escape') {
+        return;
+      }
+      setPopoverAnchor(null);
     };
-    window.addEventListener('click', handleClickOutside);
-    return () => window.removeEventListener('click', handleClickOutside);
-  }, []);
+
+    window.addEventListener('pointerdown', handleDismiss, true);
+    window.addEventListener('scroll', handleDismiss, true);
+    window.addEventListener('resize', handleDismiss);
+    window.addEventListener('keydown', handleDismiss);
+
+    return () => {
+      window.removeEventListener('pointerdown', handleDismiss, true);
+      window.removeEventListener('scroll', handleDismiss, true);
+      window.removeEventListener('resize', handleDismiss);
+      window.removeEventListener('keydown', handleDismiss);
+    };
+  }, [popoverAnchor]);
 
   // Periodic 3s refresh when terminal logs are expanded and live polling is enabled
   useEffect(() => {
@@ -1044,8 +1043,8 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                         {/* Quota & Usage */}
                         <td className="px-4 py-3">
                           <div
-                            className="relative inline-block group"
-                            onMouseEnter={handleMouseEnterPopover}
+                            className="relative inline-block"
+                            onMouseEnter={(e) => handleMouseEnterPopover(e, acc.index)}
                           >
                             <button
                               type="button"
@@ -1057,68 +1056,6 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                               <strong className="text-indigo-300 font-bold">{totalUsage}</strong>
                               <ChevronDown className="w-3 h-3 text-slate-500" />
                             </button>
-
-                            {/* Popover Bubble */}
-                            <div
-                              className={`absolute left-0 sm:left-auto sm:right-0 md:left-0 ${
-                                popoverPlacement === 'bottom' ? 'top-full mt-2' : 'bottom-full mb-2'
-                              } ${
-                                activePopoverIndex === acc.index ? 'block' : 'hidden group-hover:block'
-                              } z-50 w-64 max-w-[85vw] p-3 bg-[#0F1118] border border-white/[0.12] rounded-xl shadow-2xl backdrop-blur-xl pointer-events-auto`}
-                            >
-                              <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/[0.08]">
-                                <span className="text-[11px] font-bold text-slate-200 flex items-center space-x-1.5">
-                                  <Clock className="w-3.5 h-3.5 text-indigo-400" />
-                                  <span>{t('accounts.todayUsage')}</span>
-                                </span>
-                                <span className="text-xs font-mono font-bold text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-md">
-                                  {totalUsage}
-                                </span>
-                              </div>
-
-                              {breakdowns.length === 0 ? (
-                                <div className="text-[10px] text-slate-400 italic py-1">
-                                  {totalUsage === 0 ? 'No model request breakdown' : `Total: ${totalUsage}`}
-                                </div>
-                              ) : (
-                                <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                                  {breakdowns.map((item, idx) => {
-                                    const ratio = item.limit ? Math.min(100, Math.round((item.count / item.limit) * 100)) : null;
-                                    return (
-                                      <div key={idx} className="space-y-1">
-                                        <div className="flex items-center justify-between text-[11px]">
-                                          <span className="text-slate-300 font-mono truncate max-w-[130px]" title={item.model}>
-                                            {item.model}
-                                          </span>
-                                          <span className="text-slate-400 font-mono font-semibold">
-                                            <strong className="text-slate-200">{item.count}</strong>
-                                            {item.limit !== undefined && <span className="text-slate-500 text-[10px]"> / {item.limit}</span>}
-                                          </span>
-                                        </div>
-                                        {ratio !== null && (
-                                          <div className="w-full bg-[#0A0C10] rounded-full h-1.5 overflow-hidden border border-white/[0.06]">
-                                            <div
-                                              className={`h-full rounded-full transition-all ${
-                                                ratio >= 90 ? 'bg-rose-500' : ratio >= 70 ? 'bg-amber-500' : 'bg-indigo-500'
-                                              }`}
-                                              style={{ width: `${ratio}%` }}
-                                            />
-                                          </div>
-                                        )}
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                              {/* Pointer Arrow */}
-                              <div
-                                className={`absolute left-6 ${
-                                  popoverPlacement === 'bottom'
-                                    ? 'bottom-full -mb-px border-l border-t'
-                                    : 'top-full -mt-px border-r border-b'
-                                } w-2.5 h-2.5 bg-[#0F1118] border-white/[0.12] transform rotate-45`}
-                              />
-                            </div>
                           </div>
                         </td>
 
@@ -1725,6 +1662,99 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
           </div>
         </div>
       )}
+
+      {/* Portal Usage Details Popover */}
+      {popoverAnchor && (() => {
+        const acc = accounts.find(a => a.index === popoverAnchor.index);
+        if (!acc) return null;
+
+        const totalUsage = getTotalUsage(acc.usage);
+        const breakdowns = getModelBreakdowns(acc.usage);
+        const { rect } = popoverAnchor;
+        const spaceBelow = window.innerHeight - rect.bottom;
+
+        // Determine top/bottom placement
+        const isTop = spaceBelow < 280 && rect.top > 280;
+        const leftPos = Math.max(12, Math.min(rect.left, window.innerWidth - 280));
+        const popoverStyle: React.CSSProperties = {
+          position: 'fixed',
+          zIndex: 100,
+          width: '16rem', // w-64 = 256px
+          maxWidth: '85vw',
+          left: `${leftPos}px`,
+          ...(isTop
+            ? { bottom: `${window.innerHeight - rect.top + 8}px` }
+            : { top: `${rect.bottom + 8}px` })
+        };
+
+        const arrowStyle: React.CSSProperties = {
+          left: `${Math.max(12, Math.min(rect.left + rect.width / 2 - leftPos - 5, 236))}px`
+        };
+
+        return createPortal(
+          <div
+            ref={popoverRef}
+            style={popoverStyle}
+            className="p-3 bg-[#0F1118] border border-white/[0.12] rounded-xl shadow-2xl backdrop-blur-xl pointer-events-auto animate-in fade-in duration-150"
+            onMouseLeave={() => setPopoverAnchor(null)}
+          >
+            <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/[0.08]">
+              <span className="text-[11px] font-bold text-slate-200 flex items-center space-x-1.5">
+                <Clock className="w-3.5 h-3.5 text-indigo-400" />
+                <span>{t('accounts.todayUsage')}</span>
+              </span>
+              <span className="text-xs font-mono font-bold text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-md">
+                {totalUsage}
+              </span>
+            </div>
+
+            {breakdowns.length === 0 ? (
+              <div className="text-[10px] text-slate-400 italic py-1">
+                {totalUsage === 0 ? 'No model request breakdown' : `Total: ${totalUsage}`}
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                {breakdowns.map((item, idx) => {
+                  const ratio = item.limit ? Math.min(100, Math.round((item.count / item.limit) * 100)) : null;
+                  return (
+                    <div key={idx} className="space-y-1">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-slate-300 font-mono truncate max-w-[130px]" title={item.model}>
+                          {item.model}
+                        </span>
+                        <span className="text-slate-400 font-mono font-semibold">
+                          <strong className="text-slate-200">{item.count}</strong>
+                          {item.limit !== undefined && <span className="text-slate-500 text-[10px]"> / {item.limit}</span>}
+                        </span>
+                      </div>
+                      {ratio !== null && (
+                        <div className="w-full bg-[#0A0C10] rounded-full h-1.5 overflow-hidden border border-white/[0.06]">
+                          <div
+                            className={`h-full rounded-full transition-all ${
+                              ratio >= 90 ? 'bg-rose-500' : ratio >= 70 ? 'bg-amber-500' : 'bg-indigo-500'
+                            }`}
+                            style={{ width: `${ratio}%` }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {/* Pointer Arrow */}
+            <div
+              style={arrowStyle}
+              className={`absolute ${
+                isTop
+                  ? 'top-full -mt-px border-r border-b'
+                  : 'bottom-full -mb-px border-l border-t'
+              } w-2.5 h-2.5 bg-[#0F1118] border-white/[0.12] transform rotate-45`}
+            />
+          </div>,
+          document.body
+        );
+      })()}
     </div>
   );
 }
