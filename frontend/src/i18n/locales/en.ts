@@ -84,8 +84,8 @@ export const en = {
     actionFailed: "Operation failed: {error}",
     confirm: "Confirm",
     cancel: "Cancel",
-    upstreamLogsTitle: "Upstream Proxy Terminal Logs",
-    noUpstreamLogs: "No upstream proxy terminal logs available.",
+    upstreamLogsTitle: "Terminal Logs",
+    noUpstreamLogs: "No terminal logs available.",
     copyLogs: "Copy Logs",
     copiedLogs: "Copied!",
     autoScroll: "Auto-scroll",
@@ -193,7 +193,7 @@ export const en = {
     user: "User"
   },
   terminal: {
-    title: "Server Terminal Output",
+    title: "Terminal Logs",
     live: "LIVE",
     disconnected: "DISCONNECTED",
     searchPlaceholder: "Search logs...",

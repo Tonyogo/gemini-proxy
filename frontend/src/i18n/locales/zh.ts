@@ -86,8 +86,8 @@ export const zh: Translations = {
     actionFailed: "操作失败：{error}",
     confirm: "确认",
     cancel: "取消",
-    upstreamLogsTitle: "代理服务终端日志",
-    noUpstreamLogs: "暂无上游代理服务终端日志输出。",
+    upstreamLogsTitle: "终端日志",
+    noUpstreamLogs: "暂无终端日志输出。",
     copyLogs: "复制日志",
     copiedLogs: "已复制！",
     autoScroll: "自动滚动",
@@ -195,14 +195,14 @@ export const zh: Translations = {
     user: "User"
   },
   terminal: {
-    title: "服务端终端输出",
+    title: "终端日志",
     live: "实时监听",
     disconnected: "连接已断开",
     searchPlaceholder: "过滤终端日志...",
     allLevels: "所有级别",
     autoScroll: "自动滚动",
     clear: "清屏",
-    noLogsRecorded: "暂无终端输出记录。"
+    noLogsRecorded: "暂无终端日志记录。"
   },
   playground: {
     title: "原始请求调试器",
