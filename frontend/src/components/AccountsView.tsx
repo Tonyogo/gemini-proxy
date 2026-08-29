@@ -776,11 +776,11 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
       </div>
 
       {/* Action Toolbar */}
-      <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3 shadow-md">
+      <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl p-3 sm:p-3.5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shadow-md">
         {/* Left: Search & Filter */}
-        <div className="flex items-center flex-wrap gap-2.5 flex-1 min-w-[280px]">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1 min-w-0">
           {/* Search Input */}
-          <div className="relative flex-1 max-w-xs">
+          <div className="relative flex-1 min-w-0">
             <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
@@ -800,11 +800,11 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
           </div>
 
           {/* Status Filter */}
-          <div className="relative">
+          <div className="relative shrink-0">
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-[#141620] border border-white/[0.08] text-slate-300 text-xs rounded-lg pl-3 pr-8 py-1.5 focus:outline-none focus:border-indigo-500/50 appearance-none cursor-pointer hover:border-white/[0.15] transition-all"
+              className="w-full sm:w-auto bg-[#141620] border border-white/[0.08] text-slate-300 text-xs rounded-lg pl-3 pr-8 py-1.5 focus:outline-none focus:border-indigo-500/50 appearance-none cursor-pointer hover:border-white/[0.15] transition-all"
             >
               <option value="ALL">{t('accounts.filterAll', '全部状态')} ({totalCount})</option>
               <option value="ACTIVATED">{t('accounts.filterActivated', '已激活')} ({activatedCount})</option>
@@ -819,7 +819,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
         </div>
 
         {/* Right: Actions */}
-        <div className="flex items-center flex-wrap gap-2">
+        <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
           {/* File Upload Hidden Input */}
           <input
             type="file"
@@ -834,7 +834,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={actionLoading}
-            className="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all shadow-[0_0_12px_rgba(99,102,241,0.15)] hover:shadow-[0_0_16px_rgba(99,102,241,0.25)] active:scale-95"
+            className="flex-1 sm:flex-none justify-center px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all shadow-[0_0_12px_rgba(99,102,241,0.15)] hover:shadow-[0_0_16px_rgba(99,102,241,0.25)] active:scale-95"
             title={t('accounts.importFiles')}
           >
             <Upload className="w-3.5 h-3.5 text-indigo-400" />
@@ -845,7 +845,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
           <button
             onClick={() => setDedupConfirm(true)}
             disabled={actionLoading || accounts.length === 0}
-            className="px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 disabled:opacity-40 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all active:scale-95"
+            className="flex-1 sm:flex-none justify-center px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 disabled:opacity-40 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all active:scale-95"
             title={t('accounts.deduplicate')}
           >
             <Layers className="w-3.5 h-3.5 text-amber-400" />
@@ -856,7 +856,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
           <button
             onClick={() => fetchStatus(false)}
             disabled={loading || actionLoading}
-            className="p-1.5 bg-[#141620] hover:bg-white/[0.06] text-slate-300 border border-white/[0.08] hover:border-white/[0.15] rounded-lg text-xs font-semibold transition-all active:scale-95"
+            className="p-1.5 bg-[#141620] hover:bg-white/[0.06] text-slate-300 border border-white/[0.08] hover:border-white/[0.15] rounded-lg text-xs font-semibold transition-all active:scale-95 shrink-0"
             title={t('accounts.refresh')}
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-indigo-400' : 'text-slate-400'}`} />
@@ -1049,11 +1049,11 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
 
                           {/* Popover Bubble */}
                           <div
-                            className={`absolute left-0 ${
+                            className={`absolute left-0 sm:left-auto sm:right-0 md:left-0 ${
                               popoverPlacement === 'bottom' ? 'top-full mt-2' : 'bottom-full mb-2'
                             } ${
                               activePopoverIndex === acc.index ? 'block' : 'hidden group-hover:block'
-                            } z-50 w-64 p-3 bg-[#0F1118] border border-white/[0.12] rounded-xl shadow-2xl backdrop-blur-xl pointer-events-auto`}
+                            } z-50 w-64 max-w-[85vw] p-3 bg-[#0F1118] border border-white/[0.12] rounded-xl shadow-2xl backdrop-blur-xl pointer-events-auto`}
                           >
                             <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/[0.08]">
                               <span className="text-[11px] font-bold text-slate-200 flex items-center space-x-1.5">

@@ -116,11 +116,11 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
     return paddingLeft + (index / (N - 1)) * plottingWidth;
   };
 
-  // Synchronized hover calculations
-  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+  // Synchronized hover calculations for Mouse & Touch
+  const updateHoveredIndex = (clientX: number, target: SVGSVGElement) => {
     if (N === 0) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
+    const rect = target.getBoundingClientRect();
+    const mouseX = clientX - rect.left;
     const svgX = (mouseX / rect.width) * svgWidth;
     const relativeX = svgX - paddingLeft;
 
@@ -131,6 +131,16 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
     } else {
       const idx = Math.round((relativeX / plottingWidth) * (N - 1));
       setHoveredIndex(Math.max(0, Math.min(N - 1, idx)));
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    updateHoveredIndex(e.clientX, e.currentTarget);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<SVGSVGElement>) => {
+    if (e.touches.length > 0) {
+      updateHoveredIndex(e.touches[0].clientX, e.currentTarget);
     }
   };
 
@@ -424,12 +434,15 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
             ) : (
               <div className="relative flex-1 overflow-x-auto overflow-y-hidden">
                 <div className="min-w-[480px] sm:min-w-full h-full relative">
-                  <svg
-                    viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-                    className="w-full h-full overflow-visible"
-                    onMouseMove={handleMouseMove}
-                    onMouseLeave={handleMouseLeave}
-                  >
+                    <svg
+                      viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+                      className="w-full h-full overflow-visible touch-none"
+                      onMouseMove={handleMouseMove}
+                      onMouseLeave={handleMouseLeave}
+                      onTouchStart={handleTouchMove}
+                      onTouchMove={handleTouchMove}
+                      onTouchEnd={handleMouseLeave}
+                    >
                     <defs>
                       <linearGradient id="volumeBarGrad" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#6366F1" stopOpacity="0.95" />
@@ -637,12 +650,15 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
             ) : (
               <div className="relative flex-1 overflow-x-auto overflow-y-hidden">
                 <div className="min-w-[480px] sm:min-w-full h-full relative">
-                  <svg
-                    viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-                    className="w-full h-full overflow-visible"
-                    onMouseMove={handleMouseMove}
-                    onMouseLeave={handleMouseLeave}
-                  >
+                    <svg
+                      viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+                      className="w-full h-full overflow-visible touch-none"
+                      onMouseMove={handleMouseMove}
+                      onMouseLeave={handleMouseLeave}
+                      onTouchStart={handleTouchMove}
+                      onTouchMove={handleTouchMove}
+                      onTouchEnd={handleMouseLeave}
+                    >
                     {/* Gridlines */}
                     {analyticsTab === 'latency'
                       ? renderGridLines(latencyLimit, v => `${v}ms`)

@@ -20,7 +20,8 @@ import {
   Search,
   Sparkles,
   Terminal,
-  MessageSquare
+  MessageSquare,
+  ArrowLeft
 } from 'lucide-react';
 import JsonTreeView from './JsonTreeView';
 import SseStreamPreview from './SseStreamPreview';
@@ -47,6 +48,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
   const [activeTab, setActiveTab] = useState<'payload' | 'response' | 'chat'>('payload');
   const [viewMode, setViewMode] = useState<'preview' | 'raw'>('preview');
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
+  const [mobileDetailOpen, setMobileDetailOpen] = useState<boolean>(false);
   const [hourCount, setHourCount] = useState<number>(0);
   const [page, setPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(50);
@@ -113,6 +115,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
 
   const loadDetail = (log: any) => {
     setSelectedFile(log.path);
+    setMobileDetailOpen(true);
     if (detailCacheRef.current.has(log.path)) {
       setSelectedLog(detailCacheRef.current.get(log.path));
       setDetailLoading(false);
@@ -334,7 +337,9 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
     <div className="flex flex-col md:flex-row gap-4 max-w-7xl mx-auto items-stretch min-h-[700px] md:h-[calc(100vh-6.5rem)]">
       {/* Left Column (Request Master List) */}
       {!sidebarCollapsed && (
-        <div className="w-full md:w-80 lg:w-[340px] shrink-0 bg-slate-900/90 border border-slate-800/90 rounded-2xl p-3.5 shadow-xl flex flex-col h-[460px] md:h-full transition-all">
+        <div className={`w-full md:w-80 lg:w-[340px] shrink-0 bg-slate-900/90 border border-slate-800/90 rounded-2xl p-3.5 shadow-xl flex flex-col h-[520px] md:h-full transition-all ${
+          mobileDetailOpen ? 'hidden md:flex' : 'flex'
+        }`}>
           {/* Header Bar */}
           <div className="flex items-center justify-between pb-3 mb-2.5 border-b border-slate-800/80">
             <div className="flex items-center space-x-2">
@@ -649,14 +654,26 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
       )}
 
       {/* Right Column (Detail Inspector) */}
-      <div className="flex-1 min-w-0 bg-slate-900/90 border border-slate-800/90 rounded-2xl p-4 shadow-xl flex flex-col h-full min-h-[500px]">
+      <div className={`flex-1 min-w-0 bg-slate-900/90 border border-slate-800/90 rounded-2xl p-3 sm:p-4 shadow-xl flex flex-col h-full min-h-[500px] ${
+        !mobileDetailOpen ? 'hidden md:flex' : 'flex'
+      }`}>
         {/* Top Header & Navigation Bar */}
-        <div className="flex flex-wrap items-center justify-between pb-3 mb-3.5 border-b border-slate-800/80 gap-3">
-          <div className="flex items-center space-x-3">
-            {/* Sidebar toggle button */}
+        <div className="flex flex-wrap items-center justify-between pb-3 mb-3.5 border-b border-slate-800/80 gap-2.5">
+          <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
+            {/* Mobile back to list button */}
+            <button
+              onClick={() => setMobileDetailOpen(false)}
+              className="md:hidden p-1.5 rounded-lg bg-indigo-600/20 border border-indigo-500/40 text-indigo-300 hover:bg-indigo-600/30 flex items-center space-x-1 text-xs shrink-0"
+              title="Back to Logs List"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span className="font-semibold">{t('logs.backToList', '返回列表')}</span>
+            </button>
+
+            {/* Desktop Sidebar toggle button */}
             <button
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className={`p-1.5 rounded-lg border text-xs transition-colors flex items-center justify-center ${
+              className={`hidden md:flex p-1.5 rounded-lg border text-xs transition-colors items-center justify-center ${
                 sidebarCollapsed
                   ? 'bg-indigo-600/20 border-indigo-500/80 text-indigo-300'
                   : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
@@ -671,123 +688,123 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
             </button>
 
             {/* Subtabs: Payload vs Response vs Chat */}
-            <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-semibold">
+            <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-semibold overflow-x-auto">
               <button
                 onClick={() => setActiveTab('payload')}
-                className={`px-3 py-1.5 rounded-lg transition-all flex items-center space-x-1.5 ${
+                className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition-all flex items-center space-x-1.5 whitespace-nowrap ${
                   activeTab === 'payload'
                     ? 'bg-indigo-600 text-white shadow-md'
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
                 <span>📤</span>
-                <span>{t('logs.payloadRequest')}</span>
+                <span className="text-[11px] sm:text-xs">{t('logs.payloadRequest')}</span>
               </button>
               <button
                 onClick={() => setActiveTab('response')}
-                className={`px-3 py-1.5 rounded-lg transition-all flex items-center space-x-1.5 ${
+                className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition-all flex items-center space-x-1.5 whitespace-nowrap ${
                   activeTab === 'response'
                     ? 'bg-indigo-600 text-white shadow-md'
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
                 <span>📥</span>
-                <span>{t('logs.response')}</span>
+                <span className="text-[11px] sm:text-xs">{t('logs.response')}</span>
               </button>
               <button
                 onClick={() => setActiveTab('chat')}
-                className={`px-3 py-1.5 rounded-lg transition-all flex items-center space-x-1.5 ${
+                className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition-all flex items-center space-x-1.5 whitespace-nowrap ${
                   activeTab === 'chat'
                     ? 'bg-indigo-600 text-white shadow-md'
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
                 <MessageSquare className="w-3.5 h-3.5" />
-                <span>{t('logs.chatTab', '💬 对话视图')}</span>
+                <span className="text-[11px] sm:text-xs">{t('logs.chatTab', '💬 对话')}</span>
               </button>
             </div>
           </div>
 
-          <div className="flex items-center space-x-2.5">
+          <div className="flex items-center space-x-2 flex-wrap gap-y-2">
             {/* Preview vs Raw JSON mode toggle */}
             <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-medium">
               <button
                 onClick={() => setViewMode('preview')}
-                className={`px-3 py-1 rounded-lg transition-all flex items-center space-x-1 ${
+                className={`px-2 sm:px-3 py-1 rounded-lg transition-all flex items-center space-x-1 ${
                   viewMode === 'preview'
                     ? 'bg-emerald-600 text-white shadow'
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
                 <Eye className="w-3.5 h-3.5" />
-                <span>{t('logs.previewMode', 'Preview')}</span>
+                <span className="text-[11px] sm:text-xs">{t('logs.previewMode', 'Preview')}</span>
               </button>
               <button
                 onClick={() => setViewMode('raw')}
-                className={`px-3 py-1 rounded-lg transition-all flex items-center space-x-1 ${
+                className={`px-2 sm:px-3 py-1 rounded-lg transition-all flex items-center space-x-1 ${
                   viewMode === 'raw'
                     ? 'bg-emerald-600 text-white shadow'
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
                 <Code className="w-3.5 h-3.5" />
-                <span>{t('logs.rawJsonTab', 'Raw JSON')}</span>
+                <span className="text-[11px] sm:text-xs">{t('logs.rawJsonTab', 'Raw JSON')}</span>
               </button>
             </div>
 
             {/* Quick Copy Action Buttons */}
             {selectedLog && (
-              <div className="flex items-center space-x-1.5">
+              <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
                 <button
                   onClick={handleCopyClaudeCurl}
-                  className="px-2.5 py-1.5 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-xs font-mono flex items-center space-x-1 transition-colors"
+                  className="px-2 sm:px-2.5 py-1.5 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-[11px] sm:text-xs font-mono flex items-center space-x-1 transition-colors"
                   title="Copy Claude proxy cURL command"
                 >
                   {copiedClaudeCurl ? (
                     <>
                       <Check className="w-3 h-3 text-emerald-400" />
-                      <span className="text-emerald-400">{t('logs.claudeCurlCopied', 'Claude cURL 已复制！')}</span>
+                      <span className="text-emerald-400">{t('logs.claudeCurlCopied', '已复制')}</span>
                     </>
                   ) : (
                     <>
                       <Terminal className="w-3 h-3 text-indigo-400" />
-                      <span>{t('logs.copyClaudeCurl', 'Claude cURL')}</span>
+                      <span>Claude cURL</span>
                     </>
                   )}
                 </button>
 
                 <button
                   onClick={handleCopyGeminiCurl}
-                  className="px-2.5 py-1.5 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-xs font-mono flex items-center space-x-1 transition-colors"
+                  className="px-2 sm:px-2.5 py-1.5 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-[11px] sm:text-xs font-mono flex items-center space-x-1 transition-colors"
                   title="Copy upstream Gemini cURL command"
                 >
                   {copiedGeminiCurl ? (
                     <>
                       <Check className="w-3 h-3 text-emerald-400" />
-                      <span className="text-emerald-400">{t('logs.geminiCurlCopied', 'Gemini cURL 已复制！')}</span>
+                      <span className="text-emerald-400">{t('logs.geminiCurlCopied', '已复制')}</span>
                     </>
                   ) : (
                     <>
                       <Terminal className="w-3 h-3 text-emerald-400" />
-                      <span>{t('logs.copyGeminiCurl', 'Gemini cURL')}</span>
+                      <span>Gemini cURL</span>
                     </>
                   )}
                 </button>
 
                 <button
                   onClick={handleCopyJson}
-                  className="px-2.5 py-1.5 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-xs font-mono flex items-center space-x-1 transition-colors"
+                  className="px-2 sm:px-2.5 py-1.5 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-[11px] sm:text-xs font-mono flex items-center space-x-1 transition-colors"
                   title="Copy full transaction JSON"
                 >
                   {copiedJson ? (
                     <>
                       <Check className="w-3 h-3 text-emerald-400" />
-                      <span className="text-emerald-400">{t('logs.jsonCopied', 'JSON 已复制！')}</span>
+                      <span className="text-emerald-400">JSON ✓</span>
                     </>
                   ) : (
                     <>
                       <Copy className="w-3 h-3" />
-                      <span>{t('logs.copyJson', '复制完整 JSON')}</span>
+                      <span>JSON</span>
                     </>
                   )}
                 </button>

@@ -49,14 +49,14 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
             const color = getModelColor(item.model, index);
             return (
               <div key={item.model} className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-1 sm:gap-0">
                   <div className="flex items-center space-x-2 min-w-0">
                     <span
                       className="w-2.5 h-2.5 rounded-full shrink-0"
                       style={{ backgroundColor: color }}
                     />
                     <span
-                      className="font-mono font-medium text-slate-200 truncate max-w-[180px] sm:max-w-[220px]"
+                      className="font-mono font-medium text-slate-200 truncate max-w-[150px] xs:max-w-[180px] sm:max-w-[220px]"
                       title={item.model}
                     >
                       {item.model}
@@ -65,8 +65,8 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
                       ~{item.avgLatency}ms
                     </span>
                   </div>
-                  <div className="flex items-center space-x-2 shrink-0 font-mono text-xs">
-                    <span className="text-slate-400">{item.requests} reqs</span>
+                  <div className="flex items-center justify-between sm:justify-end space-x-2 shrink-0 font-mono text-[11px] sm:text-xs pl-4 sm:pl-0 text-slate-400">
+                    <span>{item.requests} reqs</span>
                     <span className="text-slate-200 font-semibold w-9 text-right">
                       {item.percentage.toFixed(0)}%
                     </span>

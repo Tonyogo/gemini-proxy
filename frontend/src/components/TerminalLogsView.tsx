@@ -167,61 +167,65 @@ export default function TerminalLogsView({ adminKey }: { adminKey: string }) {
   };
 
   return (
-    <div className="max-w-7xl mx-auto flex flex-col h-[calc(100vh-140px)] min-h-[640px] bg-[#0A0C10] border border-white/[0.08] rounded-2xl overflow-hidden shadow-2xl font-mono text-xs">
+    <div className="max-w-7xl mx-auto flex flex-col h-[calc(100vh-140px)] min-h-[500px] bg-[#0A0C10] border border-white/[0.08] rounded-2xl overflow-hidden shadow-2xl font-mono text-xs">
       {/* Top macOS / Linear style window toolbar */}
-      <div className="bg-[#0F1118] border-b border-white/[0.08] px-4 py-3 flex flex-wrap items-center justify-between gap-3 select-none">
+      <div className="bg-[#0F1118] border-b border-white/[0.08] px-3 sm:px-4 py-2.5 sm:py-3 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 select-none">
         {/* Left: Window Dots & Title & Connection Pill */}
-        <div className="flex items-center space-x-3">
-          {/* macOS Action Dots */}
-          <div className="flex items-center space-x-2 mr-1">
-            <div className="w-3 h-3 rounded-full bg-[#EF4444]/90 border border-[#DC2626]/60 shadow-[0_0_6px_rgba(239,68,68,0.3)]" />
-            <div className="w-3 h-3 rounded-full bg-[#F59E0B]/90 border border-[#D97706]/60 shadow-[0_0_6px_rgba(245,158,11,0.3)]" />
-            <div className="w-3 h-3 rounded-full bg-[#10B981]/90 border border-[#059669]/60 shadow-[0_0_6px_rgba(16,185,129,0.3)]" />
+        <div className="flex items-center justify-between sm:justify-start space-x-2 sm:space-x-3">
+          <div className="flex items-center space-x-2">
+            {/* macOS Action Dots */}
+            <div className="flex items-center space-x-1.5 mr-1">
+              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#EF4444]/90 border border-[#DC2626]/60 shadow-[0_0_6px_rgba(239,68,68,0.3)]" />
+              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#F59E0B]/90 border border-[#D97706]/60 shadow-[0_0_6px_rgba(245,158,11,0.3)]" />
+              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#10B981]/90 border border-[#059669]/60 shadow-[0_0_6px_rgba(16,185,129,0.3)]" />
+            </div>
+
+            <div className="flex items-center space-x-1.5 text-slate-200">
+              <TerminalIcon className="w-3.5 h-3.5 text-indigo-400" />
+              <span className="font-semibold text-slate-200 tracking-wide text-xs">
+                {t('terminal.title')}
+              </span>
+            </div>
           </div>
 
-          <div className="flex items-center space-x-2 text-slate-200">
-            <TerminalIcon className="w-4 h-4 text-indigo-400" />
-            <span className="font-semibold text-slate-200 tracking-wide text-xs">
-              {t('terminal.title')}
-            </span>
-          </div>
-
-          {/* Connection Status Badge */}
-          <div
-            className={`flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium border ${
-              isConnected
-                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_8px_rgba(16,185,129,0.15)]'
-                : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
-            }`}
-          >
-            <span
-              className={`w-1.5 h-1.5 rounded-full ${
-                isConnected ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'
+          <div className="flex items-center space-x-2">
+            {/* Connection Status Badge */}
+            <div
+              className={`flex items-center space-x-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium border ${
+                isConnected
+                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_8px_rgba(16,185,129,0.15)]'
+                  : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
               }`}
-            />
-            <span className="tracking-wider uppercase">
-              {isConnected ? t('terminal.live') : t('terminal.disconnected')}
-            </span>
-          </div>
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  isConnected ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'
+                }`}
+              />
+              <span className="tracking-wider uppercase">
+                {isConnected ? t('terminal.live') : t('terminal.disconnected')}
+              </span>
+            </div>
 
-          {logs.length > 0 && (
-            <span className="text-[11px] text-slate-500 font-mono">
-              ({filteredLogs.length}/{logs.length})
-            </span>
-          )}
+            {logs.length > 0 && (
+              <span className="text-[10px] sm:text-[11px] text-slate-500 font-mono">
+                ({filteredLogs.length}/{logs.length})
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Right: Controls (Search, Filter, AutoScroll, Copy, Clear) */}
-        <div className="flex items-center flex-wrap gap-2.5">
+        <div className="flex items-center flex-wrap gap-2 justify-between sm:justify-end">
           {/* Search Input */}
-          <div className="relative">
+          <div className="relative flex-1 sm:flex-none">
             <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder={t('terminal.searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-[#141622] border border-white/[0.08] text-slate-200 text-xs rounded-lg pl-8 pr-3 py-1.5 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all placeholder:text-slate-600 w-44 md:w-56"
+              className="w-full bg-[#141622] border border-white/[0.08] text-slate-200 text-xs rounded-lg pl-8 pr-3 py-1.5 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all placeholder:text-slate-600 sm:w-36 md:w-52"
             />
             {searchTerm && (
               <button
@@ -234,7 +238,7 @@ export default function TerminalLogsView({ adminKey }: { adminKey: string }) {
           </div>
 
           {/* Level Filter Dropdown */}
-          <div className="relative flex items-center">
+          <div className="relative flex items-center shrink-0">
             <Filter className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 pointer-events-none" />
             <select
               value={levelFilter}
@@ -255,7 +259,7 @@ export default function TerminalLogsView({ adminKey }: { adminKey: string }) {
           {/* Auto-scroll Toggle Pill */}
           <button
             onClick={() => setAutoScroll(!autoScroll)}
-            className={`px-2.5 py-1.5 rounded-lg border text-xs font-medium flex items-center space-x-1.5 transition-all select-none ${
+            className={`px-2 py-1.5 rounded-lg border text-xs font-medium flex items-center space-x-1 transition-all select-none shrink-0 ${
               autoScroll
                 ? 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30 shadow-[0_0_8px_rgba(99,102,241,0.15)]'
                 : 'bg-[#141622] text-slate-400 border-white/[0.08] hover:text-slate-200'
@@ -263,20 +267,20 @@ export default function TerminalLogsView({ adminKey }: { adminKey: string }) {
             title={t('terminal.autoScroll')}
           >
             <ArrowDownCircle className={`w-3.5 h-3.5 ${autoScroll ? 'text-indigo-400 animate-bounce' : ''}`} />
-            <span>{t('terminal.autoScroll')}</span>
+            <span className="hidden sm:inline">{t('terminal.autoScroll')}</span>
           </button>
 
           {/* Copy All Button */}
           <button
             onClick={handleCopyAll}
             disabled={filteredLogs.length === 0}
-            className="px-2.5 py-1.5 bg-[#141622] hover:bg-white/[0.06] disabled:opacity-40 text-slate-300 border border-white/[0.08] rounded-lg text-xs font-medium flex items-center space-x-1.5 transition-all active:scale-95"
+            className="px-2 py-1.5 bg-[#141622] hover:bg-white/[0.06] disabled:opacity-40 text-slate-300 border border-white/[0.08] rounded-lg text-xs font-medium flex items-center space-x-1 transition-all active:scale-95 shrink-0"
             title="Copy Logs"
           >
             {copied ? (
               <>
                 <Check className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-emerald-400">Copied</span>
+                <span className="text-emerald-400">✓</span>
               </>
             ) : (
               <>
@@ -290,7 +294,7 @@ export default function TerminalLogsView({ adminKey }: { adminKey: string }) {
           <button
             onClick={() => setLogs([])}
             disabled={logs.length === 0}
-            className="p-1.5 bg-[#141622] hover:bg-rose-500/20 hover:border-rose-500/30 text-slate-400 hover:text-rose-300 disabled:opacity-40 border border-white/[0.08] rounded-lg transition-all"
+            className="p-1.5 bg-[#141622] hover:bg-rose-500/20 hover:border-rose-500/30 text-slate-400 hover:text-rose-300 disabled:opacity-40 border border-white/[0.08] rounded-lg transition-all shrink-0"
             title={t('terminal.clear')}
           >
             <Trash2 className="w-3.5 h-3.5" />

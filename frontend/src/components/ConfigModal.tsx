@@ -293,9 +293,9 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
 
   return (
     <div className="backdrop-blur-xl bg-black/60 fixed inset-0 flex items-center justify-center z-50 p-2 sm:p-4 animate-in fade-in duration-200 font-sans">
-      <div className="bg-[#0F1118] border border-white/[0.1] rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[92vh]">
+      <div className="bg-[#0F1118] border border-white/[0.1] rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[96vh] sm:max-h-[92vh]">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-white/[0.08] bg-[#121520]">
+        <div className="flex items-center justify-between px-3.5 sm:px-6 py-3 sm:py-4 border-b border-white/[0.08] bg-[#121520]">
           <div className="flex items-center space-x-3 min-w-0">
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-indigo-600/30 to-purple-600/30 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold shadow-inner shrink-0">
               <Settings className="w-4 h-4 text-indigo-400" />
@@ -316,7 +316,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
         </div>
 
         {/* Linear Styled Tab Pills */}
-        <div className="flex items-center space-x-1.5 px-3 sm:px-6 py-2.5 border-b border-white/[0.06] bg-[#0A0C12] overflow-x-auto">
+        <div className="flex items-center space-x-1.5 px-3 sm:px-6 py-2 sm:py-2.5 border-b border-white/[0.06] bg-[#0A0C12] overflow-x-auto">
           {TABS.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -325,7 +325,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                 key={tab.id}
                 type="button"
                 onClick={() => handleTabChange(tab.id as TabType)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center space-x-2 whitespace-nowrap transition-all ${
+                className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center space-x-1.5 sm:space-x-2 whitespace-nowrap transition-all ${
                   isActive
                     ? 'bg-indigo-600/20 border border-indigo-500/40 text-indigo-300 shadow-[0_0_12px_rgba(99,102,241,0.2)]'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04] border border-transparent'
@@ -345,7 +345,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
             <span>{t('config.loading')}</span>
           </div>
         ) : (
-          <form onSubmit={handleSave} className="p-6 overflow-y-auto flex-1 space-y-5">
+          <form onSubmit={handleSave} className="p-3.5 sm:p-6 overflow-y-auto flex-1 space-y-4 sm:space-y-5">
             {toast && (
               <div className="p-3 bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 rounded-xl text-xs text-center font-bold flex items-center justify-center space-x-2">
                 <Check className="w-4 h-4 text-emerald-400" />
@@ -550,54 +550,58 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                       ) : (
                         <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
                           {mappingEntries.map((entry) => (
-                            <div key={entry.id} className="flex items-center space-x-2">
-                              <input
-                                type="text"
-                                value={entry.source}
-                                onChange={(e) => handleEntryChange(entry.id, 'source', e.target.value)}
-                                placeholder={t('config.sourceModel')}
-                                className="flex-1 min-w-0 bg-[#151824] border border-white/[0.08] rounded-xl p-2 text-xs text-slate-100 font-mono focus:outline-none focus:border-amber-500"
-                              />
-                              <span className="text-slate-500 font-bold text-xs shrink-0">→</span>
-                              <input
-                                type="text"
-                                value={entry.target}
-                                onChange={(e) => handleEntryChange(entry.id, 'target', e.target.value)}
-                                placeholder={t('config.targetModel')}
-                                className="flex-1 min-w-0 bg-[#151824] border border-white/[0.08] rounded-xl p-2 text-xs text-amber-300 font-mono focus:outline-none focus:border-amber-500"
-                              />
-                              <select
-                                value={entry.strategy || ''}
-                                onChange={(e) => handleEntryChange(entry.id, 'strategy', e.target.value)}
-                                className="bg-[#151824] border border-white/[0.08] rounded-xl p-2 text-[11px] text-slate-300 font-mono focus:outline-none focus:border-amber-500 shrink-0"
-                                title={t('config.strategy')}
-                              >
-                                <option value="">{t('config.strategyDefault')}</option>
-                                <option value="least-used">{t('config.strategyLeastUsed')}</option>
-                                <option value="round-robin">{t('config.strategyRoundRobin')}</option>
-                                <option value="weighted">{t('config.strategyWeighted')}</option>
-                              </select>
-                              <button
-                                type="button"
-                                onClick={() => handleToggleHigh(entry.id, entry.target)}
-                                className={`px-2.5 py-2 text-[10px] font-bold rounded-xl transition-all border shrink-0 flex items-center space-x-1 ${
-                                  entry.target.trim().endsWith('-high')
-                                    ? 'bg-amber-500/15 border-amber-500/40 text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.15)]'
-                                    : 'bg-[#151824] border-white/[0.08] text-slate-400 hover:text-slate-300 hover:border-white/[0.15]'
-                                }`}
-                                title={t('config.highToggleTooltip')}
-                              >
-                                <Zap className="w-3 h-3" />
-                                <span>HIGH</span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveMapping(entry.id)}
-                                className="p-2 text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 rounded-xl transition-colors text-xs shrink-0"
-                                title="Remove mapping"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                            <div key={entry.id} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-2.5 sm:p-0 bg-white/[0.02] sm:bg-transparent rounded-xl border border-white/[0.04] sm:border-transparent">
+                              <div className="flex items-center space-x-2 flex-1 min-w-0">
+                                <input
+                                  type="text"
+                                  value={entry.source}
+                                  onChange={(e) => handleEntryChange(entry.id, 'source', e.target.value)}
+                                  placeholder={t('config.sourceModel')}
+                                  className="flex-1 min-w-0 bg-[#151824] border border-white/[0.08] rounded-xl p-2 text-xs text-slate-100 font-mono focus:outline-none focus:border-amber-500"
+                                />
+                                <span className="text-slate-500 font-bold text-xs shrink-0">→</span>
+                                <input
+                                  type="text"
+                                  value={entry.target}
+                                  onChange={(e) => handleEntryChange(entry.id, 'target', e.target.value)}
+                                  placeholder={t('config.targetModel')}
+                                  className="flex-1 min-w-0 bg-[#151824] border border-white/[0.08] rounded-xl p-2 text-xs text-amber-300 font-mono focus:outline-none focus:border-amber-500"
+                                />
+                              </div>
+                              <div className="flex items-center space-x-2 justify-end shrink-0">
+                                <select
+                                  value={entry.strategy || ''}
+                                  onChange={(e) => handleEntryChange(entry.id, 'strategy', e.target.value)}
+                                  className="flex-1 sm:flex-none bg-[#151824] border border-white/[0.08] rounded-xl p-2 text-[11px] text-slate-300 font-mono focus:outline-none focus:border-amber-500 shrink-0"
+                                  title={t('config.strategy')}
+                                >
+                                  <option value="">{t('config.strategyDefault')}</option>
+                                  <option value="least-used">{t('config.strategyLeastUsed')}</option>
+                                  <option value="round-robin">{t('config.strategyRoundRobin')}</option>
+                                  <option value="weighted">{t('config.strategyWeighted')}</option>
+                                </select>
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleHigh(entry.id, entry.target)}
+                                  className={`px-2.5 py-2 text-[10px] font-bold rounded-xl transition-all border shrink-0 flex items-center space-x-1 ${
+                                    entry.target.trim().endsWith('-high')
+                                      ? 'bg-amber-500/15 border-amber-500/40 text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.15)]'
+                                      : 'bg-[#151824] border-white/[0.08] text-slate-400 hover:text-slate-300 hover:border-white/[0.15]'
+                                  }`}
+                                  title={t('config.highToggleTooltip')}
+                                >
+                                  <Zap className="w-3 h-3" />
+                                  <span>HIGH</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveMapping(entry.id)}
+                                  className="p-2 text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 rounded-xl transition-colors text-xs shrink-0"
+                                  title="Remove mapping"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
                             </div>
                           ))}
                         </div>

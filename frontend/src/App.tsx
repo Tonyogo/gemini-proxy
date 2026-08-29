@@ -451,14 +451,14 @@ export default function App() {
         } pl-0`}
       >
         {/* Minimal Glass Top Bar */}
-        <header className="h-14 backdrop-blur-md bg-[#090A0F]/80 border-b border-white/[0.06] px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30">
+        <header className="h-12 sm:h-14 backdrop-blur-md bg-[#090A0F]/80 border-b border-white/[0.06] px-3 sm:px-6 flex items-center justify-between sticky top-0 z-30">
           {/* Left Breadcrumbs & Sidebar Toggle */}
-          <div className="flex items-center space-x-2 sm:space-x-3">
+          <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
             {/* Mobile Hamburger Menu Toggle */}
             <button
               onClick={() => setIsMobileOpen(true)}
               title="Open Navigation"
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-white/[0.05] transition-colors border border-transparent hover:border-white/[0.06] md:hidden"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-white/[0.05] transition-colors border border-transparent hover:border-white/[0.06] md:hidden shrink-0"
             >
               <Menu className="w-5 h-5" />
             </button>
@@ -476,21 +476,21 @@ export default function App() {
               )}
             </button>
 
-            <div className="h-4 w-px bg-white/[0.08]" />
+            <div className="h-4 w-px bg-white/[0.08] hidden sm:block shrink-0" />
 
-            <div className="flex items-center space-x-1.5 sm:space-x-2 text-xs font-medium">
-              <span className="hidden sm:inline text-slate-500">Gemini Proxy</span>
-              <ChevronRight className="hidden sm:inline w-3.5 h-3.5 text-slate-600" />
-              <span className="text-slate-200 font-semibold truncate max-w-[140px] sm:max-w-none">{getActiveTabTitle()}</span>
+            <div className="flex items-center space-x-1.5 sm:space-x-2 text-xs font-medium min-w-0">
+              <span className="hidden sm:inline text-slate-500 shrink-0">Gemini Proxy</span>
+              <ChevronRight className="hidden sm:inline w-3.5 h-3.5 text-slate-600 shrink-0" />
+              <span className="text-slate-200 font-semibold truncate max-w-[130px] sm:max-w-none">{getActiveTabTitle()}</span>
             </div>
           </div>
 
           {/* Right Action Controls */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1.5 sm:space-x-2 shrink-0">
             <button
               onClick={handleRefresh}
               title={lang === 'zh' ? '刷新当前视图' : 'Refresh Active View'}
-              className="px-2.5 py-1.5 bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.08] hover:border-white/[0.15] rounded-lg text-xs text-slate-300 hover:text-white transition-all flex items-center space-x-1.5 shadow-sm active:scale-95"
+              className="px-2 sm:px-2.5 py-1.5 bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.08] hover:border-white/[0.15] rounded-lg text-xs text-slate-300 hover:text-white transition-all flex items-center space-x-1.5 shadow-sm active:scale-95"
             >
               <RefreshCw className={`w-3.5 h-3.5 text-slate-400 ${isRefreshing ? 'animate-spin text-indigo-400' : ''}`} />
               <span className="hidden sm:inline text-[11px]">{lang === 'zh' ? '刷新' : 'Refresh'}</span>
@@ -504,7 +504,7 @@ export default function App() {
         </header>
 
         {/* Main View Workspace */}
-        <main className="flex-1 p-3 sm:p-6 overflow-x-hidden">
+        <main className="flex-1 p-2.5 sm:p-4 md:p-6 overflow-x-hidden pb-8">
           {activeTab === 'dashboard' && (
             <DashboardView
               key={refreshTrigger}
