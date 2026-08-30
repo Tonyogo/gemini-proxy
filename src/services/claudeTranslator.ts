@@ -12,9 +12,11 @@ import {
 const BYPASS_SIGNATURE = 'context_engineering_is_the_way_to_go';
 
 class ClaudeTranslator {
+  private roundRobinCounters: Map<string, number> = new Map();
+
   /**
    * Dynamically resolves raw model aliases against config.modelMappings
-   * Supports both plain string target and object target { target, strategy }
+   * Supports plain string target, string array, or object target { target, targets, strategy }
    */
   public getModelMappingInfo(rawModel: string): { targetModel: string; strategy?: SchedulingStrategy } {
     if (!rawModel) return { targetModel: rawModel };
@@ -24,11 +26,34 @@ class ClaudeTranslator {
         if (typeof mapping === 'string') {
           return { targetModel: mapping };
         }
-        if (typeof mapping === 'object' && mapping.target) {
-          return {
-            targetModel: mapping.target,
-            strategy: mapping.strategy
-          };
+        if (Array.isArray(mapping)) {
+          if (mapping.length === 0) {
+            return { targetModel: rawModel };
+          }
+          if (mapping.length === 1) {
+            return { targetModel: mapping[0] };
+          }
+          const counter = this.roundRobinCounters.get(rawModel) || 0;
+          const chosen = mapping[counter % mapping.length];
+          this.roundRobinCounters.set(rawModel, counter + 1);
+          return { targetModel: chosen };
+        }
+        if (typeof mapping === 'object' && mapping !== null) {
+          if (Array.isArray(mapping.targets) && mapping.targets.length > 0) {
+            if (mapping.targets.length === 1) {
+              return { targetModel: mapping.targets[0], strategy: mapping.strategy };
+            }
+            const counter = this.roundRobinCounters.get(rawModel) || 0;
+            const chosen = mapping.targets[counter % mapping.targets.length];
+            this.roundRobinCounters.set(rawModel, counter + 1);
+            return { targetModel: chosen, strategy: mapping.strategy };
+          }
+          if (mapping.target) {
+            return {
+              targetModel: mapping.target,
+              strategy: mapping.strategy
+            };
+          }
         }
       }
     }

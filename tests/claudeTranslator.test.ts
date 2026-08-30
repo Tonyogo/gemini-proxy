@@ -869,6 +869,70 @@ describe('Claude Translator Model Name Mapping', () => {
     expect(res3.cleanModelName).toEqual('gemini-2.5-flash-high');
     expect(res3.strategy).toEqual('weighted');
   });
+
+  it('alternates target models in round-robin fashion for array target mappings', () => {
+    config.modelMappings = {
+      'claude-pool': ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-1.5-pro']
+    };
+
+    const translatorWithMapping = new (translator.constructor as any)();
+
+    const call1 = translatorWithMapping.translateClaudeToGoogle({
+      model: 'claude-pool',
+      messages: [{ role: 'user', content: 'Hello' }]
+    } as any);
+    expect(call1.cleanModelName).toEqual('gemini-2.5-pro');
+
+    const call2 = translatorWithMapping.translateClaudeToGoogle({
+      model: 'claude-pool',
+      messages: [{ role: 'user', content: 'Hello' }]
+    } as any);
+    expect(call2.cleanModelName).toEqual('gemini-2.5-flash');
+
+    const call3 = translatorWithMapping.translateClaudeToGoogle({
+      model: 'claude-pool',
+      messages: [{ role: 'user', content: 'Hello' }]
+    } as any);
+    expect(call3.cleanModelName).toEqual('gemini-1.5-pro');
+
+    const call4 = translatorWithMapping.translateClaudeToGoogle({
+      model: 'claude-pool',
+      messages: [{ role: 'user', content: 'Hello' }]
+    } as any);
+    expect(call4.cleanModelName).toEqual('gemini-2.5-pro');
+  });
+
+  it('alternates target models and preserves strategy for object targets array mapping', () => {
+    config.modelMappings = {
+      'claude-pool-object': {
+        targets: ['gemini-2.5-pro', 'gemini-2.5-flash'],
+        strategy: 'round-robin'
+      }
+    };
+
+    const translatorWithMapping = new (translator.constructor as any)();
+
+    const call1 = translatorWithMapping.translateClaudeToGoogle({
+      model: 'claude-pool-object',
+      messages: [{ role: 'user', content: 'Hello' }]
+    } as any);
+    expect(call1.cleanModelName).toEqual('gemini-2.5-pro');
+    expect(call1.strategy).toEqual('round-robin');
+
+    const call2 = translatorWithMapping.translateClaudeToGoogle({
+      model: 'claude-pool-object',
+      messages: [{ role: 'user', content: 'Hello' }]
+    } as any);
+    expect(call2.cleanModelName).toEqual('gemini-2.5-flash');
+    expect(call2.strategy).toEqual('round-robin');
+
+    const call3 = translatorWithMapping.translateClaudeToGoogle({
+      model: 'claude-pool-object',
+      messages: [{ role: 'user', content: 'Hello' }]
+    } as any);
+    expect(call3.cleanModelName).toEqual('gemini-2.5-pro');
+    expect(call3.strategy).toEqual('round-robin');
+  });
 });
 
 describe('Claude Translator Custom System Instruction Injection', () => {
