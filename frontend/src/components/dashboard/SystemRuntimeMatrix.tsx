@@ -15,6 +15,8 @@ export const SystemRuntimeMatrix: React.FC<SystemRuntimeMatrixProps> = ({ config
   const logRetentionDays = config?.logRetentionDays ?? 3;
   const timeZone = config?.timeZone || 'Asia/Shanghai';
   const countTokensModel = config?.countTokensModel || 'Default Model';
+  const modelMappings = config?.modelMappings || {};
+  const mappingKeys = Object.keys(modelMappings);
 
   return (
     <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl p-5 shadow-lg relative flex flex-col">
@@ -85,6 +87,51 @@ export const SystemRuntimeMatrix: React.FC<SystemRuntimeMatrixProps> = ({ config
             {countTokensModel}
           </span>
         </div>
+
+        {mappingKeys.length > 0 && (
+          <div className="sm:col-span-2 bg-white/[0.02] border border-white/[0.05] rounded-lg p-3 flex flex-col space-y-1.5">
+            <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
+              {t('dashboard.modelMappingsTitle', 'MODEL_MAPPINGS')} ({mappingKeys.length})
+            </span>
+            <div className="space-y-1 max-h-32 overflow-y-auto pr-1 text-[11px]">
+              {mappingKeys.map((src) => {
+                const val = modelMappings[src];
+                let targetDisplay = '';
+                let strategyDisplay = '';
+
+                if (Array.isArray(val)) {
+                  targetDisplay = val.join(', ');
+                  strategyDisplay = 'round-robin';
+                } else if (val && typeof val === 'object') {
+                  if ('targets' in val && Array.isArray((val as any).targets)) {
+                    targetDisplay = (val as any).targets.join(', ');
+                    strategyDisplay = (val as any).strategy || 'round-robin';
+                  } else if ('target' in val) {
+                    targetDisplay = String((val as any).target || '');
+                    strategyDisplay = (val as any).strategy || '';
+                  }
+                } else {
+                  targetDisplay = String(val || '');
+                }
+
+                return (
+                  <div key={src} className="flex items-center justify-between gap-2 py-0.5 border-b border-white/[0.03] last:border-0">
+                    <span className="text-slate-300 font-semibold truncate shrink-0 max-w-[40%]">{src}</span>
+                    <span className="text-slate-500">→</span>
+                    <span className="text-amber-300/90 truncate flex-1 text-right">
+                      {targetDisplay}
+                      {strategyDisplay && (
+                        <span className="ml-1 px-1 py-0.2 text-[9px] bg-amber-500/10 text-amber-400 rounded border border-amber-500/20 font-sans">
+                          {strategyDisplay}
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

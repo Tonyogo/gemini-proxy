@@ -291,7 +291,7 @@ export const zh: Translations = {
     toggleJson: "⚙️ 切换为原始 JSON 编辑",
     toggleKv: "📋 切换为可视化 KV 编辑",
     sourceModel: "源模型 (Claude/Incoming)",
-    targetModel: "重定向至 (Gemini Upstream)",
+    targetModel: "重定向至 (Gemini Upstream, 如 gemini-2.5-pro, gemini-3.6-pro)",
     strategy: "调度策略 (x-scheduling-strategy)",
     strategyDefault: "默认 (无)",
     strategyLeastUsed: "least-used (最少使用)",

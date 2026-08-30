@@ -289,7 +289,7 @@ export const en = {
     toggleJson: "⚙️ Switch to Raw JSON Editor",
     toggleKv: "📋 Switch to Visual KV Editor",
     sourceModel: "Incoming Model (Source)",
-    targetModel: "Gemini Upstream Model (Target)",
+    targetModel: "Gemini Upstream Model (Target, e.g. gemini-2.5-pro, gemini-3.6-pro)",
     strategy: "Scheduling Strategy (x-scheduling-strategy)",
     strategyDefault: "Default (None)",
     strategyLeastUsed: "least-used",

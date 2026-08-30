@@ -94,14 +94,33 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
           const mappings = data.config.modelMappings || {};
           setModelMappingsRaw(JSON.stringify(mappings, null, 2));
           const entries: MappingEntry[] = Object.entries(mappings).map(([source, val]) => {
-            if (val && typeof val === 'object' && 'target' in val) {
-              const targetObj = val as { target: string; strategy?: string };
+            if (Array.isArray(val)) {
               return {
                 id: Math.random().toString(36).substring(2, 9),
                 source,
-                target: String(targetObj.target || ''),
-                strategy: targetObj.strategy || ''
+                target: val.join(', '),
+                strategy: ''
               };
+            }
+            if (val && typeof val === 'object') {
+              if ('targets' in val && Array.isArray((val as any).targets)) {
+                const targetObj = val as { targets: string[]; strategy?: string };
+                return {
+                  id: Math.random().toString(36).substring(2, 9),
+                  source,
+                  target: targetObj.targets.join(', '),
+                  strategy: targetObj.strategy || ''
+                };
+              }
+              if ('target' in val) {
+                const targetObj = val as { target: string; strategy?: string };
+                return {
+                  id: Math.random().toString(36).substring(2, 9),
+                  source,
+                  target: String(targetObj.target || ''),
+                  strategy: targetObj.strategy || ''
+                };
+              }
             }
             return {
               id: Math.random().toString(36).substring(2, 9),
@@ -130,13 +149,37 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
       if (e.source.trim()) {
         const targetTrimmed = e.target.trim();
         const strategyTrimmed = e.strategy?.trim();
-        if (strategyTrimmed) {
-          obj[e.source.trim()] = {
-            target: targetTrimmed,
-            strategy: strategyTrimmed
-          };
+
+        if (targetTrimmed.includes(',')) {
+          const parts = targetTrimmed.split(',').map(s => s.trim()).filter(Boolean);
+          if (parts.length > 1) {
+            if (strategyTrimmed) {
+              obj[e.source.trim()] = {
+                targets: parts,
+                strategy: strategyTrimmed
+              };
+            } else {
+              obj[e.source.trim()] = parts;
+            }
+          } else if (parts.length === 1) {
+            if (strategyTrimmed) {
+              obj[e.source.trim()] = {
+                target: parts[0],
+                strategy: strategyTrimmed
+              };
+            } else {
+              obj[e.source.trim()] = parts[0];
+            }
+          }
         } else {
-          obj[e.source.trim()] = targetTrimmed;
+          if (strategyTrimmed) {
+            obj[e.source.trim()] = {
+              target: targetTrimmed,
+              strategy: strategyTrimmed
+            };
+          } else {
+            obj[e.source.trim()] = targetTrimmed;
+          }
         }
       }
     }
@@ -176,14 +219,33 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
       const parsed = JSON.parse(val);
       if (typeof parsed === 'object' && parsed !== null) {
         const entries: MappingEntry[] = Object.entries(parsed).map(([source, mappingVal]) => {
-          if (mappingVal && typeof mappingVal === 'object' && 'target' in mappingVal) {
-            const targetObj = mappingVal as { target: string; strategy?: string };
+          if (Array.isArray(mappingVal)) {
             return {
               id: Math.random().toString(36).substring(2, 9),
               source,
-              target: String(targetObj.target || ''),
-              strategy: targetObj.strategy || ''
+              target: mappingVal.join(', '),
+              strategy: ''
             };
+          }
+          if (mappingVal && typeof mappingVal === 'object') {
+            if ('targets' in mappingVal && Array.isArray((mappingVal as any).targets)) {
+              const targetObj = mappingVal as { targets: string[]; strategy?: string };
+              return {
+                id: Math.random().toString(36).substring(2, 9),
+                source,
+                target: targetObj.targets.join(', '),
+                strategy: targetObj.strategy || ''
+              };
+            }
+            if ('target' in mappingVal) {
+              const targetObj = mappingVal as { target: string; strategy?: string };
+              return {
+                id: Math.random().toString(36).substring(2, 9),
+                source,
+                target: String(targetObj.target || ''),
+                strategy: targetObj.strategy || ''
+              };
+            }
           }
           return {
             id: Math.random().toString(36).substring(2, 9),
