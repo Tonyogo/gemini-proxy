@@ -576,6 +576,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                       <div className="flex items-center space-x-2 text-xs font-bold text-amber-400 uppercase tracking-wider">
                         <ArrowRightLeft className="w-3.5 h-3.5 text-amber-400" />
                         <span>{t('config.modelMappingsGroup')}</span>
+                        <span className="text-[11px] font-mono text-amber-400/80 lowercase">({mappingEntries.length})</span>
                       </div>
 
                       <button
@@ -614,15 +615,18 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                             {t('config.emptyMappings')}
                           </div>
                         ) : (
-                          <div className="space-y-3 max-h-72 sm:max-h-64 overflow-y-auto pr-1">
-                            {mappingEntries.map((entry) => (
+                          <div className="space-y-2.5 sm:space-y-2">
+                            {mappingEntries.map((entry, index) => (
                               <div
                                 key={entry.id}
-                                className="p-3 sm:p-2.5 bg-[#151824]/60 sm:bg-white/[0.02] rounded-xl border border-white/[0.06] sm:border-white/[0.04] space-y-2.5 sm:space-y-0 sm:flex sm:items-center sm:gap-2"
+                                className="p-2.5 sm:p-2 bg-[#151824]/60 sm:bg-white/[0.02] rounded-xl border border-white/[0.06] sm:border-white/[0.04] space-y-2 sm:space-y-0 sm:flex sm:items-center sm:gap-2"
                               >
-                                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1 min-w-0">
+                                <span className="text-[10px] font-mono font-bold text-slate-400 bg-white/[0.04] px-1.5 py-0.5 rounded border border-white/[0.06] shrink-0 self-start sm:self-center">
+                                  #{index + 1}
+                                </span>
+                                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5 sm:gap-2 flex-1 min-w-0">
                                   <div className="flex-1 min-w-0">
-                                    <label className="text-[10px] text-slate-400 block sm:hidden mb-1 font-semibold">{t('config.sourceModel')}</label>
+                                    <label className="text-[10px] text-slate-400 block sm:hidden mb-0.5 font-semibold">{t('config.sourceModel')}</label>
                                     <input
                                       type="text"
                                       value={entry.source}
@@ -633,7 +637,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                   </div>
                                   <span className="hidden sm:inline text-slate-500 font-bold text-xs shrink-0">→</span>
                                   <div className="flex-1 min-w-0">
-                                    <label className="text-[10px] text-slate-400 block sm:hidden mb-1 font-semibold">{t('config.targetModel')}</label>
+                                    <label className="text-[10px] text-slate-400 block sm:hidden mb-0.5 font-semibold">{t('config.targetModel')}</label>
                                     <input
                                       type="text"
                                       value={entry.target}
@@ -643,7 +647,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                     />
                                   </div>
                                 </div>
-                                <div className="flex items-center justify-between sm:justify-end gap-2 pt-2 sm:pt-0 border-t border-white/[0.04] sm:border-0 shrink-0">
+                                <div className="flex items-center justify-between sm:justify-end gap-1.5 sm:gap-2 pt-2 sm:pt-0 border-t border-white/[0.04] sm:border-0 shrink-0">
                                   <select
                                     value={entry.strategy || ''}
                                     onChange={(e) => handleEntryChange(entry.id, 'strategy', e.target.value)}
@@ -658,7 +662,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                   <button
                                     type="button"
                                     onClick={() => handleToggleHigh(entry.id, entry.target)}
-                                    className={`px-2.5 py-2 text-[10px] font-bold rounded-xl transition-all border shrink-0 flex items-center space-x-1 ${
+                                    className={`px-2 py-1.5 text-[10px] font-bold rounded-xl transition-all border shrink-0 flex items-center space-x-1 ${
                                       entry.target.trim().endsWith('-high')
                                         ? 'bg-amber-500/15 border-amber-500/40 text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.15)]'
                                         : 'bg-[#121520] sm:bg-[#151824] border-white/[0.08] text-slate-400 hover:text-slate-300 hover:border-white/[0.15]'
@@ -671,7 +675,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                   <button
                                     type="button"
                                     onClick={() => handleRemoveMapping(entry.id)}
-                                    className="p-2 text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 rounded-xl transition-colors text-xs shrink-0"
+                                    className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 rounded-xl transition-colors text-xs shrink-0"
                                     title="Remove mapping"
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
