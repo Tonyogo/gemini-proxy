@@ -80,6 +80,7 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
         {/* Modifier: ESC */}
         <button
           type="button"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => onSendInput('\x1b')}
           className="px-2.5 py-1 rounded-lg bg-white/[0.05] hover:bg-white/[0.12] active:scale-95 text-slate-300 hover:text-white font-mono text-xs font-semibold border border-white/[0.08] transition-all shadow-sm"
         >
@@ -89,6 +90,7 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
         {/* Modifier: TAB */}
         <button
           type="button"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => onSendInput('\t')}
           className="px-2.5 py-1 rounded-lg bg-white/[0.05] hover:bg-white/[0.12] active:scale-95 text-slate-300 hover:text-white font-mono text-xs font-semibold border border-white/[0.08] transition-all shadow-sm"
         >
@@ -98,6 +100,7 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
         {/* Sticky Modifier: CTRL */}
         <button
           type="button"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={onToggleCtrl}
           className={`px-2.5 py-1 rounded-lg font-mono text-xs font-semibold border transition-all shadow-sm active:scale-95 ${
             isCtrlActive
@@ -111,6 +114,7 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
         {/* Sticky Modifier: ALT */}
         <button
           type="button"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={onToggleAlt}
           className={`px-2.5 py-1 rounded-lg font-mono text-xs font-semibold border transition-all shadow-sm active:scale-95 ${
             isAltActive
@@ -124,6 +128,7 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
         {/* Action: Ctrl+C */}
         <button
           type="button"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => onSendInput('\x03')}
           className="px-2 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 active:scale-95 text-rose-400 font-mono text-xs font-semibold border border-rose-500/30 transition-all"
           title="SIGINT (Ctrl+C)"
@@ -134,6 +139,7 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
         {/* Action: Ctrl+D */}
         <button
           type="button"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => onSendInput('\x04')}
           className="px-2 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 active:scale-95 text-amber-400 font-mono text-xs font-semibold border border-amber-500/30 transition-all"
           title="EOF (Ctrl+D)"
@@ -144,6 +150,7 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
         {/* Action: Ctrl+L */}
         <button
           type="button"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => onSendInput('\x0c')}
           className="px-2 py-1 rounded-lg bg-white/[0.05] hover:bg-white/[0.12] active:scale-95 text-slate-300 font-mono text-xs font-semibold border border-white/[0.08] transition-all"
           title="Clear Screen (Ctrl+L)"
@@ -156,6 +163,7 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
           <button
             key={char}
             type="button"
+            onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleKeyClick(char, char)}
             className="w-7 h-7 rounded-lg bg-white/[0.04] hover:bg-white/[0.1] active:scale-95 text-slate-300 font-mono text-xs flex items-center justify-center border border-white/[0.06] transition-all"
           >
@@ -166,6 +174,7 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
         {/* Arrow Keys: Up, Down, Left, Right */}
         <button
           type="button"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => onSendInput('\x1b[A')}
           className="w-7 h-7 rounded-lg bg-white/[0.05] hover:bg-white/[0.12] active:scale-95 text-slate-300 flex items-center justify-center border border-white/[0.08] transition-all"
           title="Up Arrow"
@@ -174,6 +183,7 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
         </button>
         <button
           type="button"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => onSendInput('\x1b[B')}
           className="w-7 h-7 rounded-lg bg-white/[0.05] hover:bg-white/[0.12] active:scale-95 text-slate-300 flex items-center justify-center border border-white/[0.08] transition-all"
           title="Down Arrow"
@@ -182,6 +192,7 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
         </button>
         <button
           type="button"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => onSendInput('\x1b[D')}
           className="w-7 h-7 rounded-lg bg-white/[0.05] hover:bg-white/[0.12] active:scale-95 text-slate-300 flex items-center justify-center border border-white/[0.08] transition-all"
           title="Left Arrow"
@@ -190,6 +201,7 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
         </button>
         <button
           type="button"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => onSendInput('\x1b[C')}
           className="w-7 h-7 rounded-lg bg-white/[0.05] hover:bg-white/[0.12] active:scale-95 text-slate-300 flex items-center justify-center border border-white/[0.08] transition-all"
           title="Right Arrow"

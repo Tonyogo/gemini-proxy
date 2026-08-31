@@ -42,6 +42,12 @@ export default function WebTerminalView({ adminKey }: WebTerminalViewProps) {
     return saved ? parseInt(saved, 10) : 13;
   });
 
+  // Mobile Visual Viewport tracking for virtual keyboard positioning
+  const [viewportStyle, setViewportStyle] = useState<React.CSSProperties>({});
+  const [isMobile, setIsMobile] = useState<boolean>(() => {
+    return typeof window !== 'undefined' ? window.innerWidth < 768 : false;
+  });
+
   const sendResize = useCallback((cols: number, rows: number) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({ type: 'resize', cols, rows }));
@@ -162,34 +168,60 @@ export default function WebTerminalView({ adminKey }: WebTerminalViewProps) {
 
     initWebSocket();
 
-    // Resize observer
-    const handleResize = () => {
+    // Resize observer & Visual Viewport updater
+    const updateViewport = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+
+      if (mobile && window.visualViewport) {
+        const vv = window.visualViewport;
+        // Track the visual viewport exact height and position when soft keyboard is up
+        setViewportStyle({
+          position: 'fixed',
+          top: `${vv.offsetTop}px`,
+          left: `${vv.offsetLeft}px`,
+          width: `${vv.width}px`,
+          height: `${vv.height}px`,
+          zIndex: 50,
+          borderRadius: 0,
+          border: 'none',
+          maxHeight: '100%',
+        });
+      } else {
+        setViewportStyle({});
+      }
+
       if (fitAddonRef.current && xtermRef.current) {
         fitAddonRef.current.fit();
         sendResize(xtermRef.current.cols, xtermRef.current.rows);
       }
     };
 
-    window.addEventListener('resize', handleResize);
+    window.addEventListener('resize', updateViewport);
 
-    // visualViewport support for mobile soft keyboards
+    // visualViewport support for mobile soft keyboards (VS Code Web style)
     if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', handleResize);
+      window.visualViewport.addEventListener('resize', updateViewport);
+      window.visualViewport.addEventListener('scroll', updateViewport);
     }
+
+    // Initial viewport update
+    updateViewport();
 
     return () => {
       isMounted = false;
       clearTimeout(fitTimer);
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('resize', updateViewport);
       if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', handleResize);
+        window.visualViewport.removeEventListener('resize', updateViewport);
+        window.visualViewport.removeEventListener('scroll', updateViewport);
       }
       if (wsRef.current) {
         wsRef.current.close();
       }
       term.dispose();
     };
-  }, []);
+  }, [sendResize]);
 
   // Sync font size change
   useEffect(() => {
@@ -221,9 +253,12 @@ export default function WebTerminalView({ adminKey }: WebTerminalViewProps) {
 
   return (
     <div
+      style={isMobile ? viewportStyle : undefined}
       className={`mx-auto flex flex-col bg-[#07090E] border border-white/[0.08] overflow-hidden shadow-2xl font-mono text-xs transition-all ${
         isFullscreen
           ? 'fixed inset-0 z-50 rounded-none h-screen w-screen'
+          : isMobile
+          ? 'w-full h-full rounded-none border-none'
           : 'max-w-7xl h-[calc(100vh-140px)] min-h-[500px] rounded-2xl'
       }`}
     >
