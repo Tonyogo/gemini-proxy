@@ -64,6 +64,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
   const [mappingEntries, setMappingEntries] = useState<MappingEntry[]>([]);
   const [modelMappingsRaw, setModelMappingsRaw] = useState<string>('{}');
   const [showAdvancedJson, setShowAdvancedJson] = useState<boolean>(false);
+  const [focusedTargetId, setFocusedTargetId] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -634,19 +635,11 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                   }`}
                                 >
                                   <div className="space-y-2 sm:space-y-0 sm:flex sm:items-center sm:gap-1.5">
-                                    {/* Index & Multi-target Badge */}
+                                    {/* Index */}
                                     <div className="flex items-center space-x-1 shrink-0 self-start sm:self-center">
                                       <span className="text-[10px] font-mono font-bold text-slate-400 bg-white/[0.04] px-1.5 py-0.5 rounded border border-white/[0.06]">
                                         #{index + 1}
                                       </span>
-                                      {isMultiTarget && (
-                                        <span
-                                          className="text-[9px] font-mono font-bold text-amber-300 bg-amber-500/20 px-1 py-0.5 rounded border border-amber-500/30 shrink-0"
-                                          title={`${targets.length} targets configured`}
-                                        >
-                                          ×{targets.length}
-                                        </span>
-                                      )}
                                     </div>
 
                                     {/* Source -> Target Input Fields */}
@@ -662,15 +655,29 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                         />
                                       </div>
                                       <span className="hidden sm:inline text-slate-500 font-bold text-xs shrink-0">→</span>
-                                      <div className="flex-[3] min-w-0">
+                                      <div className="flex-[3] min-w-0 relative">
                                         <label className="text-[10px] text-slate-400 block sm:hidden mb-0.5 font-semibold">{t('config.targetModel')}</label>
                                         <input
                                           type="text"
                                           value={entry.target}
                                           onChange={(e) => handleEntryChange(entry.id, 'target', e.target.value)}
+                                          onFocus={() => setFocusedTargetId(entry.id)}
+                                          onBlur={() => setFocusedTargetId(null)}
                                           placeholder={t('config.targetModel')}
-                                          className="w-full bg-[#121520] sm:bg-[#151824] border border-white/[0.08] rounded-lg p-1.5 sm:p-2 text-xs text-amber-300 font-mono focus:outline-none focus:border-amber-500"
+                                          className={`w-full bg-[#121520] sm:bg-[#151824] border border-white/[0.08] rounded-lg p-1.5 sm:p-2 text-xs text-amber-300 font-mono focus:outline-none focus:border-amber-500 ${
+                                            isMultiTarget && focusedTargetId !== entry.id ? 'pr-9' : ''
+                                          }`}
                                         />
+                                        {isMultiTarget && focusedTargetId !== entry.id && (
+                                          <div className="absolute right-1.5 bottom-1.5 sm:bottom-2 pointer-events-none flex items-center">
+                                            <span
+                                              className="text-[9px] font-mono font-bold text-amber-300 bg-amber-500/20 px-1 py-0.5 rounded border border-amber-500/30 shadow-sm animate-in fade-in duration-150"
+                                              title={`${targets.length} targets configured`}
+                                            >
+                                              ×{targets.length}
+                                            </span>
+                                          </div>
+                                        )}
                                       </div>
                                     </div>
 
