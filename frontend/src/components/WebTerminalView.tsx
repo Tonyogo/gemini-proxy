@@ -153,6 +153,42 @@ export default function WebTerminalView({ adminKey }: WebTerminalViewProps) {
     xtermRef.current = term;
     fitAddonRef.current = fitAddon;
 
+    // Mobile Touch Gesture Scrolling Bridge (code-server / VS Code style)
+    let touchStartY = 0;
+    let accumulatedDeltaY = 0;
+    const container = terminalContainerRef.current;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 1) {
+        touchStartY = e.touches[0].clientY;
+        accumulatedDeltaY = 0;
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      const currentY = e.touches[0].clientY;
+      const deltaY = touchStartY - currentY;
+      touchStartY = currentY;
+      accumulatedDeltaY += deltaY;
+
+      // Approximate line height based on font size (e.g. ~18px per line)
+      const lineHeight = Math.max(12, fontSize * 1.3);
+      if (Math.abs(accumulatedDeltaY) >= lineHeight) {
+        const linesToScroll = Math.trunc(accumulatedDeltaY / lineHeight);
+        term.scrollLines(linesToScroll);
+        accumulatedDeltaY -= linesToScroll * lineHeight;
+      }
+
+      // Prevent window bouncing
+      e.stopPropagation();
+    };
+
+    if (container) {
+      container.addEventListener('touchstart', handleTouchStart, { passive: true });
+      container.addEventListener('touchmove', handleTouchMove, { passive: false });
+    }
+
     term.onData((data) => {
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
         wsRef.current.send(data);
@@ -211,6 +247,10 @@ export default function WebTerminalView({ adminKey }: WebTerminalViewProps) {
     return () => {
       isMounted = false;
       clearTimeout(fitTimer);
+      if (container) {
+        container.removeEventListener('touchstart', handleTouchStart);
+        container.removeEventListener('touchmove', handleTouchMove);
+      }
       window.removeEventListener('resize', updateViewport);
       if (window.visualViewport) {
         window.visualViewport.removeEventListener('resize', updateViewport);
@@ -274,7 +314,7 @@ export default function WebTerminalView({ adminKey }: WebTerminalViewProps) {
       style={isMobile && isFullscreen ? viewportStyle : undefined}
       className={`mx-auto flex flex-col bg-[#07090E] border border-white/[0.08] overflow-hidden shadow-2xl font-mono text-xs transition-all ${
         isFullscreen
-          ? 'fixed inset-0 z-50 rounded-none h-screen w-screen overflow-hidden touch-none overscroll-none'
+          ? 'fixed inset-0 z-50 rounded-none h-screen w-screen overflow-hidden overscroll-none'
           : 'w-full h-full md:max-w-7xl md:h-[calc(100vh-140px)] md:min-h-[500px] rounded-none md:rounded-2xl border-x-0 md:border-x border-t-0 md:border-t'
       }`}
     >
