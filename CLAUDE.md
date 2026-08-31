@@ -8,7 +8,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Build Frontend**: `npm run build:frontend` (compiles Vite React SPA in `frontend/`)
 - **Build Backend**: `npm run build:backend` (compiles TypeScript server code via `tsc`)
 - **Clean**: `npm run clean` (deletes built files in `dist/`)
-- **Deploy**: `npm run deploy` (pulls latest code in deployment directory, builds all assets, and restarts systemd `proxy.service`)
+- **Deploy**: `npm run deploy` (pulls latest code in deployment directory, builds all assets, and performs zero-downtime reload via PM2)
+- **PM2 Commands**: `npm run pm2:start` / `npm run pm2:reload` / `npm run pm2:stop` / `npm run pm2:logs`
 - **Start Production**: `npm start` (automatically builds before running `dist/src/index.js`)
 - **Dev Mode Backend**: `npm run dev` (starts hot-reloading development server via `ts-node-dev`)
 - **Dev Mode Frontend**: `npm run dev:frontend` (starts Vite dev server on port 5173 proxying API requests to `:3000`)
