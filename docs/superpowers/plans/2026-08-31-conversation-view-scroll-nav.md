@@ -26,7 +26,7 @@
 **Interfaces:**
 - Produces: `logs.scrollToTop` & `logs.scrollToBottom` 翻译词条
 
-- [ ] **Step 1: 在 zh.ts 的 logs 对象中添加词条**
+- [x] **Step 1: 在 zh.ts 的 logs 对象中添加词条**
 
 在 `frontend/src/i18n/locales/zh.ts` 中的 `logs` 节点末尾添加：
 ```ts
@@ -34,7 +34,7 @@
     scrollToBottom: "跳到最后",
 ```
 
-- [ ] **Step 2: 在 en.ts 的 logs 对象中添加词条**
+- [x] **Step 2: 在 en.ts 的 logs 对象中添加词条**
 
 在 `frontend/src/i18n/locales/en.ts` 中的 `logs` 节点末尾添加：
 ```ts
@@ -42,12 +42,12 @@
     scrollToBottom: "Scroll to Bottom",
 ```
 
-- [ ] **Step 3: 运行前端构建测试确认 i18n 类型与语法正常**
+- [x] **Step 3: 运行前端构建测试确认 i18n 类型与语法正常**
 
 Run: `npm run build:frontend`
 Expected: 编译通过无报错
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add frontend/src/i18n/locales/zh.ts frontend/src/i18n/locales/en.ts
@@ -65,7 +65,7 @@ git commit -m "feat(i18n): add scrollToTop and scrollToBottom translation keys"
 - Consumes: `useTranslation` (from `../i18n/LanguageContext`), `ChevronsUp`, `ChevronsDown` (from `lucide-react`)
 - Produces: 悬浮于右下角的回到顶部和跳到底部按钮组件
 
-- [ ] **Step 1: 导入所需图标与 useRef 并在组件中挂载 containerRef**
+- [x] **Step 1: 导入所需图标与 useRef 并在组件中挂载 containerRef**
 
 在 `frontend/src/components/ConversationView.tsx` 中：
 1. 更新 React 导入：`import React, { useState, useMemo, useRef } from 'react';`
@@ -95,7 +95,7 @@ git commit -m "feat(i18n): add scrollToTop and scrollToBottom translation keys"
   };
 ```
 
-- [ ] **Step 2: 在 DOM 中绑定 ref 并渲染悬浮按钮**
+- [x] **Step 2: 在 DOM 中绑定 ref 并渲染悬浮按钮**
 
 在最外层容器 `div` 绑定 `ref={containerRef}`，并在消息时间线下方（或 sticky 靠右）渲染悬浮导航条：
 
@@ -133,12 +133,12 @@ git commit -m "feat(i18n): add scrollToTop and scrollToBottom translation keys"
     </div>
 ```
 
-- [ ] **Step 3: 运行前端构建以验证无类型错误**
+- [x] **Step 3: 运行前端构建以验证无类型错误**
 
 Run: `npm run build:frontend`
 Expected: 构建成功，生成资源文件
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add frontend/src/components/ConversationView.tsx
@@ -153,17 +153,17 @@ git commit -m "feat(ui): add scroll to top and bottom floating buttons in conver
 - Test: 全量单元测试 `npm test`
 - Build: 全栈构建 `npm run build`
 
-- [ ] **Step 1: 运行全量测试套件**
+- [x] **Step 1: 运行全量测试套件**
 
 Run: `npx jest --runInBand`
 Expected: 所有测试通过 (PASS)
 
-- [ ] **Step 2: 运行全栈构建**
+- [x] **Step 2: 运行全栈构建**
 
 Run: `npm run build`
 Expected: 前端 Vite 与后端 TypeScript 均构建成功无任何错误
 
-- [ ] **Step 3: Commit & Push (如果需要)**
+- [x] **Step 3: Commit & Push (如果需要)**
 
 ```bash
 git status
