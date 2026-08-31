@@ -655,29 +655,31 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                         />
                                       </div>
                                       <span className="hidden sm:inline text-slate-500 font-bold text-xs shrink-0">→</span>
-                                      <div className="flex-[3] min-w-0 relative">
+                                      <div className="flex-[3] min-w-0">
                                         <label className="text-[10px] text-slate-400 block sm:hidden mb-0.5 font-semibold">{t('config.targetModel')}</label>
-                                        <input
-                                          type="text"
-                                          value={entry.target}
-                                          onChange={(e) => handleEntryChange(entry.id, 'target', e.target.value)}
-                                          onFocus={() => setFocusedTargetId(entry.id)}
-                                          onBlur={() => setFocusedTargetId(null)}
-                                          placeholder={t('config.targetModel')}
-                                          className={`w-full bg-[#121520] sm:bg-[#151824] border border-white/[0.08] rounded-lg p-1.5 sm:p-2 text-xs text-amber-300 font-mono focus:outline-none focus:border-amber-500 ${
-                                            isMultiTarget && focusedTargetId !== entry.id ? 'pr-9' : ''
-                                          }`}
-                                        />
-                                        {isMultiTarget && focusedTargetId !== entry.id && (
-                                          <div className="absolute right-1.5 bottom-1.5 sm:bottom-2 pointer-events-none flex items-center">
-                                            <span
-                                              className="text-[9px] font-mono font-bold text-amber-300 bg-amber-500/20 px-1 py-0.5 rounded border border-amber-500/30 shadow-sm animate-in fade-in duration-150"
-                                              title={`${targets.length} targets configured`}
-                                            >
-                                              ×{targets.length}
-                                            </span>
-                                          </div>
-                                        )}
+                                        <div className="relative flex items-center">
+                                          <input
+                                            type="text"
+                                            value={entry.target}
+                                            onChange={(e) => handleEntryChange(entry.id, 'target', e.target.value)}
+                                            onFocus={() => setFocusedTargetId(entry.id)}
+                                            onBlur={() => setFocusedTargetId(null)}
+                                            placeholder={t('config.targetModel')}
+                                            className={`w-full bg-[#121520] sm:bg-[#151824] border border-white/[0.08] rounded-lg p-1.5 sm:p-2 text-xs text-amber-300 font-mono focus:outline-none focus:border-amber-500 ${
+                                              isMultiTarget && focusedTargetId !== entry.id ? 'pr-11 sm:pr-12' : ''
+                                            }`}
+                                          />
+                                          {isMultiTarget && focusedTargetId !== entry.id && (
+                                            <div className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none z-10 flex items-center">
+                                              <span
+                                                className="text-[9px] sm:text-[10px] font-mono font-black text-amber-300 bg-[#121520] sm:bg-[#151824] border border-amber-500/70 shadow-[0_0_10px_rgba(245,158,11,0.25)] px-1.5 py-0.5 rounded leading-none flex items-center select-none"
+                                                title={`${targets.length} targets configured`}
+                                              >
+                                                ×{targets.length}
+                                              </span>
+                                            </div>
+                                          )}
+                                        </div>
                                       </div>
                                     </div>
 
