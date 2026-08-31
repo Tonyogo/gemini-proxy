@@ -496,11 +496,7 @@ export default function App() {
         </header>
 
         {/* Main View Workspace */}
-        <main className={`flex-1 overflow-x-hidden ${
-          activeTab === 'webTerminal'
-            ? 'p-0 md:p-6 pb-0 md:pb-6 flex flex-col'
-            : 'p-2.5 sm:p-4 md:p-6 pb-20 md:pb-6'
-        }`}>
+        <main className="flex-1 p-2.5 sm:p-4 md:p-6 overflow-x-hidden pb-20 md:pb-6">
           {activeTab === 'dashboard' && (
             <DashboardView
               key={refreshTrigger}
@@ -538,40 +534,38 @@ export default function App() {
           )}
         </main>
 
-        {/* Fixed Mobile Bottom Navigation Bar (Hidden when webTerminal is active to avoid keyboard overlap) */}
-        {activeTab !== 'webTerminal' && (
-          <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#0C0E14]/95 backdrop-blur-xl border-t border-white/[0.08] px-2 py-1 flex items-center justify-around md:hidden shadow-[0_-4px_20px_rgba(0,0,0,0.6)]">
-            {NAV_ITEMS.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-              const title = t(`nav.${item.id}`);
+        {/* Fixed Mobile Bottom Navigation Bar */}
+        <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#0C0E14]/95 backdrop-blur-xl border-t border-white/[0.08] px-2 py-1 flex items-center justify-around md:hidden shadow-[0_-4px_20px_rgba(0,0,0,0.6)]">
+          {NAV_ITEMS.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            const title = t(`nav.${item.id}`);
 
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => handleTabChange(item.id)}
-                  className={`relative flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition-all ${
-                    isActive
-                      ? 'text-indigo-400 font-semibold'
-                      : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  <div className={`p-1 rounded-lg transition-transform ${
-                    isActive ? 'bg-indigo-500/15 scale-110 shadow-[0_0_12px_rgba(99,102,241,0.3)]' : ''
-                  }`}>
-                    <Icon className={`w-4 h-4 ${isActive ? 'text-indigo-400' : 'text-slate-400'}`} />
-                  </div>
-                  <span className="text-[10px] mt-0.5 tracking-tight truncate max-w-[56px]">
-                    {title}
-                  </span>
-                  {isActive && (
-                    <span className="w-1 h-1 rounded-full bg-indigo-500 mt-0.5 shadow-[0_0_6px_rgba(99,102,241,0.8)]" />
-                  )}
-                </button>
-              );
-            })}
-          </nav>
-        )}
+            return (
+              <button
+                key={item.id}
+                onClick={() => handleTabChange(item.id)}
+                className={`relative flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition-all ${
+                  isActive
+                    ? 'text-indigo-400 font-semibold'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <div className={`p-1 rounded-lg transition-transform ${
+                  isActive ? 'bg-indigo-500/15 scale-110 shadow-[0_0_12px_rgba(99,102,241,0.3)]' : ''
+                }`}>
+                  <Icon className={`w-4 h-4 ${isActive ? 'text-indigo-400' : 'text-slate-400'}`} />
+                </div>
+                <span className="text-[10px] mt-0.5 tracking-tight truncate max-w-[56px]">
+                  {title}
+                </span>
+                {isActive && (
+                  <span className="w-1 h-1 rounded-full bg-indigo-500 mt-0.5 shadow-[0_0_6px_rgba(99,102,241,0.8)]" />
+                )}
+              </button>
+            );
+          })}
+        </nav>
       </div>
 
       {/* Global Config Modal */}

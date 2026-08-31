@@ -173,9 +173,9 @@ export default function WebTerminalView({ adminKey }: WebTerminalViewProps) {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
 
-      if (mobile && window.visualViewport) {
+      // Only apply fixed visual viewport positioning if fullscreen mode is activated on mobile
+      if (mobile && isFullscreen && window.visualViewport) {
         const vv = window.visualViewport;
-        // Track the visual viewport exact height and position when soft keyboard is up
         setViewportStyle({
           position: 'fixed',
           top: `${vv.offsetTop}px`,
@@ -199,7 +199,7 @@ export default function WebTerminalView({ adminKey }: WebTerminalViewProps) {
 
     window.addEventListener('resize', updateViewport);
 
-    // visualViewport support for mobile soft keyboards (VS Code Web style)
+    // visualViewport support for mobile soft keyboards (VS Code Web style in fullscreen)
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', updateViewport);
       window.visualViewport.addEventListener('scroll', updateViewport);
@@ -221,7 +221,7 @@ export default function WebTerminalView({ adminKey }: WebTerminalViewProps) {
       }
       term.dispose();
     };
-  }, [sendResize]);
+  }, [isFullscreen, sendResize]);
 
   // Sync font size change
   useEffect(() => {
@@ -253,12 +253,10 @@ export default function WebTerminalView({ adminKey }: WebTerminalViewProps) {
 
   return (
     <div
-      style={isMobile ? viewportStyle : undefined}
+      style={isMobile && isFullscreen ? viewportStyle : undefined}
       className={`mx-auto flex flex-col bg-[#07090E] border border-white/[0.08] overflow-hidden shadow-2xl font-mono text-xs transition-all ${
         isFullscreen
           ? 'fixed inset-0 z-50 rounded-none h-screen w-screen'
-          : isMobile
-          ? 'w-full h-full rounded-none border-none'
           : 'max-w-7xl h-[calc(100vh-140px)] min-h-[500px] rounded-2xl'
       }`}
     >
