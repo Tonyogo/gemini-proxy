@@ -4,6 +4,7 @@ export const en = {
     accounts: "Accounts",
     logs: "Request Logs",
     terminal: "Terminal Logs",
+    webTerminal: "Web Terminal",
     playground: "Playground",
     adminKeyPlaceholder: "Admin Secret Key",
     login: "Login",
@@ -316,6 +317,38 @@ export const en = {
     statusHeader: "Status",
     latencyHeader: "Latency",
     detailsHeader: "Details"
+  },
+  webTerminal: {
+    title: "Interactive Web Terminal",
+    connected: "Connected",
+    disconnected: "Disconnected",
+    connecting: "Connecting...",
+    reconnect: "Reconnect",
+    clear: "Clear",
+    fullscreen: "Fullscreen",
+    exitFullscreen: "Exit Fullscreen",
+    fontSize: "Font Size",
+    snippets: "Snippets",
+    snippetsTitle: "Quick Command Snippets",
+    snippetsDesc: "Tap to insert into terminal or execute directly.",
+    insert: "Insert",
+    run: "Run",
+    addSnippet: "Add Snippet",
+    snippetName: "Name",
+    snippetCommand: "Command",
+    saveSnippet: "Save",
+    deleteSnippet: "Delete",
+    noSnippets: "No snippets found.",
+    accessoryKeys: {
+      esc: "ESC",
+      tab: "TAB",
+      ctrl: "CTRL",
+      alt: "ALT",
+      ctrlC: "^C",
+      ctrlD: "^D",
+      ctrlL: "^L",
+      ctrlZ: "^Z"
+    }
   }
 };
 

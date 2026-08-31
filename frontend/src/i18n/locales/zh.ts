@@ -6,6 +6,7 @@ export const zh: Translations = {
     accounts: "账号管理",
     logs: "请求日志",
     terminal: "终端日志",
+    webTerminal: "网页终端",
     playground: "API 调试器",
     adminKeyPlaceholder: "管理员密钥",
     login: "登录",
@@ -318,5 +319,37 @@ export const zh: Translations = {
     statusHeader: "状态",
     latencyHeader: "延迟",
     detailsHeader: "详情"
+  },
+  webTerminal: {
+    title: "交互式网页终端",
+    connected: "已连接",
+    disconnected: "已断开",
+    connecting: "连接中...",
+    reconnect: "重新连接",
+    clear: "清屏",
+    fullscreen: "全屏",
+    exitFullscreen: "退出全屏",
+    fontSize: "字号",
+    snippets: "快捷命令",
+    snippetsTitle: "运维快捷命令库",
+    snippetsDesc: "点击直接填入终端或直接执行。",
+    insert: "填入",
+    run: "执行",
+    addSnippet: "添加快捷命令",
+    snippetName: "名称",
+    snippetCommand: "命令内容",
+    saveSnippet: "保存",
+    deleteSnippet: "删除",
+    noSnippets: "暂无自定义命令",
+    accessoryKeys: {
+      esc: "ESC",
+      tab: "TAB",
+      ctrl: "CTRL",
+      alt: "ALT",
+      ctrlC: "^C",
+      ctrlD: "^D",
+      ctrlL: "^L",
+      ctrlZ: "^Z"
+    }
   }
 };
