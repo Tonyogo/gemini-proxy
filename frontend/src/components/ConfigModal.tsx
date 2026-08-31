@@ -666,13 +666,13 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                             onBlur={() => setFocusedTargetId(null)}
                                             placeholder={t('config.targetModel')}
                                             className={`w-full bg-[#121520] sm:bg-[#151824] border border-white/[0.08] rounded-lg p-1.5 sm:p-2 text-xs text-amber-300 font-mono focus:outline-none focus:border-amber-500 ${
-                                              isMultiTarget && focusedTargetId !== entry.id ? 'pr-11 sm:pr-12' : ''
+                                              isMultiTarget && focusedTargetId !== entry.id ? 'pr-6' : ''
                                             }`}
                                           />
                                           {isMultiTarget && focusedTargetId !== entry.id && (
-                                            <div className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none z-10 flex items-center">
+                                            <div className="absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none z-10 flex items-center">
                                               <span
-                                                className="text-[9px] sm:text-[10px] font-mono font-black text-amber-300 bg-[#121520] sm:bg-[#151824] border border-amber-500/70 shadow-[0_0_10px_rgba(245,158,11,0.25)] px-1.5 py-0.5 rounded leading-none flex items-center select-none"
+                                                className="text-[9px] font-mono font-bold text-amber-300 bg-[#121520] sm:bg-[#151824] border border-amber-500/60 shadow-sm px-1 py-0.5 rounded leading-none flex items-center select-none"
                                                 title={`${targets.length} targets configured`}
                                               >
                                                 ×{targets.length}
