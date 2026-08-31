@@ -28,7 +28,7 @@
 **Interfaces:**
 - Produces: `TerminalSession` class and helper methods `spawnTerminal(cols, rows): IPtySession` in `src/admin/services/terminalService.ts`.
 
-- [ ] **Step 1: Install backend dependencies**
+- [x] **Step 1: Install backend dependencies**
 
 Run:
 ```bash
@@ -36,7 +36,7 @@ npm install ws node-pty
 npm install --save-dev @types/ws
 ```
 
-- [ ] **Step 2: Write failing test for terminalService**
+- [x] **Step 2: Write failing test for terminalService**
 
 Create `tests/terminalService.test.ts`:
 ```typescript
@@ -61,12 +61,12 @@ describe('terminalService', () => {
 });
 ```
 
-- [ ] **Step 3: Run test to verify it fails**
+- [x] **Step 3: Run test to verify it fails**
 
 Run: `npx jest tests/terminalService.test.ts`
 Expected: FAIL with module/function not found.
 
-- [ ] **Step 4: Implement terminalService**
+- [x] **Step 4: Implement terminalService**
 
 Create `src/admin/services/terminalService.ts`:
 ```typescript
@@ -115,12 +115,12 @@ export function spawnTerminalSession(options: TerminalSessionOptions = {}): pty.
 }
 ```
 
-- [ ] **Step 5: Run test to verify it passes**
+- [x] **Step 5: Run test to verify it passes**
 
 Run: `npx jest tests/terminalService.test.ts`
 Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add package.json package-lock.json src/admin/services/terminalService.ts tests/terminalService.test.ts
@@ -140,7 +140,7 @@ git commit -m "feat(terminal): add node-pty terminal service and shell spawner"
 - Consumes: `spawnTerminalSession` from `src/admin/services/terminalService.ts`, `config.adminSecretKey` from `config/default.ts`.
 - Produces: `setupTerminalWebSocket(server: http.Server)` in `src/admin/routes/terminalWs.ts`.
 
-- [ ] **Step 1: Write integration tests for Terminal WebSocket Gateway**
+- [x] **Step 1: Write integration tests for Terminal WebSocket Gateway**
 
 Create `tests/terminalWs.test.ts`:
 ```typescript
@@ -209,12 +209,12 @@ describe('Terminal WebSocket Gateway', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/terminalWs.test.ts`
 Expected: FAIL with module not found.
 
-- [ ] **Step 3: Implement setupTerminalWebSocket**
+- [x] **Step 3: Implement setupTerminalWebSocket**
 
 Create `src/admin/routes/terminalWs.ts`:
 ```typescript
@@ -336,7 +336,7 @@ export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
 }
 ```
 
-- [ ] **Step 4: Update `src/index.ts` to attach terminal WebSocket**
+- [x] **Step 4: Update `src/index.ts` to attach terminal WebSocket**
 
 Modify `src/index.ts`:
 ```typescript
@@ -358,12 +358,12 @@ metricsService.init().then(() => {
 });
 ```
 
-- [ ] **Step 5: Run tests and verify**
+- [x] **Step 5: Run tests and verify**
 
 Run: `npx jest tests/terminalWs.test.ts`
 Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/admin/routes/terminalWs.ts src/index.ts tests/terminalWs.test.ts
@@ -382,14 +382,14 @@ git commit -m "feat(terminal): add WebSocket gateway for interactive PTY session
 **Interfaces:**
 - Produces: `@xterm/xterm`, `@xterm/addon-fit`, `@xterm/addon-web-links` in frontend dependencies and `nav.webTerminal` + `webTerminal.*` translation keys.
 
-- [ ] **Step 1: Install frontend xterm packages**
+- [x] **Step 1: Install frontend xterm packages**
 
 Run:
 ```bash
 cd frontend && npm install @xterm/xterm @xterm/addon-fit @xterm/addon-web-links && cd ..
 ```
 
-- [ ] **Step 2: Add translation keys to `frontend/src/i18n/locales/en.ts` and `zh.ts`**
+- [x] **Step 2: Add translation keys to `frontend/src/i18n/locales/en.ts` and `zh.ts`**
 
 Update `frontend/src/i18n/locales/en.ts`:
 Add to `nav`:
@@ -473,12 +473,12 @@ Add to export:
   },
 ```
 
-- [ ] **Step 3: Verify frontend typecheck**
+- [x] **Step 3: Verify frontend typecheck**
 
 Run: `cd frontend && npm run build && cd ..`
 Expected: PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add frontend/package.json frontend/package-lock.json frontend/src/i18n/locales/en.ts frontend/src/i18n/locales/zh.ts
@@ -497,7 +497,7 @@ git commit -m "feat(i18n): add xterm.js dependencies and web terminal translatio
 - `TerminalAccessoryBar`: Props `{ onSendInput: (data: string) => void; isCtrlActive: boolean; onToggleCtrl: () => void; isAltActive: boolean; onToggleAlt: () => void; onToggleKeyboard: () => void; }`
 - `TerminalSnippetsDrawer`: Props `{ isOpen: boolean; onClose: () => void; onRunCommand: (cmd: string, execute: boolean) => void; }`
 
-- [ ] **Step 1: Implement `TerminalAccessoryBar.tsx`**
+- [x] **Step 1: Implement `TerminalAccessoryBar.tsx`**
 
 Create `frontend/src/components/terminal/TerminalAccessoryBar.tsx`:
 ```tsx
@@ -703,7 +703,7 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
 };
 ```
 
-- [ ] **Step 2: Implement `TerminalSnippetsDrawer.tsx`**
+- [x] **Step 2: Implement `TerminalSnippetsDrawer.tsx`**
 
 Create `frontend/src/components/terminal/TerminalSnippetsDrawer.tsx`:
 ```tsx
@@ -901,12 +901,12 @@ export const TerminalSnippetsDrawer: React.FC<TerminalSnippetsDrawerProps> = ({
 };
 ```
 
-- [ ] **Step 3: Verify build**
+- [x] **Step 3: Verify build**
 
 Run: `cd frontend && npm run build && cd ..`
 Expected: PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add frontend/src/components/terminal/TerminalAccessoryBar.tsx frontend/src/components/terminal/TerminalSnippetsDrawer.tsx
@@ -924,7 +924,7 @@ git commit -m "feat(terminal): add mobile accessory bar and snippet drawer compo
 **Interfaces:**
 - Produces: `WebTerminalView` component with `@xterm/xterm`, `FitAddon`, `WebLinksAddon`, `visualViewport` dynamic resize sync, font zoom, and reconnect mechanism.
 
-- [ ] **Step 1: Implement `WebTerminalView.tsx`**
+- [x] **Step 1: Implement `WebTerminalView.tsx`**
 
 Create `frontend/src/components/WebTerminalView.tsx`:
 ```tsx
@@ -1275,7 +1275,7 @@ export default function WebTerminalView({ adminKey }: WebTerminalViewProps) {
 }
 ```
 
-- [ ] **Step 2: Update `frontend/src/App.tsx` with Web Terminal navigation**
+- [x] **Step 2: Update `frontend/src/App.tsx` with Web Terminal navigation**
 
 Update `frontend/src/App.tsx`:
 Add `TerminalSquare` icon from `lucide-react`.
@@ -1293,12 +1293,12 @@ const NAV_ITEMS: NavItem[] = [
 ```
 Render `<WebTerminalView key={refreshTrigger} adminKey={adminKey} />` when `activeTab === 'webTerminal'`.
 
-- [ ] **Step 3: Verify frontend build**
+- [x] **Step 3: Verify frontend build**
 
 Run: `cd frontend && npm run build && cd ..`
 Expected: PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add frontend/src/components/WebTerminalView.tsx frontend/src/App.tsx
@@ -1312,17 +1312,17 @@ git commit -m "feat(ui): add interactive mobile-first WebTerminalView and naviga
 **Files:**
 - Test all components and integration pipelines.
 
-- [ ] **Step 1: Run complete backend test suite**
+- [x] **Step 1: Run complete backend test suite**
 
 Run: `npm test`
 Expected: All Jest tests pass.
 
-- [ ] **Step 2: Run complete project build**
+- [x] **Step 2: Run complete project build**
 
 Run: `npm run build`
 Expected: Both frontend Vite app and backend TypeScript build succeed cleanly.
 
-- [ ] **Step 3: Verification commit if any fixes were needed**
+- [x] **Step 3: Verification commit if any fixes were needed**
 
 ```bash
 git status
