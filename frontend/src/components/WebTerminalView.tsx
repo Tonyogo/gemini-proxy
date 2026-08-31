@@ -223,6 +223,24 @@ export default function WebTerminalView({ adminKey }: WebTerminalViewProps) {
     };
   }, [isFullscreen, sendResize]);
 
+  // Lock body scroll and set overscroll-behavior when fullscreen is active
+  useEffect(() => {
+    if (isFullscreen) {
+      const originalOverflow = document.body.style.overflow;
+      const originalOverscroll = document.body.style.overscrollBehavior;
+      const originalTouchAction = document.body.style.touchAction;
+
+      document.body.style.overflow = 'hidden';
+      document.body.style.overscrollBehavior = 'none';
+
+      return () => {
+        document.body.style.overflow = originalOverflow;
+        document.body.style.overscrollBehavior = originalOverscroll;
+        document.body.style.touchAction = originalTouchAction;
+      };
+    }
+  }, [isFullscreen]);
+
   // Sync font size change
   useEffect(() => {
     if (xtermRef.current && fitAddonRef.current) {
@@ -256,7 +274,7 @@ export default function WebTerminalView({ adminKey }: WebTerminalViewProps) {
       style={isMobile && isFullscreen ? viewportStyle : undefined}
       className={`mx-auto flex flex-col bg-[#07090E] border border-white/[0.08] overflow-hidden shadow-2xl font-mono text-xs transition-all ${
         isFullscreen
-          ? 'fixed inset-0 z-50 rounded-none h-screen w-screen'
+          ? 'fixed inset-0 z-50 rounded-none h-screen w-screen overflow-hidden touch-none overscroll-none'
           : 'max-w-7xl h-[calc(100vh-140px)] min-h-[500px] rounded-2xl'
       }`}
     >
