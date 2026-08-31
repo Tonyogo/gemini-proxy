@@ -72,9 +72,15 @@ export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
         // Check if message is JSON control frame
         if (msgStr.startsWith('{') && msgStr.endsWith('}')) {
           const control = JSON.parse(msgStr);
-          if (control.type === 'resize' && typeof control.cols === 'number' && typeof control.rows === 'number') {
-            const cols = Math.max(10, Math.min(500, control.cols));
-            const rows = Math.max(5, Math.min(200, control.rows));
+          if (
+            control.type === 'resize' &&
+            typeof control.cols === 'number' &&
+            !Number.isNaN(control.cols) &&
+            typeof control.rows === 'number' &&
+            !Number.isNaN(control.rows)
+          ) {
+            const cols = Math.max(10, Math.min(500, Math.floor(control.cols)));
+            const rows = Math.max(5, Math.min(200, Math.floor(control.rows)));
             ptySession.resize(cols, rows);
             return;
           }

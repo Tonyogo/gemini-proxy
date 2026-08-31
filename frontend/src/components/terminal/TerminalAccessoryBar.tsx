@@ -34,12 +34,36 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
   const handleKeyClick = (key: string, rawCode: string) => {
     if (isCtrlActive) {
       onToggleCtrl();
-      // Handle Ctrl + key
-      const charCode = key.toUpperCase().charCodeAt(0);
+      // Handle Ctrl + key for standard ASCII letters or numbers
+      const upper = key.toUpperCase();
+      const charCode = upper.charCodeAt(0);
       if (charCode >= 64 && charCode <= 95) {
         onSendInput(String.fromCharCode(charCode - 64));
         return;
       }
+      if (key === '/') {
+        onSendInput('\x1f'); // Unit separator (Ctrl+/)
+        return;
+      }
+      if (key === '\\') {
+        onSendInput('\x1c'); // File separator (Ctrl+\)
+        return;
+      }
+      if (key === ']') {
+        onSendInput('\x1d'); // Group separator (Ctrl+])
+        return;
+      }
+      if (key === '^') {
+        onSendInput('\x1e'); // Record separator (Ctrl+^)
+        return;
+      }
+      if (key === '_') {
+        onSendInput('\x1f'); // Unit separator (Ctrl+_)
+        return;
+      }
+      // For any other characters, send raw
+      onSendInput(rawCode);
+      return;
     }
     if (isAltActive) {
       onToggleAlt();

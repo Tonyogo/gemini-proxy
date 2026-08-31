@@ -153,8 +153,11 @@ export default function WebTerminalView({ adminKey }: WebTerminalViewProps) {
       }
     });
 
-    setTimeout(() => {
-      fitAddon.fit();
+    let isMounted = true;
+    const fitTimer = setTimeout(() => {
+      if (isMounted && fitAddonRef.current && xtermRef.current) {
+        fitAddonRef.current.fit();
+      }
     }, 50);
 
     initWebSocket();
@@ -175,6 +178,8 @@ export default function WebTerminalView({ adminKey }: WebTerminalViewProps) {
     }
 
     return () => {
+      isMounted = false;
+      clearTimeout(fitTimer);
       window.removeEventListener('resize', handleResize);
       if (window.visualViewport) {
         window.visualViewport.removeEventListener('resize', handleResize);

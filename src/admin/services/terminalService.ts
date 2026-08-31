@@ -14,15 +14,23 @@ export interface TerminalSessionOptions {
 function ensureSpawnHelperPermissions(): void {
   if (os.platform() === 'win32') return;
   try {
-    const prebuildsDir = path.resolve(__dirname, '../../../node_modules/node-pty/prebuilds');
-    if (fs.existsSync(prebuildsDir)) {
-      const archDirs = fs.readdirSync(prebuildsDir);
-      for (const arch of archDirs) {
-        const helper = path.join(prebuildsDir, arch, 'spawn-helper');
-        if (fs.existsSync(helper)) {
-          const stat = fs.statSync(helper);
-          if ((stat.mode & 0o111) === 0) {
-            fs.chmodSync(helper, 0o755);
+    // Check multiple candidate locations for node-pty prebuilds (development src/ vs production dist/src/)
+    const candidateDirs = [
+      path.resolve(__dirname, '../../../node_modules/node-pty/prebuilds'),
+      path.resolve(__dirname, '../../../../node_modules/node-pty/prebuilds'),
+      path.resolve(process.cwd(), 'node_modules/node-pty/prebuilds'),
+    ];
+
+    for (const prebuildsDir of candidateDirs) {
+      if (fs.existsSync(prebuildsDir)) {
+        const archDirs = fs.readdirSync(prebuildsDir);
+        for (const arch of archDirs) {
+          const helper = path.join(prebuildsDir, arch, 'spawn-helper');
+          if (fs.existsSync(helper)) {
+            const stat = fs.statSync(helper);
+            if ((stat.mode & 0o111) === 0) {
+              fs.chmodSync(helper, 0o755);
+            }
           }
         }
       }
