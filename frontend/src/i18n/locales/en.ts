@@ -190,7 +190,9 @@ export const en = {
     collapse: "Collapse",
     expand: "Expand",
     assistant: "Claude Assistant",
-    user: "User"
+    user: "User",
+    scrollToTop: "Scroll to Top",
+    scrollToBottom: "Scroll to Bottom"
   },
   terminal: {
     title: "Terminal Logs",

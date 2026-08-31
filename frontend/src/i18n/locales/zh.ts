@@ -192,7 +192,9 @@ export const zh: Translations = {
     collapse: "收起",
     expand: "展开",
     assistant: "Claude Assistant",
-    user: "User"
+    user: "User",
+    scrollToTop: "回到最前",
+    scrollToBottom: "跳到最后"
   },
   terminal: {
     title: "终端日志",
