@@ -4,6 +4,7 @@ import {
   Users,
   FileText,
   Terminal,
+  TerminalSquare,
   Play,
   Settings,
   Globe,
@@ -25,10 +26,11 @@ import AccountsView from './components/AccountsView';
 import LogsView from './components/LogsView';
 import PlaygroundView from './components/PlaygroundView';
 import TerminalLogsView from './components/TerminalLogsView';
+import WebTerminalView from './components/WebTerminalView';
 import ConfigModal from './components/ConfigModal';
 import { useTranslation } from './i18n/LanguageContext';
 
-type TabType = 'dashboard' | 'accounts' | 'logs' | 'terminal' | 'playground';
+type TabType = 'dashboard' | 'accounts' | 'logs' | 'terminal' | 'webTerminal' | 'playground';
 
 interface NavItem {
   id: TabType;
@@ -41,10 +43,11 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'accounts', icon: Users, shortcut: '⌘2' },
   { id: 'logs', icon: FileText, shortcut: '⌘3' },
   { id: 'terminal', icon: Terminal, shortcut: '⌘4' },
-  { id: 'playground', icon: Play, shortcut: '⌘5' },
+  { id: 'webTerminal', icon: TerminalSquare, shortcut: '⌘5' },
+  { id: 'playground', icon: Play, shortcut: '⌘6' },
 ];
 
-const VALID_TABS: TabType[] = ['dashboard', 'accounts', 'logs', 'terminal', 'playground'];
+const VALID_TABS: TabType[] = ['dashboard', 'accounts', 'logs', 'terminal', 'webTerminal', 'playground'];
 
 export default function App() {
   const { t, lang, setLang } = useTranslation();
@@ -514,6 +517,12 @@ export default function App() {
           )}
           {activeTab === 'terminal' && (
             <TerminalLogsView
+              key={refreshTrigger}
+              adminKey={adminKey}
+            />
+          )}
+          {activeTab === 'webTerminal' && (
+            <WebTerminalView
               key={refreshTrigger}
               adminKey={adminKey}
             />
