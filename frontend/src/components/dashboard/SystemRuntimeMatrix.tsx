@@ -1,5 +1,5 @@
 import React from 'react';
-import { Cpu, ArrowRightLeft } from 'lucide-react';
+import { Cpu } from 'lucide-react';
 import { useTranslation } from '../../i18n/LanguageContext';
 
 export interface SystemRuntimeMatrixProps {
@@ -15,8 +15,6 @@ export const SystemRuntimeMatrix: React.FC<SystemRuntimeMatrixProps> = ({ config
   const logRetentionDays = config?.logRetentionDays ?? 3;
   const timeZone = config?.timeZone || 'Asia/Shanghai';
   const countTokensModel = config?.countTokensModel || 'Default Model';
-  const modelMappings = config?.modelMappings || {};
-  const mappingKeys = Object.keys(modelMappings);
 
   return (
     <div className="space-y-5">
@@ -90,130 +88,6 @@ export const SystemRuntimeMatrix: React.FC<SystemRuntimeMatrixProps> = ({ config
             </span>
           </div>
         </div>
-      </div>
-
-      {/* Prominent Active Model Routing & Aliases Section */}
-      <div className="bg-[#0F1118]/90 border border-amber-500/20 shadow-[0_0_20px_rgba(245,158,11,0.04)] rounded-xl p-5 relative flex flex-col">
-        {/* Section Header */}
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center space-x-2.5">
-            <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shrink-0">
-              <ArrowRightLeft className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="flex items-center space-x-2">
-                <h3 className="text-xs font-semibold text-slate-200 tracking-wider uppercase">
-                  {t('dashboard.modelMappingsTitle', 'Active Model Mappings')}
-                </h3>
-                <span className="px-2 py-0.5 text-[10px] rounded-full font-mono bg-amber-500/10 text-amber-300 border border-amber-500/30 font-bold">
-                  ({mappingKeys.length} rules)
-                </span>
-              </div>
-              <p className="text-[11px] text-slate-400 mt-0.5">
-                {t('dashboard.modelMappingsSub', 'Declarative model aliasing rules that transparently redirect requests to target models')}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Visual Routing Cards List */}
-        {mappingKeys.length > 0 ? (
-          <div className="space-y-2.5">
-            {mappingKeys.map((src) => {
-              const val = modelMappings[src];
-              let targets: string[] = [];
-              let strategy = '';
-
-              if (Array.isArray(val)) {
-                targets = val.map(String);
-                strategy = 'round-robin';
-              } else if (val && typeof val === 'object') {
-                if ('targets' in val && Array.isArray((val as any).targets)) {
-                  targets = (val as any).targets.map(String);
-                  strategy = (val as any).strategy || 'round-robin';
-                } else if ('target' in val) {
-                  const tVal = (val as any).target;
-                  if (Array.isArray(tVal)) {
-                    targets = tVal.map(String);
-                  } else if (typeof tVal === 'string') {
-                    targets = tVal.split(',').map((s: string) => s.trim()).filter(Boolean);
-                  } else if (tVal) {
-                    targets = [String(tVal)];
-                  }
-                  strategy = (val as any).strategy || (targets.length > 1 ? 'round-robin' : '');
-                }
-              } else if (typeof val === 'string') {
-                targets = val.split(',').map((s: string) => s.trim()).filter(Boolean);
-                if (targets.length > 1) {
-                  strategy = 'round-robin';
-                }
-              } else if (val) {
-                targets = [String(val)];
-              }
-
-              const numBadges = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩'];
-
-              const formatStrategy = (strat: string) => {
-                if (!strat) return '';
-                const s = strat.toLowerCase();
-                if (s === 'round-robin') return '⚡ 轮询分发 (Round-Robin)';
-                if (s === 'least-used') return '⚡ 最少使用 (Least-Used)';
-                if (s === 'weighted') return '⚡ 加权 (Weighted)';
-                return `⚡ ${strat}`;
-              };
-
-              return (
-                <div
-                  key={src}
-                  className="bg-white/[0.02] border border-white/[0.06] hover:border-amber-500/30 transition-all rounded-xl p-3.5 flex flex-col space-y-2"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                    {/* Source Box (Left) */}
-                    <div className="flex items-center space-x-2 shrink-0">
-                      <span className="font-mono font-bold text-slate-100 bg-white/[0.04] px-2.5 py-1 rounded-lg border border-white/[0.08] truncate max-w-[200px]" title={src}>
-                        {src}
-                      </span>
-                    </div>
-
-                    {/* Flow Arrow & Strategy (Center) */}
-                    <div className="flex items-center space-x-2 shrink-0 my-0.5 sm:my-0">
-                      <span className="text-amber-400/80 font-bold text-sm">→</span>
-                      {strategy && (
-                        <span className="px-2 py-0.5 text-[10px] font-mono rounded-md bg-amber-500/10 text-amber-300 border border-amber-500/20 font-medium">
-                          {formatStrategy(strategy)}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Target Cluster (Right) */}
-                    <div className="flex flex-wrap gap-1.5 justify-start sm:justify-end items-center">
-                      {targets.length > 1 ? (
-                        targets.map((tgt, idx) => (
-                          <span
-                            key={idx}
-                            className="px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30"
-                          >
-                            {numBadges[idx] || `${idx + 1}.`} {tgt}
-                          </span>
-                        ))
-                      ) : targets.length === 1 ? (
-                        <span className="px-2.5 py-1 rounded-lg text-xs font-mono font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30">
-                          {targets[0]}
-                        </span>
-                      ) : (
-                        <span className="text-slate-500 text-xs italic">No target</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="bg-white/[0.02] border border-dashed border-white/[0.08] rounded-xl p-6 text-center text-slate-500 text-xs italic">
-            {t('config.emptyMappings', 'No model mapping rules configured.')}
-          </div>
-        )}
       </div>
     </div>
   );
