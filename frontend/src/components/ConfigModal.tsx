@@ -599,10 +599,6 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                       </button>
                     </div>
 
-                    <p className="text-[11px] text-slate-400 leading-relaxed">
-                      💡 支持多目标映射：在目标模型输入框中用英文逗号 (,) 分隔多个模型（如 gemini-2.5-pro, gemini-3.6-pro）。
-                    </p>
-
                     {showAdvancedJson ? (
                       <div className="space-y-1.5">
                         <textarea
