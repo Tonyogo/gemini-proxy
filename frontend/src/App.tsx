@@ -496,7 +496,11 @@ export default function App() {
         </header>
 
         {/* Main View Workspace */}
-        <main className="flex-1 p-2.5 sm:p-4 md:p-6 overflow-x-hidden pb-20 md:pb-6">
+        <main className={`flex-1 overflow-x-hidden ${
+          activeTab === 'webTerminal'
+            ? 'p-0 md:p-6 pb-14 md:pb-6 flex flex-col min-h-0 overflow-hidden'
+            : 'p-2.5 sm:p-4 md:p-6 pb-20 md:pb-6'
+        }`}>
           {activeTab === 'dashboard' && (
             <DashboardView
               key={refreshTrigger}

@@ -275,7 +275,7 @@ export default function WebTerminalView({ adminKey }: WebTerminalViewProps) {
       className={`mx-auto flex flex-col bg-[#07090E] border border-white/[0.08] overflow-hidden shadow-2xl font-mono text-xs transition-all ${
         isFullscreen
           ? 'fixed inset-0 z-50 rounded-none h-screen w-screen overflow-hidden touch-none overscroll-none'
-          : 'max-w-7xl h-[calc(100vh-140px)] min-h-[500px] rounded-2xl'
+          : 'w-full h-full md:max-w-7xl md:h-[calc(100vh-140px)] md:min-h-[500px] rounded-none md:rounded-2xl border-x-0 md:border-x border-t-0 md:border-t'
       }`}
     >
       {/* Top Window Bar */}
