@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
@@ -167,6 +168,12 @@ export default function WebTerminalView({ adminKey }: WebTerminalViewProps) {
 
     const handleTouchMove = (e: TouchEvent) => {
       if (e.touches.length !== 1) return;
+      // Completely prevent mobile browser pull-to-refresh or page elastic scrolling in fullscreen
+      if (e.cancelable) {
+        e.preventDefault();
+      }
+      e.stopPropagation();
+
       const currentY = e.touches[0].clientY;
       const deltaY = touchStartY - currentY;
       touchStartY = currentY;
@@ -179,9 +186,6 @@ export default function WebTerminalView({ adminKey }: WebTerminalViewProps) {
         term.scrollLines(linesToScroll);
         accumulatedDeltaY -= linesToScroll * lineHeight;
       }
-
-      // Prevent window bouncing
-      e.stopPropagation();
     };
 
     if (container) {
@@ -269,14 +273,24 @@ export default function WebTerminalView({ adminKey }: WebTerminalViewProps) {
       const originalOverflow = document.body.style.overflow;
       const originalOverscroll = document.body.style.overscrollBehavior;
       const originalTouchAction = document.body.style.touchAction;
+      const originalPosition = document.body.style.position;
+      const originalWidth = document.body.style.width;
+      const originalHeight = document.body.style.height;
 
       document.body.style.overflow = 'hidden';
       document.body.style.overscrollBehavior = 'none';
+      document.body.style.touchAction = 'none';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.height = '100%';
 
       return () => {
         document.body.style.overflow = originalOverflow;
         document.body.style.overscrollBehavior = originalOverscroll;
         document.body.style.touchAction = originalTouchAction;
+        document.body.style.position = originalPosition;
+        document.body.style.width = originalWidth;
+        document.body.style.height = originalHeight;
       };
     }
   }, [isFullscreen]);
@@ -309,12 +323,12 @@ export default function WebTerminalView({ adminKey }: WebTerminalViewProps) {
     }
   };
 
-  return (
+  const terminalContent = (
     <div
       style={isMobile && isFullscreen ? viewportStyle : undefined}
       className={`mx-auto flex flex-col bg-[#07090E] border border-white/[0.08] overflow-hidden shadow-2xl font-mono text-xs transition-all ${
         isFullscreen
-          ? 'fixed inset-0 z-50 rounded-none h-screen w-screen overflow-hidden overscroll-none'
+          ? 'fixed inset-0 z-[9999] rounded-none h-screen w-screen overflow-hidden overscroll-none'
           : 'w-full h-full md:max-w-7xl md:h-[calc(100vh-140px)] md:min-h-[500px] rounded-none md:rounded-2xl border-x-0 md:border-x border-t-0 md:border-t'
       }`}
     >
@@ -438,4 +452,10 @@ export default function WebTerminalView({ adminKey }: WebTerminalViewProps) {
       />
     </div>
   );
+
+  if (isFullscreen && typeof document !== 'undefined') {
+    return createPortal(terminalContent, document.body);
+  }
+
+  return terminalContent;
 }
