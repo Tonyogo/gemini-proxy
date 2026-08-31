@@ -17,8 +17,9 @@ debug/
 .env.*.local
 config/runtime*.json
 
-# IDE / Editor
+# IDE / Editor & Tooling
 .idea/
 .vscode/
 *.swp
 .DS_Store
+.superpowers/
