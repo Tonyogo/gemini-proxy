@@ -1,0 +1,74 @@
+name: Deploy to Server
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy via Cloudflare SSH Tunnel
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install cloudflared
+        run: |
+          echo "Installing cloudflared CLI..."
+          sudo curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /usr/local/bin/cloudflared
+          sudo chmod +x /usr/local/bin/cloudflared
+          cloudflared --version
+
+      - name: Setup SSH & Deploy to Server
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          # 1. Setup SSH directory and private key
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          echo "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+
+          # 2. Configure SSH client with cloudflared ProxyCommand
+          cat <<EOF > ~/.ssh/config
+          Host $SSH_HOST
+            HostName $SSH_HOST
+            User $SSH_USER
+            Port $SSH_PORT
+            IdentityFile ~/.ssh/id_deploy
+            ProxyCommand /usr/local/bin/cloudflared access ssh --hostname %h
+            StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+            ServerAliveInterval 30
+            ServerAliveCountMax 5
+          EOF
+          chmod 600 ~/.ssh/config
+
+          # 3. Execute remote deployment via npm run deploy
+          ssh $SSH_HOST bash -s "$DEPLOY_PATH" << 'EOF'
+            set -e
+
+            # Load user environment variables (e.g. NVM, Node, PM2 paths)
+            [ -s "$HOME/.nvm/nvm.sh" ] && \. "$HOME/.nvm/nvm.sh"
+            [ -s "$HOME/.bashrc" ] && source "$HOME/.bashrc" 2>/dev/null || true
+            [ -s "$HOME/.profile" ] && source "$HOME/.profile" 2>/dev/null || true
+
+            DEPLOY_DIR="$1"
+            if [ -z "$DEPLOY_DIR" ]; then
+              echo "Error: DEPLOY_PATH secret is empty! Please configure DEPLOY_PATH in GitHub Repository Secrets."
+              exit 1
+            fi
+
+            if [ ! -d "$DEPLOY_DIR" ]; then
+              echo "Error: Target directory '$DEPLOY_DIR' does not exist on server!"
+              exit 1
+            fi
+
+            cd "$DEPLOY_DIR"
+            npm run deploy
+          EOF

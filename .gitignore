@@ -11,10 +11,11 @@ logs/
 data/
 debug/
 
-# Environment Variables
+# Environment Variables and Runtime Overrides
 .env
 .env.local
 .env.*.local
+config/runtime*.json
 
 # IDE / Editor
 .idea/

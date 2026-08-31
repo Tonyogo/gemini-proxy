@@ -3,7 +3,7 @@ module.exports = {
     {
       name: 'gemini-proxy',
       script: 'dist/src/index.js',
-      cwd: '/home/yogo/gemini-proxy',
+      cwd: __dirname,
       instances: 1,
       autorestart: true,
       watch: false,
