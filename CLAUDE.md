@@ -7,8 +7,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Build All**: `npm run build` (builds both frontend Vite React app to `dist/frontend` and compiles TypeScript backend to `dist/src`)
 - **Build Frontend**: `npm run build:frontend` (compiles Vite React SPA in `frontend/`)
 - **Build Backend**: `npm run build:backend` (compiles TypeScript server code via `tsc`)
-- **Clean**: `npm run clean` (deletes built files in `dist/`)
-- **Deploy**: `npm run deploy` (pulls latest code in deployment directory, builds all assets, and performs zero-downtime reload via PM2)
+- **Deploy**: `npm run deploy` (executes `scripts/deploy.sh`: pulls latest code from `origin/main`, installs dependencies, builds all assets, and reloads PM2 with zero downtime)
+- **CI/CD Deployment**: `.github/workflows/deploy.yml` (GitHub Actions workflow connecting to target VPS via Cloudflare Tunnel SSH and running `npm run deploy`. Requires Secrets: `SSH_HOST`, `SSH_USER`, `SSH_KEY`, `DEPLOY_PATH`)
 - **PM2 Commands**: `npm run pm2:start` / `npm run pm2:reload` / `npm run pm2:stop` / `npm run pm2:logs`
 - **Start Production**: `npm start` (automatically builds before running `dist/src/index.js`)
 - **Dev Mode Backend**: `npm run dev` (starts hot-reloading development server via `ts-node-dev`)

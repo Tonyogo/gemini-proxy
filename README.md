@@ -29,9 +29,15 @@
 
 ```text
 gemini-proxy/
+├── .github/
+│   └── workflows/
+│       └── deploy.yml         # GitHub Actions: 基于 Cloudflare SSH 隧道的自动部署流水线
 ├── config/
 │   ├── default.ts             # 配置文件读取、基础默认配置项
 │   └── models.json            # 核心配置文件：受支持的模型列表及到 Gemini 的映射规则
+├── frontend/                  # React + Vite + Tailwind 前端 Admin Web 控制台
+├── scripts/
+│   └── deploy.sh              # 统一步署脚本 (Git 拉取、依赖安装、编译、PM2 重启及状态检查)
 ├── src/
 │   ├── types/
 │   │   └── index.ts           # 强类型定义声明 (Claude 与 Gemini API REST 协议载荷接口)
@@ -51,6 +57,7 @@ gemini-proxy/
 │   ├── jest.config.ts         # ts-jest 测试框架配置
 │   └── *.test.ts              # 包含 60+ 个精细化功能断言的高覆盖 TS 自动化测试集
 ├── dist/                      # (Git-ignored) 经 tsc 编译输出的 CommonJS 生产代码
+├── ecosystem.config.js        # PM2 进程守护及平滑重载配置
 ├── .env                       # 本地环境变量配置（端口、中转基址等）
 ├── tsconfig.json              # TypeScript 编译选项配置文件
 ├── package.json               # 项目依赖、TypeScript 工具链及 npm 运行脚本
@@ -118,6 +125,47 @@ npm run dev
 ```
 
 服务启动后，默认会在本地 `http://localhost:3000` 监听请求。
+
+---
+
+## 🚀 生产部署与 CI/CD 自动化流水线
+
+项目支持 **PM2 零停机平滑部署** 与 **GitHub Actions (Cloudflare SSH 隧道) 自动化流水线**。
+
+### 1. 服务器端一键部署 (PM2)
+
+项目已提供统一步署脚本 `scripts/deploy.sh`，在服务器项目根目录下执行：
+
+```bash
+# 一键拉取最新代码、安装依赖、编译前后端并平滑重启 PM2 进程
+npm run deploy
+```
+
+常用 PM2 管理命令：
+```bash
+npm run pm2:start    # 启动 PM2 守护进程
+npm run pm2:reload   # 零停机平滑热重载
+npm run pm2:stop     # 停止进程
+npm run pm2:logs     # 查看实时运行日志
+```
+
+### 2. GitHub Actions 自动部署流水线
+
+项目内置了 [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)，支持在代码推送到 `main` 分支或手动点击 `workflow_dispatch` 时，通过 **Cloudflare SSH 隧道** 自动穿透内网完成部署。
+
+#### GitHub Repository Secrets 配置
+
+在 GitHub 仓库中进入 **Settings -> Secrets and variables -> Actions -> New repository secret** 配置以下变量：
+
+| Secret 变量名 | 必填 | 说明与示例 |
+| :--- | :--- | :--- |
+| `SSH_HOST` | **是** | Cloudflare Tunnel 绑定的 SSH 域名（如 `ssh.yourdomain.com`） |
+| `SSH_USER` | **是** | 服务器登录用户名（如 `yogo`） |
+| `SSH_KEY` | **是** | SSH 私钥内容（对应的公钥已加至服务器 `~/.ssh/authorized_keys`） |
+| `DEPLOY_PATH` | **是** | 目标服务器上的部署绝对路径（如 `/home/yogo/gemini-proxy`） |
+| `SSH_PORT` | 否 | SSH 端口（默认 `22`） |
+
+配置完成后，推送代码到 `main` 分支即可全自动触发构建与热重载。
 
 ---
 
