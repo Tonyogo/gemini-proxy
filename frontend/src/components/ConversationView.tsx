@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { Shield, ChevronDown, ChevronRight, Copy, Check, MessageSquare, AlertCircle } from 'lucide-react';
+import React, { useState, useMemo, useRef } from 'react';
+import { Shield, ChevronDown, ChevronRight, Copy, Check, MessageSquare, AlertCircle, ChevronsUp, ChevronsDown } from 'lucide-react';
 import MessageBubble, { ChatMessage, ParsedBlock } from './chat/MessageBubble';
 import MarkdownContent from './chat/MarkdownContent';
 import { useTranslation } from '../i18n/LanguageContext';
@@ -12,6 +12,27 @@ export default function ConversationView({ log }: ConversationViewProps) {
   const { t } = useTranslation();
   const [systemExpanded, setSystemExpanded] = useState(false);
   const [copiedSystem, setCopiedSystem] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const scrollToTop = () => {
+    const scrollContainer = containerRef.current?.closest('.overflow-y-auto');
+    if (scrollContainer) {
+      scrollContainer.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  const scrollToBottom = () => {
+    const scrollContainer = containerRef.current?.closest('.overflow-y-auto');
+    if (scrollContainer) {
+      scrollContainer.scrollTo({
+        top: scrollContainer.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+  };
 
   // 解析并构建完整的对话消息流
   const { systemPrompt, conversationMessages } = useMemo(() => {
@@ -87,7 +108,7 @@ export default function ConversationView({ log }: ConversationViewProps) {
   }
 
   return (
-    <div className="flex flex-col space-y-4 pb-8 max-w-4xl mx-auto w-full">
+    <div ref={containerRef} className="flex flex-col space-y-4 pb-8 max-w-4xl mx-auto w-full relative">
       {/* System Prompt Collapsible Card */}
       {systemPrompt && (
         <div className="rounded-2xl border border-indigo-500/30 bg-indigo-950/20 overflow-hidden font-mono text-xs transition-all shadow-md">
@@ -127,6 +148,24 @@ export default function ConversationView({ log }: ConversationViewProps) {
         {conversationMessages.map((msg, idx) => (
           <MessageBubble key={idx} message={msg} />
         ))}
+      </div>
+
+      {/* Floating Scroll Navigation */}
+      <div className="sticky bottom-4 self-end flex flex-col space-y-1.5 z-20 bg-slate-900/80 backdrop-blur-md p-1.5 rounded-xl border border-slate-700/60 shadow-2xl">
+        <button
+          onClick={scrollToTop}
+          className="p-2 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800/80 active:bg-slate-700/80 transition-colors"
+          title={t('logs.scrollToTop', '回到最前')}
+        >
+          <ChevronsUp className="w-4 h-4" />
+        </button>
+        <button
+          onClick={scrollToBottom}
+          className="p-2 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800/80 active:bg-slate-700/80 transition-colors"
+          title={t('logs.scrollToBottom', '跳到最后')}
+        >
+          <ChevronsDown className="w-4 h-4" />
+        </button>
       </div>
     </div>
   );
