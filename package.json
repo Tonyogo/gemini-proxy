@@ -13,6 +13,7 @@
     "dev:frontend": "cd frontend && npm run dev",
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "test": "jest",
+    "deploy": "cd /home/yogo/gemini-proxy && git pull && npm run build && sudo systemctl restart proxy.service",
     "clean": "rm -rf dist"
   },
   "dependencies": {
