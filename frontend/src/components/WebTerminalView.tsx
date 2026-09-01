@@ -368,14 +368,14 @@ export default function WebTerminalView({
       }`}
     >
       {/* Top Window Bar */}
-      <div className="bg-[#0C0E14] border-b border-white/[0.08] px-3 sm:px-4 py-2 flex items-center justify-between select-none shrink-0">
-        <div className="flex items-center space-x-2">
+      <div className="bg-[#0C0E14] border-b border-white/[0.08] px-2 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between select-none shrink-0 sticky top-0 z-10">
+        <div className="flex items-center space-x-1.5 sm:space-x-2 min-w-0">
           {/* Back to Console (Standalone Mode) */}
           {standalone && onExitStandalone && (
             <button
               type="button"
               onClick={onExitStandalone}
-              className="mr-1.5 px-2 py-1 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-slate-300 hover:text-white border border-white/[0.08] transition-all flex items-center space-x-1 text-xs active:scale-95"
+              className="mr-1 px-1.5 sm:px-2 py-1 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-slate-300 hover:text-white border border-white/[0.08] transition-all flex items-center space-x-1 text-xs active:scale-95"
               title={t('webTerminal.backToDashboard')}
             >
               <ArrowLeft className="w-3.5 h-3.5" />
@@ -384,7 +384,7 @@ export default function WebTerminalView({
           )}
 
           {/* macOS action dots */}
-          <div className="flex items-center space-x-1.5 mr-1">
+          <div className="flex items-center space-x-1.5 mr-0.5 sm:mr-1">
             <div
               onClick={standalone ? onExitStandalone : undefined}
               className={`w-2.5 h-2.5 rounded-full bg-[#EF4444]/90 border border-[#DC2626]/60 shadow-[0_0_6px_rgba(239,68,68,0.3)] ${
@@ -401,15 +401,15 @@ export default function WebTerminalView({
           </div>
 
           <div className="flex items-center space-x-1.5 text-slate-200">
-            <TerminalIcon className="w-3.5 h-3.5 text-indigo-400" />
-            <span className="font-semibold text-slate-200 text-xs hidden sm:inline">
+            <TerminalIcon className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+            <span className="font-semibold text-slate-200 text-xs hidden sm:inline truncate">
               {t('webTerminal.title')}
             </span>
           </div>
 
           {/* Connection Status Badge */}
           <div
-            className={`flex items-center space-x-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium border ${
+            className={`flex items-center space-x-1 sm:space-x-1.5 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-medium border shrink-0 ${
               isConnected
                 ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                 : isConnecting
@@ -418,11 +418,11 @@ export default function WebTerminalView({
             }`}
           >
             <span
-              className={`w-1.5 h-1.5 rounded-full ${
+              className={`w-1.5 h-1.5 rounded-full shrink-0 ${
                 isConnected ? 'bg-emerald-400 animate-pulse' : isConnecting ? 'bg-amber-400 animate-ping' : 'bg-rose-400'
               }`}
             />
-            <span>
+            <span className="text-[9px] sm:text-[10px]">
               {isConnected
                 ? t('webTerminal.connected')
                 : isConnecting
@@ -433,12 +433,12 @@ export default function WebTerminalView({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center space-x-1 sm:space-x-1.5">
+        <div className="flex items-center space-x-0.5 sm:space-x-1.5 shrink-0">
           {/* Zoom Out */}
           <button
             type="button"
             onClick={() => setFontSize((prev) => Math.max(9, prev - 1))}
-            className="p-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-slate-400 hover:text-white border border-white/[0.06] transition-all"
+            className="p-1 sm:p-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-slate-400 hover:text-white border border-white/[0.06] transition-all"
             title="Zoom Out"
           >
             <ZoomOut className="w-3.5 h-3.5" />
@@ -448,7 +448,7 @@ export default function WebTerminalView({
           <button
             type="button"
             onClick={() => setFontSize((prev) => Math.min(22, prev + 1))}
-            className="p-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-slate-400 hover:text-white border border-white/[0.06] transition-all"
+            className="p-1 sm:p-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-slate-400 hover:text-white border border-white/[0.06] transition-all"
             title="Zoom In"
           >
             <ZoomIn className="w-3.5 h-3.5" />
@@ -458,7 +458,7 @@ export default function WebTerminalView({
           <button
             type="button"
             onClick={initWebSocket}
-            className="p-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-slate-400 hover:text-white border border-white/[0.06] transition-all"
+            className="p-1 sm:p-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-slate-400 hover:text-white border border-white/[0.06] transition-all"
             title={t('webTerminal.reconnect')}
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isConnecting ? 'animate-spin text-indigo-400' : ''}`} />
@@ -468,7 +468,7 @@ export default function WebTerminalView({
           <button
             type="button"
             onClick={() => xtermRef.current?.clear()}
-            className="p-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-slate-400 hover:text-white border border-white/[0.06] transition-all"
+            className="p-1 sm:p-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-slate-400 hover:text-white border border-white/[0.06] transition-all"
             title={t('webTerminal.clear')}
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -478,7 +478,7 @@ export default function WebTerminalView({
           <button
             type="button"
             onClick={handleFullscreenToggle}
-            className={`p-1.5 rounded-lg border transition-all ${
+            className={`p-1 sm:p-1.5 rounded-lg border transition-all ${
               standalone
                 ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
                 : 'bg-white/[0.04] hover:bg-white/[0.08] text-slate-400 hover:text-white border border-white/[0.06]'
