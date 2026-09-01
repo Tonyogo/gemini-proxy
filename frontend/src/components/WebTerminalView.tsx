@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { createPortal } from 'react-dom';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
@@ -12,9 +11,7 @@ import {
   Minimize2,
   ZoomIn,
   ZoomOut,
-  Sparkles,
-  Wifi,
-  WifiOff
+  ArrowLeft
 } from 'lucide-react';
 import { useTranslation } from '../i18n/LanguageContext';
 import { TerminalAccessoryBar } from './terminal/TerminalAccessoryBar';
@@ -22,9 +19,17 @@ import { TerminalSnippetsDrawer } from './terminal/TerminalSnippetsDrawer';
 
 interface WebTerminalViewProps {
   adminKey: string;
+  standalone?: boolean;
+  onExitStandalone?: () => void;
+  onToggleStandalone?: (val: boolean) => void;
 }
 
-export default function WebTerminalView({ adminKey }: WebTerminalViewProps) {
+export default function WebTerminalView({
+  adminKey,
+  standalone = false,
+  onExitStandalone,
+  onToggleStandalone,
+}: WebTerminalViewProps) {
   const { t } = useTranslation();
   const terminalContainerRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<Terminal | null>(null);
@@ -33,7 +38,6 @@ export default function WebTerminalView({ adminKey }: WebTerminalViewProps) {
 
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isConnecting, setIsConnecting] = useState<boolean>(true);
-  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [isSnippetsOpen, setIsSnippetsOpen] = useState<boolean>(false);
   const [isCtrlActive, setIsCtrlActive] = useState<boolean>(false);
   const [isAltActive, setIsAltActive] = useState<boolean>(false);
@@ -109,6 +113,38 @@ export default function WebTerminalView({ adminKey }: WebTerminalViewProps) {
     };
   }, [adminKey, sendResize]);
 
+  // Lock body scroll and set overscroll-behavior when standalone is active
+  useEffect(() => {
+    if (standalone) {
+      const originalOverflow = document.body.style.overflow;
+      const originalOverscroll = document.body.style.overscrollBehavior;
+      const originalTouchAction = document.body.style.touchAction;
+      const originalPosition = document.body.style.position;
+      const originalWidth = document.body.style.width;
+      const originalHeight = document.body.style.height;
+
+      document.body.style.overflow = 'hidden';
+      document.body.style.overscrollBehavior = 'none';
+      document.body.style.touchAction = 'pan-y';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.height = '100%';
+      document.documentElement.style.overflow = 'hidden';
+      document.documentElement.style.overscrollBehavior = 'none';
+
+      return () => {
+        document.body.style.overflow = originalOverflow;
+        document.body.style.overscrollBehavior = originalOverscroll;
+        document.body.style.touchAction = originalTouchAction;
+        document.body.style.position = originalPosition;
+        document.body.style.width = originalWidth;
+        document.body.style.height = originalHeight;
+        document.documentElement.style.overflow = '';
+        document.documentElement.style.overscrollBehavior = '';
+      };
+    }
+  }, [standalone]);
+
   // Initialize xterm instance
   useEffect(() => {
     if (!terminalContainerRef.current) return;
@@ -168,7 +204,6 @@ export default function WebTerminalView({ adminKey }: WebTerminalViewProps) {
 
     const handleTouchMove = (e: TouchEvent) => {
       if (e.touches.length !== 1) return;
-      // Completely prevent mobile browser pull-to-refresh or page elastic scrolling in fullscreen
       if (e.cancelable) {
         e.preventDefault();
       }
@@ -213,8 +248,7 @@ export default function WebTerminalView({ adminKey }: WebTerminalViewProps) {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
 
-      // Only apply fixed visual viewport positioning if fullscreen mode is activated on mobile
-      if (mobile && isFullscreen && window.visualViewport) {
+      if (mobile && standalone && window.visualViewport) {
         const vv = window.visualViewport;
         setViewportStyle({
           position: 'fixed',
@@ -239,13 +273,11 @@ export default function WebTerminalView({ adminKey }: WebTerminalViewProps) {
 
     window.addEventListener('resize', updateViewport);
 
-    // visualViewport support for mobile soft keyboards (VS Code Web style in fullscreen)
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', updateViewport);
       window.visualViewport.addEventListener('scroll', updateViewport);
     }
 
-    // Initial viewport update
     updateViewport();
 
     return () => {
@@ -265,35 +297,7 @@ export default function WebTerminalView({ adminKey }: WebTerminalViewProps) {
       }
       term.dispose();
     };
-  }, [isFullscreen, sendResize]);
-
-  // Lock body scroll and set overscroll-behavior when fullscreen is active
-  useEffect(() => {
-    if (isFullscreen) {
-      const originalOverflow = document.body.style.overflow;
-      const originalOverscroll = document.body.style.overscrollBehavior;
-      const originalTouchAction = document.body.style.touchAction;
-      const originalPosition = document.body.style.position;
-      const originalWidth = document.body.style.width;
-      const originalHeight = document.body.style.height;
-
-      document.body.style.overflow = 'hidden';
-      document.body.style.overscrollBehavior = 'none';
-      document.body.style.touchAction = 'none';
-      document.body.style.position = 'fixed';
-      document.body.style.width = '100%';
-      document.body.style.height = '100%';
-
-      return () => {
-        document.body.style.overflow = originalOverflow;
-        document.body.style.overscrollBehavior = originalOverscroll;
-        document.body.style.touchAction = originalTouchAction;
-        document.body.style.position = originalPosition;
-        document.body.style.width = originalWidth;
-        document.body.style.height = originalHeight;
-      };
-    }
-  }, [isFullscreen]);
+  }, [standalone, sendResize]);
 
   // Sync font size change
   useEffect(() => {
@@ -323,23 +327,62 @@ export default function WebTerminalView({ adminKey }: WebTerminalViewProps) {
     }
   };
 
-  const terminalContent = (
+  const handleFullscreenToggle = () => {
+    if (standalone) {
+      if (document.fullscreenElement) {
+        document.exitFullscreen?.().catch(() => {});
+      }
+      onExitStandalone?.();
+    } else {
+      if (onToggleStandalone) {
+        onToggleStandalone(true);
+      }
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+    }
+  };
+
+  return (
     <div
-      style={isMobile && isFullscreen ? viewportStyle : undefined}
+      style={isMobile && standalone ? viewportStyle : undefined}
       className={`mx-auto flex flex-col bg-[#07090E] border border-white/[0.08] overflow-hidden shadow-2xl font-mono text-xs transition-all ${
-        isFullscreen
-          ? 'fixed inset-0 z-[9999] rounded-none h-screen w-screen overflow-hidden overscroll-none'
+        standalone
+          ? 'fixed inset-0 z-50 rounded-none h-screen w-screen overflow-hidden overscroll-none border-none'
           : 'w-full h-full md:max-w-7xl md:h-[calc(100vh-140px)] md:min-h-[500px] rounded-none md:rounded-2xl border-x-0 md:border-x border-t-0 md:border-t'
       }`}
     >
       {/* Top Window Bar */}
-      <div className="bg-[#0C0E14] border-b border-white/[0.08] px-3 sm:px-4 py-2 flex items-center justify-between select-none">
+      <div className="bg-[#0C0E14] border-b border-white/[0.08] px-3 sm:px-4 py-2 flex items-center justify-between select-none shrink-0">
         <div className="flex items-center space-x-2">
+          {/* Back to Console (Standalone Mode) */}
+          {standalone && onExitStandalone && (
+            <button
+              type="button"
+              onClick={onExitStandalone}
+              className="mr-1.5 px-2 py-1 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-slate-300 hover:text-white border border-white/[0.08] transition-all flex items-center space-x-1 text-xs active:scale-95"
+              title={t('webTerminal.backToDashboard')}
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline font-sans text-[11px]">{t('webTerminal.backToDashboard')}</span>
+            </button>
+          )}
+
           {/* macOS action dots */}
           <div className="flex items-center space-x-1.5 mr-1">
-            <div className="w-2.5 h-2.5 rounded-full bg-[#EF4444]/90 border border-[#DC2626]/60 shadow-[0_0_6px_rgba(239,68,68,0.3)]" />
+            <div
+              onClick={standalone ? onExitStandalone : undefined}
+              className={`w-2.5 h-2.5 rounded-full bg-[#EF4444]/90 border border-[#DC2626]/60 shadow-[0_0_6px_rgba(239,68,68,0.3)] ${
+                standalone ? 'cursor-pointer hover:opacity-80' : ''
+              }`}
+              title={standalone ? t('webTerminal.exitStandalone') : undefined}
+            />
             <div className="w-2.5 h-2.5 rounded-full bg-[#F59E0B]/90 border border-[#D97706]/60 shadow-[0_0_6px_rgba(245,158,11,0.3)]" />
-            <div className="w-2.5 h-2.5 rounded-full bg-[#10B981]/90 border border-[#059669]/60 shadow-[0_0_6px_rgba(16,185,129,0.3)]" />
+            <div
+              onClick={handleFullscreenToggle}
+              className="w-2.5 h-2.5 rounded-full bg-[#10B981]/90 border border-[#059669]/60 shadow-[0_0_6px_rgba(16,185,129,0.3)] cursor-pointer hover:opacity-80"
+              title={standalone ? t('webTerminal.exitFullscreen') : t('webTerminal.fullscreen')}
+            />
           </div>
 
           <div className="flex items-center space-x-1.5 text-slate-200">
@@ -416,14 +459,18 @@ export default function WebTerminalView({ adminKey }: WebTerminalViewProps) {
             <Trash2 className="w-3.5 h-3.5" />
           </button>
 
-          {/* Fullscreen */}
+          {/* Fullscreen / Standalone Toggle */}
           <button
             type="button"
-            onClick={() => setIsFullscreen(!isFullscreen)}
-            className="p-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-slate-400 hover:text-white border border-white/[0.06] transition-all"
-            title={isFullscreen ? t('webTerminal.exitFullscreen') : t('webTerminal.fullscreen')}
+            onClick={handleFullscreenToggle}
+            className={`p-1.5 rounded-lg border transition-all ${
+              standalone
+                ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
+                : 'bg-white/[0.04] hover:bg-white/[0.08] text-slate-400 hover:text-white border border-white/[0.06]'
+            }`}
+            title={standalone ? t('webTerminal.exitFullscreen') : t('webTerminal.fullscreen')}
           >
-            {isFullscreen ? <Minimize2 className="w-3.5 h-3.5 text-indigo-400" /> : <Maximize2 className="w-3.5 h-3.5" />}
+            {standalone ? <Minimize2 className="w-3.5 h-3.5 text-indigo-400" /> : <Maximize2 className="w-3.5 h-3.5" />}
           </button>
         </div>
       </div>
@@ -452,10 +499,4 @@ export default function WebTerminalView({ adminKey }: WebTerminalViewProps) {
       />
     </div>
   );
-
-  if (isFullscreen && typeof document !== 'undefined') {
-    return createPortal(terminalContent, document.body);
-  }
-
-  return terminalContent;
 }
