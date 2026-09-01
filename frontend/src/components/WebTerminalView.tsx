@@ -53,6 +53,20 @@ export default function WebTerminalView({
     return typeof window !== 'undefined' ? window.innerWidth < 768 : false;
   });
 
+  const fontSizeRef = useRef<number>(fontSize);
+  fontSizeRef.current = fontSize;
+
+  // Sync fullscreenchange event listener (for Esc key / native gesture exits)
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement && standalone) {
+        // Exited browser native fullscreen
+      }
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, [standalone]);
+
   const sendResize = useCallback((cols: number, rows: number) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({ type: 'resize', cols, rows }));
@@ -214,8 +228,9 @@ export default function WebTerminalView({
       touchStartY = currentY;
       accumulatedDeltaY += deltaY;
 
-      // Approximate line height based on font size (e.g. ~18px per line)
-      const lineHeight = Math.max(12, fontSize * 1.3);
+      // Approximate line height based on current font size (e.g. ~18px per line)
+      const currentFontSize = fontSizeRef.current;
+      const lineHeight = Math.max(12, currentFontSize * 1.3);
       if (Math.abs(accumulatedDeltaY) >= lineHeight) {
         const linesToScroll = Math.trunc(accumulatedDeltaY / lineHeight);
         term.scrollLines(linesToScroll);

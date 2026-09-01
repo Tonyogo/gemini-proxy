@@ -87,15 +87,15 @@ export default function App() {
   const handleExitStandalone = () => {
     setIsStandaloneTerminal(false);
     if (window.location.pathname === '/terminal' || window.location.pathname.startsWith('/terminal/')) {
-      window.history.replaceState(null, '', '/');
+      window.history.pushState(null, '', '/');
     } else if (window.location.hash === '#/terminal' || window.location.hash === '#terminal') {
-      window.history.replaceState(null, '', window.location.pathname);
+      window.history.pushState(null, '', window.location.pathname);
     }
   };
 
   const handleEnterStandalone = () => {
     setIsStandaloneTerminal(true);
-    window.history.replaceState(null, '', '#/terminal');
+    window.history.pushState(null, '', '#/terminal');
   };
 
   // Sidebar Collapse State (Desktop)
