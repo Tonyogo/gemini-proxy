@@ -103,6 +103,7 @@ export default function WebTerminalView({
     const wsUrl = `${protocol}//${host}/api/admin/terminal/ws?x-admin-key=${encodeURIComponent(adminKey)}`;
 
     const ws = new WebSocket(wsUrl);
+    ws.binaryType = 'arraybuffer';
     wsRef.current = ws;
 
     ws.onopen = () => {
@@ -135,6 +136,8 @@ export default function WebTerminalView({
           }
         }
         xtermRef.current?.write(data);
+      } else if (data instanceof ArrayBuffer) {
+        xtermRef.current?.write(new Uint8Array(data));
       }
     };
 
@@ -257,6 +260,10 @@ export default function WebTerminalView({
 
     xtermRef.current = term;
     fitAddonRef.current = fitAddon;
+
+    term.onResize(({ cols, rows }) => {
+      sendResize(cols, rows);
+    });
 
     // Mobile Touch Gesture & Vim Navigation Bridge (code-server / VS Code style)
     let touchStartY = 0;
