@@ -215,6 +215,10 @@ export default function WebTerminalView({
       cursorStyle: 'block',
       fontSize,
       fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+      convertEol: true,
+      scrollback: 5000,
+      macOptionIsMeta: true,
+      altClickMovesCursor: true,
       theme: {
         background: '#090A0F',
         foreground: '#F1F5F9',
@@ -256,6 +260,8 @@ export default function WebTerminalView({
       helperTextarea.setAttribute('autocorrect', 'off');
       helperTextarea.setAttribute('spellcheck', 'false');
       helperTextarea.setAttribute('tabindex', '0');
+      helperTextarea.setAttribute('aria-label', 'Terminal input');
+      helperTextarea.setAttribute('enterkeyhint', 'enter');
     }
 
     xtermRef.current = term;
@@ -264,6 +270,27 @@ export default function WebTerminalView({
     term.onResize(({ cols, rows }) => {
       sendResize(cols, rows);
     });
+
+    // Observe container resize
+    const resizeObserver = new ResizeObserver(() => {
+      if (fitAddonRef.current && xtermRef.current && terminalContainerRef.current) {
+        if (terminalContainerRef.current.clientWidth > 0 && terminalContainerRef.current.clientHeight > 0) {
+          try {
+            fitAddonRef.current.fit();
+            const { cols, rows } = xtermRef.current;
+            if (cols > 0 && rows > 0) {
+              sendResize(cols, rows);
+            }
+          } catch {
+            // Ignore
+          }
+        }
+      }
+    });
+
+    if (terminalContainerRef.current) {
+      resizeObserver.observe(terminalContainerRef.current);
+    }
 
     // Mobile Touch Gesture & Vim Navigation Bridge (code-server / VS Code style)
     let touchStartY = 0;
@@ -351,14 +378,18 @@ export default function WebTerminalView({
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
         wsRef.current.send(data);
       }
-      term.scrollToBottom();
+      if (term.buffer.active.type !== 'alternate') {
+        term.scrollToBottom();
+      }
     });
 
     let isMounted = true;
     const fitTimer = setTimeout(() => {
       if (isMounted && fitAddonRef.current && xtermRef.current) {
         fitAddonRef.current.fit();
-        xtermRef.current.scrollToBottom();
+        if (xtermRef.current.buffer.active.type !== 'alternate') {
+          xtermRef.current.scrollToBottom();
+        }
       }
     }, 50);
 
@@ -390,7 +421,9 @@ export default function WebTerminalView({
       if (fitAddonRef.current && xtermRef.current) {
         fitAddonRef.current.fit();
         sendResize(xtermRef.current.cols, xtermRef.current.rows);
-        xtermRef.current.scrollToBottom();
+        if (xtermRef.current.buffer.active.type !== 'alternate') {
+          xtermRef.current.scrollToBottom();
+        }
       }
     };
 
@@ -414,6 +447,7 @@ export default function WebTerminalView({
       isMountedRef.current = false;
       clearReconnectTimers();
       clearTimeout(fitTimer);
+      resizeObserver.disconnect();
       if (container) {
         container.removeEventListener('touchstart', handleTouchStart);
         container.removeEventListener('touchmove', handleTouchMove);
@@ -438,7 +472,9 @@ export default function WebTerminalView({
       localStorage.setItem('terminal_font_size', fontSize.toString());
       fitAddonRef.current.fit();
       sendResize(xtermRef.current.cols, xtermRef.current.rows);
-      xtermRef.current.scrollToBottom();
+      if (xtermRef.current.buffer.active.type !== 'alternate') {
+        xtermRef.current.scrollToBottom();
+      }
     }
   }, [fontSize, sendResize]);
 
@@ -447,7 +483,9 @@ export default function WebTerminalView({
       wsRef.current.send(data);
     }
     xtermRef.current?.focus();
-    xtermRef.current?.scrollToBottom();
+    if (xtermRef.current?.buffer.active.type !== 'alternate') {
+      xtermRef.current?.scrollToBottom();
+    }
   };
 
   const handleRunCommand = (cmd: string, execute: boolean) => {
@@ -626,7 +664,10 @@ export default function WebTerminalView({
       </div>
 
       {/* xterm.js Canvas Container */}
-      <div className="flex-1 p-2 bg-[#090A0F] overflow-hidden min-h-0 relative">
+      <div
+        onClick={() => xtermRef.current?.focus()}
+        className="flex-1 p-2 bg-[#090A0F] overflow-hidden min-h-0 relative cursor-text"
+      >
         {/* Floating Disconnect & Auto-Reconnect Toast */}
         {!isConnected && !isConnecting && reconnectCountdown > 0 && (
           <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 flex items-center space-x-2.5 px-3.5 py-1.5 rounded-xl bg-[#160E12]/95 border border-rose-500/40 text-rose-300 text-xs backdrop-blur-md shadow-2xl animate-in fade-in slide-in-from-top-2 select-none">
