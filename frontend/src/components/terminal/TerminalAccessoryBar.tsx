@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  CornerDownLeft,
   ArrowUp,
   ArrowDown,
   ArrowLeft,
@@ -30,48 +29,6 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
   onOpenSnippets,
 }) => {
   const { t } = useTranslation();
-
-  const handleKeyClick = (key: string, rawCode: string) => {
-    if (isCtrlActive) {
-      onToggleCtrl();
-      // Handle Ctrl + key for standard ASCII letters or numbers
-      const upper = key.toUpperCase();
-      const charCode = upper.charCodeAt(0);
-      if (charCode >= 64 && charCode <= 95) {
-        onSendInput(String.fromCharCode(charCode - 64));
-        return;
-      }
-      if (key === '/') {
-        onSendInput('\x1f'); // Unit separator (Ctrl+/)
-        return;
-      }
-      if (key === '\\') {
-        onSendInput('\x1c'); // File separator (Ctrl+\)
-        return;
-      }
-      if (key === ']') {
-        onSendInput('\x1d'); // Group separator (Ctrl+])
-        return;
-      }
-      if (key === '^') {
-        onSendInput('\x1e'); // Record separator (Ctrl+^)
-        return;
-      }
-      if (key === '_') {
-        onSendInput('\x1f'); // Unit separator (Ctrl+_)
-        return;
-      }
-      // For any other characters, send raw
-      onSendInput(rawCode);
-      return;
-    }
-    if (isAltActive) {
-      onToggleAlt();
-      onSendInput(`\x1b${key}`);
-      return;
-    }
-    onSendInput(rawCode);
-  };
 
   return (
     <div className="bg-[#0C0E14] border-t border-white/[0.08] px-2 py-1.5 flex items-center justify-between gap-1 select-none overflow-x-auto scrollbar-none z-20">
@@ -129,6 +86,8 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
           {t('webTerminal.accessoryKeys.alt')}
         </button>
 
+        <div className="h-4 w-[1px] bg-white/[0.1] mx-0.5" />
+
         {/* Action: Ctrl+C */}
         <button
           type="button"
@@ -165,43 +124,7 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
           ^L
         </button>
 
-        {/* Quick Characters: :, i, w, q, |, /, -, ~, $, \\ */}
-        {[':', 'i', 'w', 'q', '|', '/', '-', '~', '$', '\\'].map((char) => (
-          <button
-            key={char}
-            type="button"
-            onTouchStart={(e) => e.preventDefault()}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => handleKeyClick(char, char)}
-            className="w-7 h-7 rounded-lg bg-white/[0.04] hover:bg-white/[0.1] active:scale-95 text-slate-300 font-mono text-xs flex items-center justify-center border border-white/[0.06] transition-all"
-          >
-            {char}
-          </button>
-        ))}
-
-        {/* Quick Vim Save & Quit (:wq) */}
-        <button
-          type="button"
-          onTouchStart={(e) => e.preventDefault()}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => onSendInput(':wq\r')}
-          className="px-2 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 active:scale-95 text-emerald-300 font-mono text-[11px] font-semibold border border-emerald-500/30 transition-all"
-          title="Vim: Save & Quit (:wq)"
-        >
-          :wq
-        </button>
-
-        {/* Quick Vim Force Quit (:q!) */}
-        <button
-          type="button"
-          onTouchStart={(e) => e.preventDefault()}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => onSendInput(':q!\r')}
-          className="px-2 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 active:scale-95 text-rose-300 font-mono text-[11px] font-semibold border border-rose-500/30 transition-all"
-          title="Vim: Force Quit (:q!)"
-        >
-          :q!
-        </button>
+        <div className="h-4 w-[1px] bg-white/[0.1] mx-0.5" />
 
         {/* Quick Enter Key */}
         <button
@@ -209,7 +132,7 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
           onTouchStart={(e) => e.preventDefault()}
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => onSendInput('\r')}
-          className="px-2 py-1 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 active:scale-95 text-indigo-300 font-mono text-xs font-semibold border border-indigo-500/30 transition-all shadow-sm"
+          className="px-2.5 py-1 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 active:scale-95 text-indigo-300 font-mono text-xs font-semibold border border-indigo-500/30 transition-all shadow-sm"
           title="Enter (Return)"
         >
           ↵
