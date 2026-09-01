@@ -311,7 +311,7 @@ export default function App() {
   // Standalone Fullscreen Terminal Mode (Zero DOM bleed)
   if (isStandaloneTerminal) {
     return (
-      <div className="fixed inset-0 z-50 h-screen w-screen bg-[#07090E] overflow-hidden">
+      <div className="fixed inset-0 z-50 w-full h-full bg-[#07090E] overflow-hidden">
         <WebTerminalView
           key={refreshTrigger}
           adminKey={adminKey}
