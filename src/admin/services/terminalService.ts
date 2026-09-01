@@ -58,6 +58,9 @@ export function spawnTerminalSession(options: TerminalSessionOptions = {}): pty.
     ...process.env,
     TERM: 'xterm-256color',
     COLORTERM: 'truecolor',
+    LANG: process.env.LANG || 'en_US.UTF-8',
+    LC_ALL: process.env.LC_ALL || process.env.LANG || 'en_US.UTF-8',
+    TERM_PROGRAM: 'gemini-proxy-terminal',
     ...options.env,
   } as { [key: string]: string };
 
