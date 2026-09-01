@@ -24,7 +24,7 @@
 **Interfaces:**
 - Produces: Instant terminal resize dispatch via `term.onResize` and immediate write callbacks.
 
-- [ ] **Step 1: Update `WebTerminalView.tsx` resize and message listeners**
+- [x] **Step 1: Update `WebTerminalView.tsx` resize and message listeners**
 
 In `frontend/src/components/WebTerminalView.tsx`:
 1. In `initWebSocket()`:
@@ -61,12 +61,12 @@ term.onResize(({ cols, rows }) => {
 });
 ```
 
-- [ ] **Step 2: Verify build**
+- [x] **Step 2: Verify build**
 
 Run: `cd frontend && npm run build && cd ..`
 Expected: PASS
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add frontend/src/components/WebTerminalView.tsx
@@ -80,12 +80,12 @@ git commit -m "fix(terminal): add onResize auto-sync and arraybuffer decoding fo
 **Files:**
 - Run complete test suite and project build.
 
-- [ ] **Step 1: Run complete backend test suite**
+- [x] **Step 1: Run complete backend test suite**
 
 Run: `npm test`
 Expected: All 25 test suites pass.
 
-- [ ] **Step 2: Run complete project build**
+- [x] **Step 2: Run complete project build**
 
 Run: `npm run build`
 Expected: Zero build errors.
