@@ -355,6 +355,15 @@ export default function WebTerminalView({
     }
   };
 
+  const handleResetSession = () => {
+    if (window.confirm(t('webTerminal.resetConfirm'))) {
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({ type: 'reset' }));
+      }
+      xtermRef.current?.clear();
+    }
+  };
+
   const handleFullscreenToggle = () => {
     if (standalone) {
       if (document.fullscreenElement) {
@@ -477,12 +486,12 @@ export default function WebTerminalView({
             <RefreshCw className={`w-3.5 h-3.5 ${isConnecting ? 'animate-spin text-indigo-400' : ''}`} />
           </button>
 
-          {/* Clear screen */}
+          {/* Reset Terminal Session */}
           <button
             type="button"
-            onClick={() => xtermRef.current?.clear()}
-            className="p-1 sm:p-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-slate-400 hover:text-white border border-white/[0.06] transition-all"
-            title={t('webTerminal.clear')}
+            onClick={handleResetSession}
+            className="p-1 sm:p-1.5 rounded-lg bg-white/[0.04] hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 border border-white/[0.06] hover:border-rose-500/30 transition-all"
+            title={t('webTerminal.resetSession')}
           >
             <Trash2 className="w-3.5 h-3.5" />
           </button>

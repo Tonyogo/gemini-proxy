@@ -3,7 +3,7 @@ import { URL } from 'url';
 import { WebSocketServer, WebSocket, RawData } from 'ws';
 import config from '../../../config/default';
 import logger from '../../utils/logger';
-import { spawnTerminalSession } from '../services/terminalService';
+import { getDefaultTerminalSession } from '../services/terminalService';
 
 export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
   const wss = new WebSocketServer({ noServer: true });
@@ -14,7 +14,6 @@ export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
       return;
     }
 
-    // Validate Admin Key
     const secretKey = config.adminSecretKey;
     if (secretKey) {
       const parsedUrl = new URL(reqUrl, `http://${req.headers.host || 'localhost'}`);
@@ -37,39 +36,14 @@ export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
   });
 
   wss.on('connection', (ws: WebSocket) => {
-    logger.info(`[TerminalWS] New interactive terminal client connected`);
+    logger.info(`[TerminalWS] Interactive terminal client attached to session`);
+    const session = getDefaultTerminalSession();
 
-    let ptySession: any = null;
+    session.attach(ws);
 
-    try {
-      ptySession = spawnTerminalSession({ cols: 80, rows: 24 });
-    } catch (err: any) {
-      logger.error(`[TerminalWS] Failed to spawn PTY: ${err.message}`);
-      ws.send(JSON.stringify({ type: 'status', event: 'error', message: err.message }));
-      ws.close(1011, 'PTY Spawn Failed');
-      return;
-    }
-
-    // Pipe PTY output to WebSocket client
-    const ptyDataListener = ptySession.onData((data: string) => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(data);
-      }
-    });
-
-    ptySession.onExit((exitCode: { exitCode: number; signal?: number }) => {
-      logger.info(`[TerminalWS] PTY process exited with code ${exitCode.exitCode}`);
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'status', event: 'exit', code: exitCode.exitCode }));
-        ws.close(1000, 'Process Exited');
-      }
-    });
-
-    // Handle incoming client messages (input, resize, ping)
     ws.on('message', (message: RawData) => {
       try {
         const msgStr = message.toString();
-        // Check if message is JSON control frame
         if (msgStr.startsWith('{') && msgStr.endsWith('}')) {
           const control = JSON.parse(msgStr);
           if (
@@ -81,7 +55,12 @@ export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
           ) {
             const cols = Math.max(10, Math.min(500, Math.floor(control.cols)));
             const rows = Math.max(5, Math.min(200, Math.floor(control.rows)));
-            ptySession.resize(cols, rows);
+            session.resize(cols, rows);
+            return;
+          }
+          if (control.type === 'reset') {
+            logger.info(`[TerminalWS] Reset session requested by client`);
+            session.reset();
             return;
           }
           if (control.type === 'ping') {
@@ -90,31 +69,20 @@ export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
           }
         }
 
-        // Otherwise treat as standard terminal input
-        ptySession.write(msgStr);
+        session.write(msgStr);
       } catch {
-        // Raw input write
-        ptySession.write(message.toString());
+        session.write(message.toString());
       }
     });
 
-    // Clean up PTY on WebSocket disconnect
     ws.on('close', () => {
-      logger.info(`[TerminalWS] Client disconnected. Disposing PTY process...`);
-      try {
-        if (ptyDataListener && typeof ptyDataListener.dispose === 'function') {
-          ptyDataListener.dispose();
-        }
-        if (ptySession) {
-          ptySession.kill();
-        }
-      } catch (err: any) {
-        logger.warn(`[TerminalWS] Error disposing PTY: ${err.message}`);
-      }
+      logger.info(`[TerminalWS] Client detached. Session remains active in background.`);
+      session.detach(ws);
     });
 
     ws.on('error', (err) => {
       logger.error(`[TerminalWS] WebSocket error: ${err.message}`);
+      session.detach(ws);
     });
   });
 

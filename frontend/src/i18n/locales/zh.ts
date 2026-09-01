@@ -327,6 +327,8 @@ export const zh: Translations = {
     connecting: "连接中...",
     reconnect: "重新连接",
     clear: "清屏",
+    resetSession: "重置会话",
+    resetConfirm: "确定要重启终端会话吗？当前 Shell 中运行的后台任务将会被终止。",
     fullscreen: "全屏",
     exitFullscreen: "退出全屏",
     backToDashboard: "返回控制台",

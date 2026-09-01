@@ -325,6 +325,8 @@ export const en = {
     connecting: "Connecting...",
     reconnect: "Reconnect",
     clear: "Clear",
+    resetSession: "Reset Session",
+    resetConfirm: "Are you sure you want to restart the terminal session? All active background tasks in this shell will be terminated.",
     fullscreen: "Fullscreen",
     exitFullscreen: "Exit Fullscreen",
     backToDashboard: "Back to Dashboard",
