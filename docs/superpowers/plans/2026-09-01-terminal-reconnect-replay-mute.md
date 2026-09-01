@@ -21,7 +21,7 @@
   - Returns `true` if `data` matches CPR (`\x1b[...R`), DA (`\x1b[>...c` / `\x1b[?...c`), OSC 10/11 color responses (`\x1b]10;rgb:...` / `\x1b]11;rgb:...`), or DECRPM (`\x1b[...$y`).
   - Returns `false` for normal keyboard input (letters, numbers, user escape sequences like Arrow keys `\x1b[A`, Enter `\r`, Ctrl+C `\x03`, `:wq\r`, etc.).
 
-- [ ] **Step 1: Write the failing test for `isSyntheticTerminalReport`**
+- [x] **Step 1: Write the failing test for `isSyntheticTerminalReport`**
 
 In `tests/terminalFilter.test.ts`:
 ```typescript
@@ -64,12 +64,12 @@ describe('isSyntheticTerminalReport', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/terminalFilter.test.ts`
 Expected: FAIL with module not found / function undefined.
 
-- [ ] **Step 3: Implement `frontend/src/utils/terminalFilter.ts`**
+- [x] **Step 3: Implement `frontend/src/utils/terminalFilter.ts`**
 
 ```typescript
 /**
@@ -105,12 +105,12 @@ export function isSyntheticTerminalReport(data: string): boolean {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/terminalFilter.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src/utils/terminalFilter.ts tests/terminalFilter.test.ts
@@ -128,7 +128,7 @@ git commit -m "feat(terminal): add isSyntheticTerminalReport filter utility and 
 - Uses `isSyntheticTerminalReport` from `../utils/terminalFilter`
 - Manages `isReplayingRef` ref tracking initial history replay phase.
 
-- [ ] **Step 1: Update `WebTerminalView.tsx`**
+- [x] **Step 1: Update `WebTerminalView.tsx`**
 
 1. Import `isSyntheticTerminalReport`:
 ```typescript
@@ -179,12 +179,12 @@ term.onData((data) => {
 6. In cleanup:
 Clear `replayTimerRef.current`.
 
-- [ ] **Step 2: Run all tests and build frontend**
+- [x] **Step 2: Run all tests and build frontend**
 
 Run: `npm test && npm run build`
 Expected: PASS with 0 build errors.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add frontend/src/components/WebTerminalView.tsx
@@ -198,17 +198,17 @@ git commit -m "fix(terminal): suppress synthetic device report responses during 
 **Files:**
 - Create/Update: `tests/terminalReplayMute.test.ts`
 
-- [ ] **Step 1: Write automated end-to-end replay test**
+- [x] **Step 1: Write automated end-to-end replay test**
 
 In `tests/terminalReplayMute.test.ts`:
 Test that when `historyBuffer` contains query sequences (`\x1b[6n`, `\x1b[>c`, `\x1b]10;?\x1b\`, `\x1b]11;?\x1b\`, `\x1b[?12$p`), the synthetic responses are caught by the filter and not echoed into the shell prompt.
 
-- [ ] **Step 2: Run test suite**
+- [x] **Step 2: Run test suite**
 
 Run: `npm test`
 Expected: 26 test suites pass.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add tests/terminalReplayMute.test.ts
