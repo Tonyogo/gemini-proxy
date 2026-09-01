@@ -126,7 +126,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
   // Upstream Terminal Logs Collapse & State
   const [isLogsExpanded, setIsLogsExpanded] = useState<boolean>(false);
   const [enableLivePolling, setEnableLivePolling] = useState<boolean>(true);
-  const [autoScrollLogs, setAutoScrollLogs] = useState<boolean>(true);
+  const [autoScrollLogs, setAutoScrollLogs] = useState<boolean>(false);
   const [copiedLogs, setCopiedLogs] = useState<boolean>(false);
   const [refreshingLogs, setRefreshingLogs] = useState<boolean>(false);
 
