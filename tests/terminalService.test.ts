@@ -6,12 +6,14 @@ describe('terminalService', () => {
     expect(session).toBeDefined();
     expect(typeof session.pid).toBe('number');
 
-    let receivedData = false;
-    session.onData((data: string) => {
-      receivedData = true;
-      expect(typeof data).toBe('string');
-      session.kill();
+    session.onExit(() => {
       done();
+    });
+
+    const listener = session.onData((data: string) => {
+      expect(typeof data).toBe('string');
+      listener.dispose();
+      session.kill();
     });
 
     session.write('echo "hello terminal"\r');

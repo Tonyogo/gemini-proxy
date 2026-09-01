@@ -26,7 +26,7 @@
 **Interfaces:**
 - Produces: `webTerminal.reconnectCountdown` and `webTerminal.reconnectNow` translation keys.
 
-- [ ] **Step 1: Update translation keys**
+- [x] **Step 1: Update translation keys**
 
 In `frontend/src/i18n/locales/en.ts`:
 Add to `webTerminal`:
@@ -44,12 +44,12 @@ Add to `webTerminal`:
     reconnectNow: "立即重连",
 ```
 
-- [ ] **Step 2: Verify frontend build**
+- [x] **Step 2: Verify frontend build**
 
 Run: `cd frontend && npm run build && cd ..`
 Expected: PASS
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add frontend/src/i18n/locales/en.ts frontend/src/i18n/locales/zh.ts
@@ -66,7 +66,7 @@ git commit -m "feat(i18n): add terminal disconnect notification and countdown lo
 **Interfaces:**
 - Produces: `reconnectCountdown`, `reconnectAttempt`, and floating status banner with immediate retry trigger.
 
-- [ ] **Step 1: Implement auto-reconnect timers and floating toast in `WebTerminalView.tsx`**
+- [x] **Step 1: Implement auto-reconnect timers and floating toast in `WebTerminalView.tsx`**
 
 In `frontend/src/components/WebTerminalView.tsx`:
 1. Add state:
@@ -133,12 +133,12 @@ const handleManualReconnect = () => {
 )}
 ```
 
-- [ ] **Step 2: Verify frontend build**
+- [x] **Step 2: Verify frontend build**
 
 Run: `cd frontend && npm run build && cd ..`
 Expected: PASS
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add frontend/src/components/WebTerminalView.tsx
@@ -152,12 +152,12 @@ git commit -m "feat(terminal): add exponential backoff auto-reconnect and floati
 **Files:**
 - Run complete test suite and project build.
 
-- [ ] **Step 1: Run complete backend test suite**
+- [x] **Step 1: Run complete backend test suite**
 
 Run: `npm test`
 Expected: All 25 test suites pass.
 
-- [ ] **Step 2: Run complete project build**
+- [x] **Step 2: Run complete project build**
 
 Run: `npm run build`
 Expected: Zero build errors.
