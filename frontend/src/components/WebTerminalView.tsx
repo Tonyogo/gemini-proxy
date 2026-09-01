@@ -75,6 +75,7 @@ export default function WebTerminalView({
 
   const sendResize = useCallback((cols: number, rows: number) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      console.log(`[WebTerminal] Sending resize to backend: ${cols}x${rows}`);
       wsRef.current.send(`JSON:${JSON.stringify({ type: 'resize', cols, rows })}`);
     }
   }, []);
@@ -107,6 +108,7 @@ export default function WebTerminalView({
     wsRef.current = ws;
 
     ws.onopen = () => {
+      console.log('[WebTerminal] WebSocket connection established successfully');
       setIsConnecting(false);
       setIsConnected(true);
       reconnectAttemptRef.current = 0;
@@ -121,9 +123,10 @@ export default function WebTerminalView({
     ws.onmessage = (event) => {
       const data = event.data;
       if (typeof data === 'string') {
-        if (data.startsWith('{') && data.endsWith('}')) {
+        if (data.startsWith('JSON:')) {
           try {
-            const parsed = JSON.parse(data);
+            const parsed = JSON.parse(data.slice(5));
+            console.log('[WebTerminal] Received backend control message:', parsed);
             if (parsed.type === 'status' && parsed.event === 'exit') {
               xtermRef.current?.writeln('\r\n\x1b[33m[Process Completed]\x1b[0m\r\n');
               isProcessExitedRef.current = true;
@@ -135,8 +138,13 @@ export default function WebTerminalView({
             // Not json, print as raw text
           }
         }
+        // Log preview in console for debugging
+        if (data.length > 0) {
+          console.debug('[WebTerminal] WS Recv Text:', JSON.stringify(data.slice(0, 50)), 'len:', data.length);
+        }
         xtermRef.current?.write(data);
       } else if (data instanceof ArrayBuffer) {
+        console.debug('[WebTerminal] WS Recv Binary:', data.byteLength);
         xtermRef.current?.write(new Uint8Array(data));
       }
     };
@@ -215,7 +223,7 @@ export default function WebTerminalView({
       cursorStyle: 'block',
       fontSize,
       fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
-      convertEol: true,
+      convertEol: false,
       scrollback: 5000,
       macOptionIsMeta: true,
       altClickMovesCursor: true,
@@ -375,6 +383,7 @@ export default function WebTerminalView({
     }
 
     term.onData((data) => {
+      console.log('[WebTerminal] term.onData dispatched:', JSON.stringify(data), 'len:', data.length, 'hex:', Array.from(data).map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join(' '));
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
         wsRef.current.send(data);
       }
@@ -383,10 +392,15 @@ export default function WebTerminalView({
       }
     });
 
+    term.onKey((e) => {
+      console.debug('[WebTerminal] term.onKey event:', e.key, 'domEvent:', e.domEvent.key, 'code:', e.domEvent.code);
+    });
+
     let isMounted = true;
     const fitTimer = setTimeout(() => {
       if (isMounted && fitAddonRef.current && xtermRef.current) {
         fitAddonRef.current.fit();
+        xtermRef.current.focus();
         if (xtermRef.current.buffer.active.type !== 'alternate') {
           xtermRef.current.scrollToBottom();
         }
