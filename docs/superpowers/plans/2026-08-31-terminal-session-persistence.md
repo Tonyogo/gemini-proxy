@@ -26,7 +26,7 @@
 **Interfaces:**
 - Produces: `PersistentTerminalSession` and singleton getter `getDefaultTerminalSession()` in `src/admin/services/terminalService.ts`.
 
-- [ ] **Step 1: Write failing test for session persistence and replay**
+- [x] **Step 1: Write failing test for session persistence and replay**
 
 Create `tests/terminalPersistence.test.ts`:
 ```typescript
@@ -68,12 +68,12 @@ describe('PersistentTerminalSession', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/terminalPersistence.test.ts`
 Expected: FAIL with `getDefaultTerminalSession` not found.
 
-- [ ] **Step 3: Implement PersistentTerminalSession in terminalService.ts**
+- [x] **Step 3: Implement PersistentTerminalSession in terminalService.ts**
 
 Update `src/admin/services/terminalService.ts`:
 ```typescript
@@ -286,12 +286,12 @@ export function getDefaultTerminalSession(): PersistentTerminalSession {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/terminalPersistence.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/admin/services/terminalService.ts tests/terminalPersistence.test.ts
@@ -312,7 +312,7 @@ git commit -m "feat(terminal): add PersistentTerminalSession manager with output
 - Consumes: `getDefaultTerminalSession()` in `src/admin/routes/terminalWs.ts`.
 - Produces: Persistent connection lifecycle with `{"type": "reset"}` action handling and frontend reset button.
 
-- [ ] **Step 1: Update `terminalWs.ts` to use PersistentTerminalSession**
+- [x] **Step 1: Update `terminalWs.ts` to use PersistentTerminalSession**
 
 Update `src/admin/routes/terminalWs.ts`:
 ```typescript
@@ -408,7 +408,7 @@ export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
 }
 ```
 
-- [ ] **Step 2: Update frontend translation keys and WebTerminalView reset session button**
+- [x] **Step 2: Update frontend translation keys and WebTerminalView reset session button**
 
 In `frontend/src/i18n/locales/en.ts`:
 Add to `webTerminal`:
@@ -438,12 +438,12 @@ Add `handleResetSession`:
 ```
 Bind `handleResetSession` to the Trash2 icon button with title `t('webTerminal.resetSession')`.
 
-- [ ] **Step 3: Verify build**
+- [x] **Step 3: Verify build**
 
 Run: `npm run build`
 Expected: PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/admin/routes/terminalWs.ts frontend/src/components/WebTerminalView.tsx frontend/src/i18n/locales/en.ts frontend/src/i18n/locales/zh.ts
@@ -457,12 +457,12 @@ git commit -m "feat(terminal): integrate persistent session re-attach and explic
 **Files:**
 - Run complete test suite and production build.
 
-- [ ] **Step 1: Run complete backend test suite**
+- [x] **Step 1: Run complete backend test suite**
 
 Run: `npm test`
 Expected: All 25 test suites pass.
 
-- [ ] **Step 2: Run complete project build**
+- [x] **Step 2: Run complete project build**
 
 Run: `npm run build`
 Expected: Zero build errors.
