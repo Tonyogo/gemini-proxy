@@ -248,43 +248,82 @@ export default function WebTerminalView({
     xtermRef.current = term;
     fitAddonRef.current = fitAddon;
 
-    // Mobile Touch Gesture Scrolling Bridge (code-server / VS Code style)
+    // Mobile Touch Gesture & Vim Navigation Bridge (code-server / VS Code style)
     let touchStartY = 0;
+    let touchStartX = 0;
+    let touchStartTime = 0;
+    let isDragging = false;
     let accumulatedDeltaY = 0;
     const container = terminalContainerRef.current;
 
     const handleTouchStart = (e: TouchEvent) => {
       if (e.touches.length === 1) {
         touchStartY = e.touches[0].clientY;
+        touchStartX = e.touches[0].clientX;
+        touchStartTime = Date.now();
+        isDragging = false;
         accumulatedDeltaY = 0;
       }
     };
 
     const handleTouchMove = (e: TouchEvent) => {
       if (e.touches.length !== 1) return;
+
+      const currentY = e.touches[0].clientY;
+      const currentX = e.touches[0].clientX;
+      const deltaY = touchStartY - currentY;
+      const deltaX = touchStartX - currentX;
+
+      if (!isDragging && (Math.abs(deltaY) > 8 || Math.abs(deltaX) > 8)) {
+        isDragging = true;
+      }
+
+      if (!isDragging) return;
+
       if (e.cancelable) {
         e.preventDefault();
       }
       e.stopPropagation();
 
-      const currentY = e.touches[0].clientY;
-      const deltaY = touchStartY - currentY;
       touchStartY = currentY;
+      touchStartX = currentX;
       accumulatedDeltaY += deltaY;
 
       // Approximate line height based on current font size (e.g. ~18px per line)
       const currentFontSize = fontSizeRef.current;
       const lineHeight = Math.max(12, currentFontSize * 1.3);
+
       if (Math.abs(accumulatedDeltaY) >= lineHeight) {
         const linesToScroll = Math.trunc(accumulatedDeltaY / lineHeight);
-        term.scrollLines(linesToScroll);
         accumulatedDeltaY -= linesToScroll * lineHeight;
+
+        const isAlternate = term.buffer.active.type === 'alternate';
+        if (isAlternate) {
+          // In Vim / Nano / Htop, translate vertical swipe into Arrow Up/Down sequences
+          const arrowSequence = linesToScroll > 0 ? '\x1b[B' : '\x1b[A';
+          const count = Math.min(5, Math.abs(linesToScroll));
+          if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            wsRef.current.send(arrowSequence.repeat(count));
+          }
+        } else {
+          // Standard command line scrollback buffer
+          term.scrollLines(linesToScroll);
+        }
+      }
+    };
+
+    const handleTouchEnd = () => {
+      const elapsed = Date.now() - touchStartTime;
+      if (!isDragging && elapsed < 300) {
+        // Pure single tap -> Focus terminal & wake on-screen virtual keyboard
+        term.focus();
       }
     };
 
     if (container) {
       container.addEventListener('touchstart', handleTouchStart, { passive: true });
       container.addEventListener('touchmove', handleTouchMove, { passive: false });
+      container.addEventListener('touchend', handleTouchEnd, { passive: true });
     }
 
     term.onData((data) => {
@@ -357,6 +396,7 @@ export default function WebTerminalView({
       if (container) {
         container.removeEventListener('touchstart', handleTouchStart);
         container.removeEventListener('touchmove', handleTouchMove);
+        container.removeEventListener('touchend', handleTouchEnd);
       }
       window.removeEventListener('resize', handleViewportChange);
       if (window.visualViewport) {
