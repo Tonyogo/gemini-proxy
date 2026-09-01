@@ -44,8 +44,8 @@ export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
     ws.on('message', (message: RawData) => {
       try {
         const msgStr = message.toString();
-        if (msgStr.startsWith('{') && msgStr.endsWith('}')) {
-          const control = JSON.parse(msgStr);
+        if (msgStr.startsWith('JSON:')) {
+          const control = JSON.parse(msgStr.slice(5));
           if (
             control.type === 'resize' &&
             typeof control.cols === 'number' &&

@@ -75,7 +75,7 @@ export default function WebTerminalView({
 
   const sendResize = useCallback((cols: number, rows: number) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ type: 'resize', cols, rows }));
+      wsRef.current.send(`JSON:${JSON.stringify({ type: 'resize', cols, rows })}`);
     }
   }, []);
 
@@ -471,7 +471,7 @@ export default function WebTerminalView({
     if (window.confirm(t('webTerminal.resetConfirm'))) {
       reconnectAttemptRef.current = 0;
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify({ type: 'reset' }));
+        wsRef.current.send(`JSON:${JSON.stringify({ type: 'reset' })}`);
       }
       xtermRef.current?.clear();
     }

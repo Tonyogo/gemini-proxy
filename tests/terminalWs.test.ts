@@ -51,7 +51,7 @@ describe('Terminal WebSocket Gateway', () => {
     const ws = new WebSocket(`ws://127.0.0.1:${port}/api/admin/terminal/ws?x-admin-key=valid-key`);
 
     ws.on('open', () => {
-      ws.send(JSON.stringify({ type: 'resize', cols: 100, rows: 30 }));
+      ws.send(`JSON:${JSON.stringify({ type: 'resize', cols: 100, rows: 30 })}`);
       ws.send('echo "WS_TEST_OK"\r');
     });
 
