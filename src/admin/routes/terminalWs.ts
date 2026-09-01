@@ -46,7 +46,7 @@ export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
         const msgStr = message.toString();
         if (msgStr.startsWith('JSON:')) {
           const control = JSON.parse(msgStr.slice(5));
-          logger.info(`[TerminalWS] Control frame: ${JSON.stringify(control)}`);
+          logger.debug(`[TerminalWS] Control frame: ${JSON.stringify(control)}`);
           if (
             control.type === 'resize' &&
             typeof control.cols === 'number' &&
@@ -72,7 +72,7 @@ export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
 
         const hex = Buffer.from(msgStr).toString('hex');
         const preview = JSON.stringify(msgStr.length > 30 ? msgStr.slice(0, 30) + '...' : msgStr);
-        logger.info(`[TerminalWS] Raw input frame (len=${msgStr.length}, hex=${hex}, preview=${preview})`);
+        logger.debug(`[TerminalWS] Raw input frame (len=${msgStr.length}, hex=${hex}, preview=${preview})`);
         session.write(msgStr);
       } catch (err: any) {
         logger.warn(`[TerminalWS] Message parse exception: ${err.message}`);

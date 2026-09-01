@@ -163,7 +163,7 @@ export class PersistentTerminalSession {
     if (this.ptyProcess) {
       const hex = Buffer.from(data).toString('hex');
       const preview = JSON.stringify(data.length > 30 ? data.slice(0, 30) + '...' : data);
-      logger.info(`[PersistentTerminal] PTY Write (len=${data.length}, hex=${hex}, preview=${preview})`);
+      logger.debug(`[PersistentTerminal] PTY Write (len=${data.length}, hex=${hex}, preview=${preview})`);
       this.ptyProcess.write(data);
     } else {
       logger.warn(`[PersistentTerminal] Write dropped - no active PTY process`);
@@ -175,7 +175,7 @@ export class PersistentTerminalSession {
     this.rows = rows;
     if (this.ptyProcess) {
       try {
-        logger.info(`[PersistentTerminal] Resizing PTY to ${cols}x${rows}`);
+        logger.debug(`[PersistentTerminal] Resizing PTY to ${cols}x${rows}`);
         this.ptyProcess.resize(cols, rows);
       } catch (err: any) {
         logger.warn(`[PersistentTerminal] Resize failed: ${err.message}`);
