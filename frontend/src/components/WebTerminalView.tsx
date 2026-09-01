@@ -312,18 +312,22 @@ export default function WebTerminalView({
       }
     };
 
-    const handleTouchEnd = () => {
+    const handleTouchEnd = (e: TouchEvent) => {
       const elapsed = Date.now() - touchStartTime;
-      if (!isDragging && elapsed < 300) {
-        // Pure single tap -> Focus terminal & wake on-screen virtual keyboard
+      if (!isDragging && elapsed < 350) {
+        // Pure single tap -> Focus terminal & wake on-screen virtual keyboard synchronously
         term.focus();
+        const textarea = container?.querySelector('textarea');
+        if (textarea) {
+          textarea.focus();
+        }
       }
     };
 
     if (container) {
-      container.addEventListener('touchstart', handleTouchStart, { passive: true });
+      container.addEventListener('touchstart', handleTouchStart, { passive: false });
       container.addEventListener('touchmove', handleTouchMove, { passive: false });
-      container.addEventListener('touchend', handleTouchEnd, { passive: true });
+      container.addEventListener('touchend', handleTouchEnd, { passive: false });
     }
 
     term.onData((data) => {
