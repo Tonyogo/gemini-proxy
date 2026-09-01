@@ -247,12 +247,14 @@ export default function WebTerminalView({
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
         wsRef.current.send(data);
       }
+      term.scrollToBottom();
     });
 
     let isMounted = true;
     const fitTimer = setTimeout(() => {
       if (isMounted && fitAddonRef.current && xtermRef.current) {
         fitAddonRef.current.fit();
+        xtermRef.current.scrollToBottom();
       }
     }, 50);
 
@@ -271,10 +273,11 @@ export default function WebTerminalView({
           left: `${vv.offsetLeft}px`,
           width: `${vv.width}px`,
           height: `${vv.height}px`,
+          maxHeight: `${vv.height}px`,
           zIndex: 50,
           borderRadius: 0,
           border: 'none',
-          maxHeight: '100%',
+          overflow: 'hidden',
         });
       } else {
         setViewportStyle({});
@@ -283,14 +286,21 @@ export default function WebTerminalView({
       if (fitAddonRef.current && xtermRef.current) {
         fitAddonRef.current.fit();
         sendResize(xtermRef.current.cols, xtermRef.current.rows);
+        xtermRef.current.scrollToBottom();
       }
     };
 
-    window.addEventListener('resize', updateViewport);
+    const handleViewportChange = () => {
+      updateViewport();
+      setTimeout(updateViewport, 120);
+      setTimeout(updateViewport, 300);
+    };
+
+    window.addEventListener('resize', handleViewportChange);
 
     if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', updateViewport);
-      window.visualViewport.addEventListener('scroll', updateViewport);
+      window.visualViewport.addEventListener('resize', handleViewportChange);
+      window.visualViewport.addEventListener('scroll', handleViewportChange);
     }
 
     updateViewport();
@@ -302,10 +312,10 @@ export default function WebTerminalView({
         container.removeEventListener('touchstart', handleTouchStart);
         container.removeEventListener('touchmove', handleTouchMove);
       }
-      window.removeEventListener('resize', updateViewport);
+      window.removeEventListener('resize', handleViewportChange);
       if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', updateViewport);
-        window.visualViewport.removeEventListener('scroll', updateViewport);
+        window.visualViewport.removeEventListener('resize', handleViewportChange);
+        window.visualViewport.removeEventListener('scroll', handleViewportChange);
       }
       if (wsRef.current) {
         wsRef.current.close();
@@ -321,6 +331,7 @@ export default function WebTerminalView({
       localStorage.setItem('terminal_font_size', fontSize.toString());
       fitAddonRef.current.fit();
       sendResize(xtermRef.current.cols, xtermRef.current.rows);
+      xtermRef.current.scrollToBottom();
     }
   }, [fontSize, sendResize]);
 
@@ -329,6 +340,7 @@ export default function WebTerminalView({
       wsRef.current.send(data);
     }
     xtermRef.current?.focus();
+    xtermRef.current?.scrollToBottom();
   };
 
   const handleRunCommand = (cmd: string, execute: boolean) => {
@@ -339,6 +351,7 @@ export default function WebTerminalView({
   const handleToggleKeyboard = () => {
     if (xtermRef.current) {
       xtermRef.current.focus();
+      xtermRef.current.scrollToBottom();
     }
   };
 
