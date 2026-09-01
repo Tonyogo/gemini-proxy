@@ -19,7 +19,8 @@ import {
   Sparkles,
   Zap,
   Menu,
-  X
+  X,
+  Maximize2
 } from 'lucide-react';
 import DashboardView from './components/DashboardView';
 import AccountsView from './components/AccountsView';
@@ -500,6 +501,17 @@ export default function App() {
 
           {/* Right Action Controls */}
           <div className="flex items-center space-x-1 sm:space-x-2 shrink-0">
+            {/* Mobile Terminal Fullscreen Trigger */}
+            {activeTab === 'webTerminal' && (
+              <button
+                onClick={handleEnterStandalone}
+                title={t('webTerminal.fullscreen')}
+                className="p-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 rounded-lg text-xs text-indigo-300 hover:text-white transition-all md:hidden active:scale-95"
+              >
+                <Maximize2 className="w-3.5 h-3.5" />
+              </button>
+            )}
+
             {/* Refresh Button */}
             <button
               onClick={handleRefresh}
@@ -548,7 +560,7 @@ export default function App() {
         {/* Main View Workspace */}
         <main className={`flex-1 overflow-x-hidden ${
           activeTab === 'webTerminal'
-            ? 'p-0 md:p-6 pb-14 md:pb-6 flex flex-col min-h-0 overflow-hidden'
+            ? 'p-0 md:p-6 pb-0 md:pb-6 flex flex-col min-h-0 h-[calc(100dvh-3rem-3.5rem)] max-h-[calc(100dvh-3rem-3.5rem)] md:h-auto md:max-h-none overflow-hidden'
             : 'p-2.5 sm:p-4 md:p-6 pb-20 md:pb-6'
         }`}>
           {activeTab === 'dashboard' && (
