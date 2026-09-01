@@ -24,7 +24,7 @@
 **Interfaces:**
 - Produces: Flexible, unconstrained root wrapper for standalone terminal mode.
 
-- [ ] **Step 1: Update `App.tsx` standalone wrapper styles**
+- [x] **Step 1: Update `App.tsx` standalone wrapper styles**
 
 In `frontend/src/App.tsx`:
 Change the standalone wrapper from `h-screen w-screen` to `fixed inset-0 z-50 w-full h-full bg-[#07090E] overflow-hidden`:
@@ -44,12 +44,12 @@ Change the standalone wrapper from `h-screen w-screen` to `fixed inset-0 z-50 w-
   }
 ```
 
-- [ ] **Step 2: Verify build**
+- [x] **Step 2: Verify build**
 
 Run: `cd frontend && npm run build && cd ..`
 Expected: PASS
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add frontend/src/App.tsx
@@ -66,7 +66,7 @@ git commit -m "fix(terminal): make standalone terminal root container fill dynam
 **Interfaces:**
 - Produces: `updateViewport` with `scrollToBottom()`, multi-stage animation timeouts (`0ms`, `120ms`, `300ms`), and auto-scroll on inputs/focus.
 
-- [ ] **Step 1: Update `WebTerminalView.tsx` viewport and scroll behavior**
+- [x] **Step 1: Update `WebTerminalView.tsx` viewport and scroll behavior**
 
 In `frontend/src/components/WebTerminalView.tsx`:
 1. In `updateViewport()`:
@@ -116,12 +116,12 @@ if (window.visualViewport) {
 3. In `handleSendInput`, `handleToggleKeyboard`, and `term.onData`:
 Call `xtermRef.current?.scrollToBottom()` so the cursor line is always visible.
 
-- [ ] **Step 2: Verify build**
+- [x] **Step 2: Verify build**
 
 Run: `cd frontend && npm run build && cd ..`
 Expected: PASS
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add frontend/src/components/WebTerminalView.tsx
@@ -135,12 +135,12 @@ git commit -m "fix(terminal): ensure terminal cursor auto-scrolls into view abov
 **Files:**
 - All components and build verification.
 
-- [ ] **Step 1: Run complete backend test suite**
+- [x] **Step 1: Run complete backend test suite**
 
 Run: `npm test`
 Expected: 24 test suites pass.
 
-- [ ] **Step 2: Run complete project build**
+- [x] **Step 2: Run complete project build**
 
 Run: `npm run build`
 Expected: Zero errors.
