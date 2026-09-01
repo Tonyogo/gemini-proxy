@@ -329,6 +329,8 @@ export const zh: Translations = {
     clear: "清屏",
     fullscreen: "全屏",
     exitFullscreen: "退出全屏",
+    backToDashboard: "返回控制台",
+    exitStandalone: "退出独立终端",
     fontSize: "字号",
     snippets: "快捷命令",
     snippetsTitle: "运维快捷命令库",

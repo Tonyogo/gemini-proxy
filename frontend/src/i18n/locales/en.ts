@@ -327,6 +327,8 @@ export const en = {
     clear: "Clear",
     fullscreen: "Fullscreen",
     exitFullscreen: "Exit Fullscreen",
+    backToDashboard: "Back to Dashboard",
+    exitStandalone: "Exit Standalone",
     fontSize: "Font Size",
     snippets: "Snippets",
     snippetsTitle: "Quick Command Snippets",

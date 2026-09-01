@@ -49,18 +49,54 @@ const NAV_ITEMS: NavItem[] = [
 
 const VALID_TABS: TabType[] = ['dashboard', 'accounts', 'logs', 'terminal', 'webTerminal', 'playground'];
 
+const isTerminalRoute = (): boolean => {
+  return (
+    window.location.pathname === '/terminal' ||
+    window.location.pathname.startsWith('/terminal/') ||
+    window.location.hash === '#/terminal' ||
+    window.location.hash === '#terminal'
+  );
+};
+
 export default function App() {
   const { t, lang, setLang } = useTranslation();
   const [activeTab, setActiveTab] = useState<TabType>(() => {
     const saved = localStorage.getItem('admin_active_tab') as TabType;
     return VALID_TABS.includes(saved) ? saved : 'dashboard';
   });
+  const [isStandaloneTerminal, setIsStandaloneTerminal] = useState<boolean>(() => isTerminalRoute());
   const [adminKey, setAdminKey] = useState(localStorage.getItem('adminKey') || '');
   const [inputKey, setInputKey] = useState(localStorage.getItem('adminKey') || '');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [authError, setAuthError] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setIsStandaloneTerminal(isTerminalRoute());
+    };
+    window.addEventListener('popstate', handlePopState);
+    window.addEventListener('hashchange', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('hashchange', handlePopState);
+    };
+  }, []);
+
+  const handleExitStandalone = () => {
+    setIsStandaloneTerminal(false);
+    if (window.location.pathname === '/terminal' || window.location.pathname.startsWith('/terminal/')) {
+      window.history.replaceState(null, '', '/');
+    } else if (window.location.hash === '#/terminal' || window.location.hash === '#terminal') {
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  };
+
+  const handleEnterStandalone = () => {
+    setIsStandaloneTerminal(true);
+    window.history.replaceState(null, '', '#/terminal');
+  };
 
   // Sidebar Collapse State (Desktop)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
@@ -267,6 +303,20 @@ export default function App() {
             )}
           </p>
         </div>
+      </div>
+    );
+  }
+
+  // Standalone Fullscreen Terminal Mode (Zero DOM bleed)
+  if (isStandaloneTerminal) {
+    return (
+      <div className="fixed inset-0 z-50 h-screen w-screen bg-[#07090E] overflow-hidden">
+        <WebTerminalView
+          key={refreshTrigger}
+          adminKey={adminKey}
+          standalone={true}
+          onExitStandalone={handleExitStandalone}
+        />
       </div>
     );
   }
@@ -529,6 +579,10 @@ export default function App() {
             <WebTerminalView
               key={refreshTrigger}
               adminKey={adminKey}
+              standalone={false}
+              onToggleStandalone={(val) => {
+                if (val) handleEnterStandalone();
+              }}
             />
           )}
           {activeTab === 'playground' && (
