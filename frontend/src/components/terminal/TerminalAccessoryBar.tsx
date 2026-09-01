@@ -80,6 +80,7 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
         {/* Modifier: ESC */}
         <button
           type="button"
+          onTouchStart={(e) => e.preventDefault()}
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => onSendInput('\x1b')}
           className="px-2.5 py-1 rounded-lg bg-white/[0.05] hover:bg-white/[0.12] active:scale-95 text-slate-300 hover:text-white font-mono text-xs font-semibold border border-white/[0.08] transition-all shadow-sm"
@@ -90,6 +91,7 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
         {/* Modifier: TAB */}
         <button
           type="button"
+          onTouchStart={(e) => e.preventDefault()}
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => onSendInput('\t')}
           className="px-2.5 py-1 rounded-lg bg-white/[0.05] hover:bg-white/[0.12] active:scale-95 text-slate-300 hover:text-white font-mono text-xs font-semibold border border-white/[0.08] transition-all shadow-sm"
@@ -100,6 +102,7 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
         {/* Sticky Modifier: CTRL */}
         <button
           type="button"
+          onTouchStart={(e) => e.preventDefault()}
           onMouseDown={(e) => e.preventDefault()}
           onClick={onToggleCtrl}
           className={`px-2.5 py-1 rounded-lg font-mono text-xs font-semibold border transition-all shadow-sm active:scale-95 ${
@@ -114,6 +117,7 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
         {/* Sticky Modifier: ALT */}
         <button
           type="button"
+          onTouchStart={(e) => e.preventDefault()}
           onMouseDown={(e) => e.preventDefault()}
           onClick={onToggleAlt}
           className={`px-2.5 py-1 rounded-lg font-mono text-xs font-semibold border transition-all shadow-sm active:scale-95 ${
@@ -128,6 +132,7 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
         {/* Action: Ctrl+C */}
         <button
           type="button"
+          onTouchStart={(e) => e.preventDefault()}
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => onSendInput('\x03')}
           className="px-2 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 active:scale-95 text-rose-400 font-mono text-xs font-semibold border border-rose-500/30 transition-all"
@@ -139,6 +144,7 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
         {/* Action: Ctrl+D */}
         <button
           type="button"
+          onTouchStart={(e) => e.preventDefault()}
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => onSendInput('\x04')}
           className="px-2 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 active:scale-95 text-amber-400 font-mono text-xs font-semibold border border-amber-500/30 transition-all"
@@ -150,6 +156,7 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
         {/* Action: Ctrl+L */}
         <button
           type="button"
+          onTouchStart={(e) => e.preventDefault()}
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => onSendInput('\x0c')}
           className="px-2 py-1 rounded-lg bg-white/[0.05] hover:bg-white/[0.12] active:scale-95 text-slate-300 font-mono text-xs font-semibold border border-white/[0.08] transition-all"
@@ -158,11 +165,12 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
           ^L
         </button>
 
-        {/* Quick Characters: |, /, -, ~, $, \\ */}
-        {['|', '/', '-', '~', '$', '\\'].map((char) => (
+        {/* Quick Characters: :, |, /, -, ~, $, \\ */}
+        {[':', '|', '/', '-', '~', '$', '\\'].map((char) => (
           <button
             key={char}
             type="button"
+            onTouchStart={(e) => e.preventDefault()}
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => handleKeyClick(char, char)}
             className="w-7 h-7 rounded-lg bg-white/[0.04] hover:bg-white/[0.1] active:scale-95 text-slate-300 font-mono text-xs flex items-center justify-center border border-white/[0.06] transition-all"
@@ -171,9 +179,22 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
           </button>
         ))}
 
+        {/* Quick Enter Key */}
+        <button
+          type="button"
+          onTouchStart={(e) => e.preventDefault()}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => onSendInput('\r')}
+          className="px-2 py-1 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 active:scale-95 text-indigo-300 font-mono text-xs font-semibold border border-indigo-500/30 transition-all shadow-sm"
+          title="Enter (Return)"
+        >
+          ↵
+        </button>
+
         {/* Arrow Keys: Up, Down, Left, Right */}
         <button
           type="button"
+          onTouchStart={(e) => e.preventDefault()}
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => onSendInput('\x1b[A')}
           className="w-7 h-7 rounded-lg bg-white/[0.05] hover:bg-white/[0.12] active:scale-95 text-slate-300 flex items-center justify-center border border-white/[0.08] transition-all"
@@ -183,6 +204,7 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
         </button>
         <button
           type="button"
+          onTouchStart={(e) => e.preventDefault()}
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => onSendInput('\x1b[B')}
           className="w-7 h-7 rounded-lg bg-white/[0.05] hover:bg-white/[0.12] active:scale-95 text-slate-300 flex items-center justify-center border border-white/[0.08] transition-all"
@@ -192,6 +214,7 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
         </button>
         <button
           type="button"
+          onTouchStart={(e) => e.preventDefault()}
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => onSendInput('\x1b[D')}
           className="w-7 h-7 rounded-lg bg-white/[0.05] hover:bg-white/[0.12] active:scale-95 text-slate-300 flex items-center justify-center border border-white/[0.08] transition-all"
@@ -201,6 +224,7 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
         </button>
         <button
           type="button"
+          onTouchStart={(e) => e.preventDefault()}
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => onSendInput('\x1b[C')}
           className="w-7 h-7 rounded-lg bg-white/[0.05] hover:bg-white/[0.12] active:scale-95 text-slate-300 flex items-center justify-center border border-white/[0.08] transition-all"
@@ -214,6 +238,8 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
       <div className="flex items-center space-x-1 pl-1 border-l border-white/[0.08] shrink-0">
         <button
           type="button"
+          onTouchStart={(e) => e.preventDefault()}
+          onMouseDown={(e) => e.preventDefault()}
           onClick={onOpenSnippets}
           className="px-2 py-1 rounded-lg bg-gradient-to-r from-indigo-500/20 to-purple-500/20 hover:from-indigo-500/30 hover:to-purple-500/30 text-indigo-300 border border-indigo-500/30 flex items-center space-x-1 text-xs font-medium transition-all shadow-sm active:scale-95"
           title={t('webTerminal.snippets')}
@@ -224,6 +250,8 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
 
         <button
           type="button"
+          onTouchStart={(e) => e.preventDefault()}
+          onMouseDown={(e) => e.preventDefault()}
           onClick={onToggleKeyboard}
           className="p-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.12] text-slate-300 border border-white/[0.08] transition-all active:scale-95"
           title="Toggle Keyboard Focus"
