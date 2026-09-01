@@ -245,6 +245,16 @@ export default function WebTerminalView({
     term.loadAddon(webLinksAddon);
     term.open(terminalContainerRef.current);
 
+    // Code-server mobile textarea optimization
+    const helperTextarea = terminalContainerRef.current.querySelector('textarea');
+    if (helperTextarea) {
+      helperTextarea.setAttribute('autocapitalize', 'none');
+      helperTextarea.setAttribute('autocomplete', 'off');
+      helperTextarea.setAttribute('autocorrect', 'off');
+      helperTextarea.setAttribute('spellcheck', 'false');
+      helperTextarea.setAttribute('tabindex', '0');
+    }
+
     xtermRef.current = term;
     fitAddonRef.current = fitAddon;
 

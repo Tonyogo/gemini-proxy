@@ -159,7 +159,7 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
         </button>
 
         {/* Quick Characters: :, |, /, -, ~, $, \\ */}
-        {[':', '|', '/', '-', '~', '$', '\\'].map((char) => (
+        {[':', 'i', 'w', 'q', '|', '/', '-', '~', '$', '\\'].map((char) => (
           <button
             key={char}
             type="button"
@@ -170,6 +170,28 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
             {char}
           </button>
         ))}
+
+        {/* Quick Vim Save & Quit (:wq) */}
+        <button
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => onSendInput(':wq\r')}
+          className="px-2 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 active:scale-95 text-emerald-300 font-mono text-[11px] font-semibold border border-emerald-500/30 transition-all"
+          title="Vim: Save & Quit (:wq)"
+        >
+          :wq
+        </button>
+
+        {/* Quick Vim Force Quit (:q!) */}
+        <button
+          type="button"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => onSendInput(':q!\r')}
+          className="px-2 py-1 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 active:scale-95 text-rose-300 font-mono text-[11px] font-semibold border border-rose-500/30 transition-all"
+          title="Vim: Force Quit (:q!)"
+        >
+          :q!
+        </button>
 
         {/* Quick Enter Key */}
         <button
