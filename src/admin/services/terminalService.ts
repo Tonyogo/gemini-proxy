@@ -14,7 +14,6 @@ export interface TerminalSessionOptions {
 function ensureSpawnHelperPermissions(): void {
   if (os.platform() === 'win32') return;
   try {
-    // Check multiple candidate locations for node-pty prebuilds (development src/ vs production dist/src/)
     const candidateDirs = [
       path.resolve(__dirname, '../../../node_modules/node-pty/prebuilds'),
       path.resolve(__dirname, '../../../../node_modules/node-pty/prebuilds'),
@@ -73,4 +72,136 @@ export function spawnTerminalSession(options: TerminalSessionOptions = {}): pty.
   });
 
   return ptyProcess;
+}
+
+export class PersistentTerminalSession {
+  private ptyProcess: pty.IPty | null = null;
+  private historyBuffer: string[] = [];
+  private totalBufferSize: number = 0;
+  private maxBufferSize: number = 1024 * 1024; // 1MB
+  private activeSockets: Set<any> = new Set();
+  private cols: number = 80;
+  private rows: number = 24;
+
+  constructor() {
+    this.ensureProcess();
+  }
+
+  private ensureProcess(): void {
+    if (this.ptyProcess) return;
+
+    try {
+      this.ptyProcess = spawnTerminalSession({ cols: this.cols, rows: this.rows });
+
+      this.ptyProcess.onData((data: string) => {
+        this.appendHistory(data);
+        for (const ws of this.activeSockets) {
+          try {
+            if (ws.readyState === 1) { // WebSocket.OPEN
+              ws.send(data);
+            }
+          } catch {
+            // Ignore socket write errors
+          }
+        }
+      });
+
+      this.ptyProcess.onExit((exitCode: { exitCode: number; signal?: number }) => {
+        logger.info(`[PersistentTerminal] Shell process exited with code ${exitCode.exitCode}`);
+        for (const ws of this.activeSockets) {
+          try {
+            if (ws.readyState === 1) {
+              ws.send(JSON.stringify({ type: 'status', event: 'exit', code: exitCode.exitCode }));
+            }
+          } catch {
+            // Ignore
+          }
+        }
+        this.ptyProcess = null;
+        this.historyBuffer = [];
+        this.totalBufferSize = 0;
+      });
+    } catch (err: any) {
+      logger.error(`[PersistentTerminal] Failed to spawn PTY: ${err.message}`);
+    }
+  }
+
+  private appendHistory(data: string): void {
+    this.historyBuffer.push(data);
+    this.totalBufferSize += data.length;
+
+    while (this.totalBufferSize > this.maxBufferSize && this.historyBuffer.length > 0) {
+      const removed = this.historyBuffer.shift();
+      if (removed) {
+        this.totalBufferSize -= removed.length;
+      }
+    }
+  }
+
+  public attach(ws: any): void {
+    this.ensureProcess();
+    this.activeSockets.add(ws);
+
+    // Replay buffer to newly attached socket
+    if (this.historyBuffer.length > 0 && ws.readyState === 1) {
+      const combinedHistory = this.historyBuffer.join('');
+      ws.send(combinedHistory);
+    }
+  }
+
+  public detach(ws: any): void {
+    this.activeSockets.delete(ws);
+  }
+
+  public write(data: string): void {
+    this.ensureProcess();
+    if (this.ptyProcess) {
+      this.ptyProcess.write(data);
+    }
+  }
+
+  public resize(cols: number, rows: number): void {
+    this.cols = cols;
+    this.rows = rows;
+    if (this.ptyProcess) {
+      try {
+        this.ptyProcess.resize(cols, rows);
+      } catch (err: any) {
+        logger.warn(`[PersistentTerminal] Resize failed: ${err.message}`);
+      }
+    }
+  }
+
+  public reset(): void {
+    if (this.ptyProcess) {
+      try {
+        this.ptyProcess.kill();
+      } catch {
+        // Ignore kill error
+      }
+      this.ptyProcess = null;
+    }
+    this.historyBuffer = [];
+    this.totalBufferSize = 0;
+    this.ensureProcess();
+  }
+
+  public getHistory(): string {
+    return this.historyBuffer.join('');
+  }
+
+  public replayTo(target: { send: (data: string) => void }): void {
+    if (this.historyBuffer.length > 0) {
+      target.send(this.historyBuffer.join(''));
+    }
+  }
+}
+
+let defaultSessionInstance: PersistentTerminalSession | null = null;
+
+export function getDefaultTerminalSession(): PersistentTerminalSession {
+  if (!defaultSessionInstance) {
+    defaultSessionInstance = new PersistentTerminalSession();
+  }
+  return defaultSessionInstance;
 }
