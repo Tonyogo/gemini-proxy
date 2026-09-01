@@ -1,9 +1,8 @@
-import { getDefaultTerminalSession } from '../src/admin/services/terminalService';
+import { getDefaultTerminalSession, destroyDefaultTerminalSession } from '../src/admin/services/terminalService';
 
 describe('PersistentTerminalSession', () => {
   afterAll(() => {
-    const session = getDefaultTerminalSession();
-    session.reset();
+    destroyDefaultTerminalSession();
   });
 
   it('should maintain state and buffer output across attach/detach cycles', (done) => {

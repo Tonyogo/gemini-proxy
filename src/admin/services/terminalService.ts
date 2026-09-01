@@ -186,6 +186,20 @@ export class PersistentTerminalSession {
     this.ensureProcess();
   }
 
+  public destroy(): void {
+    if (this.ptyProcess) {
+      try {
+        this.ptyProcess.kill();
+      } catch {
+        // Ignore kill error
+      }
+      this.ptyProcess = null;
+    }
+    this.activeSockets.clear();
+    this.historyBuffer = [];
+    this.totalBufferSize = 0;
+  }
+
   public getHistory(): string {
     return this.historyBuffer.join('');
   }
@@ -204,4 +218,11 @@ export function getDefaultTerminalSession(): PersistentTerminalSession {
     defaultSessionInstance = new PersistentTerminalSession();
   }
   return defaultSessionInstance;
+}
+
+export function destroyDefaultTerminalSession(): void {
+  if (defaultSessionInstance) {
+    defaultSessionInstance.destroy();
+    defaultSessionInstance = null;
+  }
 }

@@ -2,6 +2,7 @@ import http from 'http';
 import WebSocket from 'ws';
 import express from 'express';
 import { setupTerminalWebSocket } from '../src/admin/routes/terminalWs';
+import { destroyDefaultTerminalSession } from '../src/admin/services/terminalService';
 import config from '../config/default';
 
 describe('Terminal WebSocket Gateway', () => {
@@ -20,6 +21,7 @@ describe('Terminal WebSocket Gateway', () => {
   });
 
   afterAll((done) => {
+    destroyDefaultTerminalSession();
     server.close(done);
   });
 
