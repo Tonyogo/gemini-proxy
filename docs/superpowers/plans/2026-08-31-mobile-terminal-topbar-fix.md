@@ -25,7 +25,7 @@
 **Interfaces:**
 - Produces: Dynamic `100dvh` layout bounds for `webTerminal` tab and mobile global header fullscreen trigger.
 
-- [ ] **Step 1: Update App.tsx Header and Main container**
+- [x] **Step 1: Update App.tsx Header and Main container**
 
 In `frontend/src/App.tsx`:
 1. In the global header's action buttons, add a fullscreen trigger button when `activeTab === 'webTerminal'`:
@@ -49,12 +49,12 @@ In `frontend/src/App.tsx`:
 }`}>
 ```
 
-- [ ] **Step 2: Verify build**
+- [x] **Step 2: Verify build**
 
 Run: `cd frontend && npm run build && cd ..`
 Expected: PASS
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add frontend/src/App.tsx
@@ -71,7 +71,7 @@ git commit -m "fix(ui): ensure mobile web terminal auto-fills screen without out
 **Interfaces:**
 - Produces: `shrink-0 sticky top-0 z-20` top window bar with tight responsive spacing on mobile.
 
-- [ ] **Step 1: Update WebTerminalView top window bar layout**
+- [x] **Step 1: Update WebTerminalView top window bar layout**
 
 In `frontend/src/components/WebTerminalView.tsx`:
 1. Ensure the outer container on mobile is `w-full h-full flex flex-col min-h-0 overflow-hidden`:
@@ -85,12 +85,12 @@ className={`mx-auto flex flex-col bg-[#07090E] border border-white/[0.08] overfl
 2. Set the top window bar to `shrink-0 bg-[#0C0E14] border-b border-white/[0.08] px-2.5 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between select-none z-10`:
 - macOS action dots, live status badge, and right action buttons (`ZoomOut`, `ZoomIn`, `RefreshCw`, `Trash2`, `Maximize2`) with compact button padding `p-1 sm:p-1.5` so all buttons fit cleanly on 375px screens.
 
-- [ ] **Step 2: Verify build**
+- [x] **Step 2: Verify build**
 
 Run: `cd frontend && npm run build && cd ..`
 Expected: PASS
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add frontend/src/components/WebTerminalView.tsx
@@ -104,12 +104,12 @@ git commit -m "fix(terminal): prevent double scrollbars in mobile fullscreen mod
 **Files:**
 - All affected components.
 
-- [ ] **Step 1: Run complete test suite**
+- [x] **Step 1: Run complete test suite**
 
 Run: `npm test`
 Expected: 24 test suites pass.
 
-- [ ] **Step 2: Run complete project build**
+- [x] **Step 2: Run complete project build**
 
 Run: `npm run build`
 Expected: Zero errors.
