@@ -16,6 +16,7 @@ import {
 import { useTranslation } from '../i18n/LanguageContext';
 import { TerminalAccessoryBar } from './terminal/TerminalAccessoryBar';
 import { TerminalSnippetsDrawer } from './terminal/TerminalSnippetsDrawer';
+import { isSyntheticTerminalReport } from '../utils/terminalFilter';
 
 interface WebTerminalViewProps {
   adminKey: string;
@@ -47,6 +48,8 @@ export default function WebTerminalView({
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef<boolean>(true);
   const isProcessExitedRef = useRef<boolean>(false);
+  const isReplayingRef = useRef<boolean>(true);
+  const replayTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const [fontSize, setFontSize] = useState<number>(() => {
     const saved = localStorage.getItem('terminal_font_size');
@@ -91,6 +94,7 @@ export default function WebTerminalView({
   const initWebSocket = useCallback(() => {
     clearReconnectTimers();
     isProcessExitedRef.current = false;
+    isReplayingRef.current = true;
 
     if (wsRef.current) {
       wsRef.current.close();
@@ -142,10 +146,24 @@ export default function WebTerminalView({
         if (data.length > 0) {
           console.debug('[WebTerminal] WS Recv Text:', JSON.stringify(data.slice(0, 50)), 'len:', data.length);
         }
-        xtermRef.current?.write(data);
+        xtermRef.current?.write(data, () => {
+          if (replayTimerRef.current) {
+            clearTimeout(replayTimerRef.current);
+          }
+          replayTimerRef.current = setTimeout(() => {
+            isReplayingRef.current = false;
+          }, 100);
+        });
       } else if (data instanceof ArrayBuffer) {
         console.debug('[WebTerminal] WS Recv Binary:', data.byteLength);
-        xtermRef.current?.write(new Uint8Array(data));
+        xtermRef.current?.write(new Uint8Array(data), () => {
+          if (replayTimerRef.current) {
+            clearTimeout(replayTimerRef.current);
+          }
+          replayTimerRef.current = setTimeout(() => {
+            isReplayingRef.current = false;
+          }, 100);
+        });
       }
     };
 
@@ -383,6 +401,11 @@ export default function WebTerminalView({
     }
 
     term.onData((data) => {
+      if (isReplayingRef.current && isSyntheticTerminalReport(data)) {
+        console.debug('[WebTerminal] Suppressed synthetic replay report:', JSON.stringify(data));
+        return;
+      }
+
       console.debug('[WebTerminal] term.onData dispatched:', JSON.stringify(data), 'len:', data.length, 'hex:', Array.from(data).map(c => c.charCodeAt(0).toString(16).padStart(2, '0')).join(' '));
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
         wsRef.current.send(data);
@@ -461,6 +484,9 @@ export default function WebTerminalView({
       isMountedRef.current = false;
       clearReconnectTimers();
       clearTimeout(fitTimer);
+      if (replayTimerRef.current) {
+        clearTimeout(replayTimerRef.current);
+      }
       resizeObserver.disconnect();
       if (container) {
         container.removeEventListener('touchstart', handleTouchStart);
