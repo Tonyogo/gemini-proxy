@@ -27,7 +27,7 @@
 **Interfaces:**
 - Produces: `isStandaloneTerminal` state in `App.tsx` controlled via URL route (`/terminal`, `#/terminal`) and toggle callbacks.
 
-- [ ] **Step 1: Update i18n translation keys in `en.ts` and `zh.ts`**
+- [x] **Step 1: Update i18n translation keys in `en.ts` and `zh.ts`**
 
 Update `frontend/src/i18n/locales/en.ts`:
 Add to `webTerminal`:
@@ -43,7 +43,7 @@ Add to `webTerminal`:
     exitStandalone: "退出独立终端",
 ```
 
-- [ ] **Step 2: Update `App.tsx` with Standalone Route & Fullscreen Switcher**
+- [x] **Step 2: Update `App.tsx` with Standalone Route & Fullscreen Switcher**
 
 Modify `frontend/src/App.tsx`:
 Add detection for `/terminal` or `#/terminal` route:
@@ -55,12 +55,12 @@ const isTerminalRoute = () => {
 Add `isStandaloneTerminal` state. When `isStandaloneTerminal` is true and user is authenticated:
 Render ONLY `<WebTerminalView adminKey={adminKey} standalone={true} onExitStandalone={() => setStandalone(false)} />` at the root, completely skipping sidebar, top bar, and bottom nav.
 
-- [ ] **Step 3: Test and build frontend**
+- [x] **Step 3: Test and build frontend**
 
 Run: `cd frontend && npm run build && cd ..`
 Expected: PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add frontend/src/i18n/locales/en.ts frontend/src/i18n/locales/zh.ts frontend/src/App.tsx
@@ -78,7 +78,7 @@ git commit -m "feat(ui): add standalone terminal route detection and layout isol
 - Consumes: `standalone?: boolean`, `onExitStandalone?: () => void`, `onToggleStandalone?: (val: boolean) => void`.
 - Produces: Standalone viewport with `ArrowLeft` back button, zero-bounce touch containment, and optional native `requestFullscreen`.
 
-- [ ] **Step 1: Update `WebTerminalView.tsx` with standalone props and UI**
+- [x] **Step 1: Update `WebTerminalView.tsx` with standalone props and UI**
 
 Modify `frontend/src/components/WebTerminalView.tsx`:
 - Accept props:
@@ -96,12 +96,12 @@ interface WebTerminalViewProps {
   - When toggling fullscreen in embedded mode, invoke `onToggleStandalone?.(true)` and `document.documentElement.requestFullscreen?.()`.
   - Lock `document.body` and `document.documentElement` styles on mount/unmount in standalone mode.
 
-- [ ] **Step 2: Verify build and touch ergonomics**
+- [x] **Step 2: Verify build and touch ergonomics**
 
 Run: `cd frontend && npm run build && cd ..`
 Expected: PASS
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add frontend/src/components/WebTerminalView.tsx
@@ -115,17 +115,17 @@ git commit -m "feat(terminal): implement pure standalone fullscreen view and bac
 **Files:**
 - Run complete verification tests and builds.
 
-- [ ] **Step 1: Run complete backend test suite**
+- [x] **Step 1: Run complete backend test suite**
 
 Run: `npm test`
 Expected: 24 test suites pass.
 
-- [ ] **Step 2: Run complete project build**
+- [x] **Step 2: Run complete project build**
 
 Run: `npm run build`
 Expected: Frontend and backend build cleanly with zero errors.
 
-- [ ] **Step 3: Commit all changes if any**
+- [x] **Step 3: Commit all changes if any**
 
 ```bash
 git status
