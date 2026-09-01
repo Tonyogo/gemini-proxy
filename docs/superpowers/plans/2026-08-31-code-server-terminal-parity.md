@@ -24,7 +24,7 @@
 **Interfaces:**
 - Produces: UTF-8 compliant shell environments for `node-pty`.
 
-- [ ] **Step 1: Update `spawnTerminalSession` in `src/admin/services/terminalService.ts`**
+- [x] **Step 1: Update `spawnTerminalSession` in `src/admin/services/terminalService.ts`**
 
 In `src/admin/services/terminalService.ts`:
 ```typescript
@@ -39,12 +39,12 @@ In `src/admin/services/terminalService.ts`:
   } as { [key: string]: string };
 ```
 
-- [ ] **Step 2: Run backend tests**
+- [x] **Step 2: Run backend tests**
 
 Run: `npm test`
 Expected: PASS
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/admin/services/terminalService.ts
@@ -63,7 +63,7 @@ git commit -m "fix(terminal): inject UTF-8 locale environment variables into PTY
 **Interfaces:**
 - Produces: Unambiguous control message parsing via `"JSON:"` prefix.
 
-- [ ] **Step 1: Update `src/admin/routes/terminalWs.ts`**
+- [x] **Step 1: Update `src/admin/routes/terminalWs.ts`**
 
 In `src/admin/routes/terminalWs.ts`:
 ```typescript
@@ -102,7 +102,7 @@ In `src/admin/routes/terminalWs.ts`:
     });
 ```
 
-- [ ] **Step 2: Update `WebTerminalView.tsx` control frame dispatches**
+- [x] **Step 2: Update `WebTerminalView.tsx` control frame dispatches**
 
 In `frontend/src/components/WebTerminalView.tsx`:
 1. In `sendResize`:
@@ -118,17 +118,17 @@ In `frontend/src/components/WebTerminalView.tsx`:
 wsRef.current.send(`JSON:${JSON.stringify({ type: 'reset' })}`);
 ```
 
-- [ ] **Step 3: Update `tests/terminalWs.test.ts`**
+- [x] **Step 3: Update `tests/terminalWs.test.ts`**
 
 In `tests/terminalWs.test.ts`:
 Update test control frame payload to `JSON:{"type":"resize","cols":100,"rows":30}`.
 
-- [ ] **Step 4: Verify test suite and build**
+- [x] **Step 4: Verify test suite and build**
 
 Run: `npm test && npm run build`
 Expected: PASS with zero errors.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/admin/routes/terminalWs.ts frontend/src/components/WebTerminalView.tsx tests/terminalWs.test.ts
@@ -142,12 +142,12 @@ git commit -m "fix(terminal): isolate JSON control frames with JSON prefix to av
 **Files:**
 - All components and builds.
 
-- [ ] **Step 1: Run complete backend test suite**
+- [x] **Step 1: Run complete backend test suite**
 
 Run: `npm test`
 Expected: 25 test suites pass.
 
-- [ ] **Step 2: Run complete project build**
+- [x] **Step 2: Run complete project build**
 
 Run: `npm run build`
 Expected: Zero build errors.
