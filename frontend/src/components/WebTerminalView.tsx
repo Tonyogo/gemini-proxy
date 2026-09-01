@@ -38,9 +38,15 @@ export default function WebTerminalView({
 
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isConnecting, setIsConnecting] = useState<boolean>(true);
+  const [reconnectCountdown, setReconnectCountdown] = useState<number>(0);
   const [isSnippetsOpen, setIsSnippetsOpen] = useState<boolean>(false);
   const [isCtrlActive, setIsCtrlActive] = useState<boolean>(false);
   const [isAltActive, setIsAltActive] = useState<boolean>(false);
+
+  const reconnectAttemptRef = useRef<number>(0);
+  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isMountedRef = useRef<boolean>(true);
+  const isProcessExitedRef = useRef<boolean>(false);
 
   const [fontSize, setFontSize] = useState<number>(() => {
     const saved = localStorage.getItem('terminal_font_size');
@@ -73,7 +79,18 @@ export default function WebTerminalView({
     }
   }, []);
 
+  const clearReconnectTimers = useCallback(() => {
+    if (countdownIntervalRef.current) {
+      clearInterval(countdownIntervalRef.current);
+      countdownIntervalRef.current = null;
+    }
+    setReconnectCountdown(0);
+  }, []);
+
   const initWebSocket = useCallback(() => {
+    clearReconnectTimers();
+    isProcessExitedRef.current = false;
+
     if (wsRef.current) {
       wsRef.current.close();
     }
@@ -91,6 +108,9 @@ export default function WebTerminalView({
     ws.onopen = () => {
       setIsConnecting(false);
       setIsConnected(true);
+      reconnectAttemptRef.current = 0;
+      clearReconnectTimers();
+
       if (xtermRef.current && fitAddonRef.current) {
         fitAddonRef.current.fit();
         sendResize(xtermRef.current.cols, xtermRef.current.rows);
@@ -105,7 +125,9 @@ export default function WebTerminalView({
             const parsed = JSON.parse(data);
             if (parsed.type === 'status' && parsed.event === 'exit') {
               xtermRef.current?.writeln('\r\n\x1b[33m[Process Completed]\x1b[0m\r\n');
+              isProcessExitedRef.current = true;
               setIsConnected(false);
+              clearReconnectTimers();
               return;
             }
           } catch {
@@ -116,16 +138,38 @@ export default function WebTerminalView({
       }
     };
 
-    ws.onclose = () => {
+    const triggerReconnect = () => {
       setIsConnecting(false);
       setIsConnected(false);
+
+      if (!isMountedRef.current || isProcessExitedRef.current) {
+        return;
+      }
+
+      clearReconnectTimers();
+      const delayMs = Math.min(15000, 1000 * Math.pow(2, reconnectAttemptRef.current));
+      let remaining = Math.ceil(delayMs / 1000);
+      setReconnectCountdown(remaining);
+      reconnectAttemptRef.current += 1;
+
+      countdownIntervalRef.current = setInterval(() => {
+        remaining -= 1;
+        setReconnectCountdown(remaining);
+        if (remaining <= 0) {
+          clearReconnectTimers();
+          initWebSocket();
+        }
+      }, 1000);
+    };
+
+    ws.onclose = () => {
+      triggerReconnect();
     };
 
     ws.onerror = () => {
-      setIsConnecting(false);
-      setIsConnected(false);
+      triggerReconnect();
     };
-  }, [adminKey, sendResize]);
+  }, [adminKey, clearReconnectTimers, sendResize]);
 
   // Lock body scroll and set overscroll-behavior when standalone is active
   useEffect(() => {
@@ -307,6 +351,8 @@ export default function WebTerminalView({
 
     return () => {
       isMounted = false;
+      isMountedRef.current = false;
+      clearReconnectTimers();
       clearTimeout(fitTimer);
       if (container) {
         container.removeEventListener('touchstart', handleTouchStart);
@@ -322,7 +368,7 @@ export default function WebTerminalView({
       }
       term.dispose();
     };
-  }, [standalone, sendResize]);
+  }, [standalone, sendResize, clearReconnectTimers]);
 
   // Sync font size change
   useEffect(() => {
@@ -355,8 +401,14 @@ export default function WebTerminalView({
     }
   };
 
+  const handleManualReconnect = () => {
+    reconnectAttemptRef.current = 0;
+    initWebSocket();
+  };
+
   const handleResetSession = () => {
     if (window.confirm(t('webTerminal.resetConfirm'))) {
+      reconnectAttemptRef.current = 0;
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
         wsRef.current.send(JSON.stringify({ type: 'reset' }));
       }
@@ -479,7 +531,7 @@ export default function WebTerminalView({
           {/* Reconnect */}
           <button
             type="button"
-            onClick={initWebSocket}
+            onClick={handleManualReconnect}
             className="p-1 sm:p-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-slate-400 hover:text-white border border-white/[0.06] transition-all"
             title={t('webTerminal.reconnect')}
           >
@@ -514,6 +566,27 @@ export default function WebTerminalView({
 
       {/* xterm.js Canvas Container */}
       <div className="flex-1 p-2 bg-[#090A0F] overflow-hidden min-h-0 relative">
+        {/* Floating Disconnect & Auto-Reconnect Toast */}
+        {!isConnected && !isConnecting && reconnectCountdown > 0 && (
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 flex items-center space-x-2.5 px-3.5 py-1.5 rounded-xl bg-[#160E12]/95 border border-rose-500/40 text-rose-300 text-xs backdrop-blur-md shadow-2xl animate-in fade-in slide-in-from-top-2 select-none">
+            <div className="relative flex items-center justify-center">
+              <span className="w-2 h-2 rounded-full bg-rose-500" />
+              <span className="absolute w-2 h-2 rounded-full bg-rose-500 animate-ping opacity-75" />
+            </div>
+            <span className="font-mono text-[11px]">
+              {t('webTerminal.reconnectCountdown', { count: reconnectCountdown.toString() }).replace('{count}', reconnectCountdown.toString())}
+            </span>
+            <button
+              type="button"
+              onClick={handleManualReconnect}
+              className="px-2 py-0.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 active:scale-95 text-white font-medium text-[11px] transition-all border border-rose-500/30 flex items-center space-x-1"
+            >
+              <RefreshCw className="w-3 h-3 text-rose-300" />
+              <span>{t('webTerminal.reconnectNow')}</span>
+            </button>
+          </div>
+        )}
+
         <div ref={terminalContainerRef} className="h-full w-full" />
       </div>
 
