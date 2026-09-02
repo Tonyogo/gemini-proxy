@@ -146,6 +146,10 @@ export const zh: Translations = {
   },
   logs: {
     title: "请求日志列表",
+    searchPlaceholder: "按模型 / 路径 / 文件名过滤...",
+    copyFilename: "复制文件名",
+    filenameCopied: "文件名已复制！",
+    fileLabel: "文件",
     refresh: "刷新",
     modelLabel: "模型",
     dateLabel: "日期",

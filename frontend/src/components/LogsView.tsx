@@ -59,6 +59,22 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
   const [copiedClaudeCurl, setCopiedClaudeCurl] = useState(false);
   const [copiedGeminiCurl, setCopiedGeminiCurl] = useState(false);
   const [copiedJson, setCopiedJson] = useState(false);
+  const [copiedFileIndex, setCopiedFileIndex] = useState<number | null>(null);
+  const [copiedDetailFile, setCopiedDetailFile] = useState(false);
+
+  const handleCopyFilename = (e: React.MouseEvent, filename: string, index: number) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(filename);
+    setCopiedFileIndex(index);
+    setTimeout(() => setCopiedFileIndex(null), 1500);
+  };
+  
+  const handleCopyDetailFilename = () => {
+    if (!selectedLog || !selectedLog.filename) return;
+    navigator.clipboard.writeText(selectedLog.filename);
+    setCopiedDetailFile(true);
+    setTimeout(() => setCopiedDetailFile(false), 1500);
+  };
 
   const fetchLogs = (forceAutoJump = false, customDate?: string, customHour?: string, pageNum = page, limitNum = limit) => {
     setLoading(true);
@@ -156,6 +172,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
       .then(data => {
         const enriched = {
           ...data,
+          filename: log.filename || data.filename,
           model: log.model || data.model || data.client_req?.model,
           isStream: data.isStream !== undefined ? data.isStream : (data.is_stream !== undefined ? data.is_stream : log.isStream)
         };
@@ -168,6 +185,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
           status: log.status || 200,
           duration: log.duration,
           path: log.reqPath || '/v1/messages',
+          filename: log.filename,
           model: log.model,
           is_stream: log.isStream,
           client_req: {
@@ -243,7 +261,9 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
         const model = (log.model || '').toLowerCase();
         const path = (log.reqPath || log.path || '').toLowerCase();
         const filename = (log.filename || '').toLowerCase();
-        if (!model.includes(query) && !path.includes(query) && !filename.includes(query)) {
+        const logId = (log.filename || '').replace(/\.json$/, '').replace(/^\d{4}_/, '').replace(/^transaction_/, '').toLowerCase();
+
+        if (!model.includes(query) && !path.includes(query) && !filename.includes(query) && !logId.includes(query)) {
           return false;
         }
       }
@@ -454,7 +474,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
             <div className="relative">
               <input
                 type="text"
-                placeholder="Filter model / path..."
+                placeholder={t('logs.searchPlaceholder', 'Filter model / path / filename...')}
                 value={searchFilter}
                 onChange={(e) => setSearchFilter(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-7 pr-2.5 py-1 text-[11px] text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono transition-colors"
@@ -579,9 +599,22 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
 
                     {/* Row 2 (Bottom) */}
                     <div className="flex items-center justify-between mt-1.5 font-mono text-[10px]">
-                      <span className="text-slate-500 text-[9px] truncate" title={log.filename}>
-                        {displayId}
-                      </span>
+                      <div
+                        className="flex items-center space-x-1 text-slate-500 hover:text-slate-300 transition-colors cursor-pointer group/file"
+                        onClick={(e) => { e.stopPropagation(); handleCopyFilename(e, log.filename || displayId, idx); }}
+                        title={t('logs.copyFilename', 'Copy filename')}
+                      >
+                        <span className="truncate max-w-[120px]">
+                          {displayId}
+                        </span>
+                        <span className="opacity-0 group-hover:opacity-100 group-hover/file:opacity-100 transition-opacity">
+                          {copiedFileIndex === idx ? (
+                            <Check className="w-3 h-3 text-emerald-400" />
+                          ) : (
+                            <Copy className="w-3 h-3" />
+                          )}
+                        </span>
+                      </div>
                       <div className="flex items-center space-x-1.5 shrink-0">
                         {log.isStream && (
                           <span className="px-1.5 py-0.5 rounded border text-[9px] font-bold bg-blue-500/10 text-blue-300 border-blue-500/20">
@@ -825,6 +858,22 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                 }`}>
                   {selectedLog.status} {selectedLog.status === 200 ? 'OK' : ''}
                 </span>
+              )}
+
+              {selectedLog.filename && (
+                <div
+                  onClick={handleCopyDetailFilename}
+                  className="flex items-center space-x-1.5 bg-slate-900 border border-slate-800 px-2 py-0.5 rounded-md text-slate-300 hover:border-slate-700 cursor-pointer transition-colors"
+                  title={t('logs.copyFilename', 'Copy filename')}
+                >
+                  <span className="text-slate-500 font-semibold">{t('logs.fileLabel', 'File')}:</span>
+                  <span>{selectedLog.filename}</span>
+                  {copiedDetailFile ? (
+                    <Check className="w-3 h-3 text-emerald-400 shrink-0" />
+                  ) : (
+                    <Copy className="w-3 h-3 text-slate-500 shrink-0" />
+                  )}
+                </div>
               )}
 
               {selectedLog.path && (

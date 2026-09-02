@@ -144,6 +144,10 @@ export const en = {
   },
   logs: {
     title: "Request Logs",
+    searchPlaceholder: "Filter model / path / filename...",
+    copyFilename: "Copy filename",
+    filenameCopied: "Filename copied!",
+    fileLabel: "File",
     refresh: "Refresh",
     modelLabel: "Model",
     dateLabel: "Date",
