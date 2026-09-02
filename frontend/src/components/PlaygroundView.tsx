@@ -470,7 +470,7 @@ export default function PlaygroundView() {
   return (
     <div className="max-w-7xl mx-auto space-y-4 flex flex-col font-sans min-h-[600px] md:h-[calc(100vh-6.5rem)]">
       {/* Top Controls Header Workbench */}
-      <div className="bg-[#0F1118]/90 backdrop-blur-md border border-white/[0.08] p-3.5 rounded-2xl shadow-xl flex flex-wrap items-center justify-between gap-3 relative z-30">
+      <div className="ui-card p-3.5 flex flex-wrap items-center justify-between gap-3 relative z-30">
         {/* Left Side: Brand badge & Key input */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 w-full lg:w-auto">
           <div className="flex items-center space-x-3">
@@ -498,7 +498,7 @@ export default function PlaygroundView() {
               value={apiKey}
               onChange={(e) => handleKeyChange(e.target.value)}
               placeholder={t('playground.apiKeyPlaceholder')}
-              className="bg-[#151824] border border-white/[0.08] rounded-xl pl-8 pr-2.5 py-1.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500/80 font-mono w-full transition-all"
+              className="ui-input pl-8 pr-2.5 py-1.5 w-full"
             />
           </div>
         </div>
@@ -506,7 +506,7 @@ export default function PlaygroundView() {
         {/* Right Side: Workbench Selectors & Actions */}
         <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto justify-between lg:justify-end">
           {/* Model Selector */}
-          <div className="flex items-center space-x-1.5 bg-[#151824] border border-white/[0.08] rounded-xl px-2.5 py-1 flex-1 sm:flex-none">
+          <div className="flex items-center space-x-1.5 ui-card-sub px-2.5 py-1 flex-1 sm:flex-none">
             <Sparkles className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
             <select
               value={selectedModel}
@@ -521,7 +521,7 @@ export default function PlaygroundView() {
           </div>
 
           {/* Endpoint selector */}
-          <div className="flex items-center space-x-1.5 bg-[#151824] border border-white/[0.08] rounded-xl px-2.5 py-1 flex-1 sm:flex-none">
+          <div className="flex items-center space-x-1.5 ui-card-sub px-2.5 py-1 flex-1 sm:flex-none">
             <Globe className="w-3.5 h-3.5 text-blue-400 shrink-0" />
             <select
               value={endpointOption}
@@ -556,7 +556,7 @@ export default function PlaygroundView() {
             )}
           </div>
 
-          {/* Stream Toggle Pill (Only relevant for non-custom /v1/messages) */}
+          {/* Stream Toggle Pill */}
           {endpointOption !== 'custom' && (
             <button
               type="button"
@@ -564,7 +564,7 @@ export default function PlaygroundView() {
               className={`px-2.5 py-1 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition-all border ${
                 isStreamChecked
                   ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.15)]'
-                  : 'bg-[#151824] border-white/[0.08] text-slate-400 hover:text-slate-200'
+                  : 'ui-btn-secondary text-slate-400 hover:text-slate-200'
               }`}
               title="Toggle stream: true/false in payload"
             >
@@ -574,12 +574,12 @@ export default function PlaygroundView() {
             </button>
           )}
 
-          {/* Quick Fill Presets Dropdown (Only relevant for non-custom endpoints) */}
+          {/* Quick Fill Presets Dropdown */}
           {endpointOption !== 'custom' && (
             <div className="relative" ref={presetsRef}>
               <button
                 onClick={() => setShowPresetsDropdown(!showPresetsDropdown)}
-                className="px-2.5 py-1 bg-[#151824] hover:bg-[#1C2030] border border-white/[0.08] hover:border-white/[0.15] text-slate-300 rounded-xl text-xs font-semibold transition-all flex items-center space-x-1.5"
+                className="px-2.5 py-1 ui-btn-secondary flex items-center space-x-1.5"
               >
                 <Sliders className="w-3.5 h-3.5 text-purple-400" />
                 <span>{t('playground.presetsBtn')}</span>
@@ -587,34 +587,34 @@ export default function PlaygroundView() {
               </button>
 
               {showPresetsDropdown && (
-                <div className="absolute right-0 mt-2 w-48 bg-[#0F1118] border border-white/[0.1] rounded-xl shadow-2xl z-50 py-1 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
+                <div className="absolute right-0 mt-2 w-48 ui-card p-1 z-50 animate-in fade-in zoom-in-95 duration-150">
                   <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-white/[0.06]">
                     {t('playground.presetsTitle')}
                   </div>
                   <button
                     onClick={() => handleSelectPreset('basicChat')}
-                    className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/[0.05] transition-colors flex items-center space-x-2"
+                    className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/[0.05] rounded-lg transition-colors flex items-center space-x-2"
                   >
                     <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
                     <span>{t('playground.presetBasicChat')}</span>
                   </button>
                   <button
                     onClick={() => handleSelectPreset('toolUse')}
-                    className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/[0.05] transition-colors flex items-center space-x-2"
+                    className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/[0.05] rounded-lg transition-colors flex items-center space-x-2"
                   >
                     <Code className="w-3.5 h-3.5 text-emerald-400" />
                     <span>{t('playground.presetToolUse')}</span>
                   </button>
                   <button
                     onClick={() => handleSelectPreset('vision')}
-                    className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/[0.05] transition-colors flex items-center space-x-2"
+                    className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/[0.05] rounded-lg transition-colors flex items-center space-x-2"
                   >
                     <Eye className="w-3.5 h-3.5 text-amber-400" />
                     <span>{t('playground.presetVision')}</span>
                   </button>
                   <button
                     onClick={() => handleSelectPreset('thinkingMode')}
-                    className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/[0.05] transition-colors flex items-center space-x-2"
+                    className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/[0.05] rounded-lg transition-colors flex items-center space-x-2"
                   >
                     <Flame className="w-3.5 h-3.5 text-rose-400" />
                     <span>{t('playground.presetThinking')}</span>
@@ -627,7 +627,7 @@ export default function PlaygroundView() {
           {/* Copy cURL */}
           <button
             onClick={handleCopyCurl}
-            className="px-2.5 py-1 bg-[#151824] hover:bg-[#1C2030] border border-white/[0.08] hover:border-white/[0.15] rounded-xl font-semibold text-xs text-slate-300 transition-colors flex items-center space-x-1.5"
+            className="px-2.5 py-1 ui-btn-secondary flex items-center space-x-1.5"
             title="Copy as cURL command"
           >
             {copiedCurl ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-slate-400" />}
@@ -643,17 +643,17 @@ export default function PlaygroundView() {
               }
               setShowConcurrentModal(true);
             }}
-            className="px-3 py-1 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-300 rounded-xl font-semibold text-xs transition-colors flex items-center space-x-1.5"
+            className="px-3 py-1 ui-btn-secondary text-purple-300 border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20 flex items-center space-x-1.5"
           >
             <Activity className="w-3.5 h-3.5 text-purple-400" />
             <span>{t('playground.concurrentTest')}</span>
           </button>
 
-          {/* Send Request Action Button with Glowing Gradient */}
+          {/* Send Request Action Button */}
           <button
             onClick={handleSend}
             disabled={loading}
-            className="px-4 py-1.5 bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-500 hover:from-indigo-600 hover:via-purple-700 hover:to-pink-600 disabled:opacity-50 text-white rounded-xl font-bold text-xs shadow-[0_0_20px_rgba(129,140,248,0.35)] transition-all flex items-center space-x-1.5 active:scale-95"
+            className="px-4 py-1.5 ui-btn-primary flex items-center space-x-1.5 disabled:opacity-50"
           >
             {loading ? (
               <>
@@ -671,14 +671,14 @@ export default function PlaygroundView() {
       </div>
 
       {/* Mobile Tab Switcher (Editor vs Response) */}
-      <div className="flex md:hidden bg-[#0F1118] p-1 rounded-xl border border-white/[0.08] text-xs font-semibold">
+      <div className="ui-tab-container md:hidden text-xs font-semibold">
         <button
           type="button"
           onClick={() => setMobileActiveTab('editor')}
-          className={`flex-1 py-1.5 rounded-lg flex items-center justify-center space-x-1.5 transition-all ${
+          className={`ui-tab-pill flex-1 py-1.5 flex items-center justify-center space-x-1.5 ${
             mobileActiveTab === 'editor'
-              ? 'bg-indigo-600 text-white shadow-md'
-              : 'text-slate-400 hover:text-slate-200'
+              ? 'ui-tab-pill-active'
+              : ''
           }`}
         >
           <Code className="w-3.5 h-3.5" />
@@ -687,10 +687,10 @@ export default function PlaygroundView() {
         <button
           type="button"
           onClick={() => setMobileActiveTab('response')}
-          className={`flex-1 py-1.5 rounded-lg flex items-center justify-center space-x-1.5 transition-all ${
+          className={`ui-tab-pill flex-1 py-1.5 flex items-center justify-center space-x-1.5 ${
             mobileActiveTab === 'response'
               ? 'bg-emerald-600 text-white shadow-md'
-              : 'text-slate-400 hover:text-slate-200'
+              : ''
           }`}
         >
           <Sparkles className="w-3.5 h-3.5" />
@@ -708,7 +708,7 @@ export default function PlaygroundView() {
       {/* Main Dual-Column Monaco Editor Layout */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 overflow-hidden min-h-[460px]">
         {/* Left Column: Request JSON Editor */}
-        <div className={`bg-[#0F1118]/80 backdrop-blur-md border border-white/[0.08] rounded-2xl p-3 sm:p-4 flex flex-col h-full overflow-hidden shadow-xl ${
+        <div className={`ui-card p-3 sm:p-4 flex flex-col h-full overflow-hidden ${
           mobileActiveTab !== 'editor' ? 'hidden md:flex' : 'flex'
         }`}>
           <div className="flex items-center justify-between pb-3 mb-2 border-b border-white/[0.06]">
@@ -725,7 +725,7 @@ export default function PlaygroundView() {
             <div className="flex items-center space-x-2">
               <button
                 onClick={handleFormatJson}
-                className="px-2 py-1 bg-[#151824] hover:bg-[#1C2030] border border-white/[0.08] hover:border-white/[0.15] rounded-lg text-[11px] text-slate-300 transition-colors flex items-center space-x-1"
+                className="px-2.5 py-1 ui-btn-secondary text-[11px] flex items-center space-x-1"
                 title="Format JSON payload"
               >
                 <AlignLeft className="w-3 h-3 text-indigo-400" />
@@ -733,7 +733,7 @@ export default function PlaygroundView() {
               </button>
               <button
                 onClick={handleResetJson}
-                className="px-2 py-1 bg-[#151824] hover:bg-[#1C2030] border border-white/[0.08] hover:border-white/[0.15] rounded-lg text-[11px] text-slate-400 hover:text-slate-200 transition-colors flex items-center space-x-1"
+                className="px-2.5 py-1 ui-btn-secondary text-[11px] text-slate-400 hover:text-slate-200 flex items-center space-x-1"
                 title="Reset to default payload"
               >
                 <RotateCcw className="w-3 h-3 text-slate-500" />
@@ -763,7 +763,7 @@ export default function PlaygroundView() {
         </div>
 
         {/* Right Column: Response Preview Panel */}
-        <div className={`bg-[#0F1118]/80 backdrop-blur-md border border-white/[0.08] rounded-2xl p-3 sm:p-4 flex flex-col h-full overflow-hidden shadow-xl ${
+        <div className={`ui-card p-3 sm:p-4 flex flex-col h-full overflow-hidden ${
           mobileActiveTab !== 'response' ? 'hidden md:flex' : 'flex'
         }`}>
           <div className="flex items-center justify-between pb-3 mb-2 border-b border-white/[0.06] gap-2 min-w-0">
@@ -808,14 +808,14 @@ export default function PlaygroundView() {
 
             {/* Right side: Clean 2-Mode Toggle & Copy */}
             <div className="flex items-center space-x-2 shrink-0">
-              <div className="flex bg-[#151824] p-0.5 rounded-xl border border-white/[0.08] text-xs shrink-0">
+              <div className="ui-tab-container text-xs shrink-0">
                 <button
                   type="button"
                   onClick={() => setViewMode('preview')}
-                  className={`px-2.5 py-1 rounded-lg font-semibold transition-all text-[11px] flex items-center space-x-1.5 ${
+                  className={`ui-tab-pill px-2.5 py-1 text-[11px] flex items-center space-x-1.5 ${
                     viewMode === 'preview'
-                      ? 'bg-emerald-600 text-white shadow'
-                      : 'text-slate-400 hover:text-slate-200'
+                      ? 'ui-tab-pill-active font-semibold'
+                      : ''
                   }`}
                   title="Render clean preview output"
                 >
@@ -825,10 +825,10 @@ export default function PlaygroundView() {
                 <button
                   type="button"
                   onClick={() => setViewMode('raw')}
-                  className={`px-2.5 py-1 rounded-lg font-semibold transition-all text-[11px] flex items-center space-x-1.5 ${
+                  className={`ui-tab-pill px-2.5 py-1 text-[11px] flex items-center space-x-1.5 ${
                     viewMode === 'raw'
-                      ? 'bg-emerald-600 text-white shadow'
-                      : 'text-slate-400 hover:text-slate-200'
+                      ? 'ui-tab-pill-active font-semibold'
+                      : ''
                   }`}
                   title="View raw transport string"
                 >
@@ -840,7 +840,7 @@ export default function PlaygroundView() {
               <button
                 type="button"
                 onClick={handleCopyResponse}
-                className="p-1.5 bg-[#151824] hover:bg-[#1C2030] border border-white/[0.08] hover:border-white/[0.15] rounded-xl text-slate-400 hover:text-white transition-colors shrink-0"
+                className="p-1.5 ui-btn-secondary shrink-0"
                 title="Copy response body"
               >
                 {copiedResponse ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
