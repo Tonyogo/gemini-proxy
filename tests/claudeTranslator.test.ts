@@ -349,6 +349,64 @@ describe('Claude to Gemini Tools Schema Sanitization', () => {
     expect(params.properties.mode.type).toEqual('STRING');
     expect(params.properties.mode.enum).toEqual(['strict']);
   });
+
+  it('translates exclusiveMinimum and exclusiveMaximum to shifted min/max and enhanced descriptions', () => {
+    const claudePayload = {
+      model: 'gemini-3.5-flash',
+      messages: [{ role: 'user', content: 'Use the tool.' }],
+      tools: [
+        {
+          name: 'set_thresholds',
+          description: 'Set numerical thresholds',
+          input_schema: {
+            type: 'object',
+            properties: {
+              count: {
+                type: 'integer',
+                exclusiveMinimum: 0,
+                exclusiveMaximum: 10,
+                description: 'Total item count'
+              },
+              rate: {
+                type: 'number',
+                exclusiveMinimum: 0.0,
+                exclusiveMaximum: 1.0
+              },
+              offset: {
+                type: 'integer',
+                minimum: 0,
+                exclusiveMaximum: 100,
+                description: 'Starting offset'
+              }
+            },
+            required: ['count', 'rate']
+          }
+        }
+      ]
+    } as any;
+
+    const result = translator.translateClaudeToGoogle(claudePayload);
+    const params = result.googleRequest.tools![0].functionDeclarations[0].parameters;
+
+    // Integer: exclusive bounds shifted by 1
+    expect(params.properties.count.type).toEqual('INTEGER');
+    expect(params.properties.count.minimum).toEqual(1);
+    expect(params.properties.count.maximum).toEqual(9);
+    expect(params.properties.count.description).toEqual('Total item count (must be > 0, must be < 10)');
+    expect(params.properties.count.exclusiveMinimum).toBeUndefined();
+    expect(params.properties.count.exclusiveMaximum).toBeUndefined();
+
+    // Number: boundaries retained as min/max
+    expect(params.properties.rate.type).toEqual('NUMBER');
+    expect(params.properties.rate.minimum).toEqual(0.0);
+    expect(params.properties.rate.maximum).toEqual(1.0);
+    expect(params.properties.rate.description).toEqual('(must be > 0, must be < 1)');
+
+    // Pre-existing minimum preserved
+    expect(params.properties.offset.minimum).toEqual(0);
+    expect(params.properties.offset.maximum).toEqual(99);
+    expect(params.properties.offset.description).toEqual('Starting offset (must be < 100)');
+  });
 });
 
 describe('Claude Tools Interaction Roundtrips (Complex and Multi-Turn)', () => {

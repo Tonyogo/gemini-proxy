@@ -93,6 +93,32 @@ class ClaudeTranslator {
           }
         }
       }
+
+      if (obj.exclusiveMinimum !== undefined || obj.exclusiveMaximum !== undefined) {
+        const isInteger = obj.type === 'integer' || (Array.isArray(obj.type) && obj.type.includes('integer'));
+        if (obj.exclusiveMinimum !== undefined && obj.minimum === undefined) {
+          result.minimum = isInteger ? obj.exclusiveMinimum + 1 : obj.exclusiveMinimum;
+        }
+        if (obj.exclusiveMaximum !== undefined && obj.maximum === undefined) {
+          result.maximum = isInteger ? obj.exclusiveMaximum - 1 : obj.exclusiveMaximum;
+        }
+
+        const clauses: string[] = [];
+        if (obj.exclusiveMinimum !== undefined) {
+          clauses.push(`must be > ${obj.exclusiveMinimum}`);
+        }
+        if (obj.exclusiveMaximum !== undefined) {
+          clauses.push(`must be < ${obj.exclusiveMaximum}`);
+        }
+
+        if (clauses.length > 0) {
+          if (obj.description) {
+            result.description = `${obj.description} (${clauses.join(', ')})`;
+          } else {
+            result.description = `(${clauses.join(', ')})`;
+          }
+        }
+      }
     }
 
     for (const key of Object.keys(obj)) {
@@ -108,6 +134,10 @@ class ClaudeTranslator {
 
       if (!isProperties && unsupportedKeys.includes(key)) {
         logger.debug(`[Translator] [Schema Sanitization] Stripping unsupported JSON Schema key '${key}' from parameter object.`);
+        continue;
+      }
+
+      if (key === "description" && !isProperties && result.description !== undefined) {
         continue;
       }
 
