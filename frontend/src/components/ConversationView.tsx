@@ -144,7 +144,7 @@ export default function ConversationView({ log }: ConversationViewProps) {
       )}
 
       {/* Messages Timeline */}
-      <div className="space-y-4">
+      <div className="space-y-5 pb-6">
         {conversationMessages.map((msg, idx) => (
           <MessageBubble key={idx} message={msg} />
         ))}

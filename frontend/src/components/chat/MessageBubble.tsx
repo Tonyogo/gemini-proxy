@@ -53,34 +53,36 @@ export default function MessageBubble({ message }: { message: ChatMessage }) {
   };
 
   return (
-    <div className={`flex flex-col mb-4 group ${isUser ? 'items-end' : 'items-start'}`}>
+    <div className={`flex flex-col mb-5 w-full group ${isUser ? 'items-end' : 'items-start'}`}>
       {/* Role Header */}
-      <div className={`flex items-center space-x-2 mb-1.5 text-[11px] font-mono ${isUser ? 'flex-row-reverse space-x-reverse' : ''}`}>
-        <div className={`w-6 h-6 rounded-lg flex items-center justify-center border shadow-sm ${
+      <div className={`flex items-center space-x-2 mb-1.5 text-[11px] font-mono select-none ${
+        isUser ? 'flex-row-reverse space-x-reverse' : ''
+      }`}>
+        <div className={`w-6 h-6 rounded-xl flex items-center justify-center border shadow-sm ${
           isUser
-            ? 'bg-indigo-600/20 border-indigo-500/40 text-indigo-300'
-            : 'bg-purple-600/20 border-purple-500/40 text-purple-300'
+            ? 'bg-indigo-500/20 border-indigo-400/40 text-indigo-300 shadow-[0_0_10px_rgba(99,102,241,0.25)]'
+            : 'bg-gradient-to-br from-purple-500/25 via-indigo-500/20 to-purple-500/10 border-purple-400/40 text-purple-300 shadow-[0_0_10px_rgba(168,85,247,0.25)]'
         }`}>
           {isUser ? <User className="w-3.5 h-3.5" /> : <Sparkles className="w-3.5 h-3.5" />}
         </div>
-        <span className="font-semibold text-slate-300">
+        <span className={`font-semibold ${isUser ? 'text-indigo-200' : 'text-purple-200'}`}>
           {isUser ? t('logs.user', 'User') : t('logs.assistant', 'Claude Assistant')}
         </span>
 
         <button
           onClick={handleCopyMessage}
           className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-500 hover:text-slate-300 p-1 rounded hover:bg-slate-800"
-          title="Copy message text"
+          title={t('logs.copyMessage', 'Copy message')}
         >
           {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
         </button>
       </div>
 
       {/* Bubble Container */}
-      <div className={`rounded-2xl p-4 border max-w-3xl w-full shadow-lg ${
+      <div className={`rounded-2xl p-4 sm:p-5 border shadow-xl transition-all ${
         isUser
-          ? 'bg-indigo-950/30 border-indigo-500/30 rounded-tr-sm text-indigo-50'
-          : 'bg-slate-900/90 border-slate-800 rounded-tl-sm text-slate-200'
+          ? 'w-fit max-w-[85%] bg-gradient-to-br from-indigo-950/60 via-[#0F1322] to-[#0A0C14] border-indigo-500/35 rounded-tr-xs text-slate-100 selection:bg-indigo-500 selection:text-white'
+          : 'w-full max-w-[92%] bg-[#0A0C13]/95 border-purple-500/25 border-l-purple-500/70 border-l-[3px] rounded-tl-xs text-slate-200 shadow-[0_4px_24px_rgba(0,0,0,0.7)]'
       }`}>
         <div className="space-y-3">
           {message.blocks.map((block, idx) => {
