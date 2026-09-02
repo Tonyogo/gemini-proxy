@@ -181,7 +181,7 @@ export default function TerminalLogsView({ adminKey }: { adminKey: string }) {
     <div className={`mx-auto flex flex-col bg-[#0A0C10] border border-white/[0.08] overflow-hidden shadow-2xl font-mono text-xs transition-all ${
       isFullscreen
         ? 'fixed inset-0 z-50 rounded-none h-screen w-screen'
-        : 'max-w-7xl h-[calc(100vh-140px)] min-h-[500px] rounded-2xl'
+        : 'w-full h-full md:max-w-7xl md:h-[calc(100vh-140px)] md:min-h-[500px] rounded-none md:rounded-2xl border-x-0 md:border-x border-t-0 md:border-t'
     }`}>
       {/* Top macOS / Linear style window toolbar */}
       <div className="bg-[#0F1118] border-b border-white/[0.08] px-3 sm:px-4 py-2 sm:py-2.5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 select-none">
