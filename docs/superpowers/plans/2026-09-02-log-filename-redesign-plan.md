@@ -33,7 +33,7 @@
 - Consumes: Replaces `generateTransactionId()` calls with `generateShortId()` in endpoints.
 - Produces: Files stored as `logs/YYYY-MM-DD/HH/mmss_ID.json`
 
-- [ ] **Step 1: Write `generateShortId` in `requestHelper.ts`**
+- [x] **Step 1: Write `generateShortId` in `requestHelper.ts`**
 
 In `src/utils/requestHelper.ts`, modify or replace `generateTransactionId`:
 ```typescript
@@ -50,7 +50,7 @@ export function generateTransactionId(): string {
 }
 ```
 
-- [ ] **Step 2: Update `claudeController.ts` to use short ID as transactionId**
+- [x] **Step 2: Update `claudeController.ts` to use short ID as transactionId**
 
 In `src/controllers/claudeController.ts`:
 Change line 22 from:
@@ -63,7 +63,7 @@ const transactionId = generateShortId();
 ```
 *Note: Make sure `generateShortId` is imported from `../utils/requestHelper`.*
 
-- [ ] **Step 3: Update `payloadLogger.ts` filename formatting**
+- [x] **Step 3: Update `payloadLogger.ts` filename formatting**
 
 In `src/services/payloadLogger.ts`, modify `_getTargetDirParts` to also return `minStr` and `secStr`:
 ```typescript
@@ -105,16 +105,16 @@ Update `saveTransaction` string formatting:
         // ...
 ```
 
-- [ ] **Step 4: Fix `tests/payloadLogger.test.ts` assertions**
+- [x] **Step 4: Fix `tests/payloadLogger.test.ts` assertions**
 
 Since the filename now relies on `minStr` and `secStr`, extract them inside the test, then assert against `${minStr}${secStr}_${testId}.json`.
 
-- [ ] **Step 5: Run tests to verify**
+- [x] **Step 5: Run tests to verify**
 
 Run: `npx jest tests/payloadLogger.test.ts`
 Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/utils/requestHelper.ts src/services/payloadLogger.ts src/controllers/claudeController.ts tests/payloadLogger.test.ts
@@ -132,7 +132,7 @@ git commit -m "feat(logger): redesign log filename format to mmss_ID.json"
 - Consumes: Raw files in `logs/`
 - Produces: Correct `LogIndexRecord` IDs fallback extraction.
 
-- [ ] **Step 1: Modify fallback parser in `logService.ts`**
+- [x] **Step 1: Modify fallback parser in `logService.ts`**
 
 In `src/admin/services/logService.ts` (around line 136):
 ```typescript
@@ -150,7 +150,7 @@ In `src/admin/services/logService.ts` (around line 136):
                 targetRecords.push({
 ```
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add src/admin/services/logService.ts
@@ -169,7 +169,7 @@ git commit -m "fix(logs): ensure logService fallback parser supports new mmss_ID
 **Interfaces:**
 - Consumes: Localized strings, user search input.
 
-- [ ] **Step 1: Add i18n keys**
+- [x] **Step 1: Add i18n keys**
 
 In `frontend/src/i18n/locales/zh.ts` (under `logs`):
 ```typescript
@@ -187,7 +187,7 @@ In `frontend/src/i18n/locales/en.ts` (under `logs`):
     fileLabel: "File",
 ```
 
-- [ ] **Step 2: Update `LogsView.tsx` Search Filter Logic**
+- [x] **Step 2: Update `LogsView.tsx` Search Filter Logic**
 
 In `LogsView.tsx`, update the memoized `filteredLogs`:
 ```tsx
@@ -205,7 +205,7 @@ In `LogsView.tsx`, update the memoized `filteredLogs`:
       }
 ```
 
-- [ ] **Step 3: Update `LogsView.tsx` Search Input UI**
+- [x] **Step 3: Update `LogsView.tsx` Search Input UI**
 
 Update the placeholder:
 ```tsx
@@ -214,7 +214,7 @@ Update the placeholder:
                 placeholder={t('logs.searchPlaceholder', 'Filter model / path / filename...')}
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add frontend/src/i18n/locales/en.ts frontend/src/i18n/locales/zh.ts frontend/src/components/LogsView.tsx
@@ -232,7 +232,7 @@ git commit -m "feat(ui): add filename filter capabilities to logs search input"
 - Consumes: `log.filename`
 - Produces: Clipboard copy action, stateful UI feedback (`Check` vs `Copy` icons).
 
-- [ ] **Step 1: Setup filename copy state & handler**
+- [x] **Step 1: Setup filename copy state & handler**
 
 In `LogsView.tsx` state declarations:
 ```tsx
@@ -254,7 +254,7 @@ In `LogsView.tsx` state declarations:
   };
 ```
 
-- [ ] **Step 2: Add copy icon to Master List Cards**
+- [x] **Step 2: Add copy icon to Master List Cards**
 
 In the Master List mapping `filteredLogs.map((log, idx) => {`, replace the bottom row display `displayId` area (around line 582):
 ```tsx
@@ -278,7 +278,7 @@ In the Master List mapping `filteredLogs.map((log, idx) => {`, replace the botto
                         </div>
 ```
 
-- [ ] **Step 3: Add File Badge to Detail Header Ribbon**
+- [x] **Step 3: Add File Badge to Detail Header Ribbon**
 
 In the Metadata Summary Header Ribbon (around line 818), add the new badge block:
 ```tsx
@@ -299,12 +299,12 @@ In the Metadata Summary Header Ribbon (around line 818), add the new badge block
               )}
 ```
 
-- [ ] **Step 4: Run full frontend build**
+- [x] **Step 4: Run full frontend build**
 
 Run: `npm run build:frontend`
 Expected: Successful compile.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src/components/LogsView.tsx
