@@ -82,3 +82,40 @@
     letter-spacing: -0.01em;
   }
 }
+
+@layer components {
+  /* 主卡片面板 */
+  .ui-card {
+    @apply bg-[#0C0E14]/90 border border-white/[0.08] rounded-2xl shadow-2xl backdrop-blur-md;
+  }
+
+  /* 内嵌子卡片 / 表格行 */
+  .ui-card-sub {
+    @apply bg-[#10121A]/80 border border-white/[0.06] rounded-xl shadow-sm;
+  }
+
+  /* 胶囊 Tab 切换容器与按键 */
+  .ui-tab-container {
+    @apply flex items-center p-1 bg-[#10121A] rounded-xl border border-white/[0.08] shadow-sm;
+  }
+  .ui-tab-pill {
+    @apply px-3 py-1.5 rounded-lg text-xs font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-white/[0.04];
+  }
+  .ui-tab-pill-active {
+    @apply bg-indigo-600 text-white shadow-[0_0_12px_rgba(99,102,241,0.35)];
+  }
+
+  /* 统一按钮系统 */
+  .ui-btn-primary {
+    @apply bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl font-medium text-xs shadow-[0_0_15px_rgba(99,102,241,0.25)] transition-all active:scale-[0.98];
+  }
+  .ui-btn-secondary {
+    @apply bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] hover:border-white/[0.15] text-slate-300 hover:text-white rounded-xl text-xs font-medium transition-all active:scale-[0.98];
+  }
+
+  /* 统一输入框与下拉框 */
+  .ui-input {
+    @apply bg-[#10121A] border border-white/[0.08] hover:border-white/[0.15] focus:border-indigo-500/80 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/40 font-mono transition-all;
+  }
+}
+
