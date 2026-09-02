@@ -728,7 +728,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
         {/* Stats Chips */}
         <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-2.5">
           {/* Total Accounts */}
-          <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl p-2 sm:px-3.5 sm:py-2 flex flex-col sm:flex-row items-start sm:items-center space-y-1 sm:space-y-0 sm:space-x-3">
+          <div className="ui-card-sub p-2 sm:px-3.5 sm:py-2 flex flex-col sm:flex-row items-start sm:items-center space-y-1 sm:space-y-0 sm:space-x-3">
             <div className="p-1.5 sm:p-2 rounded-lg bg-slate-800/60 text-slate-300 border border-white/[0.04]">
               <Users className="w-3.5 h-3.5" />
             </div>
@@ -741,7 +741,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
           </div>
 
           {/* Activated */}
-          <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl p-2 sm:px-3.5 sm:py-2 flex flex-col sm:flex-row items-start sm:items-center space-y-1 sm:space-y-0 sm:space-x-3">
+          <div className="ui-card-sub p-2 sm:px-3.5 sm:py-2 flex flex-col sm:flex-row items-start sm:items-center space-y-1 sm:space-y-0 sm:space-x-3">
             <div className="p-1.5 sm:p-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
               <CheckCircle2 className="w-3.5 h-3.5" />
             </div>
@@ -754,7 +754,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
           </div>
 
           {/* Activating */}
-          <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl p-2 sm:px-3.5 sm:py-2 flex flex-col sm:flex-row items-start sm:items-center space-y-1 sm:space-y-0 sm:space-x-3">
+          <div className="ui-card-sub p-2 sm:px-3.5 sm:py-2 flex flex-col sm:flex-row items-start sm:items-center space-y-1 sm:space-y-0 sm:space-x-3">
             <div className="p-1.5 sm:p-2 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
               <Sparkles className="w-3.5 h-3.5" />
             </div>
@@ -767,7 +767,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
           </div>
 
           {/* Retired */}
-          <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl p-2 sm:px-3.5 sm:py-2 flex flex-col sm:flex-row items-start sm:items-center space-y-1 sm:space-y-0 sm:space-x-3">
+          <div className="ui-card-sub p-2 sm:px-3.5 sm:py-2 flex flex-col sm:flex-row items-start sm:items-center space-y-1 sm:space-y-0 sm:space-x-3">
             <div className="p-1.5 sm:p-2 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
               <Clock className="w-3.5 h-3.5" />
             </div>
@@ -780,7 +780,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
           </div>
 
           {/* Inactive */}
-          <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl p-2 sm:px-3.5 sm:py-2 flex flex-col sm:flex-row items-start sm:items-center space-y-1 sm:space-y-0 sm:space-x-3">
+          <div className="ui-card-sub p-2 sm:px-3.5 sm:py-2 flex flex-col sm:flex-row items-start sm:items-center space-y-1 sm:space-y-0 sm:space-x-3">
             <div className="p-1.5 sm:p-2 rounded-lg bg-slate-800/50 text-slate-400 border border-slate-700/40">
               <Power className="w-3.5 h-3.5" />
             </div>
@@ -793,7 +793,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
           </div>
 
           {/* Disabled */}
-          <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl p-2 sm:px-3.5 sm:py-2 flex flex-col sm:flex-row items-start sm:items-center space-y-1 sm:space-y-0 sm:space-x-3">
+          <div className="ui-card-sub p-2 sm:px-3.5 sm:py-2 flex flex-col sm:flex-row items-start sm:items-center space-y-1 sm:space-y-0 sm:space-x-3">
             <div className="p-1.5 sm:p-2 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20">
               <AlertCircle className="w-3.5 h-3.5" />
             </div>
@@ -808,7 +808,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
       </div>
 
       {/* Action Toolbar */}
-      <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl p-3 sm:p-3.5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shadow-md">
+      <div className="ui-card p-3 sm:p-3.5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         {/* Left: Search & Filter */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1 min-w-0">
           {/* Search Input */}
@@ -819,7 +819,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
               placeholder={t('accounts.searchPlaceholder', '按序号或邮箱/标识搜索...')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[#141620] border border-white/[0.08] text-slate-200 text-xs rounded-lg pl-8 pr-7 py-1.5 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all placeholder:text-slate-500"
+              className="w-full ui-input pl-8 pr-7 py-1.5"
             />
             {searchQuery && (
               <button
@@ -836,7 +836,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full sm:w-auto bg-[#141620] border border-white/[0.08] text-slate-300 text-xs rounded-lg pl-3 pr-8 py-1.5 focus:outline-none focus:border-indigo-500/50 appearance-none cursor-pointer hover:border-white/[0.15] transition-all"
+              className="w-full sm:w-auto ui-input pl-3 pr-8 py-1.5 appearance-none cursor-pointer"
             >
               <option value="ALL">{t('accounts.filterAll', '全部状态')} ({totalCount})</option>
               <option value="ACTIVATED">{t('accounts.filterActivated', '已激活')} ({activatedCount})</option>
@@ -866,10 +866,10 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={actionLoading}
-            className="flex-1 sm:flex-none justify-center px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all shadow-[0_0_12px_rgba(99,102,241,0.15)] hover:shadow-[0_0_16px_rgba(99,102,241,0.25)] active:scale-95"
+            className="flex-1 sm:flex-none justify-center px-3 py-1.5 ui-btn-primary flex items-center space-x-1.5"
             title={t('accounts.importFiles')}
           >
-            <Upload className="w-3.5 h-3.5 text-indigo-400" />
+            <Upload className="w-3.5 h-3.5" />
             <span>{t('accounts.importFiles')}</span>
           </button>
 
@@ -877,7 +877,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
           <button
             onClick={() => setDedupConfirm(true)}
             disabled={actionLoading || accounts.length === 0}
-            className="flex-1 sm:flex-none justify-center px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 disabled:opacity-40 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition-all active:scale-95"
+            className="flex-1 sm:flex-none justify-center px-3 py-1.5 ui-btn-secondary disabled:opacity-40 flex items-center space-x-1.5 text-amber-300"
             title={t('accounts.deduplicate')}
           >
             <Layers className="w-3.5 h-3.5 text-amber-400" />
@@ -888,7 +888,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
           <button
             onClick={() => fetchStatus(false)}
             disabled={loading || actionLoading}
-            className="p-1.5 bg-[#141620] hover:bg-white/[0.06] text-slate-300 border border-white/[0.08] hover:border-white/[0.15] rounded-lg text-xs font-semibold transition-all active:scale-95 shrink-0"
+            className="p-1.5 ui-btn-secondary shrink-0"
             title={t('accounts.refresh')}
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-indigo-400' : 'text-slate-400'}`} />
@@ -897,7 +897,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
       </div>
 
       {/* Modern Data Table */}
-      <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl overflow-hidden shadow-2xl">
+      <div className="ui-card overflow-hidden">
         {loading && accounts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-slate-400 font-mono text-xs space-y-3">
             <div className="w-8 h-8 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div>
@@ -920,7 +920,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-white/[0.08] bg-[#141620] text-[11px] font-medium tracking-wider text-slate-400 uppercase select-none">
+                  <tr className="border-b border-white/[0.08] bg-[#10121A]/90 text-[11px] font-medium tracking-wider text-slate-400 uppercase select-none">
                     <th className="w-10 px-4 py-3 text-center">
                       <input
                         type="checkbox"
