@@ -33,7 +33,7 @@
 - Consumes: `AccountService.request('post', '/api/accounts/' + index + '/close-context')`
 - Produces: `POST /api/admin/accounts/:index/close-context` endpoint returning `{ status: number, data: any }`
 
-- [ ] **Step 1: Write failing unit test in `tests/accountController.test.ts`**
+- [x] **Step 1: Write failing unit test in `tests/accountController.test.ts`**
 
 Add test cases for `POST /api/admin/accounts/:index/close-context`:
 1. Valid index -> forwards to `accountService.closeContext(index)` and returns 200.
@@ -65,12 +65,12 @@ it('should return 400 for invalid index on closeContext', async () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/accountController.test.ts`
 Expected: FAIL (route / method not found)
 
-- [ ] **Step 3: Implement `closeContext` in Service, Controller, and Route**
+- [x] **Step 3: Implement `closeContext` in Service, Controller, and Route**
 
 In `src/admin/services/accountService.ts`:
 ```typescript
@@ -98,12 +98,12 @@ In `src/admin/routes/adminRoutes.ts`:
 router.post('/accounts/:index/close-context', (req, res) => accountController.closeContext(req, res));
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/accountController.test.ts`
 Expected: PASS (10/10 tests passed)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/admin/services/accountService.ts src/admin/controllers/accountController.ts src/admin/routes/adminRoutes.ts tests/accountController.test.ts
@@ -121,7 +121,7 @@ git commit -m "feat(admin): add POST /api/admin/accounts/:index/close-context en
 **Interfaces:**
 - Produces: `accounts.closeContext`, `accounts.contextAlreadyClosed`, `accounts.confirmCloseContextTitle`, `accounts.confirmCloseContextMessage`, `accounts.confirmCloseContextDesc`, `accounts.closeContextSuccess`
 
-- [ ] **Step 1: Add localization keys to `frontend/src/i18n/locales/zh.ts`**
+- [x] **Step 1: Add localization keys to `frontend/src/i18n/locales/zh.ts`**
 
 Inside `zh.accounts`:
 ```typescript
@@ -133,7 +133,7 @@ confirmCloseContextDesc: "关闭后将释放约 500MB~700MB 内存占用。后�
 closeContextSuccess: "账号 #{index} 的 Context 已成功释放。",
 ```
 
-- [ ] **Step 2: Add localization keys to `frontend/src/i18n/locales/en.ts`**
+- [x] **Step 2: Add localization keys to `frontend/src/i18n/locales/en.ts`**
 
 Inside `en.accounts`:
 ```typescript
@@ -145,12 +145,12 @@ confirmCloseContextDesc: "This will free ~500MB-700MB memory. A new context will
 closeContextSuccess: "Context for account #{index} has been released.",
 ```
 
-- [ ] **Step 3: Verify TypeScript compilation of locales**
+- [x] **Step 3: Verify TypeScript compilation of locales**
 
 Run: `npm run build:frontend`
 Expected: Successful compile or no locale typing errors.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add frontend/src/i18n/locales/en.ts frontend/src/i18n/locales/zh.ts
@@ -169,11 +169,11 @@ git commit -m "feat(i18n): add translations for close account context action"
 - Consumes: `t('accounts.closeContext')`, `t('accounts.confirmCloseContextTitle')`, etc.
 - Produces: Visual close context action buttons on desktop and mobile, and a confirmation modal.
 
-- [ ] **Step 1: Import `ZapOff` icon in `AccountsView.tsx`**
+- [x] **Step 1: Import `ZapOff` icon in `AccountsView.tsx`**
 
 Update `lucide-react` import list to include `ZapOff`.
 
-- [ ] **Step 2: Add `closeContextConfirm` state and handler function**
+- [x] **Step 2: Add `closeContextConfirm` state and handler function**
 
 Add state in `AccountsView`:
 ```typescript
@@ -205,7 +205,7 @@ const handleCloseContext = async (index: number) => {
 };
 ```
 
-- [ ] **Step 3: Add desktop table action button**
+- [x] **Step 3: Add desktop table action button**
 
 In the desktop table action buttons row (`<td className="px-4 py-3 text-right">`):
 ```tsx
@@ -224,7 +224,7 @@ In the desktop table action buttons row (`<td className="px-4 py-3 text-right">`
 </button>
 ```
 
-- [ ] **Step 4: Add mobile card action button**
+- [x] **Step 4: Add mobile card action button**
 
 In mobile card footer actions container:
 ```tsx
@@ -243,7 +243,7 @@ In mobile card footer actions container:
 </button>
 ```
 
-- [ ] **Step 5: Render confirmation modal via Portal**
+- [x] **Step 5: Render confirmation modal via Portal**
 
 Render `closeContextConfirm` dialog:
 ```tsx
@@ -303,12 +303,12 @@ Render `closeContextConfirm` dialog:
 )}
 ```
 
-- [ ] **Step 6: Run full frontend and backend build**
+- [x] **Step 6: Run full frontend and backend build**
 
 Run: `npm run build`
 Expected: PASS with 0 build errors.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add frontend/src/components/AccountsView.tsx
@@ -323,17 +323,17 @@ git commit -m "feat(accounts): add close context button and confirmation dialog"
 - Test: `tests/accountController.test.ts`
 - Whole project verification
 
-- [ ] **Step 1: Run all backend tests**
+- [x] **Step 1: Run all backend tests**
 
 Run: `npm test`
 Expected: All Jest test suites pass.
 
-- [ ] **Step 2: Run full build pipeline**
+- [x] **Step 2: Run full build pipeline**
 
 Run: `npm run build`
 Expected: Both frontend Vite and backend TypeScript compile successfully.
 
-- [ ] **Step 3: Verification commit (if needed)**
+- [x] **Step 3: Verification commit (if needed)**
 
 ```bash
 git status
