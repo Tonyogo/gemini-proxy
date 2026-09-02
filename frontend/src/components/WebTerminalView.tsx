@@ -17,6 +17,7 @@ import { useTranslation } from '../i18n/LanguageContext';
 import { TerminalAccessoryBar } from './terminal/TerminalAccessoryBar';
 import { TerminalSnippetsDrawer } from './terminal/TerminalSnippetsDrawer';
 import { isSyntheticTerminalReport } from '../utils/terminalFilter';
+import { encodeModifierKey } from '../utils/terminalKeyEncoder';
 
 interface WebTerminalViewProps {
   adminKey: string;
@@ -43,6 +44,12 @@ export default function WebTerminalView({
   const [isSnippetsOpen, setIsSnippetsOpen] = useState<boolean>(false);
   const [isCtrlActive, setIsCtrlActive] = useState<boolean>(false);
   const [isAltActive, setIsAltActive] = useState<boolean>(false);
+
+  const isCtrlActiveRef = useRef<boolean>(isCtrlActive);
+  isCtrlActiveRef.current = isCtrlActive;
+
+  const isAltActiveRef = useRef<boolean>(isAltActive);
+  isAltActiveRef.current = isAltActive;
 
   const reconnectAttemptRef = useRef<number>(0);
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -292,6 +299,42 @@ export default function WebTerminalView({
 
     xtermRef.current = term;
     fitAddonRef.current = fitAddon;
+
+    // Virtual modifier keyboard event handler (CTRL/ALT key combination interception & auto-release)
+    term.attachCustomKeyEventHandler((domEvent: KeyboardEvent) => {
+      if (domEvent.type !== 'keydown') {
+        return true;
+      }
+
+      const isCtrl = isCtrlActiveRef.current;
+      const isAlt = isAltActiveRef.current;
+
+      if (!isCtrl && !isAlt) {
+        return true;
+      }
+
+      const encoded = encodeModifierKey(domEvent, isCtrl, isAlt);
+      if (encoded !== null) {
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+          wsRef.current.send(encoded);
+        }
+        term.focus();
+        if (term.buffer.active.type !== 'alternate') {
+          term.scrollToBottom();
+        }
+
+        setIsCtrlActive(false);
+        setIsAltActive(false);
+        isCtrlActiveRef.current = false;
+        isAltActiveRef.current = false;
+
+        domEvent.preventDefault();
+        domEvent.stopPropagation();
+        return false;
+      }
+
+      return true;
+    });
 
     term.onResize(({ cols, rows }) => {
       sendResize(cols, rows);
@@ -734,7 +777,15 @@ export default function WebTerminalView({
 
       {/* Mobile Touch Accessory Bar */}
       <TerminalAccessoryBar
-        onSendInput={handleSendInput}
+        onSendInput={(data) => {
+          handleSendInput(data);
+          if (isCtrlActiveRef.current || isAltActiveRef.current) {
+            setIsCtrlActive(false);
+            setIsAltActive(false);
+            isCtrlActiveRef.current = false;
+            isAltActiveRef.current = false;
+          }
+        }}
         isCtrlActive={isCtrlActive}
         onToggleCtrl={() => setIsCtrlActive(!isCtrlActive)}
         isAltActive={isAltActive}
@@ -747,7 +798,15 @@ export default function WebTerminalView({
       <TerminalSnippetsDrawer
         isOpen={isSnippetsOpen}
         onClose={() => setIsSnippetsOpen(false)}
-        onRunCommand={handleRunCommand}
+        onRunCommand={(cmd, execute) => {
+          handleRunCommand(cmd, execute);
+          if (isCtrlActiveRef.current || isAltActiveRef.current) {
+            setIsCtrlActive(false);
+            setIsAltActive(false);
+            isCtrlActiveRef.current = false;
+            isAltActiveRef.current = false;
+          }
+        }}
       />
     </div>
   );
