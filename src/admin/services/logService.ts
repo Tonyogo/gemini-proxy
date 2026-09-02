@@ -133,7 +133,14 @@ class LogService {
 
                 const rawModel = parsed.claude_res?.model || parsed.client_req?.model || null;
                 const modelName = rawModel ? claudeTranslator.getCleanModelName(rawModel) : null;
-                const transactionId = file.replace(/^transaction_/, '').replace(/\.json$/, '');
+                
+                // Extract transactionId correctly, supporting both transaction_<id>.json and mmss_<id>.json
+                let transactionId = file.replace(/\.json$/, '');
+                if (transactionId.startsWith('transaction_')) {
+                  transactionId = transactionId.substring(12); // length of 'transaction_'
+                } else if (/^\d{4}_/.test(transactionId)) {
+                  transactionId = transactionId.substring(5); // length of 'mmss_'
+                }
 
                 targetRecords.push({
                   id: transactionId,
