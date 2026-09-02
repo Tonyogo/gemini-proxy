@@ -407,6 +407,44 @@ describe('Claude to Gemini Tools Schema Sanitization', () => {
     expect(params.properties.offset.maximum).toEqual(99);
     expect(params.properties.offset.description).toEqual('Starting offset (must be < 100)');
   });
+
+  it('handles nested objects and array items with const and exclusive bounds', () => {
+    const claudePayload = {
+      model: 'gemini-3.5-flash',
+      messages: [{ role: 'user', content: 'Nested tool' }],
+      tools: [
+        {
+          name: 'batch_update',
+          description: 'Batch update items',
+          input_schema: {
+            type: 'object',
+            properties: {
+              items: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    kind: { const: 'entity' },
+                    score: { type: 'integer', exclusiveMinimum: 0 }
+                  },
+                  required: ['kind', 'score']
+                }
+              }
+            }
+          }
+        }
+      ]
+    } as any;
+
+    const result = translator.translateClaudeToGoogle(claudePayload);
+    const itemProps = result.googleRequest.tools![0].functionDeclarations[0].parameters.properties.items.items.properties;
+
+    expect(itemProps.kind.type).toEqual('STRING');
+    expect(itemProps.kind.enum).toEqual(['entity']);
+    expect(itemProps.score.type).toEqual('INTEGER');
+    expect(itemProps.score.minimum).toEqual(1);
+    expect(itemProps.score.description).toEqual('(must be > 0)');
+  });
 });
 
 describe('Claude Tools Interaction Roundtrips (Complex and Multi-Turn)', () => {
