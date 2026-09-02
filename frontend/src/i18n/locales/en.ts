@@ -3,7 +3,7 @@ export const en = {
     dashboard: "Dashboard",
     accounts: "Accounts",
     logs: "Request Logs",
-    terminal: "Terminal Logs",
+    terminal: "Terminal",
     webTerminal: "Web Terminal",
     playground: "Playground",
     adminKeyPlaceholder: "Admin Secret Key",
@@ -207,6 +207,8 @@ export const en = {
   },
   terminal: {
     title: "Terminal Logs",
+    interactiveTab: "Web Terminal",
+    logsTab: "Terminal Logs",
     live: "LIVE",
     disconnected: "DISCONNECTED",
     searchPlaceholder: "Search logs...",

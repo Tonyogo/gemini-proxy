@@ -5,7 +5,7 @@ export const zh: Translations = {
     dashboard: "控制台概览",
     accounts: "账号管理",
     logs: "请求日志",
-    terminal: "终端日志",
+    terminal: "终端",
     webTerminal: "网页终端",
     playground: "API 调试器",
     adminKeyPlaceholder: "管理员密钥",
@@ -209,6 +209,8 @@ export const zh: Translations = {
   },
   terminal: {
     title: "终端日志",
+    interactiveTab: "交互终端",
+    logsTab: "运行日志",
     live: "实时监听",
     disconnected: "连接已断开",
     searchPlaceholder: "过滤终端日志...",
