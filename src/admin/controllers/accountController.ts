@@ -61,6 +61,17 @@ class AccountController {
     res.status(result.status).json(result.data);
   }
 
+  public async closeContext(req: Request, res: Response): Promise<void> {
+    const indexParam = Array.isArray(req.params.index) ? req.params.index[0] : req.params.index;
+    const index = parseInt(indexParam, 10);
+    if (isNaN(index) || index < 0) {
+      res.status(400).json({ error: 'Invalid account index' });
+      return;
+    }
+    const result = await accountService.closeContext(index);
+    res.status(result.status).json(result.data);
+  }
+
   public async downloadFile(req: Request, res: Response): Promise<void> {
     const filenameParam = Array.isArray(req.params.filename) ? req.params.filename[0] : req.params.filename;
     const filename = filenameParam || '';

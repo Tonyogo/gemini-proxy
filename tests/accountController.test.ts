@@ -136,4 +136,28 @@ describe('Account Controller Endpoints', () => {
     expect(res.status).toBe(200);
     expect(mockedAccountService.uploadBatchFiles).toHaveBeenCalledWith([{ cookies: [] }]);
   });
+
+  it('should forward closeContext with valid index', async () => {
+    mockedAccountService.closeContext.mockResolvedValueOnce({
+      status: 200,
+      data: { index: 0, message: 'closeContextSuccess' },
+      headers: {}
+    } as any);
+
+    const res = await request(app)
+      .post('/api/admin/accounts/0/close-context')
+      .set('x-admin-key', secretKey);
+
+    expect(res.status).toBe(200);
+    expect(mockedAccountService.closeContext).toHaveBeenCalledWith(0);
+  });
+
+  it('should return 400 for invalid index on closeContext', async () => {
+    const res = await request(app)
+      .post('/api/admin/accounts/invalid/close-context')
+      .set('x-admin-key', secretKey);
+
+    expect(res.status).toBe(400);
+    expect(mockedAccountService.closeContext).not.toHaveBeenCalled();
+  });
 });

@@ -110,6 +110,10 @@ export class AccountService {
     return this.request('put', '/api/accounts/current', payload);
   }
 
+  public async closeContext(index: number) {
+    return this.request('post', `/api/accounts/${index}/close-context`);
+  }
+
   public async getFileStream(filename: string): Promise<{ status: number; body?: NodeJS.ReadableStream; headers: Record<string, string>; data?: any }> {
     const url = `${this.getBaseUrl()}/api/files/${encodeURIComponent(filename)}`;
     try {

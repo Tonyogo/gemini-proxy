@@ -19,6 +19,7 @@ router.post('/config', (req, res) => adminController.updateConfig(req, res));
 router.get('/accounts/status', (req, res) => accountController.getStatus(req, res));
 router.post('/accounts/upload', (req, res) => accountController.upload(req, res));
 router.post('/accounts/toggle-disabled', (req, res) => accountController.toggleDisabled(req, res));
+router.post('/accounts/:index/close-context', (req, res) => accountController.closeContext(req, res));
 router.delete('/accounts/:index', (req, res) => accountController.deleteAccount(req, res));
 router.post('/accounts/batch-delete', (req, res) => accountController.batchDelete(req, res));
 router.post('/accounts/deduplicate', (req, res) => accountController.deduplicate(req, res));
