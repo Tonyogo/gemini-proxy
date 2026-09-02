@@ -212,10 +212,10 @@ export default function App() {
         <div className="absolute bottom-10 right-10 w-80 h-80 bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative w-full max-w-md bg-[#0F1118]/95 backdrop-blur-xl border border-white/[0.08] rounded-2xl p-8 shadow-2xl space-y-6">
-          {/* Header & Lock Badge */}
+          {/* Header & Brand Logo */}
           <div className="text-center space-y-3">
-            <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-gradient-to-b from-indigo-500/15 to-purple-500/5 border border-indigo-500/30 text-indigo-400 shadow-[0_0_20px_rgba(99,102,241,0.15)] mb-1">
-              <Lock className="w-6 h-6" />
+            <div className="inline-flex items-center justify-center p-1 mb-1 drop-shadow-[0_0_25px_rgba(99,102,241,0.4)]">
+              <img src="/favicon.svg" alt="Gemini Proxy Logo" className="w-12 h-12 select-none" />
             </div>
             <div>
               <div className="flex items-center justify-center space-x-2">
@@ -337,9 +337,11 @@ export default function App() {
         {/* Brand Logo Header */}
         <div className="h-14 px-4 flex items-center justify-between border-b border-white/[0.06] shrink-0">
           <div className="flex items-center space-x-3 overflow-hidden">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500/20 via-purple-500/20 to-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold text-xs shrink-0 shadow-[0_0_12px_rgba(99,102,241,0.2)]">
-              <Zap className="w-4 h-4 text-indigo-400" />
-            </div>
+            <img
+              src="/favicon.svg"
+              alt="Gemini Proxy Logo"
+              className="w-7 h-7 shrink-0 drop-shadow-[0_0_10px_rgba(99,102,241,0.4)] select-none"
+            />
             {!isSidebarCollapsed && (
               <div className="flex items-center space-x-2 min-w-0 overflow-hidden">
                 <span className="font-semibold text-sm text-slate-100 tracking-tight truncate">
@@ -472,9 +474,11 @@ export default function App() {
           {/* Left Breadcrumbs & Brand / Sidebar Toggle */}
           <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
             {/* Mobile Brand Logo Icon */}
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500/20 via-purple-500/20 to-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold text-xs shrink-0 md:hidden shadow-[0_0_10px_rgba(99,102,241,0.2)]">
-              <Zap className="w-3.5 h-3.5 text-indigo-400" />
-            </div>
+            <img
+              src="/favicon.svg"
+              alt="Gemini Proxy Logo"
+              className="w-7 h-7 shrink-0 md:hidden drop-shadow-[0_0_10px_rgba(99,102,241,0.4)] select-none"
+            />
 
             {/* Desktop Sidebar Toggle */}
             <button
