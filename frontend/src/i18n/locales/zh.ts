@@ -95,7 +95,13 @@ export const zh: Translations = {
     livePolling: "实时轮询中 (3s)",
     pollingPaused: "轮询已暂停",
     livePollingToggle: "实时轮询",
-    refreshLogs: "刷新"
+    refreshLogs: "刷新",
+    closeContext: "释放 Context",
+    contextAlreadyClosed: "Context 已处于释放状态",
+    confirmCloseContextTitle: "确认释放浏览器 Context",
+    confirmCloseContextMessage: "确定要关闭账号 #{index} ({email}) 的浏览器上下文并断开连接吗？",
+    confirmCloseContextDesc: "关闭后将释放约 500MB~700MB 内存占用。后续发起请求时系统将按需重新初始化。",
+    closeContextSuccess: "账号 #{index} 的 Context 已成功释放。"
   },
   dashboard: {
     title: "代理系统概览",

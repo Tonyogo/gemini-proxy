@@ -93,7 +93,13 @@ export const en = {
     livePolling: "Live polling (3s)",
     pollingPaused: "Polling Paused",
     livePollingToggle: "Live Polling",
-    refreshLogs: "Refresh"
+    refreshLogs: "Refresh",
+    closeContext: "Close Context",
+    contextAlreadyClosed: "Context is already closed",
+    confirmCloseContextTitle: "Confirm Close Browser Context",
+    confirmCloseContextMessage: "Are you sure you want to close browser context and disconnect account #{index} ({email})?",
+    confirmCloseContextDesc: "This will free ~500MB-700MB memory. A new context will be initialized on-demand when requested.",
+    closeContextSuccess: "Context for account #{index} has been released."
   },
   dashboard: {
     title: "Proxy System Overview",
