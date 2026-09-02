@@ -368,6 +368,7 @@ export const zh: Translations = {
       ctrlC: "^C",
       ctrlD: "^D",
       ctrlL: "^L",
+      ctrlB: "^B",
       ctrlZ: "^Z"
     }
   }

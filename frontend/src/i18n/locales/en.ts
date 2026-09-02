@@ -366,6 +366,7 @@ export const en = {
       ctrlC: "^C",
       ctrlD: "^D",
       ctrlL: "^L",
+      ctrlB: "^B",
       ctrlZ: "^Z"
     }
   }

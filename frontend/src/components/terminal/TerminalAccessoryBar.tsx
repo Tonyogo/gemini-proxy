@@ -124,6 +124,18 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
           ^L
         </button>
 
+        {/* Action: Ctrl+B (tmux Prefix) */}
+        <button
+          type="button"
+          onTouchStart={(e) => e.preventDefault()}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => onSendInput('\x02')}
+          className="px-2 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 active:scale-95 text-emerald-400 font-mono text-xs font-semibold border border-emerald-500/30 transition-all"
+          title="tmux Prefix (Ctrl+B)"
+        >
+          ^B
+        </button>
+
         <div className="h-4 w-[1px] bg-white/[0.1] mx-0.5" />
 
         {/* Quick Enter Key */}
