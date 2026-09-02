@@ -26,7 +26,7 @@
 - Consumes: `translator.translateClaudeToGoogle(claudePayload)`
 - Produces: Failing test assertions verifying `const` fields are mapped to `enum` and inferred `type`.
 
-- [ ] **Step 1: Write failing unit tests for `const` parameter conversion**
+- [x] **Step 1: Write failing unit tests for `const` parameter conversion**
 
 Add tests covering:
 1. `const` with string value without explicit `type` (e.g. `{ const: "json" }` $\to$ `{ type: "STRING", enum: ["json"] }`).
@@ -93,7 +93,7 @@ it('translates const keyword to enum and infers type when type is omitted', () =
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/claudeTranslator.test.ts -t "translates const keyword"`
 Expected: FAIL (because `const` is currently stripped and `format.enum` is undefined).
@@ -109,7 +109,7 @@ Expected: FAIL (because `const` is currently stripped and `format.enum` is undef
 - Consumes: Claude parameter schema node with `const` property.
 - Produces: Gemini-compatible schema with `enum: [obj.const]` and inferred uppercase `type`.
 
-- [ ] **Step 1: Update `_convertSchemaToGemini` to handle `const`**
+- [x] **Step 1: Update `_convertSchemaToGemini` to handle `const`**
 
 In `src/services/claudeTranslator.ts`, inside `_convertSchemaToGemini`:
 When `!isProperties && !Array.isArray(obj)`:
@@ -122,12 +122,12 @@ If `obj.const !== undefined`:
    - `Array.isArray(obj.const)` $\to$ `result.type = 'ARRAY'`
    - `typeof obj.const === 'object' && obj.const !== null` $\to$ `result.type = 'OBJECT'`
 
-- [ ] **Step 2: Run tests to verify `const` tests pass**
+- [x] **Step 2: Run tests to verify `const` tests pass**
 
 Run: `npx jest tests/claudeTranslator.test.ts -t "translates const keyword"`
 Expected: PASS
 
-- [ ] **Step 3: Commit `const` support**
+- [x] **Step 3: Commit `const` support**
 
 ```bash
 git add src/services/claudeTranslator.ts tests/claudeTranslator.test.ts
@@ -145,7 +145,7 @@ git commit -m "feat(translator): support const keyword in tool parameter schema 
 - Consumes: `translator.translateClaudeToGoogle(claudePayload)` with open-interval schema constraints.
 - Produces: Failing test assertions verifying `exclusiveMinimum`/`exclusiveMaximum` are converted to integer-shifted or direct `minimum`/`maximum` and appended to `description`.
 
-- [ ] **Step 1: Write failing unit tests for `exclusiveMinimum` and `exclusiveMaximum`**
+- [x] **Step 1: Write failing unit tests for `exclusiveMinimum` and `exclusiveMaximum`**
 
 Add tests covering:
 1. Integer type with `exclusiveMinimum: 0` and `exclusiveMaximum: 10` $\to$ `minimum: 1`, `maximum: 9`, `description: "Item count (must be > 0, must be < 10)"`.
@@ -213,7 +213,7 @@ it('translates exclusiveMinimum and exclusiveMaximum to shifted min/max and enha
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/claudeTranslator.test.ts -t "translates exclusiveMinimum and exclusiveMaximum"`
 Expected: FAIL (because `exclusiveMinimum` is stripped without setting `minimum` or augmenting `description`).
@@ -229,7 +229,7 @@ Expected: FAIL (because `exclusiveMinimum` is stripped without setting `minimum`
 - Consumes: Claude parameter schema node with `exclusiveMinimum` or `exclusiveMaximum`.
 - Produces: Gemini-compatible schema with `minimum`, `maximum`, and augmented `description`.
 
-- [ ] **Step 1: Implement bounds mapping and description enhancement**
+- [x] **Step 1: Implement bounds mapping and description enhancement**
 
 In `src/services/claudeTranslator.ts`, inside `_convertSchemaToGemini`:
 When `!isProperties && !Array.isArray(obj)`:
@@ -250,12 +250,12 @@ When `!isProperties && !Array.isArray(obj)`:
        - Else: `result.description = \`(\${clauses.join(', ')})\``
 2. In key loop, if `key === 'description'` and `clauses.length > 0`, skip copying `obj.description` to avoid overwriting `result.description`.
 
-- [ ] **Step 2: Run tests to verify bounds tests pass**
+- [x] **Step 2: Run tests to verify bounds tests pass**
 
 Run: `npx jest tests/claudeTranslator.test.ts -t "translates exclusiveMinimum and exclusiveMaximum"`
 Expected: PASS
 
-- [ ] **Step 3: Commit bounds conversion support**
+- [x] **Step 3: Commit bounds conversion support**
 
 ```bash
 git add src/services/claudeTranslator.ts tests/claudeTranslator.test.ts
@@ -274,7 +274,7 @@ git commit -m "feat(translator): support exclusiveMinimum and exclusiveMaximum c
 - Consumes: Entire test suite across proxy and admin modules.
 - Produces: All test suites passing cleanly.
 
-- [ ] **Step 1: Add nested schema test case (array items & nested object properties)**
+- [x] **Step 1: Add nested schema test case (array items & nested object properties)**
 
 Add a test in `tests/claudeTranslator.test.ts` checking nested objects inside `items` and `properties` having `const` and `exclusiveMinimum`.
 
@@ -318,17 +318,17 @@ it('handles nested objects and array items with const and exclusive bounds', () 
 });
 ```
 
-- [ ] **Step 2: Run all translator tests**
+- [x] **Step 2: Run all translator tests**
 
 Run: `npx jest tests/claudeTranslator.test.ts`
 Expected: PASS with all tests passing.
 
-- [ ] **Step 3: Run complete project test suite**
+- [x] **Step 3: Run complete project test suite**
 
 Run: `npm test`
 Expected: All tests pass.
 
-- [ ] **Step 4: Commit test suite and finalize**
+- [x] **Step 4: Commit test suite and finalize**
 
 ```bash
 git add tests/claudeTranslator.test.ts
