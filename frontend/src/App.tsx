@@ -19,7 +19,8 @@ import {
   Zap,
   Menu,
   X,
-  Maximize2
+  Maximize2,
+  Languages
 } from 'lucide-react';
 import DashboardView from './components/DashboardView';
 import AccountsView from './components/AccountsView';
@@ -27,10 +28,11 @@ import LogsView from './components/LogsView';
 import PlaygroundView from './components/PlaygroundView';
 import UnifiedTerminalView from './components/UnifiedTerminalView';
 import WebTerminalView from './components/WebTerminalView';
+import TranslateView from './components/TranslateView';
 import ConfigModal from './components/ConfigModal';
 import { useTranslation } from './i18n/LanguageContext';
 
-type TabType = 'dashboard' | 'accounts' | 'logs' | 'terminal' | 'playground';
+type TabType = 'dashboard' | 'accounts' | 'logs' | 'terminal' | 'playground' | 'translate';
 
 interface NavItem {
   id: TabType;
@@ -44,9 +46,10 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'logs', icon: FileText, shortcut: '⌘3' },
   { id: 'terminal', icon: Terminal, shortcut: '⌘4' },
   { id: 'playground', icon: Play, shortcut: '⌘5' },
+  { id: 'translate', icon: Languages, shortcut: '⌘6' },
 ];
 
-const VALID_TABS: TabType[] = ['dashboard', 'accounts', 'logs', 'terminal', 'playground'];
+const VALID_TABS: TabType[] = ['dashboard', 'accounts', 'logs', 'terminal', 'playground', 'translate'];
 
 const isTerminalRoute = (): boolean => {
   return (
@@ -594,6 +597,12 @@ export default function App() {
           {activeTab === 'playground' && (
             <PlaygroundView
               key={refreshTrigger}
+            />
+          )}
+          {activeTab === 'translate' && (
+            <TranslateView
+              key={refreshTrigger}
+              adminKey={adminKey}
             />
           )}
         </main>
