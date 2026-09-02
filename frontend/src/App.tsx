@@ -4,7 +4,6 @@ import {
   Users,
   FileText,
   Terminal,
-  TerminalSquare,
   Play,
   Settings,
   Globe,
@@ -26,12 +25,12 @@ import DashboardView from './components/DashboardView';
 import AccountsView from './components/AccountsView';
 import LogsView from './components/LogsView';
 import PlaygroundView from './components/PlaygroundView';
-import TerminalLogsView from './components/TerminalLogsView';
+import UnifiedTerminalView from './components/UnifiedTerminalView';
 import WebTerminalView from './components/WebTerminalView';
 import ConfigModal from './components/ConfigModal';
 import { useTranslation } from './i18n/LanguageContext';
 
-type TabType = 'dashboard' | 'accounts' | 'logs' | 'terminal' | 'webTerminal' | 'playground';
+type TabType = 'dashboard' | 'accounts' | 'logs' | 'terminal' | 'playground';
 
 interface NavItem {
   id: TabType;
@@ -44,11 +43,10 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'accounts', icon: Users, shortcut: '⌘2' },
   { id: 'logs', icon: FileText, shortcut: '⌘3' },
   { id: 'terminal', icon: Terminal, shortcut: '⌘4' },
-  { id: 'webTerminal', icon: TerminalSquare, shortcut: '⌘5' },
-  { id: 'playground', icon: Play, shortcut: '⌘6' },
+  { id: 'playground', icon: Play, shortcut: '⌘5' },
 ];
 
-const VALID_TABS: TabType[] = ['dashboard', 'accounts', 'logs', 'terminal', 'webTerminal', 'playground'];
+const VALID_TABS: TabType[] = ['dashboard', 'accounts', 'logs', 'terminal', 'playground'];
 
 const isTerminalRoute = (): boolean => {
   return (
@@ -62,7 +60,8 @@ const isTerminalRoute = (): boolean => {
 export default function App() {
   const { t, lang, setLang } = useTranslation();
   const [activeTab, setActiveTab] = useState<TabType>(() => {
-    const saved = localStorage.getItem('admin_active_tab') as TabType;
+    const rawSaved = localStorage.getItem('admin_active_tab');
+    const saved = rawSaved === 'webTerminal' ? 'terminal' : (rawSaved as TabType);
     return VALID_TABS.includes(saved) ? saved : 'dashboard';
   });
   const [isStandaloneTerminal, setIsStandaloneTerminal] = useState<boolean>(() => isTerminalRoute());
@@ -502,7 +501,7 @@ export default function App() {
           {/* Right Action Controls */}
           <div className="flex items-center space-x-1 sm:space-x-2 shrink-0">
             {/* Mobile Terminal Fullscreen Trigger */}
-            {activeTab === 'webTerminal' && (
+            {activeTab === 'terminal' && (
               <button
                 onClick={handleEnterStandalone}
                 title={t('webTerminal.fullscreen')}
@@ -559,7 +558,7 @@ export default function App() {
 
         {/* Main View Workspace */}
         <main className={`flex-1 overflow-x-hidden ${
-          activeTab === 'webTerminal'
+          activeTab === 'terminal'
             ? 'p-0 md:p-6 pb-0 md:pb-6 flex flex-col min-h-0 h-[calc(100dvh-3rem-3.5rem)] max-h-[calc(100dvh-3rem-3.5rem)] md:h-auto md:max-h-none overflow-hidden'
             : 'p-2.5 sm:p-4 md:p-6 pb-20 md:pb-6'
         }`}>
@@ -582,19 +581,10 @@ export default function App() {
             />
           )}
           {activeTab === 'terminal' && (
-            <TerminalLogsView
+            <UnifiedTerminalView
               key={refreshTrigger}
               adminKey={adminKey}
-            />
-          )}
-          {activeTab === 'webTerminal' && (
-            <WebTerminalView
-              key={refreshTrigger}
-              adminKey={adminKey}
-              standalone={false}
-              onToggleStandalone={(val) => {
-                if (val) handleEnterStandalone();
-              }}
+              onEnterStandalone={handleEnterStandalone}
             />
           )}
           {activeTab === 'playground' && (
