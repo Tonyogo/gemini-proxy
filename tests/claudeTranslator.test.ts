@@ -293,6 +293,62 @@ describe('Claude to Gemini Tools Schema Sanitization', () => {
     expect(params.properties.unit.type).toEqual('STRING');
     expect(params.properties.unit.nullable).toEqual(true);
   });
+
+  it('translates const keyword to enum and infers type when type is omitted', () => {
+    const claudePayload = {
+      model: 'gemini-3.5-flash',
+      messages: [{ role: 'user', content: 'Use the tool.' }],
+      tools: [
+        {
+          name: 'configure_format',
+          description: 'Configure format parameters',
+          input_schema: {
+            type: 'object',
+            properties: {
+              format: {
+                const: 'json',
+                description: 'Target format'
+              },
+              version: {
+                const: 2
+              },
+              ratio: {
+                const: 1.5
+              },
+              enabled: {
+                const: true
+              },
+              mode: {
+                type: 'string',
+                const: 'strict'
+              }
+            },
+            required: ['format']
+          }
+        }
+      ]
+    } as any;
+
+    const result = translator.translateClaudeToGoogle(claudePayload);
+    const params = result.googleRequest.tools![0].functionDeclarations[0].parameters;
+
+    expect(params.properties.format.type).toEqual('STRING');
+    expect(params.properties.format.enum).toEqual(['json']);
+    expect(params.properties.format.const).toBeUndefined();
+
+    expect(params.properties.version.type).toEqual('INTEGER');
+    expect(params.properties.version.enum).toEqual([2]);
+    expect(params.properties.version.const).toBeUndefined();
+
+    expect(params.properties.ratio.type).toEqual('NUMBER');
+    expect(params.properties.ratio.enum).toEqual([1.5]);
+
+    expect(params.properties.enabled.type).toEqual('BOOLEAN');
+    expect(params.properties.enabled.enum).toEqual([true]);
+
+    expect(params.properties.mode.type).toEqual('STRING');
+    expect(params.properties.mode.enum).toEqual(['strict']);
+  });
 });
 
 describe('Claude Tools Interaction Roundtrips (Complex and Multi-Turn)', () => {

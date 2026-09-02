@@ -72,6 +72,29 @@ class ClaudeTranslator {
 
     const result: any = Array.isArray(obj) ? [] : {};
 
+    if (!isProperties && !Array.isArray(obj)) {
+      if (obj.const !== undefined) {
+        if (obj.enum === undefined) {
+          result.enum = isResponseSchema ? [String(obj.const)] : [obj.const];
+        }
+        if (obj.type === undefined) {
+          if (isResponseSchema) {
+            result.type = 'STRING';
+          } else if (typeof obj.const === 'string') {
+            result.type = 'STRING';
+          } else if (typeof obj.const === 'number') {
+            result.type = Number.isInteger(obj.const) ? 'INTEGER' : 'NUMBER';
+          } else if (typeof obj.const === 'boolean') {
+            result.type = 'BOOLEAN';
+          } else if (Array.isArray(obj.const)) {
+            result.type = 'ARRAY';
+          } else if (typeof obj.const === 'object' && obj.const !== null) {
+            result.type = 'OBJECT';
+          }
+        }
+      }
+    }
+
     for (const key of Object.keys(obj)) {
       const unsupportedKeys = [
         "$schema", "additionalProperties", "ref", "$ref", "propertyNames",
