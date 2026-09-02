@@ -37,7 +37,7 @@ const parsedEphemeralSystemMessages = parseListEnv(
   []
 );
 
-const isTestEnv = process.env.NODE_ENV === 'test';
+const isTestEnv = process.env.NODE_ENV === 'test' || Boolean(process.env.JEST_WORKER_ID);
 const runtimeFileName = isTestEnv ? 'runtime.test.json' : 'runtime.json';
 const runtimeJsonPath = path.join(process.cwd(), 'config', runtimeFileName);
 let runtimeOverrides: Record<string, any> = {};
