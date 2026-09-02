@@ -356,12 +356,12 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
 
   return (
     <div className="backdrop-blur-xl bg-black/60 fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 animate-in fade-in duration-200 font-sans">
-      <div className="bg-[#0F1118] border border-white/[0.1] rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col h-[92vh] sm:h-auto sm:max-h-[90vh]">
+      <div className="bg-[#0C0E14] border border-white/[0.08] rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col h-[92vh] sm:h-auto sm:max-h-[90vh]">
         {/* Mobile Drag Handle Pill */}
         <div className="w-10 h-1 bg-white/20 rounded-full mx-auto my-1.5 block sm:hidden shrink-0" />
 
         {/* Header */}
-        <div className="flex items-center justify-between px-3.5 sm:px-6 py-3 sm:py-4 border-b border-white/[0.08] bg-[#121520] shrink-0">
+        <div className="flex items-center justify-between px-3.5 sm:px-6 py-3 sm:py-4 border-b border-white/[0.08] bg-[#10121A] shrink-0">
           <div className="flex items-center space-x-3 min-w-0">
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-indigo-600/30 to-purple-600/30 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold shadow-inner shrink-0">
               <Settings className="w-4 h-4 text-indigo-400" />
@@ -382,7 +382,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
         </div>
 
         {/* Linear Styled Tab Pills */}
-        <div className="flex items-center space-x-1.5 px-3 sm:px-6 py-2 sm:py-2.5 border-b border-white/[0.06] bg-[#0A0C12] overflow-x-auto scrollbar-none shrink-0">
+        <div className="flex items-center space-x-1 px-3 sm:px-6 py-2 border-b border-white/[0.06] bg-[#0A0C10] overflow-x-auto scrollbar-none shrink-0">
           {TABS.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -391,13 +391,13 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                 key={tab.id}
                 type="button"
                 onClick={() => handleTabChange(tab.id as TabType)}
-                className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center space-x-1.5 sm:space-x-2 whitespace-nowrap transition-all ${
+                className={`ui-tab-pill flex items-center space-x-1.5 sm:space-x-2 whitespace-nowrap ${
                   isActive
-                    ? 'bg-indigo-600/20 border border-indigo-500/40 text-indigo-300 shadow-[0_0_12px_rgba(99,102,241,0.2)]'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04] border border-transparent'
+                    ? 'ui-tab-pill-active font-semibold'
+                    : ''
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-indigo-400' : 'text-slate-500'}`} />
+                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
                 <span>{tab.label}</span>
               </button>
             );
@@ -423,7 +423,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
               {/* TAB 1: General & Logs */}
               {activeTab === 'general' && (
                 <div className="space-y-4 animate-in fade-in duration-150">
-                  <div className="bg-[#121520] p-4 sm:p-5 rounded-2xl border border-white/[0.06] space-y-4">
+                  <div className="ui-card-sub p-4 sm:p-5 space-y-4">
                     <div className="flex items-center space-x-2 text-xs font-bold text-indigo-400 uppercase tracking-wider">
                       <Sliders className="w-3.5 h-3.5 text-indigo-400" />
                       <span>{t('config.generalGroup')}</span>
@@ -435,7 +435,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                         <select
                           value={logLevel}
                           onChange={(e) => setLogLevel(e.target.value)}
-                          className="w-full bg-[#151824] border border-white/[0.08] rounded-xl p-2.5 text-xs text-slate-100 font-mono focus:outline-none focus:border-indigo-500"
+                          className="w-full ui-input p-2.5 text-xs appearance-none cursor-pointer"
                         >
                           <option value="error">{t('config.logLevelError')}</option>
                           <option value="warn">{t('config.logLevelWarn')}</option>
@@ -451,7 +451,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                           type="number"
                           value={logRetentionDays}
                           onChange={(e) => setLogRetentionDays(parseInt(e.target.value, 10) || 0)}
-                          className="w-full bg-[#151824] border border-white/[0.08] rounded-xl p-2.5 text-xs text-slate-100 font-mono focus:outline-none focus:border-indigo-500"
+                          className="w-full ui-input p-2.5 text-xs"
                         />
                         <p className="text-[10px] text-slate-400">{t('config.logRetentionDesc')}</p>
                       </div>
@@ -463,7 +463,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
               {/* TAB 2: Proxy & Upstream */}
               {activeTab === 'upstream' && (
                 <div className="space-y-4 animate-in fade-in duration-150">
-                  <div className="bg-[#121520] p-4 sm:p-5 rounded-2xl border border-white/[0.06] space-y-4">
+                  <div className="ui-card-sub p-4 sm:p-5 space-y-4">
                     <div className="flex items-center space-x-2 text-xs font-bold text-blue-400 uppercase tracking-wider">
                       <Globe className="w-3.5 h-3.5 text-blue-400" />
                       <span>{t('config.upstreamGroup')}</span>
@@ -477,7 +477,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                             type="number"
                             value={upstreamTimeoutMs}
                             onChange={(e) => setUpstreamTimeoutMs(parseInt(e.target.value, 10) || 0)}
-                            className="w-full bg-[#151824] border border-white/[0.08] rounded-xl p-2.5 text-xs text-slate-100 font-mono focus:outline-none focus:border-indigo-500"
+                            className="w-full ui-input p-2.5 text-xs"
                           />
                           <span className="absolute right-3 top-2.5 text-xs text-slate-500 font-mono">ms</span>
                         </div>
@@ -491,7 +491,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                           value={countTokensModel}
                           onChange={(e) => setCountTokensModel(e.target.value)}
                           placeholder="e.g. gemini-2.5-flash (Leave blank to use request model)"
-                          className="w-full bg-[#151824] border border-white/[0.08] rounded-xl p-2.5 text-xs text-slate-100 font-mono focus:outline-none focus:border-indigo-500"
+                          className="w-full ui-input p-2.5 text-xs"
                         />
                         <p className="text-[10px] text-slate-400">{t('config.countTokensDesc')}</p>
                       </div>
@@ -503,14 +503,14 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
               {/* TAB 3: System Instruction & Ephemeral Rules */}
               {activeTab === 'instructions' && (
                 <div className="space-y-4 animate-in fade-in duration-150">
-                  <div className="bg-[#121520] p-4 sm:p-5 rounded-2xl border border-white/[0.06] space-y-4">
+                  <div className="ui-card-sub p-4 sm:p-5 space-y-4">
                     <div className="flex items-center space-x-2 text-xs font-bold text-emerald-400 uppercase tracking-wider">
                       <FileCode className="w-3.5 h-3.5 text-emerald-400" />
                       <span>{t('config.translationGroup')}</span>
                     </div>
 
                     {/* Refined Toggle Switch */}
-                    <div className="bg-[#151824] p-3.5 sm:p-4 rounded-xl border border-white/[0.06] flex items-center justify-between gap-3">
+                    <div className="bg-[#10121A] p-3.5 sm:p-4 rounded-xl border border-white/[0.06] flex items-center justify-between gap-3">
                       <div>
                         <span className="text-xs font-semibold text-slate-200 block">SYSTEM_ROLE_TO_INSTRUCTION</span>
                         <p className="text-[10px] text-slate-400 mt-0.5">{t('config.systemRoleDesc')}</p>
@@ -538,7 +538,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                         value={customSystemInstruction}
                         onChange={(e) => setCustomSystemInstruction(e.target.value)}
                         placeholder={t('config.customInstructionPlaceholder')}
-                        className="w-full bg-[#151824] border border-white/[0.08] rounded-xl p-2.5 text-xs text-slate-100 font-mono focus:outline-none focus:border-indigo-500 leading-relaxed"
+                        className="w-full ui-input p-2.5 text-xs leading-relaxed"
                       />
                     </div>
 
@@ -549,7 +549,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                         value={ephemeralUserMessagesText}
                         onChange={(e) => setEphemeralUserMessagesText(e.target.value)}
                         placeholder={t('config.ephemeralUserMessagesPlaceholder')}
-                        className="w-full bg-[#151824] border border-white/[0.08] rounded-xl p-2.5 text-xs text-slate-100 font-mono focus:outline-none focus:border-indigo-500 leading-relaxed"
+                        className="w-full ui-input p-2.5 text-xs leading-relaxed"
                       />
                       <p className="text-[10px] text-slate-400">{t('config.ephemeralUserMessagesDesc')}</p>
                     </div>
@@ -561,7 +561,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                         value={ephemeralSystemMessagesText}
                         onChange={(e) => setEphemeralSystemMessagesText(e.target.value)}
                         placeholder={t('config.ephemeralSystemMessagesPlaceholder')}
-                        className="w-full bg-[#151824] border border-white/[0.08] rounded-xl p-2.5 text-xs text-slate-100 font-mono focus:outline-none focus:border-indigo-500 leading-relaxed"
+                        className="w-full ui-input p-2.5 text-xs leading-relaxed"
                       />
                       <p className="text-[10px] text-slate-400">{t('config.ephemeralSystemMessagesDesc')}</p>
                     </div>
@@ -572,7 +572,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
               {/* TAB 4: Model Mapping */}
               {activeTab === 'mappings' && (
                 <div className="space-y-4 animate-in fade-in duration-150">
-                  <div className="bg-[#121520] p-4 sm:p-5 rounded-2xl border border-white/[0.06] space-y-4">
+                  <div className="ui-card-sub p-4 sm:p-5 space-y-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2 text-xs font-bold text-amber-400 uppercase tracking-wider">
                         <ArrowRightLeft className="w-3.5 h-3.5 text-amber-400" />
@@ -583,7 +583,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                       <button
                         type="button"
                         onClick={() => setShowAdvancedJson(!showAdvancedJson)}
-                        className="px-2.5 py-1 bg-[#151824] hover:bg-[#1C2030] border border-white/[0.08] rounded-lg text-[11px] font-semibold text-slate-300 hover:text-amber-300 transition-colors flex items-center space-x-1.5"
+                        className="px-2.5 py-1 ui-btn-secondary text-[11px] font-semibold text-slate-300 hover:text-amber-300 flex items-center space-x-1.5"
                       >
                         {showAdvancedJson ? (
                           <>
@@ -606,7 +606,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                           value={modelMappingsRaw}
                           onChange={(e) => handleRawJsonChange(e.target.value)}
                           placeholder={t('config.mappingsPlaceholder')}
-                          className="w-full bg-[#151824] border border-white/[0.08] rounded-xl p-3 text-xs text-amber-300 font-mono focus:outline-none focus:border-amber-500 leading-relaxed"
+                          className="w-full ui-input p-3 text-xs text-amber-300 leading-relaxed"
                         />
                       </div>
                     ) : (
@@ -627,7 +627,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                   className={`p-2 rounded-xl transition-all ${
                                     isMultiTarget
                                       ? 'border border-amber-500/40 border-l-4 border-l-amber-500 bg-amber-500/[0.04] shadow-[0_0_12px_rgba(245,158,11,0.08)]'
-                                      : 'bg-[#151824]/60 sm:bg-white/[0.02] border border-white/[0.06] sm:border-white/[0.04]'
+                                      : 'bg-[#10121A] sm:bg-white/[0.02] border border-white/[0.06] sm:border-white/[0.04]'
                                   }`}
                                 >
                                   <div className="space-y-2 sm:space-y-0 sm:flex sm:items-center sm:gap-1.5">
@@ -647,7 +647,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                           value={entry.source}
                                           onChange={(e) => handleEntryChange(entry.id, 'source', e.target.value)}
                                           placeholder={t('config.sourceModel')}
-                                          className="w-full bg-[#121520] sm:bg-[#151824] border border-white/[0.08] rounded-lg p-1.5 sm:p-2 text-xs text-slate-100 font-mono focus:outline-none focus:border-amber-500"
+                                          className="w-full ui-input p-1.5 sm:p-2 text-xs"
                                         />
                                       </div>
                                       <span className="hidden sm:inline text-slate-500 font-bold text-xs shrink-0">→</span>
@@ -661,14 +661,14 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                             onFocus={() => setFocusedTargetId(entry.id)}
                                             onBlur={() => setFocusedTargetId(null)}
                                             placeholder={t('config.targetModel')}
-                                            className={`w-full bg-[#121520] sm:bg-[#151824] border border-white/[0.08] rounded-lg p-1.5 sm:p-2 text-xs text-amber-300 font-mono focus:outline-none focus:border-amber-500 ${
+                                            className={`w-full ui-input p-1.5 sm:p-2 text-xs text-amber-300 ${
                                               isMultiTarget && focusedTargetId !== entry.id ? 'pr-6' : ''
                                             }`}
                                           />
                                           {isMultiTarget && focusedTargetId !== entry.id && (
                                             <div className="absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none z-10 flex items-center">
                                               <span
-                                                className="text-[9px] font-mono font-bold text-amber-300 bg-[#121520] sm:bg-[#151824] border border-amber-500/60 shadow-sm px-1 py-0.5 rounded leading-none flex items-center select-none"
+                                                className="text-[9px] font-mono font-bold text-amber-300 bg-[#10121A] border border-amber-500/60 shadow-sm px-1 py-0.5 rounded leading-none flex items-center select-none"
                                                 title={`${targets.length} targets configured`}
                                               >
                                                 ×{targets.length}
@@ -684,13 +684,13 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                       <select
                                         value={entry.strategy || ''}
                                         onChange={(e) => handleEntryChange(entry.id, 'strategy', e.target.value)}
-                                        className="w-24 sm:w-[94px] bg-[#121520] sm:bg-[#151824] border border-white/[0.08] rounded-lg p-1.5 sm:p-2 text-[10px] sm:text-[11px] text-slate-300 font-mono focus:outline-none focus:border-amber-500 shrink-0"
+                                        className="w-24 sm:w-[94px] ui-input p-1.5 sm:p-2 text-[10px] sm:text-[11px] shrink-0 appearance-none cursor-pointer"
                                         title={t('config.strategy')}
                                       >
-                                        <option value="">{t('config.strategyDefault')}</option>
-                                        <option value="least-used">{t('config.strategyLeastUsed')}</option>
-                                        <option value="round-robin">{t('config.strategyRoundRobin')}</option>
-                                        <option value="weighted">{t('config.strategyWeighted')}</option>
+                                        <option value="" className="bg-[#0C0E14]">{t('config.strategyDefault')}</option>
+                                        <option value="least-used" className="bg-[#0C0E14]">{t('config.strategyLeastUsed')}</option>
+                                        <option value="round-robin" className="bg-[#0C0E14]">{t('config.strategyRoundRobin')}</option>
+                                        <option value="weighted" className="bg-[#0C0E14]">{t('config.strategyWeighted')}</option>
                                       </select>
                                       <button
                                         type="button"
@@ -698,7 +698,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                         className={`px-1.5 py-1 sm:py-1.5 text-[9px] sm:text-[10px] font-bold rounded-lg transition-all border shrink-0 flex items-center space-x-0.5 ${
                                           entry.target.trim().endsWith('-high')
                                             ? 'bg-amber-500/15 border-amber-500/40 text-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.15)]'
-                                            : 'bg-[#121520] sm:bg-[#151824] border-white/[0.08] text-slate-400 hover:text-slate-300 hover:border-white/[0.15]'
+                                            : 'ui-btn-secondary'
                                         }`}
                                         title={t('config.highToggleTooltip')}
                                       >
@@ -724,7 +724,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                         <button
                           type="button"
                           onClick={handleAddMapping}
-                          className="w-full py-2 bg-[#151824] hover:bg-[#1C2030] border border-white/[0.08] hover:border-white/[0.15] text-amber-400/90 rounded-xl text-xs font-semibold transition-all flex items-center justify-center space-x-1.5"
+                          className="w-full py-2 ui-btn-secondary text-amber-400/90 flex items-center justify-center space-x-1.5"
                         >
                           <Plus className="w-3.5 h-3.5" />
                           <span>{t('config.addMapping')}</span>
@@ -738,13 +738,13 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
               {/* TAB 5: Security & Reset */}
               {activeTab === 'security' && (
                 <div className="space-y-4 animate-in fade-in duration-150">
-                  <div className="bg-[#121520] p-4 sm:p-5 rounded-2xl border border-white/[0.06] space-y-4">
+                  <div className="ui-card-sub p-4 sm:p-5 space-y-4">
                     <div className="flex items-center space-x-2 text-xs font-bold text-purple-400 uppercase tracking-wider">
                       <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />
                       <span>{t('config.securityGroup')}</span>
                     </div>
 
-                    <div className="bg-[#151824] p-3.5 sm:p-4 rounded-xl border border-white/[0.06] space-y-2">
+                    <div className="bg-[#10121A] p-3.5 sm:p-4 rounded-xl border border-white/[0.06] space-y-2">
                       <div className="flex items-center space-x-2 text-xs font-semibold text-slate-200">
                         <Info className="w-4 h-4 text-indigo-400" />
                         <span>{t('config.adminSecretTitle')}</span>
@@ -778,7 +778,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
             </div>
 
             {/* Modal Sticky Footer */}
-            <div className="sticky bottom-0 bg-[#121520]/95 backdrop-blur-xl border-t border-white/[0.08] p-3.5 sm:p-4 flex flex-col-reverse sm:flex-row items-center justify-between gap-3 shrink-0">
+            <div className="sticky bottom-0 bg-[#10121A]/95 backdrop-blur-xl border-t border-white/[0.08] p-3.5 sm:p-4 flex flex-col-reverse sm:flex-row items-center justify-between gap-3 shrink-0">
               <span className="text-[10px] sm:text-[11px] text-slate-500 font-mono text-center sm:text-left">
                 {t('config.footerNote')}
               </span>
@@ -787,14 +787,14 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                 <button
                   type="button"
                   onClick={onClose}
-                  className="flex-1 sm:flex-none px-4 py-2.5 sm:py-2 bg-[#151824] hover:bg-[#1C2030] border border-white/[0.08] rounded-xl text-xs font-semibold text-slate-300 transition-colors text-center"
+                  className="flex-1 sm:flex-none px-4 py-2 ui-btn-secondary text-center"
                 >
                   {t('config.cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 sm:flex-none px-5 py-2.5 sm:py-2 bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-500 hover:from-indigo-600 hover:via-purple-700 hover:to-pink-600 disabled:opacity-50 text-white rounded-xl font-bold text-xs shadow-[0_0_20px_rgba(129,140,248,0.35)] transition-all flex items-center justify-center space-x-1.5"
+                  className="flex-1 sm:flex-none px-5 py-2 ui-btn-primary flex items-center justify-center space-x-1.5 disabled:opacity-50"
                 >
                   {saving ? (
                     <>
