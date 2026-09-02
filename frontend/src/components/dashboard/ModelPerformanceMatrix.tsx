@@ -26,7 +26,7 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
   const count = modelStats?.list?.length || 0;
 
   return (
-    <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl p-5 shadow-lg flex flex-col">
+    <div className="ui-card p-5 flex flex-col">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-2">
           <Layers className="w-4 h-4 text-indigo-400" />

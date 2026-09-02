@@ -19,7 +19,7 @@ export const SystemRuntimeMatrix: React.FC<SystemRuntimeMatrixProps> = ({ config
   return (
     <div className="space-y-5">
       {/* System Runtime Configuration Matrix */}
-      <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl p-5 shadow-lg relative flex flex-col">
+      <div className="ui-card p-5 relative flex flex-col">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-2">
             <Cpu className="w-4 h-4 text-emerald-400" />
@@ -34,7 +34,7 @@ export const SystemRuntimeMatrix: React.FC<SystemRuntimeMatrixProps> = ({ config
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1 font-mono text-xs">
-          <div className="bg-white/[0.02] border border-white/[0.05] rounded-lg p-3 flex flex-col justify-between">
+          <div className="ui-card-sub p-3 flex flex-col justify-between">
             <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
               LOG_LEVEL
             </span>
@@ -43,7 +43,7 @@ export const SystemRuntimeMatrix: React.FC<SystemRuntimeMatrixProps> = ({ config
             </span>
           </div>
 
-          <div className="bg-white/[0.02] border border-white/[0.05] rounded-lg p-3 flex flex-col justify-between">
+          <div className="ui-card-sub p-3 flex flex-col justify-between">
             <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
               UPSTREAM_TIMEOUT
             </span>
@@ -52,7 +52,7 @@ export const SystemRuntimeMatrix: React.FC<SystemRuntimeMatrixProps> = ({ config
             </span>
           </div>
 
-          <div className="bg-white/[0.02] border border-white/[0.05] rounded-lg p-3 flex flex-col justify-between">
+          <div className="ui-card-sub p-3 flex flex-col justify-between">
             <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
               SYSTEM_ROLE_TO_INSTRUCTION
             </span>
@@ -61,7 +61,7 @@ export const SystemRuntimeMatrix: React.FC<SystemRuntimeMatrixProps> = ({ config
             </span>
           </div>
 
-          <div className="bg-white/[0.02] border border-white/[0.05] rounded-lg p-3 flex flex-col justify-between">
+          <div className="ui-card-sub p-3 flex flex-col justify-between">
             <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
               LOG_RETENTION_DAYS
             </span>
@@ -70,7 +70,7 @@ export const SystemRuntimeMatrix: React.FC<SystemRuntimeMatrixProps> = ({ config
             </span>
           </div>
 
-          <div className="bg-white/[0.02] border border-white/[0.05] rounded-lg p-3 flex flex-col justify-between">
+          <div className="ui-card-sub p-3 flex flex-col justify-between">
             <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
               TIME_ZONE
             </span>
@@ -79,7 +79,7 @@ export const SystemRuntimeMatrix: React.FC<SystemRuntimeMatrixProps> = ({ config
             </span>
           </div>
 
-          <div className="bg-white/[0.02] border border-white/[0.05] rounded-lg p-3 flex flex-col justify-between">
+          <div className="ui-card-sub p-3 flex flex-col justify-between">
             <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
               COUNT_TOKENS_MODEL
             </span>

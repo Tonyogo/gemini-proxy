@@ -288,7 +288,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
         </div>
 
         {/* Time Range Selector */}
-        <div className="flex items-center space-x-1.5 bg-[#0F1118]/90 border border-white/[0.08] p-1 rounded-xl shadow-inner">
+        <div className="ui-tab-container">
           <span className="text-[10px] text-slate-500 uppercase font-semibold px-2 tracking-wider select-none">
             {t('dashboard.timeRange')}
           </span>
@@ -297,10 +297,8 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
               key={r}
               type="button"
               onClick={() => setRange(r)}
-              className={`px-3 py-1 rounded-lg text-xs font-mono font-medium transition-all ${
-                range === r
-                  ? 'bg-indigo-600 text-white shadow-[0_0_12px_rgba(99,102,241,0.35)]'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
+              className={`ui-tab-pill font-mono ${
+                range === r ? 'ui-tab-pill-active' : ''
               }`}
             >
               {r === 'today' ? t('dashboard.rangeToday') : t(`dashboard.range${r}h`)}
@@ -312,7 +310,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
       {/* Tier 2: 4 KPI Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1: Server Status */}
-        <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl p-5 hover:border-indigo-500/30 transition-all group shadow-lg relative overflow-hidden">
+        <div className="ui-card p-5 hover:border-indigo-500/30 transition-all group relative overflow-hidden">
           <div className="flex items-center justify-between mb-3">
             <span className="text-slate-400 text-xs font-medium uppercase tracking-wider">
               {t('dashboard.statusCard')}
@@ -340,7 +338,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
         </div>
 
         {/* Card 2: Total Requests */}
-        <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl p-5 hover:border-indigo-500/30 transition-all group shadow-lg relative overflow-hidden">
+        <div className="ui-card p-5 hover:border-indigo-500/30 transition-all group relative overflow-hidden">
           <div className="flex items-center justify-between mb-3">
             <span className="text-slate-400 text-xs font-medium uppercase tracking-wider">
               {t('dashboard.totalTransactions')}
@@ -363,7 +361,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
         </div>
 
         {/* Card 3: Average Latency */}
-        <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl p-5 hover:border-indigo-500/30 transition-all group shadow-lg relative overflow-hidden">
+        <div className="ui-card p-5 hover:border-indigo-500/30 transition-all group relative overflow-hidden">
           <div className="flex items-center justify-between mb-3">
             <span className="text-slate-400 text-xs font-medium uppercase tracking-wider">
               {t('dashboard.averageLatency')}
@@ -384,7 +382,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
         </div>
 
         {/* Card 4: Success vs Errors */}
-        <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-xl p-5 hover:border-indigo-500/30 transition-all group shadow-lg relative overflow-hidden">
+        <div className="ui-card p-5 hover:border-indigo-500/30 transition-all group relative overflow-hidden">
           <div className="flex items-center justify-between mb-3">
             <span className="text-slate-400 text-xs font-medium uppercase tracking-wider">
               {t('dashboard.successVsErrors')}
@@ -414,7 +412,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
         {/* Left Core Charts View (60% split) */}
         <div className="lg:col-span-7 xl:col-span-8 space-y-6">
           {/* Chart 1: Request Volume Trend */}
-          <div className="bg-[#0F1118]/90 border border-white/[0.08] hover:border-white/[0.12] rounded-xl p-5 shadow-lg relative flex flex-col h-[320px] transition-colors group">
+          <div className="ui-card p-5 relative flex flex-col h-[320px] transition-colors group">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-xs font-semibold text-slate-200 tracking-wider uppercase flex items-center space-x-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
@@ -584,11 +582,11 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
           </div>
 
           {/* Chart 2: Tab-Switchable Model Analytics (Latency vs Distribution) */}
-          <div className="bg-[#0F1118]/90 border border-white/[0.08] hover:border-white/[0.12] rounded-xl p-5 shadow-lg relative flex flex-col h-[320px] transition-colors group">
+          <div className="ui-card p-5 relative flex flex-col h-[320px] transition-colors group">
             <div className="mb-2">
               <div className="flex items-center justify-between mb-2">
                 {/* Tab Switcher Buttons */}
-                <div className="flex items-center space-x-1 bg-black/40 border border-white/[0.06] p-0.5 rounded-lg">
+                <div className="ui-tab-container p-0.5">
                   <button
                     type="button"
                     onClick={() => setAnalyticsTab('latency')}
