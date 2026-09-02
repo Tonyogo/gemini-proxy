@@ -11,6 +11,7 @@ import {
   extractTimeoutMs,
   extractClientSchedulingStrategy,
   getUpstreamUrl,
+  generateShortId,
   generateTransactionId,
   buildUpstreamHeaders
 } from '../utils/requestHelper';
@@ -19,7 +20,7 @@ const SUPPORTED_MODELS: ModelConfig[] = [];
 
 class ClaudeController {
   public async handleMessages(req: Request, res: Response): Promise<any> {
-    const transactionId = generateTransactionId();
+    const transactionId = generateShortId();
     const startTime = Date.now();
     const requestPath = req.originalUrl || req.path;
     const clientEndpoint = `${req.method} ${requestPath}`;
@@ -307,7 +308,7 @@ class ClaudeController {
   }
 
   public async handleCountTokens(req: Request, res: Response): Promise<any> {
-    const transactionId = generateTransactionId();
+    const transactionId = generateShortId();
     const startTime = Date.now();
     const clientEndpoint = `${req.method} ${req.originalUrl || req.path}`;
     logger.info(`[Request] [Transaction: ${transactionId}] Received ${clientEndpoint}`);
@@ -400,7 +401,7 @@ class ClaudeController {
   }
 
   public async handleListModels(req: Request, res: Response): Promise<any> {
-    const transactionId = generateTransactionId();
+    const transactionId = generateShortId();
     const startTime = Date.now();
     const requestPath = req.originalUrl || req.path;
     const clientEndpoint = `${req.method} ${requestPath}`;
@@ -483,7 +484,7 @@ class ClaudeController {
   }
 
   public async handleRetrieveModel(req: Request, res: Response): Promise<any> {
-    const transactionId = generateTransactionId();
+    const transactionId = generateShortId();
     const startTime = Date.now();
     const requestPath = req.originalUrl || req.path;
     const modelId = req.params.model_id;

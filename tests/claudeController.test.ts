@@ -2,7 +2,7 @@ import request from 'supertest';
 import app from '../src/app';
 import config from '../config/default';
 import claudeController from '../src/controllers/claudeController';
-import { getUpstreamUrl, extractClientKey, generateTransactionId, buildUpstreamHeaders, maskApiKey, sanitizeData } from '../src/utils/requestHelper';
+import { getUpstreamUrl, extractClientKey, generateShortId, generateTransactionId, buildUpstreamHeaders, maskApiKey, sanitizeData } from '../src/utils/requestHelper';
 
 // Mock payloadLogger to prevent async disk writing side-effects and background log warnings
 jest.mock('../src/services/payloadLogger', () => ({
@@ -132,12 +132,15 @@ describe('extractClientKey helper', () => {
   });
 });
 
-describe('generateTransactionId helper', () => {
-  it('generates unique transaction IDs containing timestamp and random string', () => {
-    const id1 = generateTransactionId();
-    const id2 = generateTransactionId();
+describe('generateTransactionId and generateShortId helpers', () => {
+  it('generates unique short transaction IDs', () => {
+    const id1 = generateShortId();
+    const id2 = generateShortId();
     expect(id1).not.toEqual(id2);
-    expect(id1).toMatch(/^\d+_[a-z0-9]+$/);
+    expect(id1).toMatch(/^[a-z0-9]{9}$/);
+
+    const txId = generateTransactionId();
+    expect(txId).toMatch(/^[a-z0-9]{9}$/);
   });
 });
 

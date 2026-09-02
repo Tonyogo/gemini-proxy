@@ -56,10 +56,17 @@ export function getUpstreamUrl(pathAndQuery: string): string {
 }
 
 /**
+ * Generates a unique short ID (9 characters) for logging.
+ */
+export function generateShortId(): string {
+  return Math.random().toString(36).substring(2, 11);
+}
+
+/**
  * Generates a unique transaction ID for tracing request-response cycles.
  */
 export function generateTransactionId(): string {
-  return `${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+  return generateShortId();
 }
 
 /**

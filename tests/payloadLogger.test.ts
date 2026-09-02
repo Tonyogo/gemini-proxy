@@ -16,6 +16,8 @@ describe('PayloadLogger Service', () => {
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
     hourCycle: 'h23'
   });
 
@@ -29,11 +31,17 @@ describe('PayloadLogger Service', () => {
   if (hour === '24') hour = '00';
 
   const targetDir = path.join(resolvedLogsDir, `${year}-${month}-${day}`, hour);
-  const filePath = path.join(targetDir, `transaction_${testId}.json`);
 
   afterEach(async () => {
     try {
-      await fs.unlink(filePath);
+      if (existsSync(targetDir)) {
+        const files = await fs.readdir(targetDir);
+        for (const file of files) {
+          if (file.includes(testId)) {
+            await fs.unlink(path.join(targetDir, file)).catch(() => {});
+          }
+        }
+      }
       await fs.unlink(path.join(path.dirname(targetDir), 'index.jsonl')).catch(() => {});
       await fs.rmdir(targetDir).catch(() => {});
       await fs.rmdir(path.dirname(targetDir)).catch(() => {});
@@ -41,6 +49,12 @@ describe('PayloadLogger Service', () => {
       // ignore
     }
   });
+
+  const findTestFile = async (id: string = testId): Promise<string> => {
+    const files = await fs.readdir(targetDir);
+    const match = files.find(f => f.endsWith(`_${id}.json`));
+    return match ? path.join(targetDir, match) : '';
+  };
 
   it('correctly creates the directory and writes json payload', async () => {
     const clientReq = { messages: [{ role: 'user', content: 'Hi' }], stream: true };
@@ -50,7 +64,9 @@ describe('PayloadLogger Service', () => {
 
     await payloadLogger.saveTransaction(testId, clientReq, gemReq, gemRes, claudeRes, undefined, '/v1/messages', 200, true);
 
-    const exists = await fs.access(filePath).then(() => true).catch(() => false);
+    const filePath = await findTestFile(testId);
+    expect(filePath).toBeTruthy();
+    const exists = existsSync(filePath);
     expect(exists).toBe(true);
 
     const dataText = await fs.readFile(filePath, 'utf8');
@@ -74,7 +90,9 @@ describe('PayloadLogger Service', () => {
 
     await payloadLogger.saveTransaction(testId, clientReq, gemReq, gemRes, claudeRes, 350, '/v1/messages', 200, false);
 
-    const exists = await fs.access(filePath).then(() => true).catch(() => false);
+    const filePath = await findTestFile(testId);
+    expect(filePath).toBeTruthy();
+    const exists = existsSync(filePath);
     expect(exists).toBe(true);
 
     const dataText = await fs.readFile(filePath, 'utf8');
@@ -117,10 +135,13 @@ describe('PayloadLogger Service', () => {
     expect(record.duration).toBe(150);
     expect(record.reqPath).toBe('/v1/messages');
     expect(record.model).toBe('gemini-3.1-flash');
+    expect(record.filename).toMatch(new RegExp(`^\\d{4}_${transactionId}\\.json$`));
 
     // Clean up files written by this test
-    const customFilePath = path.join(debugDir, `transaction_${transactionId}.json`);
-    await fs.unlink(customFilePath).catch(() => {});
+    const customFilePath = await findTestFile(transactionId);
+    if (customFilePath) {
+      await fs.unlink(customFilePath).catch(() => {});
+    }
     await fs.unlink(indexPath).catch(() => {});
   });
 
@@ -152,8 +173,10 @@ describe('PayloadLogger Service', () => {
     expect(record.model).toBe('gemini-2.5-flash');
 
     // Clean up
-    const customFilePath = path.join(debugDir, `transaction_${transactionId}.json`);
-    await fs.unlink(customFilePath).catch(() => {});
+    const customFilePath = await findTestFile(transactionId);
+    if (customFilePath) {
+      await fs.unlink(customFilePath).catch(() => {});
+    }
     await fs.unlink(indexPath).catch(() => {});
     config.modelMappings = {};
   });

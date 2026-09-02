@@ -28,7 +28,7 @@ class PayloadLogger {
       : path.join(process.cwd(), logsDir);
   }
 
-  private _getTargetDirParts(): { dateStr: string; hourStr: string; targetDir: string } {
+  private _getTargetDirParts(): { dateStr: string; hourStr: string; minStr: string; secStr: string; targetDir: string } {
     const timeZone = config.timeZone || 'Asia/Shanghai';
     const formatter = new Intl.DateTimeFormat('en-US', {
       timeZone,
@@ -36,6 +36,8 @@ class PayloadLogger {
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
       hourCycle: 'h23'
     });
 
@@ -47,12 +49,14 @@ class PayloadLogger {
     const day = getPart('day');
     let hour = getPart('hour');
     if (hour === '24') hour = '00';
+    const minStr = getPart('minute').padStart(2, '0');
+    const secStr = getPart('second').padStart(2, '0');
 
     const dateStr = `${year}-${month}-${day}`;
     const hourStr = hour;
     const targetDir = path.join(this.getDebugDir(), dateStr, hourStr);
 
-    return { dateStr, hourStr, targetDir };
+    return { dateStr, hourStr, minStr, secStr, targetDir };
   }
 
   /**
@@ -112,7 +116,7 @@ class PayloadLogger {
     try {
       this.cleanupExpiredLogs().catch(() => {});
 
-      const { dateStr, hourStr, targetDir } = this._getTargetDirParts();
+      const { dateStr, hourStr, minStr, secStr, targetDir } = this._getTargetDirParts();
       await fs.mkdir(targetDir, { recursive: true });
 
       const resolvedStatus = status !== undefined
@@ -135,7 +139,8 @@ class PayloadLogger {
         claude_res: sanitizeData(claudeRes) || null
       };
 
-      const filePath = path.join(targetDir, `transaction_${transactionId}.json`);
+      const filename = `${minStr}${secStr}_${transactionId}.json`;
+      const filePath = path.join(targetDir, filename);
       await fs.writeFile(filePath, JSON.stringify(payload, null, 2), 'utf8');
       logger.debug(`[PayloadLogger] Saved transaction log: ${filePath}`);
 
@@ -147,8 +152,8 @@ class PayloadLogger {
         timestamp: payload.timestamp,
         date: dateStr,
         hour: hourStr,
-        filename: `transaction_${transactionId}.json`,
-        path: path.join(dateStr, hourStr, `transaction_${transactionId}.json`),
+        filename: filename,
+        path: path.join(dateStr, hourStr, filename),
         status: resolvedStatus,
         duration: duration !== undefined ? duration : null,
         reqPath: reqPath || null,
