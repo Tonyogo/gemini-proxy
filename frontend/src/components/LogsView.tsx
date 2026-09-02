@@ -357,11 +357,11 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
     <div className="flex flex-col md:flex-row gap-4 max-w-7xl mx-auto items-stretch min-h-[700px] md:h-[calc(100vh-6.5rem)]">
       {/* Left Column (Request Master List) */}
       {!sidebarCollapsed && (
-        <div className={`w-full md:w-80 lg:w-[340px] shrink-0 bg-slate-900/90 border border-slate-800/90 rounded-2xl p-3.5 shadow-xl flex flex-col h-[520px] md:h-full transition-all ${
+        <div className={`w-full md:w-80 lg:w-[340px] shrink-0 ui-card p-3.5 flex flex-col h-[520px] md:h-full transition-all ${
           mobileDetailOpen ? 'hidden md:flex' : 'flex'
         }`}>
           {/* Header Bar */}
-          <div className="flex items-center justify-between pb-3 mb-2.5 border-b border-slate-800/80">
+          <div className="flex items-center justify-between pb-3 mb-2.5 border-b border-white/[0.08]">
             <div className="flex items-center space-x-2">
               <div className="w-6 h-6 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
                 <FileText className="w-3.5 h-3.5" />
@@ -381,7 +381,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                 detailCacheRef.current.clear();
                 fetchLogs(true);
               }}
-              className="text-[11px] bg-slate-800/80 hover:bg-slate-700 text-slate-200 px-2.5 py-1 rounded-lg border border-slate-700/60 transition-colors flex items-center space-x-1.5 shadow-sm"
+              className="text-[11px] ui-btn-secondary px-2.5 py-1 flex items-center space-x-1.5"
               title="Refresh logs list"
             >
               <RefreshCw className="w-3 h-3" />
@@ -399,7 +399,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
               <select
                 value={selectedDate}
                 onChange={(e) => handleDateChange(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-1.5 text-xs text-slate-100 font-mono focus:outline-none focus:border-indigo-500 transition-colors"
+                className="w-full ui-input p-1.5 text-xs appearance-none cursor-pointer"
               >
                 {Object.keys(tree).sort((a, b) => b.localeCompare(a)).map(d => (
                   <option key={d} value={d}>{d}</option>
@@ -415,7 +415,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
               <select
                 value={selectedHour}
                 onChange={(e) => handleHourChange(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-1.5 text-xs text-slate-100 font-mono focus:outline-none focus:border-indigo-500 transition-colors"
+                className="w-full ui-input p-1.5 text-xs appearance-none cursor-pointer"
               >
                 {availableHours.map(h => (
                   <option key={h} value={h}>{h}:00</option>
@@ -425,45 +425,45 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
           </div>
 
           {/* Status Filter Pills & Quick Search */}
-          <div className="space-y-2 mb-2.5 pb-2.5 border-b border-slate-800/80">
+          <div className="space-y-2 mb-2.5 pb-2.5 border-b border-white/[0.08]">
             {/* Filter Pills */}
-            <div className="flex items-center space-x-1 bg-slate-950 p-1 rounded-xl border border-slate-800/80 text-[10px] font-medium">
+            <div className="ui-tab-container p-0.5 text-[10px] font-medium space-x-0.5">
               <button
                 onClick={() => setStatusFilter('all')}
-                className={`flex-1 py-1 rounded-lg transition-all text-center ${
+                className={`ui-tab-pill flex-1 py-1 text-center ${
                   statusFilter === 'all'
-                    ? 'bg-slate-800 text-slate-100 font-semibold shadow'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'ui-tab-pill-active font-semibold'
+                    : ''
                 }`}
               >
                 All
               </button>
               <button
                 onClick={() => setStatusFilter('2xx')}
-                className={`flex-1 py-1 rounded-lg transition-all text-center ${
+                className={`ui-tab-pill flex-1 py-1 text-center ${
                   statusFilter === '2xx'
-                    ? 'bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/40 shadow'
-                    : 'text-slate-400 hover:text-emerald-300'
+                    ? 'bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/40 shadow-sm'
+                    : 'hover:text-emerald-300'
                 }`}
               >
                 2xx
               </button>
               <button
                 onClick={() => setStatusFilter('4xx')}
-                className={`flex-1 py-1 rounded-lg transition-all text-center ${
+                className={`ui-tab-pill flex-1 py-1 text-center ${
                   statusFilter === '4xx'
-                    ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40 shadow'
-                    : 'text-slate-400 hover:text-amber-300'
+                    ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40 shadow-sm'
+                    : 'hover:text-amber-300'
                 }`}
               >
                 4xx
               </button>
               <button
                 onClick={() => setStatusFilter('5xx')}
-                className={`flex-1 py-1 rounded-lg transition-all text-center ${
+                className={`ui-tab-pill flex-1 py-1 text-center ${
                   statusFilter === '5xx'
-                    ? 'bg-rose-500/20 text-rose-300 font-semibold border border-rose-500/40 shadow'
-                    : 'text-slate-400 hover:text-rose-300'
+                    ? 'bg-rose-500/20 text-rose-300 font-semibold border border-rose-500/40 shadow-sm'
+                    : 'hover:text-rose-300'
                 }`}
               >
                 5xx
@@ -477,7 +477,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                 placeholder={t('logs.searchPlaceholder', 'Filter model / path / filename...')}
                 value={searchFilter}
                 onChange={(e) => setSearchFilter(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-7 pr-2.5 py-1 text-[11px] text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono transition-colors"
+                className="w-full ui-input pl-7 pr-2.5 py-1 text-[11px]"
               />
               <Search className="w-3 h-3 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               {searchFilter && (
@@ -565,7 +565,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                     className={`p-2.5 rounded-xl cursor-pointer transition-all border relative overflow-hidden group ${
                       isSelected
                         ? 'bg-indigo-600/15 border-indigo-500/80 text-indigo-100 shadow-md ring-1 ring-indigo-500/30'
-                        : 'bg-slate-950/60 border-slate-800/80 hover:border-slate-700 hover:bg-slate-900/60 text-slate-300'
+                        : 'bg-[#10121A]/80 border-white/[0.05] hover:border-white/[0.12] hover:bg-[#151824] text-slate-300'
                     }`}
                   >
                     {/* Purple active indicator bar on selected item */}
@@ -687,11 +687,11 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
       )}
 
       {/* Right Column (Detail Inspector) */}
-      <div className={`flex-1 min-w-0 bg-slate-900/90 border border-slate-800/90 rounded-2xl p-3 sm:p-4 shadow-xl flex flex-col h-full min-h-[500px] ${
+      <div className={`flex-1 min-w-0 ui-card p-3 sm:p-4 flex flex-col h-full min-h-[500px] ${
         !mobileDetailOpen ? 'hidden md:flex' : 'flex'
       }`}>
         {/* Top Header & Navigation Bar */}
-        <div className="flex flex-wrap items-center justify-between pb-3 mb-3.5 border-b border-slate-800/80 gap-2.5">
+        <div className="flex flex-wrap items-center justify-between pb-3 mb-3.5 border-b border-white/[0.08] gap-2.5">
           <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
             {/* Mobile back to list button */}
             <button
@@ -709,7 +709,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
               className={`hidden md:flex p-1.5 rounded-lg border text-xs transition-colors items-center justify-center ${
                 sidebarCollapsed
                   ? 'bg-indigo-600/20 border-indigo-500/80 text-indigo-300'
-                  : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+                  : 'ui-btn-secondary'
               }`}
               title={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
             >
@@ -721,13 +721,13 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
             </button>
 
             {/* Subtabs: Payload vs Response vs Chat */}
-            <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-semibold overflow-x-auto">
+            <div className="ui-tab-container overflow-x-auto">
               <button
                 onClick={() => setActiveTab('payload')}
-                className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition-all flex items-center space-x-1.5 whitespace-nowrap ${
+                className={`ui-tab-pill flex items-center space-x-1.5 whitespace-nowrap ${
                   activeTab === 'payload'
-                    ? 'bg-indigo-600 text-white shadow-md'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'ui-tab-pill-active font-semibold'
+                    : ''
                 }`}
               >
                 <span>📤</span>
@@ -735,10 +735,10 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
               </button>
               <button
                 onClick={() => setActiveTab('response')}
-                className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition-all flex items-center space-x-1.5 whitespace-nowrap ${
+                className={`ui-tab-pill flex items-center space-x-1.5 whitespace-nowrap ${
                   activeTab === 'response'
-                    ? 'bg-indigo-600 text-white shadow-md'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'ui-tab-pill-active font-semibold'
+                    : ''
                 }`}
               >
                 <span>📥</span>
@@ -746,10 +746,10 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
               </button>
               <button
                 onClick={() => setActiveTab('chat')}
-                className={`px-2.5 sm:px-3 py-1.5 rounded-lg transition-all flex items-center space-x-1.5 whitespace-nowrap ${
+                className={`ui-tab-pill flex items-center space-x-1.5 whitespace-nowrap ${
                   activeTab === 'chat'
-                    ? 'bg-indigo-600 text-white shadow-md'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'ui-tab-pill-active font-semibold'
+                    : ''
                 }`}
               >
                 <MessageSquare className="w-3.5 h-3.5" />
@@ -760,13 +760,13 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
 
           <div className="flex items-center space-x-2 flex-wrap gap-y-2">
             {/* Preview vs Raw JSON mode toggle */}
-            <div className="flex bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-medium">
+            <div className="ui-tab-container text-xs font-medium">
               <button
                 onClick={() => setViewMode('preview')}
-                className={`px-2 sm:px-3 py-1 rounded-lg transition-all flex items-center space-x-1 ${
+                className={`ui-tab-pill flex items-center space-x-1 ${
                   viewMode === 'preview'
-                    ? 'bg-emerald-600 text-white shadow'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'ui-tab-pill-active font-semibold'
+                    : ''
                 }`}
               >
                 <Eye className="w-3.5 h-3.5" />
@@ -774,10 +774,10 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
               </button>
               <button
                 onClick={() => setViewMode('raw')}
-                className={`px-2 sm:px-3 py-1 rounded-lg transition-all flex items-center space-x-1 ${
+                className={`ui-tab-pill flex items-center space-x-1 ${
                   viewMode === 'raw'
-                    ? 'bg-emerald-600 text-white shadow'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'ui-tab-pill-active font-semibold'
+                    : ''
                 }`}
               >
                 <Code className="w-3.5 h-3.5" />
@@ -790,7 +790,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
               <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
                 <button
                   onClick={handleCopyClaudeCurl}
-                  className="px-2 sm:px-2.5 py-1.5 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-[11px] sm:text-xs font-mono flex items-center space-x-1 transition-colors"
+                  className="px-2 sm:px-2.5 py-1.5 ui-btn-secondary text-[11px] sm:text-xs font-mono flex items-center space-x-1"
                   title="Copy Claude proxy cURL command"
                 >
                   {copiedClaudeCurl ? (
@@ -808,7 +808,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
 
                 <button
                   onClick={handleCopyGeminiCurl}
-                  className="px-2 sm:px-2.5 py-1.5 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-[11px] sm:text-xs font-mono flex items-center space-x-1 transition-colors"
+                  className="px-2 sm:px-2.5 py-1.5 ui-btn-secondary text-[11px] sm:text-xs font-mono flex items-center space-x-1"
                   title="Copy upstream Gemini cURL command"
                 >
                   {copiedGeminiCurl ? (
@@ -826,7 +826,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
 
                 <button
                   onClick={handleCopyJson}
-                  className="px-2 sm:px-2.5 py-1.5 rounded-lg bg-slate-950 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-[11px] sm:text-xs font-mono flex items-center space-x-1 transition-colors"
+                  className="px-2 sm:px-2.5 py-1.5 ui-btn-secondary text-[11px] sm:text-xs font-mono flex items-center space-x-1"
                   title="Copy full transaction JSON"
                 >
                   {copiedJson ? (
@@ -848,7 +848,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
 
         {/* Metadata Summary Header Ribbon */}
         {selectedLog && (
-          <div className="bg-slate-950/80 border border-slate-800/80 rounded-xl p-2.5 mb-3.5 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+          <div className="ui-card-sub p-2.5 mb-3.5 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
             <div className="flex items-center space-x-2 flex-wrap">
               {selectedLog.status !== null && selectedLog.status !== undefined && (
                 <span className={`px-2 py-0.5 rounded-md font-bold border ${
