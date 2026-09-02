@@ -26,7 +26,7 @@
 - Consumes: `ChatMessage` (`role: 'user' | 'assistant' | 'system'`, `blocks: ParsedBlock[]`)
 - Produces: Enhanced `MessageBubble` React Component with distinct role-based visual layouts
 
-- [ ] **Step 1: 更新气泡容器与 Header 角色栏排版**
+- [x] **Step 1: 更新气泡容器与 Header 角色栏排版**
 
 在 `frontend/src/components/chat/MessageBubble.tsx` 中：
 1. 外层容器更新为：
@@ -58,7 +58,7 @@
    </div>
    ```
 
-- [ ] **Step 2: 更新气泡卡片主体样式与子元素容器**
+- [x] **Step 2: 更新气泡卡片主体样式与子元素容器**
 
 更新气泡容器类名：
 ```tsx
@@ -69,11 +69,11 @@
 }`}>
 ```
 
-- [ ] **Step 3: 运行前端构建检查语法与样式**
+- [x] **Step 3: 运行前端构建检查语法与样式**
   Run: `npm run build:frontend`
   Expected: PASS
 
-- [ ] **Step 4: 提交更改**
+- [x] **Step 4: 提交更改**
   ```bash
   git add frontend/src/components/chat/MessageBubble.tsx
   git commit -m "feat(logs): enhance chat bubble distinction with asymmetric layout and contrast colors"
@@ -90,14 +90,14 @@
 - Consumes: Updated `MessageBubble`
 - Produces: Polished conversation timeline container
 
-- [ ] **Step 1: 优化消息列表容器间距**
+- [x] **Step 1: 优化消息列表容器间距**
   在 `frontend/src/components/ConversationView.tsx` 中将消息流容器的间距调整为 `space-y-5`，并在底部保留充分呼吸空间。
 
-- [ ] **Step 2: 运行全量构建与测试**
+- [x] **Step 2: 运行全量构建与测试**
   Run: `npm run build && npm test`
   Expected: All frontend and backend builds pass, Jest unit test suite passes 100%.
 
-- [ ] **Step 3: 提交更改**
+- [x] **Step 3: 提交更改**
   ```bash
   git add frontend/src/components/ConversationView.tsx
   git commit -m "style(logs): optimize conversation view spacing and layout polish"
