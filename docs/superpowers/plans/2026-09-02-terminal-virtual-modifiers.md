@@ -36,7 +36,7 @@
   ): string | null
   ```
 
-- [ ] **Step 1: 编写失败的单元测试 `tests/terminalKeyEncoder.test.ts`**
+- [x] **Step 1: 编写失败的单元测试 `tests/terminalKeyEncoder.test.ts`**
 
 ```typescript
 import { encodeModifierKey } from '../frontend/src/utils/terminalKeyEncoder';
@@ -93,11 +93,11 @@ describe('terminalKeyEncoder', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
   Run: `npx jest tests/terminalKeyEncoder.test.ts`
   Expected: FAIL (Cannot find module)
 
-- [ ] **Step 3: 实现 `frontend/src/utils/terminalKeyEncoder.ts`**
+- [x] **Step 3: 实现 `frontend/src/utils/terminalKeyEncoder.ts`**
 
 ```typescript
 const IGNORED_KEYS = new Set([
@@ -200,11 +200,11 @@ export function encodeModifierKey(
 }
 ```
 
-- [ ] **Step 4: 重新运行单元测试验证通过**
+- [x] **Step 4: 重新运行单元测试验证通过**
   Run: `npx jest tests/terminalKeyEncoder.test.ts`
   Expected: PASS
 
-- [ ] **Step 5: 提交更改**
+- [x] **Step 5: 提交更改**
   ```bash
   git add frontend/src/utils/terminalKeyEncoder.ts tests/terminalKeyEncoder.test.ts
   git commit -m "feat(terminal): add terminal key encoder for virtual ctrl and alt combinations"
@@ -221,7 +221,7 @@ export function encodeModifierKey(
 - Consumes: `encodeModifierKey` from `../utils/terminalKeyEncoder`
 - Produces: Seamless virtual modifier keyboard shortcut input in terminal
 
-- [ ] **Step 1: 引入 `encodeModifierKey` 并维护 Ref 引用**
+- [x] **Step 1: 引入 `encodeModifierKey` 并维护 Ref 引用**
   在 `WebTerminalView.tsx` 中引入 `encodeModifierKey`。
   创建 `isCtrlActiveRef` 和 `isAltActiveRef`：
   ```typescript
@@ -232,7 +232,7 @@ export function encodeModifierKey(
   isAltActiveRef.current = isAltActive;
   ```
 
-- [ ] **Step 2: 挂载 `term.attachCustomKeyEventHandler`**
+- [x] **Step 2: 挂载 `term.attachCustomKeyEventHandler`**
   在 `term.open(terminalContainerRef.current)` 后添加按键拦截处理器：
   ```typescript
   term.attachCustomKeyEventHandler((domEvent: KeyboardEvent) => {
@@ -268,14 +268,14 @@ export function encodeModifierKey(
   });
   ```
 
-- [ ] **Step 3: 优化辅助栏与快捷动作按钮重置联动**
+- [x] **Step 3: 优化辅助栏与快捷动作按钮重置联动**
   当用户触发辅助栏自带的动作（如点击 `^C`, `^D`, `^L` 或 Snippet 执行）时，确保同时重置 `isCtrlActive` / `isAltActive`。
 
-- [ ] **Step 4: 执行前端编译检查**
+- [x] **Step 4: 执行前端编译检查**
   Run: `npm run build:frontend`
   Expected: PASS with 0 TypeScript/build errors.
 
-- [ ] **Step 5: 提交更改**
+- [x] **Step 5: 提交更改**
   ```bash
   git add frontend/src/components/WebTerminalView.tsx
   git commit -m "feat(terminal): attach custom key event handler to support virtual ctrl and alt combinations"
@@ -288,10 +288,10 @@ export function encodeModifierKey(
 **Files:**
 - None (Verification only)
 
-- [ ] **Step 1: 运行完整构建**
+- [x] **Step 1: 运行完整构建**
   Run: `npm run build`
   Expected: Frontend & Backend build cleanly.
 
-- [ ] **Step 2: 运行所有单元测试**
+- [x] **Step 2: 运行所有单元测试**
   Run: `npm test`
   Expected: All test suites pass.
