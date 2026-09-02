@@ -189,7 +189,7 @@ export const en = {
     prevPage: "Prev",
     nextPage: "Next",
     showingRange: "{start}-{end} of {total}",
-    chatTab: "💬 Chat View",
+    chatTab: "Chat View",
     systemPrompt: "System Prompt",
     thinking: "Thinking Process",
     thinkingChars: "{count} chars",

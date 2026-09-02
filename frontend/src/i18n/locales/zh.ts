@@ -191,7 +191,7 @@ export const zh: Translations = {
     prevPage: "上一页",
     nextPage: "下一页",
     showingRange: "第 {start}-{end} 条，共 {total} 条",
-    chatTab: "💬 对话视图",
+    chatTab: "对话视图",
     systemPrompt: "系统提示词",
     thinking: "思考过程",
     thinkingChars: "{count} 字符",

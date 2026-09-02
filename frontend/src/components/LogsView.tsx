@@ -753,7 +753,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                 }`}
               >
                 <MessageSquare className="w-3.5 h-3.5" />
-                <span className="text-[11px] sm:text-xs">{t('logs.chatTab', '💬 对话')}</span>
+                <span className="text-[11px] sm:text-xs">{t('logs.chatTab', '对话视图')}</span>
               </button>
             </div>
           </div>
