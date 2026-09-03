@@ -203,14 +203,9 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
     }
   };
 
-  const isStreamChecked = (() => {
-    try {
-      const parsed = JSON.parse(requestBody);
-      return parsed.stream === true;
-    } catch {
-      return false;
-    }
-  })();
+  const isStreamChecked = useMemo(() => {
+    return Boolean(memoizedParsedPayload && memoizedParsedPayload.stream === true);
+  }, [memoizedParsedPayload]);
 
   const handleFormatJson = () => {
     try {
