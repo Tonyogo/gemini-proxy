@@ -32,7 +32,7 @@
   - `--code-bg`, `--code-text`, `--bg-surface-hover`
   - `:root:not(.dark)` 自动覆盖 `.text-slate-100`, `.text-slate-200`, `.text-slate-300`, `.text-slate-400`, `.text-white`（在非纯色按钮内部除外）为深色文字
 
-- [ ] **Step 1: 编写针对全局样式与类名安全网的断言测试**
+- [x] **Step 1: 编写针对全局样式与类名安全网的断言测试**
 
 创建 `tests/themeGlobalStyles.test.ts`：
 ```ts
@@ -55,7 +55,7 @@ describe('Global Theme CSS Safety Net', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试验证**
+- [x] **Step 2: 运行测试验证**
 
 运行命令：
 ```bash
@@ -63,7 +63,7 @@ zsh -c 'export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm
 ```
 Expected: FAIL（未定义相关规则）
 
-- [ ] **Step 3: 修改 index.css 添加完整语义 Token 与安全网**
+- [x] **Step 3: 修改 index.css 添加完整语义 Token 与安全网**
 
 在 `frontend/src/index.css` 中：
 1. 在 `:root` 中补充完善：
@@ -109,7 +109,7 @@ Expected: FAIL（未定义相关规则）
    }
    ```
 
-- [ ] **Step 4: 运行测试与构建验证**
+- [x] **Step 4: 运行测试与构建验证**
 
 运行命令：
 ```bash
@@ -117,7 +117,7 @@ zsh -c 'export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm
 ```
 Expected: PASS，构建成功。
 
-- [ ] **Step 5: 提交 Task 1 代码**
+- [x] **Step 5: 提交 Task 1 代码**
 
 ```bash
 git add frontend/src/index.css tests/themeGlobalStyles.test.ts
@@ -137,7 +137,7 @@ git commit -m "feat(theme): establish light mode text color safety net and code 
 - Consumes: `.ui-card`, `.ui-card-sub`, `var(--bg-canvas)`, `var(--bg-surface)`, `var(--bg-surface-sub)`
 - Produces: 登录界面、全局导航外壳、系统配置弹窗及并发压测弹窗 100% 语义化浅色适配
 
-- [ ] **Step 1: 改造 App.tsx 登录页与导航条目**
+- [x] **Step 1: 改造 App.tsx 登录页与导航条目**
 
 在 `frontend/src/App.tsx` 中：
 1. 登录卡片 `bg-[#0F1118]/95` 改为 `ui-card`；
@@ -145,7 +145,7 @@ git commit -m "feat(theme): establish light mode text color safety net and code 
 3. 侧边栏与导航按钮：未激活状态使用 `text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]`；
 4. 移动端底部导航条 `bg-[#0C0E14]/95` 改为 `bg-[var(--bg-surface)]/95 border-t border-[var(--border-subtle)]`。
 
-- [ ] **Step 2: 改造 ConfigModal.tsx**
+- [x] **Step 2: 改造 ConfigModal.tsx**
 
 在 `frontend/src/components/ConfigModal.tsx` 中：
 1. 弹窗外框面板 `bg-[#0C0E14]` 替换为 `ui-card`；
@@ -154,7 +154,7 @@ git commit -m "feat(theme): establish light mode text color safety net and code 
 4. 底部固钉保存栏 `bg-[#10121A]/95` 替换为 `bg-[var(--bg-surface-sub)]/95 border-t border-[var(--border-subtle)]`；
 5. 下拉菜单与选项清除写死 `bg-[#0C0E14]`。
 
-- [ ] **Step 3: 改造 ConcurrentTestModal.tsx**
+- [x] **Step 3: 改造 ConcurrentTestModal.tsx**
 
 在 `frontend/src/components/ConcurrentTestModal.tsx` 中：
 1. 弹窗外框 `bg-[#0F1118]` 替换为 `ui-card`；
@@ -162,7 +162,7 @@ git commit -m "feat(theme): establish light mode text color safety net and code 
 3. 内部输入卡片、进度卡片、统计指标卡片 `bg-[#121520]` 与 `bg-[#151824]` 替换为 `ui-card-sub`；
 4. 进度条背景 `bg-[#151824]` 替换为 `bg-black/10 dark:bg-white/10`。
 
-- [ ] **Step 4: 运行前端构建验证**
+- [x] **Step 4: 运行前端构建验证**
 
 运行命令：
 ```bash
@@ -170,7 +170,7 @@ zsh -c 'export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm
 ```
 Expected: 构建通过。
 
-- [ ] **Step 5: 提交 Task 2 代码**
+- [x] **Step 5: 提交 Task 2 代码**
 
 ```bash
 git add frontend/src/App.tsx frontend/src/components/ConfigModal.tsx frontend/src/components/ConcurrentTestModal.tsx
@@ -190,7 +190,7 @@ git commit -m "feat(theme): adapt App shell, ConfigModal, and ConcurrentTestModa
 - Consumes: `.ui-card`, `.ui-card-sub`, `var(--code-bg)`, `var(--code-text)`
 - Produces: 账号表格、批量浮动条、日志检查器及 SSE 流预览 100% 语义化浅色适配
 
-- [ ] **Step 1: 改造 AccountsView.tsx 中的写死暗色**
+- [x] **Step 1: 改造 AccountsView.tsx 中的写死暗色**
 
 在 `frontend/src/components/AccountsView.tsx` 中：
 1. 表格表头 `bg-[#10121A]/90` 改为 `bg-[var(--bg-surface-sub)] text-[var(--text-secondary)]`；
@@ -200,7 +200,7 @@ git commit -m "feat(theme): adapt App shell, ConfigModal, and ConcurrentTestModa
 5. 批量浮动栏 `bg-[#151824]/95` 改为 `ui-card border border-[var(--border-subtle)]`；
 6. 底部日志折叠面板 `bg-[#0F1118]/90` 改为 `ui-card`，内容区 `bg-[#07090E]` 改为 `bg-[var(--code-bg)] text-[var(--code-text)] border-[var(--border-subtle)]`。
 
-- [ ] **Step 2: 改造 LogsView.tsx 与 SseStreamPreview.tsx 中的写死暗色**
+- [x] **Step 2: 改造 LogsView.tsx 与 SseStreamPreview.tsx 中的写死暗色**
 
 1. 在 `frontend/src/components/LogsView.tsx` 中：
    - 列表未选中条目 `bg-[#10121A]/80` 改为 `ui-card-sub hover:bg-[var(--bg-surface-hover)]`；
@@ -209,7 +209,7 @@ git commit -m "feat(theme): adapt App shell, ConfigModal, and ConcurrentTestModa
    - 消息块与数据块容器 `bg-slate-950` 改为 `bg-[var(--code-bg)] text-[var(--code-text)] border border-[var(--border-subtle)]`；
    - 事件行悬停与未选中条目 `bg-slate-950/80` 改为 `ui-card-sub`。
 
-- [ ] **Step 3: 运行前端构建验证**
+- [x] **Step 3: 运行前端构建验证**
 
 运行命令：
 ```bash
@@ -217,7 +217,7 @@ zsh -c 'export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm
 ```
 Expected: 构建通过。
 
-- [ ] **Step 4: 提交 Task 3 代码**
+- [x] **Step 4: 提交 Task 3 代码**
 
 ```bash
 git add frontend/src/components/AccountsView.tsx frontend/src/components/LogsView.tsx frontend/src/components/SseStreamPreview.tsx
@@ -239,7 +239,7 @@ git commit -m "feat(theme): adapt AccountsView, LogsView, and SseStreamPreview t
 - Consumes: 全局设计系统 Token
 - Produces: 翻译输入输出框、调试器选择器、终端窗口外框与移动端虚拟按键栏 100% 浅色适配
 
-- [ ] **Step 1: 改造 PlaygroundView.tsx 与 TranslateView.tsx**
+- [x] **Step 1: 改造 PlaygroundView.tsx 与 TranslateView.tsx**
 
 1. 在 `frontend/src/components/PlaygroundView.tsx` 中：
    - 移除下拉 `<option>` 写死的 `bg-[#0F1118]`，输入框改用 `ui-input`；
@@ -248,7 +248,7 @@ git commit -m "feat(theme): adapt AccountsView, LogsView, and SseStreamPreview t
    - 语言下拉框清除 `bg-[#10121A]`；
    - 译文 Markdown 区域 `prose-pre:bg-[#07080B]` 改为 `prose-pre:bg-[var(--code-bg)] prose-pre:text-[var(--code-text)]`。
 
-- [ ] **Step 2: 改造 WebTerminalView.tsx, TerminalLogsView.tsx 与 TerminalAccessoryBar.tsx**
+- [x] **Step 2: 改造 WebTerminalView.tsx, TerminalLogsView.tsx 与 TerminalAccessoryBar.tsx**
 
 1. 在 `frontend/src/components/WebTerminalView.tsx` 中：
    - 顶栏 `bg-[#0C0E14]` 改为 `bg-[var(--bg-surface)] border-b border-[var(--border-subtle)]`；
@@ -260,7 +260,7 @@ git commit -m "feat(theme): adapt AccountsView, LogsView, and SseStreamPreview t
    - 虚拟按键栏底色 `bg-[#0C0E14]` 改为 `bg-[var(--bg-surface)] border-t border-[var(--border-subtle)]`；
    - 按键背景 `bg-white/[0.05]` 改为 `bg-black/[0.04] dark:bg-white/[0.05] text-[var(--text-primary)] border-[var(--border-subtle)]`。
 
-- [ ] **Step 3: 运行前端构建验证**
+- [x] **Step 3: 运行前端构建验证**
 
 运行命令：
 ```bash
@@ -268,7 +268,7 @@ zsh -c 'export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm
 ```
 Expected: 构建通过。
 
-- [ ] **Step 4: 提交 Task 4 代码**
+- [x] **Step 4: 提交 Task 4 代码**
 
 ```bash
 git add frontend/src/components/PlaygroundView.tsx frontend/src/components/TranslateView.tsx frontend/src/components/WebTerminalView.tsx frontend/src/components/TerminalLogsView.tsx frontend/src/components/terminal/TerminalAccessoryBar.tsx
@@ -286,7 +286,7 @@ git commit -m "feat(theme): adapt Playground, Translate, Terminal views and acce
 - Consumes: `frontend/src`
 - Produces: 静态扫描与断言测试，验证关键页面中没有残留的硬编码暗黑色（如 `#0C0E14`, `#10121A`, `#121520`, `#151824`）
 
-- [ ] **Step 1: 编写全站暗色残留检测测试**
+- [x] **Step 1: 编写全站暗色残留检测测试**
 
 创建 `tests/themeResidualColors.test.ts`：
 ```ts
@@ -318,7 +318,7 @@ describe('Theme System Cleanliness Test', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试验证**
+- [x] **Step 2: 运行测试验证**
 
 运行命令：
 ```bash
@@ -326,7 +326,7 @@ zsh -c 'export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm
 ```
 Expected: PASS。
 
-- [ ] **Step 3: 运行全量测试套件与全量构建**
+- [x] **Step 3: 运行全量测试套件与全量构建**
 
 运行命令：
 ```bash
@@ -334,7 +334,7 @@ zsh -c 'export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm
 ```
 Expected: 全部测试通过，生产环境构建完全成功。
 
-- [ ] **Step 4: 提交测试代码**
+- [x] **Step 4: 提交测试代码**
 
 ```bash
 git add tests/themeResidualColors.test.ts
