@@ -26,31 +26,31 @@ export function JsonNode({
   const isExpanded = expandedKeys.has(path);
 
   if (!isObject) {
-    let valueColor = 'text-emerald-300'; // string default
+    let valueColor = 'text-emerald-700 dark:text-emerald-300'; // string default
     let displayValue = JSON.stringify(value);
 
     if (typeof value === 'number') {
-      valueColor = 'text-purple-300';
+      valueColor = 'text-blue-600 dark:text-blue-300 font-semibold';
     } else if (typeof value === 'boolean') {
-      valueColor = 'text-amber-400 font-semibold';
+      valueColor = 'text-amber-700 dark:text-amber-400 font-semibold';
     } else if (value === null) {
-      valueColor = 'text-slate-500 italic';
+      valueColor = 'text-slate-400 dark:text-slate-500 italic';
       displayValue = 'null';
     } else if (value === undefined) {
-      valueColor = 'text-slate-500 italic';
+      valueColor = 'text-slate-400 dark:text-slate-500 italic';
       displayValue = 'undefined';
     }
 
     return (
-      <div className="font-mono text-[11px] leading-relaxed flex items-center justify-between hover:bg-slate-800/50 px-1.5 py-0.5 rounded transition-colors">
+      <div className="font-mono text-[11px] leading-relaxed flex items-center justify-between hover:bg-black/[0.04] dark:hover:bg-slate-800/50 px-1.5 py-0.5 rounded transition-colors">
         <div className="flex items-start space-x-1.5 min-w-0 pr-2">
           {name && (
-            <span className="text-indigo-300 font-semibold shrink-0 select-none">
+            <span className="text-indigo-600 dark:text-indigo-300 font-semibold shrink-0 select-none">
               "{name}":
             </span>
           )}
           <span className={`break-all ${valueColor}`}>{displayValue}</span>
-          {!isLast && <span className="text-slate-600 select-none">,</span>}
+          {!isLast && <span className="text-slate-400 dark:text-slate-600 select-none">,</span>}
         </div>
       </div>
     );
@@ -65,18 +65,18 @@ export function JsonNode({
     <div className="font-mono text-[11px] leading-relaxed">
       <div
         onClick={() => toggleKey(path)}
-        className="flex items-center justify-between cursor-pointer hover:bg-slate-800/50 px-1.5 py-0.5 rounded select-none transition-colors"
+        className="flex items-center justify-between cursor-pointer hover:bg-black/[0.04] dark:hover:bg-slate-800/50 px-1.5 py-0.5 rounded select-none transition-colors"
       >
         <div className="flex items-center space-x-1.5 min-w-0 pr-2">
-          <span className="text-slate-500 hover:text-slate-300 w-3.5 h-3.5 flex items-center justify-center shrink-0 transition-transform">
+          <span className="text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 w-3.5 h-3.5 flex items-center justify-center shrink-0 transition-transform">
             {isExpanded ? (
-              <ChevronDown className="w-3.5 h-3.5 text-indigo-400/80" />
+              <ChevronDown className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400/80" />
             ) : (
-              <ChevronRight className="w-3.5 h-3.5 text-slate-500 hover:text-slate-300" />
+              <ChevronRight className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300" />
             )}
           </span>
           {name && (
-            <span className="text-indigo-300 font-semibold shrink-0">
+            <span className="text-indigo-600 dark:text-indigo-300 font-semibold shrink-0">
               "{name}":
             </span>
           )}
@@ -86,7 +86,7 @@ export function JsonNode({
           {!isExpanded && (
             <span className="text-slate-500 font-mono">
               {bracketOpen} ... {bracketClose}
-              {!isLast && <span className="text-slate-600">,</span>}
+              {!isLast && <span className="text-slate-400 dark:text-slate-600">,</span>}
             </span>
           )}
         </div>
@@ -193,37 +193,37 @@ export default function JsonTreeView({
   };
 
   return (
-    <div className="bg-slate-950/90 rounded-xl border border-slate-800/80 overflow-hidden flex flex-col">
+    <div className="bg-[var(--code-bg)] rounded-xl border border-[var(--border-subtle)] overflow-hidden flex flex-col">
       {/* Action Toolbar Header */}
-      <div className="flex items-center justify-between px-3 py-1.5 bg-slate-900/80 border-b border-slate-800/80 select-none text-[11px]">
+      <div className="flex items-center justify-between px-3 py-1.5 bg-[var(--bg-surface-sub)] border-b border-[var(--border-subtle)] select-none text-[11px]">
         <div className="flex items-center space-x-1.5 text-slate-400">
-          <ChevronsUpDown className="w-3.5 h-3.5 text-indigo-400" />
-          <span className="font-mono text-[10px] text-slate-300 font-semibold">{t('logs.jsonInspector', 'JSON 检查器')}</span>
+          <ChevronsUpDown className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
+          <span className="font-mono text-[10px] text-[var(--text-primary)] font-semibold">{t('logs.jsonInspector', 'JSON 检查器')}</span>
         </div>
         <div className="flex items-center space-x-1">
           <button
             onClick={handleExpandAll}
-            className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/50 text-[10px] transition-colors"
+            className="px-2 py-0.5 rounded ui-btn-secondary text-[10px] transition-colors"
             title="Expand all nodes"
           >
             {t('logs.expandAll', '全部展开')}
           </button>
           <button
             onClick={handleCollapseAll}
-            className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700/50 text-[10px] transition-colors"
+            className="px-2 py-0.5 rounded ui-btn-secondary text-[10px] transition-colors"
             title="Collapse all nodes"
           >
             {t('logs.collapseAll', '全部折叠')}
           </button>
           <button
             onClick={handleCopyAll}
-            className="px-2 py-0.5 rounded bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 hover:text-indigo-200 border border-indigo-500/30 text-[10px] flex items-center space-x-1 transition-colors ml-1"
+            className="px-2 py-0.5 rounded ui-btn-secondary text-[10px] flex items-center space-x-1 transition-colors ml-1"
             title="Copy full JSON"
           >
             {copiedAll ? (
               <>
-                <Check className="w-2.5 h-2.5 text-emerald-400" />
-                <span className="text-emerald-400">{t('logs.copied', '已复制')}</span>
+                <Check className="w-2.5 h-2.5 text-emerald-500 dark:text-emerald-400" />
+                <span className="text-emerald-600 dark:text-emerald-400">{t('logs.copied', '已复制')}</span>
               </>
             ) : (
               <>
