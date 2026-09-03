@@ -521,7 +521,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
 
                 // Format Path Label
                 let pathLabel = '';
-                let pathBadgeColor = 'bg-slate-800 text-slate-300 border-slate-700/60';
+                let pathBadgeColor = 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60';
                 if (log.reqPath) {
                   const rawPath = log.reqPath.split('?')[0];
                   if (rawPath.endsWith('/messages')) {
