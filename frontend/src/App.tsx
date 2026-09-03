@@ -657,6 +657,7 @@ export default function App() {
           {activeTab === 'playground' && (
             <PlaygroundView
               key={refreshTrigger}
+              adminKey={adminKey}
             />
           )}
           {activeTab === 'translate' && (

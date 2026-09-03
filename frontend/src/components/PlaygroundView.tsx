@@ -121,11 +121,11 @@ const DEFAULT_PRESETS: Record<EndpointOption, any> = {
   }
 };
 
-export default function PlaygroundView() {
+export default function PlaygroundView({ adminKey = '' }: { adminKey?: string }) {
   const { t } = useTranslation();
   const { resolvedTheme } = useTheme();
   const monacoTheme = resolvedTheme === 'dark' ? 'gemini-proxy-dark' : 'gemini-proxy-light';
-  const [apiKey, setApiKey] = useState(localStorage.getItem('geminiApiKey') || '');
+  const effectiveApiKey = adminKey;
   const [endpointOption, setEndpointOption] = useState<EndpointOption>('messages');
   const [customMethod, setCustomMethod] = useState<string>('POST');
   const [customPath, setCustomPath] = useState<string>('/v1/models');
@@ -172,11 +172,6 @@ export default function PlaygroundView() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  const handleKeyChange = (val: string) => {
-    setApiKey(val);
-    localStorage.setItem('geminiApiKey', val);
-  };
 
   const handleModelChange = (modelName: string) => {
     setSelectedModel(modelName);
@@ -250,8 +245,10 @@ export default function PlaygroundView() {
       targetMethod = customMethod;
     }
 
+    const apiKeyToUse = effectiveApiKey || 'YOUR_ADMIN_SECRET_KEY';
     const headers = [
-      `-H "x-api-key: ${apiKey || 'YOUR_API_KEY'}"`,
+      `-H "x-api-key: ${apiKeyToUse}"`,
+      `-H "x-admin-key: ${apiKeyToUse}"`,
       `-H "Content-Type: application/json"`
     ];
 
@@ -339,7 +336,7 @@ export default function PlaygroundView() {
   };
 
   const handleSend = async () => {
-    if (!apiKey) {
+    if (!effectiveApiKey) {
       alert(t('playground.alertKeyRequired'));
       return;
     }
@@ -382,7 +379,8 @@ export default function PlaygroundView() {
         method: targetMethod,
         headers: {
           'content-type': 'application/json',
-          'x-api-key': apiKey
+          'x-api-key': effectiveApiKey,
+          'x-admin-key': effectiveApiKey
         }
       };
 
@@ -493,16 +491,13 @@ export default function PlaygroundView() {
 
           <div className="h-6 w-[1px] bg-white/[0.08] mx-1 hidden lg:block" />
 
-          {/* Gemini API Key input with icon */}
-          <div className="relative flex items-center w-full sm:w-64 lg:w-48">
-            <Key className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 pointer-events-none" />
-            <input
-              type="password"
-              value={apiKey}
-              onChange={(e) => handleKeyChange(e.target.value)}
-              placeholder={t('playground.apiKeyPlaceholder')}
-              className="ui-input pl-8 pr-2.5 py-1.5 w-full"
-            />
+          {/* System Admin Secret Key Badge */}
+          <div
+            className="flex items-center space-x-1.5 px-2.5 py-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-mono select-none"
+            title={t('playground.systemKeyDesc')}
+          >
+            <Key className="w-3.5 h-3.5 shrink-0 text-emerald-500" />
+            <span className="font-medium whitespace-nowrap">{t('playground.systemKeyActive')}</span>
           </div>
         </div>
 
@@ -640,7 +635,7 @@ export default function PlaygroundView() {
           {/* Concurrent Test Modal Trigger */}
           <button
             onClick={() => {
-              if (!apiKey) {
+              if (!effectiveApiKey) {
                 alert(t('playground.alertKeyRequired'));
                 return;
               }
@@ -941,7 +936,7 @@ export default function PlaygroundView() {
         targetUrl={endpointOption === 'count_tokens' ? '/v1/messages/count_tokens' : endpointOption === 'custom' ? (customPath.startsWith('/') ? customPath : `/${customPath}`) : '/v1/messages'}
         targetMethod={endpointOption === 'custom' ? customMethod : 'POST'}
         parsedPayload={requestBody.trim() ? (() => { try { return JSON.parse(requestBody); } catch { return null; } })() : null}
-        apiKey={apiKey}
+        apiKey={effectiveApiKey}
       />
     </div>
   );
