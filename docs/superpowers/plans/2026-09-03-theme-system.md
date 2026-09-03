@@ -44,7 +44,7 @@
   export const useTheme: () => ThemeContextType;
   ```
 
-- [ ] **Step 1: 编写 ThemeContext 单元测试**
+- [x] **Step 1: 编写 ThemeContext 单元测试**
 
 创建 `tests/themeContext.test.ts`，测试主题解析与 DOM 同步逻辑：
 ```ts
@@ -79,7 +79,7 @@ describe('Theme Context Logic', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试验证**
+- [x] **Step 2: 运行测试验证**
 
 运行命令：
 ```bash
@@ -87,7 +87,7 @@ zsh -c 'export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm
 ```
 预期：PASS。
 
-- [ ] **Step 3: 配置 Tailwind 并创建 ThemeContext**
+- [x] **Step 3: 配置 Tailwind 并创建 ThemeContext**
 
 1. 修改 `frontend/tailwind.config.js`，添加 `darkMode: 'class'`。
 2. 创建 `frontend/src/theme/ThemeContext.tsx`：
@@ -98,7 +98,7 @@ zsh -c 'export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm
    - 提供 `toggleTheme()` 循环切换：`dark -> light -> system -> dark`。
 3. 修改 `frontend/src/main.tsx`，在 `LanguageProvider` 外层或内层包裹 `<ThemeProvider>`。
 
-- [ ] **Step 4: 运行前端构建验证**
+- [x] **Step 4: 运行前端构建验证**
 
 运行命令：
 ```bash
@@ -106,7 +106,7 @@ zsh -c 'export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm
 ```
 预期：构建通过。
 
-- [ ] **Step 5: 提交 Task 1 代码**
+- [x] **Step 5: 提交 Task 1 代码**
 
 ```bash
 git add frontend/tailwind.config.js frontend/src/theme/ThemeContext.tsx frontend/src/main.tsx tests/themeContext.test.ts
@@ -126,7 +126,7 @@ git commit -m "feat(theme): add ThemeContext with dark light and system modes"
 - Consumes: `ThemeContext` 注入的 `.dark` 与 `[data-theme]`
 - Produces: 全局 CSS 变量 Token 与自适应公共类（`.ui-card`, `.ui-card-sub`, `.ui-tab-container`, `.ui-input`, 滚动条等）
 
-- [ ] **Step 1: 在中英文语言包中增加主题相关翻译项**
+- [x] **Step 1: 在中英文语言包中增加主题相关翻译项**
 
 在 `frontend/src/i18n/locales/zh.ts` 和 `frontend/src/i18n/locales/en.ts` 的 `nav` 块中添加：
 ```ts
@@ -143,7 +143,7 @@ themeSystem: "System Default",
 themeToggle: "Toggle Theme (Dark / Light / System)"
 ```
 
-- [ ] **Step 2: 在 index.css 中定义语义化 Token 与深浅色变量**
+- [x] **Step 2: 在 index.css 中定义语义化 Token 与深浅色变量**
 
 修改 `frontend/src/index.css`：
 1. `:root` 默认为 Light 模式 Token（`--bg-canvas: #F8FAFC`, `--bg-surface: #FFFFFF`, `--bg-surface-sub: #F1F5F9`, `--border-subtle: rgba(0,0,0,0.08)`, `--text-primary: #0F172A`, `--text-secondary: #475569` 等）。
@@ -155,7 +155,7 @@ themeToggle: "Toggle Theme (Dark / Light / System)"
    - `.ui-input`: `bg-[var(--bg-surface-sub)] text-[var(--text-primary)] border border-[var(--border-subtle)] rounded-xl px-3 py-2 text-xs placeholder:text-[var(--text-muted)]`
    - 滚动条依据当前模式自适应透明黑色或透明白色。
 
-- [ ] **Step 3: 运行前端构建验证**
+- [x] **Step 3: 运行前端构建验证**
 
 运行命令：
 ```bash
@@ -163,7 +163,7 @@ zsh -c 'export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm
 ```
 预期：构建通过。
 
-- [ ] **Step 4: 提交 Task 2 代码**
+- [x] **Step 4: 提交 Task 2 代码**
 
 ```bash
 git add frontend/src/index.css frontend/src/i18n/locales/zh.ts frontend/src/i18n/locales/en.ts
@@ -182,7 +182,7 @@ git commit -m "feat(theme): establish semantic css design tokens and translation
 - Consumes: `useTheme()`, `useTranslation()`
 - Produces: 响应式三态切换按钮（支持图标自适应：Sun, Moon, Laptop，带悬浮 Tooltip 与平滑切换过渡动画）
 
-- [ ] **Step 1: 创建 ThemeSwitcher 组件**
+- [x] **Step 1: 创建 ThemeSwitcher 组件**
 
 在 `frontend/src/components/ThemeSwitcher.tsx` 中封装：
 ```tsx
@@ -252,14 +252,14 @@ export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({ variant = 'header'
 };
 ```
 
-- [ ] **Step 2: 在 App.tsx 中嵌入 ThemeSwitcher，与语言切换并列**
+- [x] **Step 2: 在 App.tsx 中嵌入 ThemeSwitcher，与语言切换并列**
 
 1. 登录表单底部：在语言切换按钮右侧或并列添加 `<ThemeSwitcher variant="login" />`。
 2. 桌面侧边栏底部：在语言切换按钮紧邻位置添加 `<ThemeSwitcher variant="sidebar" isCollapsed={isSidebarCollapsed} />`。
 3. 移动端顶栏 Header：在移动端语言切换按钮紧邻位置添加 `<ThemeSwitcher variant="header" />`。
 4. 将 `App.tsx` 外层硬编码的 `bg-[#090A0F]`、`bg-[#0C0E14]`、`text-slate-100` 替换为语义类名或动态变量（如 `bg-[var(--bg-canvas)] text-[var(--text-primary)]`），确保全屏与侧边栏随主题无缝切换。
 
-- [ ] **Step 3: 运行前端构建验证**
+- [x] **Step 3: 运行前端构建验证**
 
 运行命令：
 ```bash
@@ -267,7 +267,7 @@ zsh -c 'export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm
 ```
 预期：构建通过。
 
-- [ ] **Step 4: 提交 Task 3 代码**
+- [x] **Step 4: 提交 Task 3 代码**
 
 ```bash
 git add frontend/src/components/ThemeSwitcher.tsx frontend/src/App.tsx
@@ -289,7 +289,7 @@ git commit -m "feat(theme): add ThemeSwitcher component beside language switcher
 - Consumes: `useTheme().resolvedTheme`
 - Produces: 全套编辑器浅色主题、xterm.js 高对比度浅色调色盘、SVG 网格浅色适配
 
-- [ ] **Step 1: 在 monacoTheme.ts 中定义浅色主题并在 PlaygroundView 中联动**
+- [x] **Step 1: 在 monacoTheme.ts 中定义浅色主题并在 PlaygroundView 中联动**
 
 1. 在 `frontend/src/utils/monacoTheme.ts` 中注册 `gemini-proxy-light`：
    ```ts
@@ -313,7 +313,7 @@ git commit -m "feat(theme): add ThemeSwitcher component beside language switcher
    ```
 2. 在 `PlaygroundView.tsx` 中订阅 `useTheme()`，传入动态 `theme={resolvedTheme === 'dark' ? 'gemini-proxy-dark' : 'gemini-proxy-light'}`。
 
-- [ ] **Step 2: 在 WebTerminalView 与 TerminalLogsView 中适配浅色终端主题**
+- [x] **Step 2: 在 WebTerminalView 与 TerminalLogsView 中适配浅色终端主题**
 
 1. 在 `WebTerminalView.tsx` 中：
    - 订阅 `useTheme()`，在 `useEffect` 中当 `resolvedTheme` 变更时调用 `xtermRef.current.options.theme = ...` 动态切换调色盘；
@@ -322,11 +322,11 @@ git commit -m "feat(theme): add ThemeSwitcher component beside language switcher
    - 窗口外框与 macOS 标题栏使用 `bg-[var(--bg-surface-sub)] border-[var(--border-subtle)]`。
 2. 在 `TerminalLogsView.tsx` 中将背景与顶栏替换为语义 Token。
 
-- [ ] **Step 3: 在 DashboardView 中优化浅色模式下的 SVG 坐标与参考线**
+- [x] **Step 3: 在 DashboardView 中优化浅色模式下的 SVG 坐标与参考线**
 
 修改 `DashboardView.tsx` 中的图表参考线：`stroke="currentColor" className="text-black/[0.06] dark:text-white/[0.06]"`，文字标签保持高对比度。
 
-- [ ] **Step 4: 运行前端构建验证**
+- [x] **Step 4: 运行前端构建验证**
 
 运行命令：
 ```bash
@@ -334,7 +334,7 @@ zsh -c 'export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm
 ```
 预期：构建通过。
 
-- [ ] **Step 5: 提交 Task 4 代码**
+- [x] **Step 5: 提交 Task 4 代码**
 
 ```bash
 git add frontend/src/utils/monacoTheme.ts frontend/src/components/PlaygroundView.tsx frontend/src/components/WebTerminalView.tsx frontend/src/components/TerminalLogsView.tsx frontend/src/components/DashboardView.tsx
@@ -352,7 +352,7 @@ git commit -m "feat(theme): adapt monaco editor web terminal and dashboard chart
 - Consumes: 全局主题配置与持久化
 - Produces: 自动化覆盖三态切换与 DOM 属性断言
 
-- [ ] **Step 1: 编写集成测试验证主题系统的持久化与循环切换**
+- [x] **Step 1: 编写集成测试验证主题系统的持久化与循环切换**
 
 创建 `tests/themeIntegration.test.ts`：
 ```ts
@@ -384,7 +384,7 @@ describe('Theme System Integration', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试验证**
+- [x] **Step 2: 运行测试验证**
 
 运行命令：
 ```bash
@@ -392,7 +392,7 @@ zsh -c 'export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm
 ```
 预期：PASS。
 
-- [ ] **Step 3: 运行全量测试套件与生产构建**
+- [x] **Step 3: 运行全量测试套件与生产构建**
 
 运行命令：
 ```bash
@@ -400,7 +400,7 @@ zsh -c 'export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm
 ```
 预期：全部测试通过，构建成功无警告。
 
-- [ ] **Step 4: 提交测试代码**
+- [x] **Step 4: 提交测试代码**
 
 ```bash
 git add tests/themeIntegration.test.ts
