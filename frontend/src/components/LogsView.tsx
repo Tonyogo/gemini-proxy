@@ -526,13 +526,13 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                   const rawPath = log.reqPath.split('?')[0];
                   if (rawPath.endsWith('/messages')) {
                     pathLabel = '/messages';
-                    pathBadgeColor = 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20';
+                    pathBadgeColor = 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/20';
                   } else if (rawPath.endsWith('/count_tokens')) {
                     pathLabel = '/count_tokens';
-                    pathBadgeColor = 'bg-amber-500/10 text-amber-300 border-amber-500/20';
+                    pathBadgeColor = 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/20';
                   } else if (rawPath.endsWith('/models')) {
                     pathLabel = '/models';
-                    pathBadgeColor = 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20';
+                    pathBadgeColor = 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/20';
                   } else {
                     pathLabel = rawPath.substring(rawPath.lastIndexOf('/'));
                   }
@@ -544,11 +544,11 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                   const durationSec = log.duration / 1000;
                   let durationColorClass = '';
                   if (durationSec < 1) {
-                    durationColorClass = 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20';
+                    durationColorClass = 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/20';
                   } else if (durationSec < 5) {
-                    durationColorClass = 'bg-amber-500/10 text-amber-300 border-amber-500/20';
+                    durationColorClass = 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/20';
                   } else {
-                    durationColorClass = 'bg-rose-500/10 text-rose-300 border-rose-500/20';
+                    durationColorClass = 'bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-500/20';
                   }
                   durationElem = (
                     <span className={`px-1.5 py-0.5 rounded border text-[9px] font-mono font-semibold ${durationColorClass}`}>
@@ -567,7 +567,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                     onClick={() => loadDetail(log)}
                     className={`p-2.5 rounded-xl cursor-pointer transition-all border relative overflow-hidden group ${
                       isSelected
-                        ? 'bg-indigo-600/15 border-indigo-500/80 text-indigo-100 shadow-md ring-1 ring-indigo-500/30'
+                        ? 'bg-indigo-50/80 border-indigo-400 text-indigo-950 dark:bg-indigo-600/15 dark:border-indigo-500/80 dark:text-indigo-100 shadow-sm ring-1 ring-indigo-400/30'
                         : 'ui-card-sub hover:bg-[var(--bg-surface-hover)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                     }`}
                   >
@@ -579,8 +579,8 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                     {/* Row 1 (Top) */}
                     <div className="flex items-center justify-between font-mono text-[10px]">
                       <div className="flex items-center space-x-1.5 min-w-0 pr-1">
-                        <span className="text-slate-400 shrink-0 font-medium">{formattedTime}</span>
-                        <span className="px-1 py-0.5 rounded text-[9px] font-bold bg-slate-800 text-slate-300 border border-slate-700/60">
+                        <span className="text-slate-500 dark:text-slate-400 shrink-0 font-medium">{formattedTime}</span>
+                        <span className="px-1 py-0.5 rounded text-[9px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
                           {log.method || 'POST'}
                         </span>
                         {pathLabel && (
@@ -590,7 +590,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                         )}
                         {log.model && (
                           <span
-                            className="px-1.5 py-0.5 rounded border text-[9px] font-mono font-medium bg-purple-500/10 text-purple-300 border-purple-500/20 truncate max-w-[90px]"
+                            className="px-1.5 py-0.5 rounded border text-[9px] font-mono font-medium bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/20 truncate max-w-[90px]"
                             title={log.model}
                           >
                             {log.model}
@@ -603,7 +603,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                     {/* Row 2 (Bottom) */}
                     <div className="flex items-center justify-between mt-1.5 font-mono text-[10px]">
                       <div
-                        className="flex items-center space-x-1 text-slate-500 hover:text-slate-300 transition-colors cursor-pointer group/file"
+                        className="flex items-center space-x-1 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors cursor-pointer group/file"
                         onClick={(e) => { e.stopPropagation(); handleCopyFilename(e, log.filename || displayId, idx); }}
                         title={t('logs.copyFilename', 'Copy filename')}
                       >
@@ -620,15 +620,15 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                       </div>
                       <div className="flex items-center space-x-1.5 shrink-0">
                         {log.isStream && (
-                          <span className="px-1.5 py-0.5 rounded border text-[9px] font-bold bg-blue-500/10 text-blue-300 border-blue-500/20">
+                          <span className="px-1.5 py-0.5 rounded border text-[9px] font-bold bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-500/20">
                             STREAM
                           </span>
                         )}
                         {log.status !== null && log.status !== undefined && (
                           <span className={`px-1.5 py-0.5 rounded border text-[9px] font-bold ${
-                            log.status >= 200 && log.status < 300 ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' :
-                            log.status >= 400 && log.status < 500 ? 'bg-amber-500/15 text-amber-300 border-amber-500/30' :
-                            'bg-rose-500/15 text-rose-300 border-rose-500/30'
+                            log.status >= 200 && log.status < 300 ? 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30' :
+                            log.status >= 400 && log.status < 500 ? 'bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/30' :
+                            'bg-rose-50 dark:bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-500/30'
                           }`}>
                             {log.status} {log.status === 200 ? 'OK' : ''}
                           </span>
@@ -643,7 +643,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
 
           {/* Bottom Pagination Bar */}
           {totalLogs > 0 && (
-            <div className="pt-2.5 mt-2 border-t border-slate-800/80 flex flex-col gap-2 font-mono text-[11px] text-slate-400 shrink-0">
+            <div className="pt-2.5 mt-2 border-t border-[var(--border-subtle)] flex flex-col gap-2 font-mono text-[11px] text-[var(--text-secondary)] shrink-0">
               <div className="flex items-center justify-between">
                 <span>
                   {t('logs.showingRange', `{start}-{end} of {total}`)
