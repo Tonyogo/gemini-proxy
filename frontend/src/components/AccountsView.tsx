@@ -930,11 +930,11 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                         className="w-4 h-4 rounded bg-[var(--bg-surface)] border-[var(--border-subtle)] text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
                       />
                     </th>
-                    <th className="px-3 py-3 w-16">{t('accounts.tableIndex', '序号')}</th>
-                    <th className="px-4 py-3 min-w-[200px]">{t('accounts.tableAccount', '账号 / 凭据标识')}</th>
-                    <th className="px-4 py-3">{t('accounts.tableStatus', '状态')}</th>
-                    <th className="px-4 py-3">{t('accounts.tableQuota', '配额与今日用量')}</th>
-                    <th className="px-4 py-3 text-right">{t('accounts.tableActions', '操作')}</th>
+                    <th className="px-3 py-3 w-16 text-left">{t('accounts.tableIndex', '序号')}</th>
+                    <th className="px-4 py-3 min-w-[220px] text-left">{t('accounts.tableAccount', '账号 / 凭据标识')}</th>
+                    <th className="px-4 py-3 min-w-[190px] text-left">{t('accounts.tableStatus', '状态')}</th>
+                    <th className="px-4 py-3 min-w-[150px] text-left">{t('accounts.tableQuota', '配额与今日用量')}</th>
+                    <th className="px-4 py-3 text-right whitespace-nowrap">{t('accounts.tableActions', '操作')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--border-subtle)] text-xs">
@@ -1013,29 +1013,23 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
 
                         {/* Status Badges */}
                         <td className="px-4 py-3">
-                          <div className="flex items-center space-x-1.5">
+                          <div className="flex flex-wrap items-center gap-1.5">
                             {renderStatusBadge(acc)}
+                            {hasContext && (
+                              <span
+                                title={t('accounts.contextReadyTooltip', '浏览器上下文已连接就绪 (约占用 500~700MB 内存)')}
+                                className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/25 shadow-xs cursor-help select-none"
+                              >
+                                <Zap className="w-2.5 h-2.5 text-amber-500 dark:text-amber-400 fill-amber-500 dark:fill-amber-400" />
+                                <span>{t('accounts.contextReadyBadge', 'Context 就绪')}</span>
+                              </span>
+                            )}
                             {isCurrent && (
                               <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
                                 {t('accounts.currentBadge')}
                               </span>
                             )}
                           </div>
-                        </td>
-
-                        {/* Context Badge */}
-                        <td className="px-4 py-3 text-center">
-                          {hasContext ? (
-                            <div
-                              title="Context Ready"
-                              className="inline-flex items-center space-x-1 px-2 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[10px] font-medium"
-                            >
-                              <Zap className="w-3 h-3 text-amber-500 dark:text-amber-400 fill-amber-500 dark:fill-amber-400" />
-                              <span>Ready</span>
-                            </div>
-                          ) : (
-                            <span className="text-slate-400 dark:text-slate-600 text-xs font-mono">—</span>
-                          )}
                         </td>
 
                         {/* Today Usage (Requests Count) */}
@@ -1192,35 +1186,28 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                           onChange={() => handleSelectOne(acc.index)}
                           className="w-4 h-4 rounded bg-[var(--bg-surface)] border-[var(--border-subtle)] text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer shrink-0"
                         />
-                        <span className="font-mono text-xs font-bold text-slate-300">
+                        <span className="font-mono text-xs font-bold text-slate-700 dark:text-slate-300">
                           #{acc.index}
                         </span>
 
-                        {/* hasContext badge */}
-                        <div
-                          title={hasContext ? 'Context Ready' : 'No Context'}
-                          className={`px-1.5 py-0.5 rounded flex items-center justify-center shrink-0 ${
-                            hasContext
-                              ? 'bg-amber-500/15 text-amber-300 border border-amber-500/40 shadow-sm shadow-amber-500/20'
-                              : 'bg-slate-800/40 text-slate-600 border border-slate-800/60 opacity-60'
-                          }`}
-                        >
-                          <Zap
-                            className={`w-3 h-3 ${
-                              hasContext ? 'text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.6)] fill-amber-400' : 'text-slate-600'
-                            }`}
-                          />
-                        </div>
-
                         {isCurrent && (
-                          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shrink-0">
+                          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40 shrink-0">
                             {t('accounts.currentBadge')}
                           </span>
                         )}
                       </div>
 
-                      <div className="flex items-center space-x-1 shrink-0">
+                      <div className="flex flex-wrap items-center justify-end gap-1.5 shrink-0">
                         {renderStatusBadge(acc)}
+                        {hasContext && (
+                          <span
+                            title={t('accounts.contextReadyTooltip', '浏览器上下文已连接就绪 (约占用 500~700MB 内存)')}
+                            className="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded-full text-[9px] font-medium bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/25 shrink-0"
+                          >
+                            <Zap className="w-2.5 h-2.5 text-amber-500 dark:text-amber-400 fill-amber-500 dark:fill-amber-400" />
+                            <span>{t('accounts.contextReadyBadge', 'Context 就绪')}</span>
+                          </span>
+                        )}
                       </div>
                     </div>
 

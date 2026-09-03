@@ -45,6 +45,8 @@ export const en = {
     statusRetired: "Retired",
     statusSuspended: "Suspended",
     statusRotation: "Rotating",
+    contextReadyBadge: "Context Ready",
+    contextReadyTooltip: "Browser context is active and connected (~500-700MB RAM)",
     tableIndex: "Index",
     tableAccount: "Account / Identifier",
     tableStatus: "Status",

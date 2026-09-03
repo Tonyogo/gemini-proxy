@@ -47,6 +47,8 @@ export const zh: Translations = {
     statusRetired: "已下线",
     statusSuspended: "已暂停",
     statusRotation: "轮换中",
+    contextReadyBadge: "Context 就绪",
+    contextReadyTooltip: "浏览器上下文已连接就绪 (约占用 500~700MB 内存)",
     tableIndex: "序号",
     tableAccount: "账号 / 凭据标识",
     tableStatus: "状态",
