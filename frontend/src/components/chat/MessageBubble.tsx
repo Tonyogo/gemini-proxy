@@ -55,34 +55,34 @@ export default function MessageBubble({ message }: { message: ChatMessage }) {
   return (
     <div className={`flex flex-col mb-5 w-full group ${isUser ? 'items-end' : 'items-start'}`}>
       {/* Role Header */}
-      <div className={`flex items-center space-x-2 text-xs font-mono select-none ${
+      <div className={`flex items-center space-x-2 text-xs font-mono select-none mb-1.5 ${
         isUser ? 'flex-row-reverse space-x-reverse' : ''
       }`}>
-        <div className={`w-6 h-6 rounded-xl flex items-center justify-center border shadow-sm ${
+        <div className={`w-6 h-6 rounded-lg flex items-center justify-center border shadow-xs ${
           isUser
-            ? 'bg-indigo-500/20 border-indigo-400/40 text-indigo-500 dark:text-indigo-300 shadow-[0_0_10px_rgba(99,102,241,0.25)]'
-            : 'bg-gradient-to-br from-purple-500/25 via-indigo-500/20 to-purple-500/10 border-purple-400/40 text-purple-600 dark:text-purple-300 shadow-[0_0_10px_rgba(168,85,247,0.25)]'
+            ? 'bg-indigo-500/15 border-indigo-500/30 text-indigo-600 dark:text-indigo-400'
+            : 'bg-purple-500/15 border-purple-500/30 text-purple-600 dark:text-purple-400'
         }`}>
           {isUser ? <User className="w-3.5 h-3.5" /> : <Sparkles className="w-3.5 h-3.5" />}
         </div>
-        <span className={`font-semibold ${isUser ? 'text-indigo-700 dark:text-indigo-200' : 'text-purple-700 dark:text-purple-200'}`}>
+        <span className={`font-semibold tracking-wide ${isUser ? 'text-indigo-700 dark:text-indigo-300' : 'text-purple-700 dark:text-purple-300'}`}>
           {isUser ? t('logs.user', 'User') : t('logs.assistant', 'Claude Assistant')}
         </span>
 
         <button
           onClick={handleCopyMessage}
-          className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-500 hover:text-slate-300 p-1 rounded hover:bg-slate-800"
+          className="opacity-70 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-md hover:bg-black/5 dark:hover:bg-white/5"
           title={t('logs.copyMessage', 'Copy message')}
         >
-          {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+          {copied ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
         </button>
       </div>
 
       {/* Bubble Container */}
-      <div className={`rounded-2xl p-4 sm:p-5 border shadow-xl transition-all ${
+      <div className={`rounded-2xl p-4 sm:p-5 border transition-all ${
         isUser
-          ? 'w-fit max-w-[85%] bg-indigo-50/90 dark:bg-gradient-to-br dark:from-indigo-950/60 dark:via-[#0F1322] dark:to-[#0A0C14] border-indigo-200 dark:border-indigo-500/35 rounded-tr-xs text-indigo-950 dark:text-slate-100 selection:bg-indigo-500 selection:text-white'
-          : 'w-full max-w-[92%] bg-[var(--bg-surface)] dark:bg-[#0A0C13]/95 border-[var(--border-subtle)] dark:border-purple-500/25 border-l-purple-500 dark:border-l-purple-500/70 border-l-[3px] rounded-tl-xs text-[var(--text-primary)] dark:text-slate-200 shadow-sm dark:shadow-[0_4px_24px_rgba(0,0,0,0.7)]'
+          ? 'w-fit max-w-[92%] sm:max-w-[85%] bg-indigo-50/90 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-500/25 rounded-tr-xs text-[var(--text-primary)] dark:text-slate-100 shadow-xs backdrop-blur-xs selection:bg-indigo-500 selection:text-white'
+          : 'w-full max-w-[98%] sm:max-w-[94%] bg-[var(--bg-surface)] dark:bg-[var(--bg-surface)]/95 border-[var(--border-subtle)] hover:border-[var(--border-hover)] rounded-tl-xs text-[var(--text-primary)] dark:text-slate-200 shadow-xs'
       }`}>
         <div className="space-y-3">
           {message.blocks.map((block, idx) => {
