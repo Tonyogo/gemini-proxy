@@ -31,7 +31,7 @@
 - Consumes: `WebTerminalViewProps`
 - Produces: 支持接收 `subTab`、`onSubTabChange` 并在顶栏左侧展示 Tab 胶囊的 `WebTerminalView`。
 
-- [ ] **Step 1: 检查 WebTerminalView 的 Props 接口定义**
+- [x] **Step 1: 检查 WebTerminalView 的 Props 接口定义**
 
 在 `frontend/src/components/WebTerminalView.tsx` 开头查看组件 Props：
 ```tsx
@@ -43,7 +43,7 @@ interface WebTerminalViewProps {
 }
 ```
 
-- [ ] **Step 2: 扩展 WebTerminalViewProps 并引入必要图标**
+- [x] **Step 2: 扩展 WebTerminalViewProps 并引入必要图标**
 
 确保引入 `TerminalSquare`, `FileText` 图标：
 ```tsx
@@ -57,7 +57,7 @@ interface WebTerminalViewProps {
 }
 ```
 
-- [ ] **Step 3: 重构 WebTerminalView 顶栏左侧区域**
+- [x] **Step 3: 重构 WebTerminalView 顶栏左侧区域**
 
 将原先的静态标题区域：
 ```tsx
@@ -107,12 +107,12 @@ interface WebTerminalViewProps {
 )}
 ```
 
-- [ ] **Step 4: 运行前端编译检查**
+- [x] **Step 4: 运行前端编译检查**
 
 Run: `cd frontend && npm run build`
 Expected: 编译通过。
 
-- [ ] **Step 5: 提交代码**
+- [x] **Step 5: 提交代码**
 
 ```bash
 git add frontend/src/components/WebTerminalView.tsx
@@ -132,7 +132,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 - Consumes: `TerminalLogsViewProps`
 - Produces: 支持接收 `subTab`、`onSubTabChange` 并在顶栏左侧展示对齐 Tab 胶囊的 `TerminalLogsView`。
 
-- [ ] **Step 1: 检查 TerminalLogsView 当前 Props 与顶栏结构**
+- [x] **Step 1: 检查 TerminalLogsView 当前 Props 与顶栏结构**
 
 在 `frontend/src/components/TerminalLogsView.tsx`:
 ```tsx
@@ -140,7 +140,7 @@ export default function TerminalLogsView({ adminKey }: { adminKey: string }) {
 ```
 以及第 198 行起的静态标题结构。
 
-- [ ] **Step 2: 扩展 Props 接口并引入 TerminalSquare, FileText**
+- [x] **Step 2: 扩展 Props 接口并引入 TerminalSquare, FileText**
 
 定义 Props 接口并引入所需图标：
 ```tsx
@@ -157,7 +157,7 @@ export default function TerminalLogsView({
 }: TerminalLogsViewProps) {
 ```
 
-- [ ] **Step 3: 重构 TerminalLogsView 顶栏左侧为完全对齐的 Tab 胶囊**
+- [x] **Step 3: 重构 TerminalLogsView 顶栏左侧为完全对齐的 Tab 胶囊**
 
 在 `frontend/src/components/TerminalLogsView.tsx` 中，将顶栏背景统一为 `#0C0E14`（与 WebTerminalView 完全一致），内嵌 Tab 胶囊：
 ```tsx
@@ -198,12 +198,12 @@ export default function TerminalLogsView({
 )}
 ```
 
-- [ ] **Step 4: 运行前端编译检查**
+- [x] **Step 4: 运行前端编译检查**
 
 Run: `cd frontend && npm run build`
 Expected: 编译通过。
 
-- [ ] **Step 5: 提交代码**
+- [x] **Step 5: 提交代码**
 
 ```bash
 git add frontend/src/components/TerminalLogsView.tsx
@@ -223,7 +223,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 - Consumes: `UnifiedTerminalViewProps`
 - Produces: 纯净单一容器，消除独立行外层 Tab 切换栏，透传状态与回调。
 
-- [ ] **Step 1: 审查 UnifiedTerminalView 原有布局**
+- [x] **Step 1: 审查 UnifiedTerminalView 原有布局**
 
 在 `frontend/src/components/UnifiedTerminalView.tsx`:
 ```tsx
@@ -237,7 +237,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
       </div>
 ```
 
-- [ ] **Step 2: 移除独立外层顶栏并向子组件透传属性**
+- [x] **Step 2: 移除独立外层顶栏并向子组件透传属性**
 
 重构 `UnifiedTerminalView.tsx` 的 return 结构：
 ```tsx
@@ -273,12 +273,12 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
   );
 ```
 
-- [ ] **Step 3: 运行前端编译检查**
+- [x] **Step 3: 运行前端编译检查**
 
 Run: `cd frontend && npm run build`
 Expected: 编译通过，无任何 TypeScript 报错。
 
-- [ ] **Step 4: 提交代码**
+- [x] **Step 4: 提交代码**
 
 ```bash
 git add frontend/src/components/UnifiedTerminalView.tsx
@@ -295,17 +295,17 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 - Test: `tests/claudeTranslator.test.ts`
 - Test: `tests/admin.test.ts`
 
-- [ ] **Step 1: 执行全站完整构建**
+- [x] **Step 1: 执行全站完整构建**
 
 Run: `npm run build`
 Expected: 前端 Vite 与后端 TypeScript 全部编译成功，无任何 warning/error。
 
-- [ ] **Step 2: 运行测试套件验证**
+- [x] **Step 2: 运行测试套件验证**
 
 Run: `npm test`
 Expected: 所有测试 PASS。
 
-- [ ] **Step 3: 检查工作区状态**
+- [x] **Step 3: 检查工作区状态**
 
 Run: `git status`
 Expected: 工作区干净 (clean)。
