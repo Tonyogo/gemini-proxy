@@ -4,13 +4,37 @@
 
 @layer base {
   :root {
+    --bg-canvas: #F8FAFC;
+    --bg-surface: #FFFFFF;
+    --bg-surface-sub: #F1F5F9;
+    --border-subtle: rgba(0, 0, 0, 0.08);
+    --border-hover: rgba(0, 0, 0, 0.16);
+    --text-primary: #0F172A;
+    --text-secondary: #475569;
+    --text-muted: #94A3B8;
+    --scrollbar-thumb: rgba(0, 0, 0, 0.15);
+    --scrollbar-thumb-hover: rgba(0, 0, 0, 0.28);
+    color-scheme: light;
+  }
+
+  :root.dark,
+  :root[data-theme="dark"] {
     --bg-canvas: #090A0F;
+    --bg-surface: #0C0E14;
+    --bg-surface-sub: #10121A;
+    --border-subtle: rgba(255, 255, 255, 0.08);
+    --border-hover: rgba(255, 255, 255, 0.16);
+    --text-primary: #F8FAFC;
+    --text-secondary: #94A3B8;
+    --text-muted: #64748B;
+    --scrollbar-thumb: rgba(255, 255, 255, 0.12);
+    --scrollbar-thumb-hover: rgba(255, 255, 255, 0.24);
     color-scheme: dark;
   }
 
   body {
     background-color: var(--bg-canvas);
-    color: #f3f4f6;
+    color: var(--text-primary);
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 
@@ -25,18 +49,18 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.12);
+    background: var(--scrollbar-thumb);
     border-radius: 9999px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.24);
+    background: var(--scrollbar-thumb-hover);
   }
 
   /* Firefox scrollbar */
   * {
     scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
   }
 }
 
@@ -57,7 +81,7 @@
 
 @layer utilities {
   .border-subtle {
-    border-color: rgba(255, 255, 255, 0.08);
+    border-color: var(--border-subtle);
   }
 
   .glow-subtle {
@@ -86,20 +110,20 @@
 @layer components {
   /* 主卡片面板 */
   .ui-card {
-    @apply bg-[#0C0E14]/90 border border-white/[0.08] rounded-2xl shadow-2xl backdrop-blur-md;
+    @apply bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-[var(--text-primary)] rounded-2xl shadow-sm dark:shadow-2xl backdrop-blur-md;
   }
 
   /* 内嵌子卡片 / 表格行 */
   .ui-card-sub {
-    @apply bg-[#10121A]/80 border border-white/[0.06] rounded-xl shadow-sm;
+    @apply bg-[var(--bg-surface-sub)] border border-[var(--border-subtle)] text-[var(--text-primary)] rounded-xl shadow-sm;
   }
 
   /* 胶囊 Tab 切换容器与按键 */
   .ui-tab-container {
-    @apply flex items-center p-1 bg-[#10121A] rounded-xl border border-white/[0.08] shadow-sm;
+    @apply flex items-center p-1 bg-[var(--bg-surface-sub)] rounded-xl border border-[var(--border-subtle)] shadow-sm;
   }
   .ui-tab-pill {
-    @apply px-3 py-1.5 rounded-lg text-xs font-medium transition-all text-slate-400 hover:text-slate-200 hover:bg-white/[0.04];
+    @apply px-3 py-1.5 rounded-lg text-xs font-medium transition-all text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/[0.04] dark:hover:bg-white/[0.04];
   }
   .ui-tab-pill-active {
     @apply bg-indigo-600 text-white shadow-[0_0_12px_rgba(99,102,241,0.35)];
@@ -110,12 +134,11 @@
     @apply bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl font-medium text-xs shadow-[0_0_15px_rgba(99,102,241,0.25)] transition-all active:scale-[0.98];
   }
   .ui-btn-secondary {
-    @apply bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] hover:border-white/[0.15] text-slate-300 hover:text-white rounded-xl text-xs font-medium transition-all active:scale-[0.98];
+    @apply bg-black/[0.03] dark:bg-white/[0.04] hover:bg-black/[0.06] dark:hover:bg-white/[0.08] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-xl text-xs font-medium transition-all active:scale-[0.98];
   }
 
   /* 统一输入框与下拉框 */
   .ui-input {
-    @apply bg-[#10121A] border border-white/[0.08] hover:border-white/[0.15] focus:border-indigo-500/80 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/40 font-mono transition-all;
+    @apply bg-[var(--bg-surface-sub)] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] focus:border-indigo-500/80 rounded-xl px-3 py-2 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-indigo-500/40 font-mono transition-all;
   }
 }
-

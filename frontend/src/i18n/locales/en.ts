@@ -10,7 +10,11 @@ export const en = {
     adminKeyPlaceholder: "Admin Secret Key",
     login: "Login",
     logout: "Logout",
-    configTitle: "Configuration"
+    configTitle: "Configuration",
+    themeDark: "Dark Mode",
+    themeLight: "Light Mode",
+    themeSystem: "System Default",
+    themeToggle: "Toggle Theme (Dark / Light / System)"
   },
   accounts: {
     title: "Account Management",

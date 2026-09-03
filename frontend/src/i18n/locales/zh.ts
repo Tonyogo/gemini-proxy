@@ -12,7 +12,11 @@ export const zh: Translations = {
     adminKeyPlaceholder: "管理员密钥",
     login: "登录",
     logout: "退出登录",
-    configTitle: "系统配置"
+    configTitle: "系统配置",
+    themeDark: "深色模式",
+    themeLight: "浅色模式",
+    themeSystem: "跟随系统",
+    themeToggle: "切换主题 (深色 / 浅色 / 系统)"
   },
   accounts: {
     title: "账号管理",
