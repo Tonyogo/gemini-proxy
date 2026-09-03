@@ -11,7 +11,9 @@ import {
   Minimize2,
   ZoomIn,
   ZoomOut,
-  ArrowLeft
+  ArrowLeft,
+  TerminalSquare,
+  FileText
 } from 'lucide-react';
 import { useTranslation } from '../i18n/LanguageContext';
 import { TerminalAccessoryBar } from './terminal/TerminalAccessoryBar';
@@ -24,6 +26,8 @@ interface WebTerminalViewProps {
   standalone?: boolean;
   onExitStandalone?: () => void;
   onToggleStandalone?: (val: boolean) => void;
+  subTab?: 'interactive' | 'logs';
+  onSubTabChange?: (tab: 'interactive' | 'logs') => void;
 }
 
 export default function WebTerminalView({
@@ -31,6 +35,8 @@ export default function WebTerminalView({
   standalone = false,
   onExitStandalone,
   onToggleStandalone,
+  subTab,
+  onSubTabChange,
 }: WebTerminalViewProps) {
   const { t } = useTranslation();
   const terminalContainerRef = useRef<HTMLDivElement>(null);
@@ -656,12 +662,41 @@ export default function WebTerminalView({
             />
           </div>
 
-          <div className="flex items-center space-x-1.5 text-slate-200">
-            <TerminalIcon className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-            <span className="font-semibold text-slate-200 text-xs hidden sm:inline truncate">
-              {t('webTerminal.title')}
-            </span>
-          </div>
+          {onSubTabChange ? (
+            <div className="ui-tab-container p-0.5 text-[11px] font-medium shrink-0">
+              <button
+                type="button"
+                onClick={() => onSubTabChange('interactive')}
+                className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-lg transition-all ${
+                  (subTab || 'interactive') === 'interactive'
+                    ? 'ui-tab-pill-active font-semibold shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <TerminalSquare className="w-3.5 h-3.5" />
+                <span>{t('terminal.interactiveTab')}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onSubTabChange('logs')}
+                className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-lg transition-all ${
+                  subTab === 'logs'
+                    ? 'ui-tab-pill-active font-semibold shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>{t('terminal.logsTab')}</span>
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center space-x-1.5 text-slate-200">
+              <TerminalIcon className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+              <span className="font-semibold text-slate-200 text-xs hidden sm:inline truncate">
+                {t('webTerminal.title')}
+              </span>
+            </div>
+          )}
 
           {/* Connection Status Badge */}
           <div
