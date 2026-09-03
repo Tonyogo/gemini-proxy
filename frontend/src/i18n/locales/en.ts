@@ -292,7 +292,8 @@ export const en = {
     truncatedWarning: "Output reached max token limit and may be truncated.",
     requestFailed: "Translation failed",
     retry: "Retry",
-    noModelsSelected: "Please select at least one model to translate."
+    noModelsSelected: "Please select at least one model to translate.",
+    done: "Done"
   },
   config: {
     modalTitle: "Proxy Runtime Configuration",
@@ -399,6 +400,9 @@ export const en = {
     saveSnippet: "Save",
     deleteSnippet: "Delete",
     noSnippets: "No snippets found.",
+    hideKeyboard: "Hide Keyboard",
+    showKeyboard: "Show Keyboard",
+    done: "Done",
     accessoryKeys: {
       esc: "ESC",
       tab: "TAB",

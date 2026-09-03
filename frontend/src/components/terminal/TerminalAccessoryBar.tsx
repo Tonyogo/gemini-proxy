@@ -5,7 +5,8 @@ import {
   ArrowLeft,
   ArrowRight,
   Keyboard,
-  Sparkles
+  Sparkles,
+  Check
 } from 'lucide-react';
 import { useTranslation } from '../../i18n/LanguageContext';
 
@@ -16,6 +17,8 @@ interface TerminalAccessoryBarProps {
   isAltActive: boolean;
   onToggleAlt: () => void;
   onToggleKeyboard: () => void;
+  onHideKeyboard?: () => void;
+  isKeyboardOpen?: boolean;
   onOpenSnippets: () => void;
 }
 
@@ -26,6 +29,8 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
   isAltActive,
   onToggleAlt,
   onToggleKeyboard,
+  onHideKeyboard,
+  isKeyboardOpen,
   onOpenSnippets,
 }) => {
   const { t } = useTranslation();
@@ -193,7 +198,7 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
         </button>
       </div>
 
-      {/* Right Fixed Controls: Snippets & Keyboard Toggle */}
+      {/* Right Fixed Controls: Snippets, Keyboard Toggle & Done/Checkmark Dismiss */}
       <div className="flex items-center space-x-1 pl-1 border-l border-[var(--border-subtle)] shrink-0">
         <button
           type="button"
@@ -212,10 +217,25 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
           onTouchStart={(e) => e.preventDefault()}
           onMouseDown={(e) => e.preventDefault()}
           onClick={onToggleKeyboard}
-          className="p-1.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.05] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] text-[var(--text-primary)] border border-[var(--border-subtle)] transition-all active:scale-95"
-          title="Toggle Keyboard Focus"
+          className={`p-1.5 rounded-lg border transition-all active:scale-95 ${
+            isKeyboardOpen
+              ? 'bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 border-indigo-500/40 shadow-sm'
+              : 'bg-black/[0.04] dark:bg-white/[0.05] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] text-[var(--text-primary)] border-[var(--border-subtle)]'
+          }`}
+          title={isKeyboardOpen ? t('webTerminal.hideKeyboard') : t('webTerminal.showKeyboard')}
         >
           <Keyboard className="w-3.5 h-3.5" />
+        </button>
+
+        {/* Dedicated Dismiss Checkmark Button (打勾收起软键盘 / 完成) */}
+        <button
+          type="button"
+          onClick={onHideKeyboard || onToggleKeyboard}
+          className="px-2 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 active:scale-95 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 flex items-center space-x-1 transition-all shadow-sm cursor-pointer"
+          title={t('webTerminal.hideKeyboard')}
+        >
+          <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+          <span className="text-[11px] font-semibold">{t('webTerminal.done')}</span>
         </button>
       </div>
     </div>

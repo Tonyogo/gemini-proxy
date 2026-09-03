@@ -294,7 +294,8 @@ export const zh: Translations = {
     truncatedWarning: "译文已达单次最大 Token 限制，可能存在截断。",
     requestFailed: "翻译请求失败",
     retry: "重试",
-    noModelsSelected: "请至少选择一个模型进行翻译。"
+    noModelsSelected: "请至少选择一个模型进行翻译。",
+    done: "完成"
   },
   config: {
     modalTitle: "代理运行时动态配置",
@@ -401,6 +402,9 @@ export const zh: Translations = {
     saveSnippet: "保存",
     deleteSnippet: "删除",
     noSnippets: "暂无自定义命令",
+    hideKeyboard: "收起键盘",
+    showKeyboard: "打开键盘",
+    done: "完成",
     accessoryKeys: {
       esc: "ESC",
       tab: "TAB",

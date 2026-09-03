@@ -100,6 +100,7 @@ export default function WebTerminalView({
   const [isSnippetsOpen, setIsSnippetsOpen] = useState<boolean>(false);
   const [isCtrlActive, setIsCtrlActive] = useState<boolean>(false);
   const [isAltActive, setIsAltActive] = useState<boolean>(false);
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState<boolean>(false);
 
   const isCtrlActiveRef = useRef<boolean>(isCtrlActive);
   isCtrlActiveRef.current = isCtrlActive;
@@ -321,6 +322,8 @@ export default function WebTerminalView({
 
     // Code-server mobile textarea optimization
     const helperTextarea = terminalContainerRef.current.querySelector('textarea');
+    let handleFocus: (() => void) | null = null;
+    let handleBlur: (() => void) | null = null;
     if (helperTextarea) {
       helperTextarea.setAttribute('autocapitalize', 'none');
       helperTextarea.setAttribute('autocomplete', 'off');
@@ -328,7 +331,12 @@ export default function WebTerminalView({
       helperTextarea.setAttribute('spellcheck', 'false');
       helperTextarea.setAttribute('tabindex', '0');
       helperTextarea.setAttribute('aria-label', 'Terminal input');
-      helperTextarea.setAttribute('enterkeyhint', 'enter');
+      helperTextarea.setAttribute('enterkeyhint', 'done');
+
+      handleFocus = () => setIsKeyboardOpen(true);
+      handleBlur = () => setIsKeyboardOpen(false);
+      helperTextarea.addEventListener('focus', handleFocus);
+      helperTextarea.addEventListener('blur', handleBlur);
     }
 
     xtermRef.current = term;
@@ -514,6 +522,18 @@ export default function WebTerminalView({
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
 
+      if (window.visualViewport) {
+        const vv = window.visualViewport;
+        if (vv.height < window.innerHeight * 0.82) {
+          setIsKeyboardOpen(true);
+        } else {
+          const textarea = terminalContainerRef.current?.querySelector('textarea');
+          if (document.activeElement !== textarea) {
+            setIsKeyboardOpen(false);
+          }
+        }
+      }
+
       if (mobile && standalone && window.visualViewport) {
         const vv = window.visualViewport;
         setViewportStyle({
@@ -565,6 +585,10 @@ export default function WebTerminalView({
         clearTimeout(replayTimerRef.current);
       }
       resizeObserver.disconnect();
+      if (helperTextarea) {
+        if (handleFocus) helperTextarea.removeEventListener('focus', handleFocus);
+        if (handleBlur) helperTextarea.removeEventListener('blur', handleBlur);
+      }
       if (container) {
         container.removeEventListener('touchstart', handleTouchStart);
         container.removeEventListener('touchmove', handleTouchMove);
@@ -617,10 +641,26 @@ export default function WebTerminalView({
     handleSendInput(textToSend);
   };
 
+  const handleHideKeyboard = () => {
+    const textarea = terminalContainerRef.current?.querySelector('textarea');
+    if (textarea) {
+      textarea.blur();
+    }
+    (document.activeElement as HTMLElement)?.blur();
+    setIsKeyboardOpen(false);
+  };
+
   const handleToggleKeyboard = () => {
-    if (xtermRef.current) {
-      xtermRef.current.focus();
-      xtermRef.current.scrollToBottom();
+    const textarea = terminalContainerRef.current?.querySelector('textarea');
+    if (isKeyboardOpen) {
+      handleHideKeyboard();
+    } else {
+      if (xtermRef.current) {
+        xtermRef.current.focus();
+        textarea?.focus();
+        xtermRef.current.scrollToBottom();
+      }
+      setIsKeyboardOpen(true);
     }
   };
 
@@ -861,6 +901,8 @@ export default function WebTerminalView({
         isAltActive={isAltActive}
         onToggleAlt={() => setIsAltActive(!isAltActive)}
         onToggleKeyboard={handleToggleKeyboard}
+        onHideKeyboard={handleHideKeyboard}
+        isKeyboardOpen={isKeyboardOpen}
         onOpenSnippets={() => setIsSnippetsOpen(true)}
       />
 
