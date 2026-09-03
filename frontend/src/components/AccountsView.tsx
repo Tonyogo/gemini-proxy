@@ -637,8 +637,8 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     // 1. Explicitly Suspended / Rate Limited
     if (acc.isSuspended) {
       return (
-        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center space-x-1.5 shadow-[0_0_8px_rgba(244,63,94,0.1)]">
-          <span className="w-1.5 h-1.5 rounded-full bg-rose-400 inline-block" />
+        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20 flex items-center space-x-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 dark:bg-rose-400 inline-block" />
           <span>{t('accounts.statusSuspended', '已暂停')}</span>
         </span>
       );
@@ -647,8 +647,8 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     // 2. Explicitly Disabled / Inactive
     if (isManuallyDisabled || rawConcurrent === 'DISABLED') {
       return (
-        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-slate-800/40 text-slate-400 border border-slate-700/50 flex items-center space-x-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-slate-500 inline-block" />
+        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-black/[0.04] dark:bg-white/[0.06] text-slate-600 dark:text-slate-400 border border-black/5 dark:border-white/10 flex items-center space-x-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 inline-block" />
           <span>{t('accounts.statusDisabled')}</span>
         </span>
       );
@@ -657,8 +657,8 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     // 3. ACTIVATED (已解卡且可用)
     if (rawConcurrent === 'ACTIVATED' || (!rawConcurrent && acc.status === 'active')) {
       return (
-        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-[0_0_8px_rgba(16,185,129,0.15)] flex items-center space-x-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse" />
+        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25 flex items-center space-x-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 inline-block animate-pulse" />
           <span>{t('accounts.statusActivated', '已激活')}</span>
         </span>
       );
@@ -667,8 +667,8 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     // 4. ACTIVATING (正在激活)
     if (rawConcurrent === 'ACTIVATING') {
       return (
-        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center space-x-1.5 shadow-[0_0_8px_rgba(99,102,241,0.15)]">
-          <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 inline-block animate-ping" />
+        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-500/25 flex items-center space-x-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400 inline-block animate-ping" />
           <span>{t('accounts.statusActivating', '激活中...')}</span>
         </span>
       );
@@ -677,8 +677,8 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     // 5. RETIRED (下线退休，释放 Context)
     if (rawConcurrent === 'RETIRED') {
       return (
-        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center space-x-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
+        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/25 flex items-center space-x-1.5">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 dark:bg-amber-400 inline-block" />
           <span>{t('accounts.statusRetired', '已下线')}</span>
         </span>
       );
@@ -686,8 +686,8 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
 
     // 6. INACTIVE (初始 / 未解卡)
     return (
-      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-slate-800/40 text-slate-400 border border-slate-700/50 flex items-center space-x-1.5">
-        <span className="w-1.5 h-1.5 rounded-full bg-slate-600 inline-block" />
+      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-black/[0.04] dark:bg-white/[0.06] text-slate-600 dark:text-slate-400 border border-black/5 dark:border-white/10 flex items-center space-x-1.5">
+        <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 inline-block" />
         <span>{t('accounts.statusInactive', '未激活')}</span>
       </span>
     );
@@ -950,11 +950,11 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                         key={acc.index}
                         className={`hover:bg-[var(--bg-surface-hover)] transition-colors ${
                           isCurrent
-                            ? 'bg-emerald-950/20'
+                            ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-l-2 border-emerald-500'
                             : isChecked
-                            ? 'bg-indigo-950/20'
+                            ? 'bg-indigo-50/60 dark:bg-indigo-950/25'
                             : isManuallyDisabled
-                            ? 'opacity-60 bg-black/20'
+                            ? 'opacity-60'
                             : ''
                         }`}
                       >
@@ -982,7 +982,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                                   className={`font-medium truncate max-w-xs md:max-w-sm ${
                                     isManuallyDisabled
                                       ? 'text-slate-400 line-through decoration-slate-600'
-                                      : 'text-slate-100'
+                                      : 'text-slate-800 dark:text-slate-100'
                                   }`}
                                 >
                                   {acc.name || `Account #${acc.index}`}
@@ -1012,74 +1012,70 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
 
                         {/* Status Badges */}
                         <td className="px-4 py-3">
-                          <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
-                            {/* hasContext Indicator */}
-                            <div
-                              title={hasContext ? 'Context Ready (Browser session active)' : 'No Context'}
-                              className={`px-1.5 py-0.5 rounded flex items-center justify-center cursor-help transition-all ${
-                                hasContext
-                                  ? 'bg-amber-500/15 text-amber-300 border border-amber-500/40 shadow-sm shadow-amber-500/20'
-                                  : 'bg-slate-800/40 text-slate-600 border border-slate-800/60 opacity-60'
-                              }`}
-                            >
-                              <Zap
-                                className={`w-3.5 h-3.5 ${
-                                  hasContext ? 'text-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.6)] fill-amber-400' : 'text-slate-600'
-                                }`}
-                              />
-                            </div>
-
-                            {/* Dynamic Status Badge */}
+                          <div className="flex items-center space-x-1.5">
                             {renderStatusBadge(acc)}
-
                             {isCurrent && (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
                                 {t('accounts.currentBadge')}
-                              </span>
-                            )}
-
-                            {acc.isInvalid && (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/30">
-                                {t('accounts.invalidBadge')}
-                              </span>
-                            )}
-
-                            {acc.isDuplicate && (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30">
-                                {t('accounts.duplicateBadge')}
-                              </span>
-                            )}
-
-                            {acc.isExpired && (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/30">
-                                {t('accounts.expiredBadge')}
-                              </span>
-                            )}
-
-                            {(acc.inFlight || 0) > 0 && (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-purple-500/20 text-purple-300 border border-purple-500/40">
-                                {t('accounts.inFlight')}: {acc.inFlight}
                               </span>
                             )}
                           </div>
                         </td>
 
-                        {/* Quota & Usage */}
-                        <td className="px-4 py-3">
-                          <div
-                            className="relative inline-block"
-                            onMouseEnter={(e) => handleMouseEnterPopover(e, acc.index)}
-                          >
-                            <button
-                              type="button"
-                              onClick={(e) => handleTogglePopover(e, acc.index)}
-                              className="px-2.5 py-1 rounded-lg text-[11px] font-mono ui-card-sub hover:bg-[var(--bg-surface-hover)] text-[var(--text-primary)] flex items-center space-x-1.5 cursor-pointer transition-all focus:outline-none"
+                        {/* Context Badge */}
+                        <td className="px-4 py-3 text-center">
+                          {hasContext ? (
+                            <div
+                              title="Context Ready"
+                              className="inline-flex items-center space-x-1 px-2 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-[10px] font-medium"
                             >
-                              <Clock className="w-3.5 h-3.5 text-indigo-400" />
-                              <span className="text-[var(--text-secondary)]">{t('accounts.todayUsage')}:</span>
-                              <strong className="text-indigo-600 dark:text-indigo-300 font-bold">{totalUsage}</strong>
-                              <ChevronDown className="w-3 h-3 text-slate-500" />
-                            </button>
+                              <Zap className="w-3 h-3 text-amber-500 dark:text-amber-400 fill-amber-500 dark:fill-amber-400" />
+                              <span>Ready</span>
+                            </div>
+                          ) : (
+                            <span className="text-slate-400 dark:text-slate-600 text-xs font-mono">—</span>
+                          )}
+                        </td>
+
+                        {/* Today Usage (Requests Count) */}
+                        <td className="px-4 py-3">
+                          <div className="flex items-center space-x-1.5">
+                            <span className="font-mono text-xs font-bold text-slate-800 dark:text-slate-200">
+                              {totalUsage.toLocaleString()}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-mono">reqs</span>
+
+                            {/* Breakdown Popover Trigger (Instant CSS Hover) */}
+                            {breakdowns.length > 0 && (
+                              <div className="relative group inline-block">
+                                <button
+                                  type="button"
+                                  className="p-0.5 text-slate-400 hover:text-indigo-400 rounded transition-colors"
+                                  title="View model breakdown"
+                                >
+                                  <Info className="w-3.5 h-3.5" />
+                                </button>
+
+                                {/* Hover Popover Content */}
+                                <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block z-50 pointer-events-none">
+                                  <div className="ui-card p-3 rounded-xl shadow-2xl min-w-[200px] border border-[var(--border-subtle)] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
+                                    <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2 pb-1.5 border-b border-[var(--border-subtle)] flex items-center justify-between">
+                                      <span>Model Breakdown</span>
+                                      <span className="font-mono text-indigo-400">Total: {totalUsage}</span>
+                                    </div>
+                                    <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                                      {breakdowns.map(({ model, count }) => (
+                                        <div key={model} className="flex items-center justify-between text-xs font-mono">
+                                          <span className="text-slate-300 truncate max-w-[130px]">{model}</span>
+                                          <span className="font-semibold text-indigo-400 shrink-0 ml-2">{count}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                    <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-[var(--border-subtle)]" />
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </td>
 
@@ -1092,8 +1088,8 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                               disabled={actionLoading}
                               className={`p-1.5 rounded-lg border transition-all text-xs flex items-center justify-center ${
                                 isManuallyDisabled
-                                  ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 dark:text-emerald-400 border-emerald-500/30'
-                                  : 'ui-btn-secondary hover:bg-rose-500/20 text-[var(--text-secondary)] hover:text-rose-500 hover:border-rose-500/30'
+                                  ? 'ui-btn-secondary text-slate-500 hover:text-emerald-600 hover:border-emerald-500/30 dark:text-slate-400 dark:hover:text-emerald-400'
+                                  : 'ui-btn-secondary text-slate-500 hover:text-rose-600 hover:border-rose-500/30 dark:text-slate-400 dark:hover:text-rose-400'
                               }`}
                               title={isManuallyDisabled ? t('accounts.toggleEnable') : t('accounts.toggleDisable')}
                             >
@@ -1104,10 +1100,10 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                             <button
                               onClick={() => handleSetCurrent(acc.index)}
                               disabled={actionLoading || isCurrent || isManuallyDisabled}
-                              className={`p-1.5 rounded-lg border transition-all text-xs ${
+                              className={`p-1.5 rounded-lg border transition-all text-xs flex items-center justify-center ${
                                 isCurrent
-                                  ? 'bg-emerald-500/20 text-emerald-500 dark:text-emerald-400 border-emerald-500/40 cursor-default'
-                                  : 'ui-btn-secondary hover:bg-indigo-500/20 text-[var(--text-secondary)] hover:text-indigo-500 hover:border-indigo-500/30 disabled:opacity-20'
+                                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 cursor-default'
+                                  : 'ui-btn-secondary text-slate-500 hover:text-indigo-600 hover:border-indigo-500/30 dark:text-slate-400 dark:hover:text-indigo-400 disabled:opacity-20'
                               }`}
                               title={isCurrent ? t('accounts.isCurrentAccount') : t('accounts.setAsCurrent')}
                             >
@@ -1120,8 +1116,8 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                               disabled={actionLoading || !acc.hasContext}
                               className={`p-1.5 rounded-lg border text-xs transition-all flex items-center justify-center ${
                                 acc.hasContext
-                                  ? 'ui-btn-secondary hover:bg-amber-500/20 text-[var(--text-secondary)] hover:text-amber-500 hover:border-amber-500/30'
-                                  : 'ui-btn-secondary cursor-not-allowed opacity-40'
+                                  ? 'ui-btn-secondary text-slate-500 hover:text-amber-600 hover:border-amber-500/30 dark:text-slate-400 dark:hover:text-amber-400'
+                                  : 'ui-btn-secondary cursor-not-allowed opacity-30 text-slate-400'
                               }`}
                               title={acc.hasContext ? t('accounts.closeContext') : t('accounts.contextAlreadyClosed')}
                             >
@@ -1132,7 +1128,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                             <button
                               onClick={() => handleDownloadSingle(acc.index)}
                               disabled={actionLoading}
-                              className="p-1.5 ui-btn-secondary rounded-lg text-xs transition-all"
+                              className="p-1.5 ui-btn-secondary rounded-lg text-xs transition-all text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
                               title={t('accounts.downloadCredential')}
                             >
                               <Download className="w-3.5 h-3.5" />
@@ -1148,7 +1144,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                                 }
                               }}
                               disabled={actionLoading}
-                              className="p-1.5 ui-btn-secondary hover:bg-rose-500/20 text-[var(--text-secondary)] hover:text-rose-500 hover:border-rose-500/30 rounded-lg text-xs transition-all"
+                              className="p-1.5 ui-btn-secondary text-slate-500 hover:text-rose-600 hover:border-rose-500/30 dark:text-slate-400 dark:hover:text-rose-400 rounded-lg text-xs transition-all"
                               title={t('accounts.deleteAccount')}
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -1178,11 +1174,11 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                     key={acc.index}
                     className={`p-3.5 transition-colors space-y-3 ${
                       isCurrent
-                        ? 'bg-emerald-950/15'
+                        ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-l-2 border-emerald-500'
                         : isChecked
-                        ? 'bg-indigo-950/20'
+                        ? 'bg-indigo-50/60 dark:bg-indigo-950/25'
                         : isManuallyDisabled
-                        ? 'opacity-60 bg-black/20'
+                        ? 'opacity-60'
                         : 'ui-card-sub'
                     }`}
                   >
@@ -1327,8 +1323,8 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                         disabled={actionLoading || isCurrent || isManuallyDisabled}
                         className={`flex-1 py-1.5 px-2 rounded-lg border text-xs font-semibold flex items-center justify-center space-x-1.5 transition-all active:scale-95 ${
                           isCurrent
-                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm'
-                            : 'bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border-indigo-500/40 disabled:opacity-30'
+                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                            : 'ui-btn-secondary text-slate-600 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400 disabled:opacity-30'
                         }`}
                       >
                         <ArrowRightLeft className="w-3.5 h-3.5" />
@@ -1341,8 +1337,8 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                         disabled={actionLoading}
                         className={`py-1.5 px-2.5 rounded-lg border text-xs font-semibold flex items-center justify-center space-x-1 transition-all active:scale-95 ${
                           isManuallyDisabled
-                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                            : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+                            ? 'ui-btn-secondary text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10'
+                            : 'ui-btn-secondary text-slate-600 dark:text-slate-300 hover:text-rose-600 hover:border-rose-500/30'
                         }`}
                       >
                         <Power className="w-3.5 h-3.5" />
@@ -1355,8 +1351,8 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                         disabled={actionLoading || !acc.hasContext}
                         className={`p-1.5 rounded-lg border text-xs flex items-center justify-center transition-all ${
                           acc.hasContext
-                            ? 'ui-btn-secondary hover:bg-amber-500/20 text-[var(--text-secondary)] hover:text-amber-300 border-[var(--border-subtle)] hover:border-amber-500/30'
-                            : 'ui-btn-secondary cursor-not-allowed opacity-40'
+                            ? 'ui-btn-secondary text-slate-500 hover:text-amber-600 dark:text-slate-400 dark:hover:text-amber-400 hover:border-amber-500/30'
+                            : 'ui-btn-secondary cursor-not-allowed opacity-30 text-slate-400'
                         }`}
                         title={acc.hasContext ? t('accounts.closeContext') : t('accounts.contextAlreadyClosed')}
                       >
@@ -1367,7 +1363,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                       <button
                         onClick={() => handleDownloadSingle(acc.index)}
                         disabled={actionLoading}
-                        className="p-1.5 ui-btn-secondary rounded-lg text-xs hover:text-[var(--text-primary)]"
+                        className="p-1.5 ui-btn-secondary text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 rounded-lg text-xs"
                         title={t('accounts.downloadCredential')}
                       >
                         <Download className="w-3.5 h-3.5" />
@@ -1383,7 +1379,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                           }
                         }}
                         disabled={actionLoading}
-                        className="p-1.5 ui-btn-secondary hover:bg-rose-500/20 text-[var(--text-secondary)] hover:text-rose-500 hover:border-rose-500/30 rounded-lg text-xs"
+                        className="p-1.5 ui-btn-secondary text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 hover:border-rose-500/30 rounded-lg text-xs"
                         title={t('accounts.deleteAccount')}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
