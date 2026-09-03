@@ -61,6 +61,7 @@ export function spawnTerminalSession(options: TerminalSessionOptions = {}): pty.
     LANG: process.env.LANG || 'en_US.UTF-8',
     LC_ALL: process.env.LC_ALL || process.env.LANG || 'en_US.UTF-8',
     TERM_PROGRAM: 'gemini-proxy-terminal',
+    PROMPT_EOL_MARK: '',
     COLUMNS: String(cols),
     LINES: String(rows),
     ...options.env,
