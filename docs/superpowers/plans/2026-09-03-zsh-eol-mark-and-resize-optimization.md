@@ -28,58 +28,11 @@
 - Consumes: `spawnTerminalSession(options)`
 - Produces: 启动 PTY 时附带 `PROMPT_EOL_MARK: ''`
 
-- [ ] **Step 1: 编写测试用例验证 PTY 环境变量注入**
-
-创建 `tests/terminalZshEolEnv.test.ts`：
-```ts
-import { spawnTerminalSession } from '../src/admin/services/terminalService';
-
-describe('Terminal Service Environment Options', () => {
-  it('includes PROMPT_EOL_MARK empty string in default terminal env', () => {
-    const ptyProcess = spawnTerminalSession({ cols: 80, rows: 24 });
-    try {
-      expect(ptyProcess).toBeDefined();
-    } finally {
-      ptyProcess.kill();
-    }
-  });
-});
-```
-
-- [ ] **Step 2: 运行测试验证**
-
-运行命令：
-```bash
-zsh -c 'export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"; npx jest tests/terminalZshEolEnv.test.ts'
-```
-
-- [ ] **Step 3: 修改 `src/admin/services/terminalService.ts` 注入 `PROMPT_EOL_MARK: ''`**
-
-在 `spawnTerminalSession` 的 `env` 变量中添加：
-```ts
-const env = {
-  ...process.env,
-  TERM: 'xterm-256color',
-  COLORTERM: 'truecolor',
-  LANG: process.env.LANG || 'en_US.UTF-8',
-  LC_ALL: process.env.LC_ALL || process.env.LANG || 'en_US.UTF-8',
-  TERM_PROGRAM: 'gemini-proxy-terminal',
-  PROMPT_EOL_MARK: '',
-  COLUMNS: String(cols),
-  LINES: String(rows),
-  ...options.env,
-} as { [key: string]: string };
-```
-
-- [ ] **Step 4: 运行构建与测试验证**
-
-运行命令：
-```bash
-zsh -c 'export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"; npm run build:backend && npx jest tests/terminalZshEolEnv.test.ts'
-```
-Expected: PASS。
-
-- [ ] **Step 5: 提交 Task 1 代码**
+- [x] **Step 1: 编写测试用例验证 PTY 环境变量注入**
+- [x] **Step 2: 运行测试验证**
+- [x] **Step 3: 修改 `src/admin/services/terminalService.ts` 注入 `PROMPT_EOL_MARK: ''`**
+- [x] **Step 4: 运行构建与测试验证**
+- [x] **Step 5: 提交 Task 1 代码**
 
 ```bash
 git add src/admin/services/terminalService.ts tests/terminalZshEolEnv.test.ts
@@ -97,53 +50,10 @@ git commit -m "feat(terminal): inject PROMPT_EOL_MARK empty string into pty env 
 - Consumes: `sendResize(cols, rows)`, `handleViewportChange()`
 - Produces: 无高频重复打断的平滑终端视口适配
 
-- [ ] **Step 1: 在 `WebTerminalView.tsx` 中添加上次发送行列数记录与防抖定时器**
-
-1. 声明 refs：
-```ts
-const lastSentColsRef = useRef<number>(0);
-const lastSentRowsRef = useRef<number>(0);
-const viewportDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
-```
-2. 在 `sendResize` 中增加去重：
-```ts
-const sendResize = useCallback((cols: number, rows: number) => {
-  if (cols <= 0 || rows <= 0) return;
-  if (cols === lastSentColsRef.current && rows === lastSentRowsRef.current) {
-    return;
-  }
-  lastSentColsRef.current = cols;
-  lastSentRowsRef.current = rows;
-  if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-    wsRef.current.send(`JSON:${JSON.stringify({ type: 'resize', cols, rows })}`);
-  }
-}, []);
-```
-
-- [ ] **Step 2: 优化 `handleViewportChange` 与组件卸载清理**
-
-1. 将多重级联的 `setTimeout(updateViewport, 120)` 和 `setTimeout(updateViewport, 300)` 替换为统一防抖（80ms）：
-```ts
-const handleViewportChange = () => {
-  if (viewportDebounceTimerRef.current) {
-    clearTimeout(viewportDebounceTimerRef.current);
-  }
-  viewportDebounceTimerRef.current = setTimeout(() => {
-    updateViewport();
-  }, 80);
-};
-```
-2. 在 `useEffect` 的 cleanup 函数中清理 `viewportDebounceTimerRef`。
-
-- [ ] **Step 3: 运行前端构建验证**
-
-运行命令：
-```bash
-zsh -c 'export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"; npm run build:frontend'
-```
-Expected: 构建通过。
-
-- [ ] **Step 4: 提交 Task 2 代码**
+- [x] **Step 1: 在 `WebTerminalView.tsx` 中添加上次发送行列数记录与防抖定时器**
+- [x] **Step 2: 优化 `handleViewportChange` 与组件卸载清理**
+- [x] **Step 3: 运行前端构建验证**
+- [x] **Step 4: 提交 Task 2 代码**
 
 ```bash
 git add frontend/src/components/WebTerminalView.tsx
@@ -157,23 +67,9 @@ git commit -m "feat(webTerminal): add resize deduplication and debounce for mobi
 **Files:**
 - Test: `tests/terminalService.test.ts`, `tests/terminalWs.test.ts`
 
-- [ ] **Step 1: 运行全量测试套件**
-
-运行命令：
-```bash
-zsh -c 'export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"; npm test'
-```
-Expected: 所有测试套件 PASS。
-
-- [ ] **Step 2: 运行全量前后端打包构建**
-
-运行命令：
-```bash
-zsh -c 'export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"; npm run build'
-```
-Expected: 编译完成无警告无报错。
-
-- [ ] **Step 3: 提交实施计划标记**
+- [x] **Step 1: 运行全量测试套件**
+- [x] **Step 2: 运行全量前后端打包构建**
+- [x] **Step 3: 提交实施计划标记**
 
 ```bash
 git add docs/superpowers/plans/2026-09-03-zsh-eol-mark-and-resize-optimization.md
