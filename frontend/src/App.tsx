@@ -31,6 +31,7 @@ import WebTerminalView from './components/WebTerminalView';
 import TranslateView from './components/TranslateView';
 import ConfigModal from './components/ConfigModal';
 import { useTranslation } from './i18n/LanguageContext';
+import { ThemeSwitcher } from './components/ThemeSwitcher';
 
 type TabType = 'dashboard' | 'accounts' | 'logs' | 'terminal' | 'playground' | 'translate';
 
@@ -191,7 +192,7 @@ export default function App() {
   // Loading Screen
   if (loading && isAuthenticated === null) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#090A0F] text-slate-300 font-mono text-xs selection:bg-indigo-500 selection:text-white">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)] font-mono text-xs selection:bg-indigo-500 selection:text-white">
         <div className="relative flex items-center justify-center mb-4">
           <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
             <Zap className="w-6 h-6 animate-pulse text-indigo-400" />
@@ -209,12 +210,12 @@ export default function App() {
   // Modern Linear-style Authentication Screen
   if (!isAuthenticated) {
     return (
-      <div className="relative flex items-center justify-center min-h-screen bg-[#090A0F] p-4 overflow-hidden selection:bg-indigo-500 selection:text-white">
+      <div className="relative flex items-center justify-center min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)] p-4 overflow-hidden selection:bg-indigo-500 selection:text-white">
         {/* Background ambient lighting */}
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-transparent rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-10 right-10 w-80 h-80 bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="relative w-full max-w-md bg-[#0F1118]/95 backdrop-blur-xl border border-white/[0.08] rounded-2xl p-8 shadow-2xl space-y-6">
+        <div className="relative w-full max-w-md bg-[var(--bg-surface)]/95 backdrop-blur-xl border border-[var(--border-subtle)] rounded-2xl p-8 shadow-2xl space-y-6">
           {/* Header & Brand Logo */}
           <div className="text-center space-y-3">
             <div className="inline-flex items-center justify-center p-1 mb-1 drop-shadow-[0_0_25px_rgba(99,102,241,0.4)]">
@@ -222,7 +223,7 @@ export default function App() {
             </div>
             <div>
               <div className="flex items-center justify-center space-x-2">
-                <h1 className="text-xl font-semibold text-slate-100 tracking-tight">
+                <h1 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">
                   {lang === 'zh' ? 'Gemini 代理控制台' : 'Gemini Proxy Console'}
                 </h1>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
@@ -281,16 +282,19 @@ export default function App() {
             </button>
           </form>
 
-          {/* Language Switcher in Login */}
-          <div className="flex items-center justify-between pt-2 border-t border-white/[0.06] text-xs">
-            <button
-              type="button"
-              onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
-              className="text-slate-400 hover:text-slate-200 transition-colors flex items-center space-x-1.5 py-1 px-2 rounded-lg hover:bg-white/[0.04]"
-            >
-              <Globe className="w-3.5 h-3.5" />
-              <span>{lang === 'zh' ? 'Switch to English' : '切换至中文'}</span>
-            </button>
+          {/* Language and Theme Switcher in Login */}
+          <div className="flex items-center justify-between pt-2 border-t border-[var(--border-subtle)] text-xs">
+            <div className="flex items-center space-x-1">
+              <button
+                type="button"
+                onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
+                className="text-slate-400 hover:text-slate-200 transition-colors flex items-center space-x-1.5 py-1 px-2 rounded-lg hover:bg-white/[0.04]"
+              >
+                <Globe className="w-3.5 h-3.5" />
+                <span>{lang === 'zh' ? 'Switch to English' : '切换至中文'}</span>
+              </button>
+              <ThemeSwitcher variant="login" />
+            </div>
             <span className="text-[11px] text-slate-500 font-mono">Gemini Studio Proxy</span>
           </div>
 
@@ -332,15 +336,15 @@ export default function App() {
   const isWorkbenchTab = ['playground', 'logs', 'translate'].includes(activeTab);
 
   return (
-    <div className="flex min-h-screen bg-[#090A0F] text-slate-100 font-sans selection:bg-indigo-500 selection:text-white antialiased">
+    <div className="flex min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)] font-sans selection:bg-indigo-500 selection:text-white antialiased">
       {/* Collapsible Sidebar (Desktop only) */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-40 hidden md:flex flex-col bg-[#0C0E14] border-r border-white/[0.06] transition-all duration-300 ease-in-out ${
+        className={`fixed top-0 bottom-0 left-0 z-40 hidden md:flex flex-col bg-[var(--bg-surface)] border-r border-[var(--border-subtle)] transition-all duration-300 ease-in-out ${
           isSidebarCollapsed ? 'w-16' : 'w-60'
         }`}
       >
         {/* Brand Logo Header */}
-        <div className="h-14 px-4 flex items-center justify-between border-b border-white/[0.06] shrink-0">
+        <div className="h-14 px-4 flex items-center justify-between border-b border-[var(--border-subtle)] shrink-0">
           <div className="flex items-center space-x-3 overflow-hidden">
             <img
               src="/favicon.svg"
@@ -349,7 +353,7 @@ export default function App() {
             />
             {!isSidebarCollapsed && (
               <div className="flex items-center space-x-2 min-w-0 overflow-hidden">
-                <span className="font-semibold text-sm text-slate-100 tracking-tight truncate">
+                <span className="font-semibold text-sm text-[var(--text-primary)] tracking-tight truncate">
                   Gemini Proxy
                 </span>
                 <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 shrink-0">
@@ -409,10 +413,10 @@ export default function App() {
         </nav>
 
         {/* Sidebar Footer Controls */}
-        <div className="p-2.5 border-t border-white/[0.06] space-y-1 shrink-0 bg-[#0A0C11]/50">
+        <div className="p-2.5 border-t border-[var(--border-subtle)] space-y-1 shrink-0 bg-[var(--bg-surface-sub)]/50">
           {/* Live Connection Status */}
           <div
-            className={`flex items-center px-3 py-2 rounded-xl text-xs text-slate-400 transition-colors ${
+            className={`flex items-center px-3 py-2 rounded-xl text-xs text-slate-500 dark:text-slate-400 transition-colors ${
               isSidebarCollapsed ? 'justify-center px-0' : 'space-x-2.5'
             }`}
             title={lang === 'zh' ? '系统运行正常' : 'System Online'}
@@ -422,7 +426,7 @@ export default function App() {
               <span className="absolute w-2 h-2 rounded-full bg-emerald-400 animate-ping opacity-75" />
             </div>
             {!isSidebarCollapsed && (
-              <span className="text-[11px] font-mono text-emerald-400 truncate">
+              <span className="text-[11px] font-mono text-emerald-500 dark:text-emerald-400 truncate">
                 {lang === 'zh' ? '服务运行中' : 'Proxy Active'}
               </span>
             )}
@@ -432,7 +436,7 @@ export default function App() {
           <button
             onClick={() => setIsConfigModalOpen(true)}
             title={isSidebarCollapsed ? t('nav.configTitle') : undefined}
-            className={`w-full flex items-center rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-white/[0.04] transition-colors ${
+            className={`w-full flex items-center rounded-xl text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-colors ${
               isSidebarCollapsed ? 'justify-center p-2.5' : 'px-3 py-2 space-x-2.5'
             }`}
           >
@@ -440,11 +444,14 @@ export default function App() {
             {!isSidebarCollapsed && <span className="truncate">{t('nav.configTitle')}</span>}
           </button>
 
+          {/* Theme Switcher */}
+          <ThemeSwitcher variant="sidebar" isCollapsed={isSidebarCollapsed} />
+
           {/* Language Switcher */}
           <button
             onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
             title={isSidebarCollapsed ? (lang === 'zh' ? 'Switch to English' : '切换至中文') : undefined}
-            className={`w-full flex items-center rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-white/[0.04] transition-colors ${
+            className={`w-full flex items-center rounded-xl text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-colors ${
               isSidebarCollapsed ? 'justify-center p-2.5' : 'px-3 py-2 space-x-2.5'
             }`}
           >
@@ -458,7 +465,7 @@ export default function App() {
           <button
             onClick={handleLogout}
             title={isSidebarCollapsed ? t('nav.logout') : undefined}
-            className={`w-full flex items-center rounded-xl text-xs font-medium text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors ${
+            className={`w-full flex items-center rounded-xl text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-colors ${
               isSidebarCollapsed ? 'justify-center p-2.5' : 'px-3 py-2 space-x-2.5'
             }`}
           >
@@ -475,7 +482,7 @@ export default function App() {
         } pl-0`}
       >
         {/* Minimal Glass Top Bar */}
-        <header className="h-12 sm:h-14 backdrop-blur-md bg-[#090A0F]/80 border-b border-white/[0.06] px-3 sm:px-6 flex items-center justify-between sticky top-0 z-30">
+        <header className="h-12 sm:h-14 backdrop-blur-md bg-[var(--bg-surface)]/80 border-b border-[var(--border-subtle)] px-3 sm:px-6 flex items-center justify-between sticky top-0 z-30">
           {/* Left Breadcrumbs & Brand / Sidebar Toggle */}
           <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
             {/* Mobile Brand Logo Icon */}
@@ -498,12 +505,12 @@ export default function App() {
               )}
             </button>
 
-            <div className="h-4 w-px bg-white/[0.08] hidden sm:block shrink-0" />
+            <div className="h-4 w-px bg-[var(--border-subtle)] hidden sm:block shrink-0" />
 
             <div className="flex items-center space-x-1.5 sm:space-x-2 text-xs font-medium min-w-0">
               <span className="hidden sm:inline text-slate-500 shrink-0">Gemini Proxy</span>
               <ChevronRight className="hidden sm:inline w-3.5 h-3.5 text-slate-600 shrink-0" />
-              <span className="text-slate-200 font-semibold truncate max-w-[130px] sm:max-w-none">{getActiveTabTitle()}</span>
+              <span className="text-[var(--text-primary)] font-semibold truncate max-w-[130px] sm:max-w-none">{getActiveTabTitle()}</span>
             </div>
           </div>
 
@@ -524,7 +531,7 @@ export default function App() {
             <button
               onClick={handleRefresh}
               title={lang === 'zh' ? '刷新当前视图' : 'Refresh Active View'}
-              className="px-2 sm:px-2.5 py-1.5 bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.08] hover:border-white/[0.15] rounded-lg text-xs text-slate-300 hover:text-white transition-all flex items-center space-x-1.5 shadow-sm active:scale-95"
+              className="px-2 sm:px-2.5 py-1.5 bg-black/[0.02] dark:bg-white/[0.03] hover:bg-black/[0.06] dark:hover:bg-white/[0.08] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] rounded-lg text-xs text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all flex items-center space-x-1.5 shadow-sm active:scale-95"
             >
               <RefreshCw className={`w-3.5 h-3.5 text-slate-400 ${isRefreshing ? 'animate-spin text-indigo-400' : ''}`} />
               <span className="hidden sm:inline text-[11px]">{lang === 'zh' ? '刷新' : 'Refresh'}</span>
@@ -534,16 +541,21 @@ export default function App() {
             <button
               onClick={() => setIsConfigModalOpen(true)}
               title={t('nav.configTitle')}
-              className="p-1.5 bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.08] hover:border-white/[0.15] rounded-lg text-xs text-slate-300 hover:text-white transition-all md:hidden active:scale-95"
+              className="p-1.5 bg-black/[0.02] dark:bg-white/[0.03] hover:bg-black/[0.06] dark:hover:bg-white/[0.08] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] rounded-lg text-xs text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all md:hidden active:scale-95"
             >
               <Settings className="w-3.5 h-3.5 text-slate-400" />
             </button>
+
+            {/* Theme Switcher (Mobile) */}
+            <div className="md:hidden flex items-center">
+              <ThemeSwitcher variant="header" />
+            </div>
 
             {/* Mobile Language Switcher */}
             <button
               onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
               title={lang === 'zh' ? 'Switch to English' : '切换至中文'}
-              className="p-1.5 bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.08] hover:border-white/[0.15] rounded-lg text-xs text-slate-300 hover:text-white transition-all md:hidden active:scale-95 font-mono text-[10px]"
+              className="p-1.5 bg-black/[0.02] dark:bg-white/[0.03] hover:bg-black/[0.06] dark:hover:bg-white/[0.08] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] rounded-lg text-xs text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all md:hidden active:scale-95 font-mono text-[10px]"
             >
               <Globe className="w-3.5 h-3.5 text-slate-400" />
             </button>
@@ -552,7 +564,7 @@ export default function App() {
             <button
               onClick={handleLogout}
               title={t('nav.logout')}
-              className="p-1.5 bg-white/[0.03] hover:bg-rose-500/20 border border-white/[0.08] hover:border-rose-500/30 rounded-lg text-xs text-slate-400 hover:text-rose-300 transition-all md:hidden active:scale-95"
+              className="p-1.5 bg-black/[0.02] dark:bg-white/[0.03] hover:bg-rose-500/20 border border-[var(--border-subtle)] hover:border-rose-500/30 rounded-lg text-xs text-slate-500 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-300 transition-all md:hidden active:scale-95"
             >
               <LogOut className="w-3.5 h-3.5" />
             </button>
@@ -612,7 +624,7 @@ export default function App() {
         </main>
 
         {/* Fixed Mobile Bottom Navigation Bar */}
-        <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#0C0E14]/95 backdrop-blur-xl border-t border-white/[0.08] px-2 py-1 flex items-center justify-around md:hidden shadow-[0_-4px_20px_rgba(0,0,0,0.6)]">
+        <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[var(--bg-surface)]/95 backdrop-blur-xl border-t border-[var(--border-subtle)] px-2 py-1 flex items-center justify-around md:hidden shadow-[0_-4px_20px_rgba(0,0,0,0.1)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.6)]">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
