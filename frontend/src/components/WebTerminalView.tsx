@@ -115,6 +115,10 @@ export default function WebTerminalView({
   const isReplayingRef = useRef<boolean>(true);
   const replayTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  const lastSentColsRef = useRef<number>(0);
+  const lastSentRowsRef = useRef<number>(0);
+  const viewportDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   const [fontSize, setFontSize] = useState<number>(() => {
     const saved = localStorage.getItem('terminal_font_size');
     return saved ? parseInt(saved, 10) : 13;
@@ -141,6 +145,12 @@ export default function WebTerminalView({
   }, [standalone]);
 
   const sendResize = useCallback((cols: number, rows: number) => {
+    if (cols <= 0 || rows <= 0) return;
+    if (cols === lastSentColsRef.current && rows === lastSentRowsRef.current) {
+      return;
+    }
+    lastSentColsRef.current = cols;
+    lastSentRowsRef.current = rows;
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       console.debug(`[WebTerminal] Sending resize to backend: ${cols}x${rows}`);
       wsRef.current.send(`JSON:${JSON.stringify({ type: 'resize', cols, rows })}`);
@@ -184,6 +194,8 @@ export default function WebTerminalView({
 
       if (xtermRef.current && fitAddonRef.current) {
         fitAddonRef.current.fit();
+        lastSentColsRef.current = 0;
+        lastSentRowsRef.current = 0;
         sendResize(xtermRef.current.cols, xtermRef.current.rows);
       }
     };
@@ -562,9 +574,12 @@ export default function WebTerminalView({
     };
 
     const handleViewportChange = () => {
-      updateViewport();
-      setTimeout(updateViewport, 120);
-      setTimeout(updateViewport, 300);
+      if (viewportDebounceTimerRef.current) {
+        clearTimeout(viewportDebounceTimerRef.current);
+      }
+      viewportDebounceTimerRef.current = setTimeout(() => {
+        updateViewport();
+      }, 80);
     };
 
     window.addEventListener('resize', handleViewportChange);
@@ -581,6 +596,9 @@ export default function WebTerminalView({
       isMountedRef.current = false;
       clearReconnectTimers();
       clearTimeout(fitTimer);
+      if (viewportDebounceTimerRef.current) {
+        clearTimeout(viewportDebounceTimerRef.current);
+      }
       if (replayTimerRef.current) {
         clearTimeout(replayTimerRef.current);
       }
