@@ -216,26 +216,26 @@ export default function TerminalLogsView({
                 <button
                   type="button"
                   onClick={() => onSubTabChange('interactive')}
-                  className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-lg transition-all ${
+                  className={`flex items-center space-x-1.5 px-2 sm:px-2.5 py-1 rounded-lg transition-all ${
                     subTab === 'interactive'
                       ? 'ui-tab-pill-active font-semibold shadow-sm'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
                   <TerminalSquare className="w-3.5 h-3.5" />
-                  <span>{t('terminal.interactiveTab')}</span>
+                  <span className="hidden sm:inline">{t('terminal.interactiveTab')}</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => onSubTabChange('logs')}
-                  className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-lg transition-all ${
+                  className={`flex items-center space-x-1.5 px-2 sm:px-2.5 py-1 rounded-lg transition-all ${
                     (subTab || 'logs') === 'logs'
                       ? 'ui-tab-pill-active font-semibold shadow-sm'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
                   <FileText className="w-3.5 h-3.5" />
-                  <span>{t('terminal.logsTab')}</span>
+                  <span className="hidden sm:inline">{t('terminal.logsTab')}</span>
                 </button>
               </div>
             ) : (
@@ -262,7 +262,7 @@ export default function TerminalLogsView({
                   isConnected ? 'bg-emerald-400 animate-pulse' : 'bg-rose-400'
                 }`}
               />
-              <span className="tracking-wider uppercase">
+              <span className="hidden sm:inline tracking-wider uppercase">
                 {isConnected ? t('terminal.live') : t('terminal.disconnected')}
               </span>
             </div>
