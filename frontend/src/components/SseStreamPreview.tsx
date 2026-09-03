@@ -294,7 +294,7 @@ export default function SseStreamPreview({ streamData }: { streamData: any }) {
           </div>
 
           <div className="flex items-center space-x-2 font-mono text-[11px]">
-            <div className="px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 text-slate-300 flex items-center space-x-1.5">
+            <div className="px-2.5 py-1 rounded-lg ui-card-sub text-[var(--text-secondary)] flex items-center space-x-1.5">
               <Sparkles className="w-3 h-3 text-indigo-400" />
               <span>{outputTokens} tokens</span>
             </div>
@@ -304,7 +304,7 @@ export default function SseStreamPreview({ streamData }: { streamData: any }) {
               className={`px-2.5 py-1 rounded-lg border text-[11px] transition-colors flex items-center space-x-1.5 ${
                 autoScroll
                   ? 'bg-blue-600/20 border-blue-500/50 text-blue-300'
-                  : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+                  : 'ui-btn-secondary'
               }`}
               title="Auto-scroll to latest chunk"
             >
@@ -391,7 +391,7 @@ export default function SseStreamPreview({ streamData }: { streamData: any }) {
 
         {/* Final Text Message or Typewriter Simulator */}
         {isPlayingTypewriter || typewriterText ? (
-          <div className="font-mono text-xs text-slate-100 leading-relaxed whitespace-pre-wrap bg-slate-950 p-3.5 rounded-xl border border-slate-800/90 relative">
+          <div className="font-mono text-xs text-[var(--code-text)] leading-relaxed whitespace-pre-wrap bg-[var(--code-bg)] p-3.5 rounded-xl border border-[var(--border-subtle)] relative">
             <div className="text-[10px] font-sans font-semibold text-emerald-400 mb-1 flex items-center space-x-1">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
               <span>Simulated Stream Playback ({typewriterProgress}%):</span>
@@ -400,7 +400,7 @@ export default function SseStreamPreview({ streamData }: { streamData: any }) {
             {isPlayingTypewriter && <span className="inline-block w-1.5 h-3.5 bg-emerald-400 ml-0.5 animate-pulse" />}
           </div>
         ) : fullText ? (
-          <div className="font-mono text-xs text-slate-100 leading-relaxed whitespace-pre-wrap bg-slate-950 p-3.5 rounded-xl border border-slate-800/90">
+          <div className="font-mono text-xs text-[var(--code-text)] leading-relaxed whitespace-pre-wrap bg-[var(--code-bg)] p-3.5 rounded-xl border border-[var(--border-subtle)]">
             {fullText}
           </div>
         ) : (
@@ -409,13 +409,13 @@ export default function SseStreamPreview({ streamData }: { streamData: any }) {
       </div>
 
       {/* Chrome DevTools EventSource Style Timeline */}
-      <div className="bg-slate-900/90 border border-slate-800/80 rounded-xl p-3.5 space-y-2.5">
-        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between pb-1 border-b border-slate-800/60">
-          <div className="flex items-center space-x-1.5">
+      <div className="ui-card-sub p-3.5 space-y-2.5">
+        <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] flex items-center justify-between pb-1 border-b border-[var(--border-subtle)]">
+          <div className="flex items-center space-x-1.5 text-[var(--text-primary)]">
             <Layers className="w-3.5 h-3.5 text-indigo-400" />
             <span>EventSource Timeline ({chunks.length} Events)</span>
           </div>
-          <span className="text-slate-500 text-[10px] font-mono lowercase">click row to inspect raw payload</span>
+          <span className="text-[var(--text-muted)] text-[10px] font-mono lowercase">click row to inspect raw payload</span>
         </div>
 
         <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
@@ -432,7 +432,7 @@ export default function SseStreamPreview({ streamData }: { streamData: any }) {
                   className={`p-2 rounded-lg cursor-pointer transition-all font-mono text-[11px] flex items-center justify-between border ${
                     isSelected
                       ? 'bg-indigo-600/20 border-indigo-500/80 text-indigo-200 shadow'
-                      : 'bg-slate-950/80 border-slate-800/80 hover:border-slate-700 text-slate-300'
+                      : 'ui-card-sub hover:bg-[var(--bg-surface-hover)] border-[var(--border-subtle)] text-[var(--text-secondary)]'
                   }`}
                 >
                   <div className="flex items-center space-x-2 min-w-0 pr-2">

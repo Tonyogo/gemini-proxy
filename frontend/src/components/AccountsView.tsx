@@ -920,13 +920,13 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-white/[0.08] bg-[#10121A]/90 text-[11px] font-medium tracking-wider text-slate-400 uppercase select-none">
+                  <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-surface-sub)] text-[11px] font-medium tracking-wider text-[var(--text-secondary)] uppercase select-none">
                     <th className="w-10 px-4 py-3 text-center">
                       <input
                         type="checkbox"
                         checked={filteredAccounts.length > 0 && selectedIndices.length === filteredAccounts.length}
                         onChange={handleSelectAll}
-                        className="w-4 h-4 rounded bg-[#0A0C10] border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                        className="w-4 h-4 rounded bg-[var(--bg-surface)] border-[var(--border-subtle)] text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
                       />
                     </th>
                     <th className="px-3 py-3 w-16">{t('accounts.tableIndex', '序号')}</th>
@@ -936,7 +936,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                     <th className="px-4 py-3 text-right">{t('accounts.tableActions', '操作')}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/[0.04] text-xs">
+                <tbody className="divide-y divide-[var(--border-subtle)] text-xs">
                   {filteredAccounts.map((acc) => {
                     const isCurrent = acc.index === currentAuthIndex;
                     const isChecked = selectedIndices.includes(acc.index);
@@ -948,7 +948,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                     return (
                       <tr
                         key={acc.index}
-                        className={`hover:bg-[#151824]/80 transition-colors ${
+                        className={`hover:bg-[var(--bg-surface-hover)] transition-colors ${
                           isCurrent
                             ? 'bg-emerald-950/20'
                             : isChecked
@@ -964,7 +964,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                             type="checkbox"
                             checked={isChecked}
                             onChange={() => handleSelectOne(acc.index)}
-                            className="w-4 h-4 rounded bg-[#0A0C10] border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                            className="w-4 h-4 rounded bg-[var(--bg-surface)] border-[var(--border-subtle)] text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
                           />
                         </td>
 
@@ -1073,11 +1073,11 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                             <button
                               type="button"
                               onClick={(e) => handleTogglePopover(e, acc.index)}
-                              className="px-2.5 py-1 rounded-lg text-[11px] font-mono bg-[#141620] hover:bg-white/[0.06] text-slate-300 border border-white/[0.08] flex items-center space-x-1.5 cursor-pointer transition-all focus:outline-none"
+                              className="px-2.5 py-1 rounded-lg text-[11px] font-mono ui-card-sub hover:bg-[var(--bg-surface-hover)] text-[var(--text-primary)] flex items-center space-x-1.5 cursor-pointer transition-all focus:outline-none"
                             >
                               <Clock className="w-3.5 h-3.5 text-indigo-400" />
-                              <span className="text-slate-400">{t('accounts.todayUsage')}:</span>
-                              <strong className="text-indigo-300 font-bold">{totalUsage}</strong>
+                              <span className="text-[var(--text-secondary)]">{t('accounts.todayUsage')}:</span>
+                              <strong className="text-indigo-600 dark:text-indigo-300 font-bold">{totalUsage}</strong>
                               <ChevronDown className="w-3 h-3 text-slate-500" />
                             </button>
                           </div>
@@ -1092,8 +1092,8 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                               disabled={actionLoading}
                               className={`p-1.5 rounded-lg border transition-all text-xs flex items-center justify-center ${
                                 isManuallyDisabled
-                                  ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
-                                  : 'bg-[#141620] hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 border-white/[0.08] hover:border-rose-500/30'
+                                  ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 dark:text-emerald-400 border-emerald-500/30'
+                                  : 'ui-btn-secondary hover:bg-rose-500/20 text-[var(--text-secondary)] hover:text-rose-500 hover:border-rose-500/30'
                               }`}
                               title={isManuallyDisabled ? t('accounts.toggleEnable') : t('accounts.toggleDisable')}
                             >
@@ -1106,8 +1106,8 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                               disabled={actionLoading || isCurrent || isManuallyDisabled}
                               className={`p-1.5 rounded-lg border transition-all text-xs ${
                                 isCurrent
-                                  ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 cursor-default'
-                                  : 'bg-[#141620] hover:bg-indigo-500/20 text-slate-400 hover:text-indigo-300 border-white/[0.08] hover:border-indigo-500/30 disabled:opacity-20'
+                                  ? 'bg-emerald-500/20 text-emerald-500 dark:text-emerald-400 border-emerald-500/40 cursor-default'
+                                  : 'ui-btn-secondary hover:bg-indigo-500/20 text-[var(--text-secondary)] hover:text-indigo-500 hover:border-indigo-500/30 disabled:opacity-20'
                               }`}
                               title={isCurrent ? t('accounts.isCurrentAccount') : t('accounts.setAsCurrent')}
                             >
@@ -1120,8 +1120,8 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                               disabled={actionLoading || !acc.hasContext}
                               className={`p-1.5 rounded-lg border text-xs transition-all flex items-center justify-center ${
                                 acc.hasContext
-                                  ? 'bg-[#141620] hover:bg-amber-500/20 text-slate-400 hover:text-amber-300 border-white/[0.08] hover:border-amber-500/30'
-                                  : 'bg-[#141620]/40 text-slate-600 border-white/[0.04] cursor-not-allowed opacity-40'
+                                  ? 'ui-btn-secondary hover:bg-amber-500/20 text-[var(--text-secondary)] hover:text-amber-500 hover:border-amber-500/30'
+                                  : 'ui-btn-secondary cursor-not-allowed opacity-40'
                               }`}
                               title={acc.hasContext ? t('accounts.closeContext') : t('accounts.contextAlreadyClosed')}
                             >
@@ -1132,7 +1132,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                             <button
                               onClick={() => handleDownloadSingle(acc.index)}
                               disabled={actionLoading}
-                              className="p-1.5 bg-[#141620] hover:bg-white/[0.06] text-slate-400 hover:text-slate-200 border border-white/[0.08] hover:border-white/[0.15] rounded-lg text-xs transition-all"
+                              className="p-1.5 ui-btn-secondary rounded-lg text-xs transition-all"
                               title={t('accounts.downloadCredential')}
                             >
                               <Download className="w-3.5 h-3.5" />
@@ -1148,7 +1148,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                                 }
                               }}
                               disabled={actionLoading}
-                              className="p-1.5 bg-[#141620] hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-white/[0.08] hover:border-rose-500/30 rounded-lg text-xs transition-all"
+                              className="p-1.5 ui-btn-secondary hover:bg-rose-500/20 text-[var(--text-secondary)] hover:text-rose-500 hover:border-rose-500/30 rounded-lg text-xs transition-all"
                               title={t('accounts.deleteAccount')}
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -1183,7 +1183,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                         ? 'bg-indigo-950/20'
                         : isManuallyDisabled
                         ? 'opacity-60 bg-black/20'
-                        : 'bg-[#0F1118]/60'
+                        : 'ui-card-sub'
                     }`}
                   >
                     {/* Card Header: Checkbox + Index + Badges */}
@@ -1193,7 +1193,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                           type="checkbox"
                           checked={isChecked}
                           onChange={() => handleSelectOne(acc.index)}
-                          className="w-4 h-4 rounded bg-[#0A0C10] border-slate-700 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer shrink-0"
+                          className="w-4 h-4 rounded bg-[var(--bg-surface)] border-[var(--border-subtle)] text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer shrink-0"
                         />
                         <span className="font-mono text-xs font-bold text-slate-300">
                           #{acc.index}
@@ -1228,7 +1228,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                     </div>
 
                     {/* Card Body: Account Identifier & Canonical */}
-                    <div className="bg-[#141622] border border-white/[0.04] rounded-xl p-2.5 space-y-1">
+                    <div className="ui-card-sub p-2.5 space-y-1">
                       <div className="flex items-center justify-between">
                         <span
                           className={`text-xs font-mono font-medium truncate ${
@@ -1267,14 +1267,14 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                       <button
                         type="button"
                         onClick={() => toggleMobileUsage(acc.index)}
-                        className="w-full px-3 py-2 rounded-xl text-xs font-mono bg-[#141622] hover:bg-[#1A1D2D] text-slate-300 border border-white/[0.06] flex items-center justify-between transition-colors"
+                        className="w-full px-3 py-2 rounded-xl text-xs font-mono ui-card-sub hover:bg-[var(--bg-surface-hover)] text-[var(--text-secondary)] border border-[var(--border-subtle)] flex items-center justify-between transition-colors"
                       >
                         <div className="flex items-center space-x-2">
                           <Clock className="w-3.5 h-3.5 text-indigo-400" />
-                          <span className="text-slate-400">{t('accounts.todayUsage')}:</span>
-                          <strong className="text-indigo-300 font-bold">{totalUsage}</strong>
+                          <span className="text-[var(--text-secondary)]">{t('accounts.todayUsage')}:</span>
+                          <strong className="text-indigo-600 dark:text-indigo-300 font-bold">{totalUsage}</strong>
                         </div>
-                        <div className="flex items-center space-x-1 text-slate-400 text-[11px]">
+                        <div className="flex items-center space-x-1 text-[var(--text-secondary)] text-[11px]">
                           <span>{breakdowns.length > 0 ? `${breakdowns.length} models` : 'Details'}</span>
                           <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isUsageExpanded ? 'rotate-180 text-indigo-400' : ''}`} />
                         </div>
@@ -1282,7 +1282,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
 
                       {/* Expandable Model Usage Breakdown */}
                       {isUsageExpanded && (
-                        <div className="p-3 bg-[#0C0E14] border border-white/[0.08] rounded-xl space-y-2.5 animate-in fade-in duration-150">
+                        <div className="p-3 ui-card-sub rounded-xl space-y-2.5 animate-in fade-in duration-150">
                           {breakdowns.length === 0 ? (
                             <div className="text-[11px] text-slate-500 italic text-center py-1">
                               {totalUsage === 0 ? 'No model requests today' : `Total requests: ${totalUsage}`}
@@ -1355,8 +1355,8 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                         disabled={actionLoading || !acc.hasContext}
                         className={`p-1.5 rounded-lg border text-xs flex items-center justify-center transition-all ${
                           acc.hasContext
-                            ? 'bg-[#141622] hover:bg-amber-500/20 text-slate-400 hover:text-amber-300 border-white/[0.08] hover:border-amber-500/30'
-                            : 'bg-[#141622]/40 text-slate-600 border-white/[0.04] cursor-not-allowed opacity-40'
+                            ? 'ui-btn-secondary hover:bg-amber-500/20 text-[var(--text-secondary)] hover:text-amber-300 border-[var(--border-subtle)] hover:border-amber-500/30'
+                            : 'ui-btn-secondary cursor-not-allowed opacity-40'
                         }`}
                         title={acc.hasContext ? t('accounts.closeContext') : t('accounts.contextAlreadyClosed')}
                       >
@@ -1367,7 +1367,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                       <button
                         onClick={() => handleDownloadSingle(acc.index)}
                         disabled={actionLoading}
-                        className="p-1.5 bg-[#141622] text-slate-400 border border-white/[0.08] rounded-lg text-xs hover:text-white"
+                        className="p-1.5 ui-btn-secondary rounded-lg text-xs hover:text-[var(--text-primary)]"
                         title={t('accounts.downloadCredential')}
                       >
                         <Download className="w-3.5 h-3.5" />
@@ -1383,7 +1383,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                           }
                         }}
                         disabled={actionLoading}
-                        className="p-1.5 bg-[#141622] hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-white/[0.08] hover:border-rose-500/30 rounded-lg text-xs"
+                        className="p-1.5 ui-btn-secondary hover:bg-rose-500/20 text-[var(--text-secondary)] hover:text-rose-500 hover:border-rose-500/30 rounded-lg text-xs"
                         title={t('accounts.deleteAccount')}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -1400,8 +1400,8 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
       {/* Floating Action Bar when rows are selected */}
       {selectedIndices.length > 0 && (
         <div className="fixed bottom-16 md:bottom-6 left-1/2 -translate-x-1/2 z-40 animate-in fade-in slide-in-from-bottom-4 duration-300 w-[92vw] sm:w-auto max-w-lg">
-          <div className="backdrop-blur-xl bg-[#151824]/95 border border-white/[0.15] shadow-2xl rounded-2xl px-3 sm:px-5 py-2.5 sm:py-3 flex flex-wrap sm:flex-nowrap items-center justify-between sm:justify-start gap-2 sm:space-x-4">
-            <div className="flex items-center space-x-2 text-xs font-semibold text-white pr-2 border-r border-white/[0.1] shrink-0">
+          <div className="backdrop-blur-xl bg-[var(--bg-surface)]/95 border border-[var(--border-subtle)] shadow-2xl rounded-2xl px-3 sm:px-5 py-2.5 sm:py-3 flex flex-wrap sm:flex-nowrap items-center justify-between sm:justify-start gap-2 sm:space-x-4">
+            <div className="flex items-center space-x-2 text-xs font-semibold text-[var(--text-primary)] pr-2 border-r border-[var(--border-subtle)] shrink-0">
               <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
               <span>{t('accounts.batchSelected', `${selectedIndices.length} accounts selected`).replace('{count}', String(selectedIndices.length))}</span>
             </div>
@@ -1411,7 +1411,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
               <button
                 onClick={() => handleBatchToggleDisabled(false)}
                 disabled={actionLoading}
-                className="px-2.5 sm:px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-lg text-xs font-semibold flex items-center space-x-1 transition-all active:scale-95"
+                className="px-2.5 sm:px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 dark:text-emerald-300 border border-emerald-500/30 rounded-lg text-xs font-semibold flex items-center space-x-1 transition-all active:scale-95"
               >
                 <Power className="w-3.5 h-3.5 text-emerald-400" />
                 <span>{t('accounts.batchEnable', 'Enable')}</span>
@@ -1421,7 +1421,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
               <button
                 onClick={() => handleBatchToggleDisabled(true)}
                 disabled={actionLoading}
-                className="px-2.5 sm:px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-lg text-xs font-semibold flex items-center space-x-1 transition-all active:scale-95"
+                className="px-2.5 sm:px-3 py-1.5 ui-btn-secondary rounded-lg text-xs font-semibold flex items-center space-x-1 transition-all active:scale-95"
               >
                 <Power className="w-3.5 h-3.5 text-slate-400" />
                 <span>{t('accounts.batchDisable', 'Disable')}</span>
@@ -1431,7 +1431,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
               <button
                 onClick={handleBatchDownload}
                 disabled={actionLoading}
-                className="p-1.5 sm:px-3 sm:py-1.5 bg-[#1C1F2E] hover:bg-white/[0.1] text-slate-200 border border-white/[0.1] rounded-lg text-xs font-semibold flex items-center space-x-1 transition-all active:scale-95"
+                className="p-1.5 sm:px-3 sm:py-1.5 ui-btn-secondary rounded-lg text-xs font-semibold flex items-center space-x-1 transition-all active:scale-95"
                 title={t('accounts.batchDownload')}
               >
                 <Download className="w-3.5 h-3.5 text-slate-400" />
@@ -1463,28 +1463,28 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
       )}
 
       {/* Upstream Terminal Logs Section */}
-      <div className="bg-[#0F1118]/90 border border-white/[0.08] rounded-2xl overflow-hidden shadow-lg">
+      <div className="ui-card overflow-hidden shadow-lg">
         {/* Terminal Header */}
         <div
           onClick={() => setIsLogsExpanded(!isLogsExpanded)}
-          className="px-3.5 sm:px-4 py-2.5 sm:py-3 bg-[#141620] border-b border-white/[0.08] flex flex-wrap items-center justify-between gap-2 cursor-pointer select-none hover:bg-white/[0.02] transition-colors"
+          className="px-3.5 sm:px-4 py-2.5 sm:py-3 bg-[var(--bg-surface-sub)] border-b border-[var(--border-subtle)] flex flex-wrap items-center justify-between gap-2 cursor-pointer select-none hover:bg-[var(--bg-surface-hover)] transition-colors"
         >
           <div className="flex items-center space-x-2 sm:space-x-2.5 min-w-0">
             <FileText className="w-4 h-4 text-indigo-400 shrink-0" />
-            <span className="text-xs font-bold text-slate-200 truncate">{t('accounts.upstreamLogsTitle')}</span>
+            <span className="text-xs font-bold text-[var(--text-primary)] truncate">{t('accounts.upstreamLogsTitle')}</span>
             {data?.logCount !== undefined && (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-slate-800 text-slate-400 border border-slate-700/60 shrink-0">
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold bg-black/[0.05] dark:bg-white/[0.05] text-[var(--text-secondary)] border border-[var(--border-subtle)] shrink-0">
                 {data.logCount}
               </span>
             )}
             {isLogsExpanded && (
               enableLivePolling ? (
-                <span className="flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-[0_0_8px_rgba(16,185,129,0.15)] shrink-0">
+                <span className="flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 border border-emerald-500/20 shadow-[0_0_8px_rgba(16,185,129,0.15)] shrink-0">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
                   <span className="hidden xs:inline">{t('accounts.livePolling')}</span>
                 </span>
               ) : (
-                <span className="flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-400/90 border border-amber-500/20 shrink-0">
+                <span className="flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-500 dark:text-amber-400 border border-amber-500/20 shrink-0">
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-400/70 inline-block" />
                   <span className="hidden xs:inline">{t('accounts.pollingPaused')}</span>
                 </span>
@@ -1501,8 +1501,8 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                   onClick={() => setEnableLivePolling(!enableLivePolling)}
                   className={`p-1.5 sm:px-2 sm:py-1 rounded-lg border text-xs font-medium flex items-center space-x-1 transition-all ${
                     enableLivePolling
-                      ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30 shadow-sm'
-                      : 'bg-[#1A1C28] text-slate-400 border-white/[0.08] hover:text-slate-200'
+                      ? 'bg-emerald-500/15 text-emerald-500 dark:text-emerald-300 border-emerald-500/30 shadow-sm'
+                      : 'ui-btn-secondary'
                   }`}
                   title={t('accounts.livePollingToggle')}
                 >
@@ -1515,7 +1515,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                   <button
                     onClick={handleManualRefreshLogs}
                     disabled={refreshingLogs}
-                    className="p-1.5 sm:px-2 sm:py-1 bg-[#1A1C28] hover:bg-white/[0.08] border border-white/[0.08] rounded-lg text-[11px] text-slate-300 hover:text-white transition-all flex items-center space-x-1 disabled:opacity-50"
+                    className="p-1.5 sm:px-2 sm:py-1 ui-btn-secondary rounded-lg text-[11px] transition-all flex items-center space-x-1 disabled:opacity-50"
                     title={t('accounts.refreshLogs')}
                   >
                     <RefreshCw className={`w-3.5 h-3.5 text-slate-400 ${refreshingLogs ? 'animate-spin text-indigo-400' : ''}`} />
@@ -1529,8 +1529,8 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                   onClick={() => setAutoScrollLogs(!autoScrollLogs)}
                   className={`p-1.5 sm:px-2 sm:py-1 rounded-lg border text-xs font-medium flex items-center space-x-1 transition-all ${
                     autoScrollLogs
-                      ? 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30'
-                      : 'bg-[#1A1C28] text-slate-400 border-white/[0.08] hover:text-slate-200'
+                      ? 'bg-indigo-500/15 text-indigo-500 dark:text-indigo-300 border-indigo-500/30'
+                      : 'ui-btn-secondary'
                   }`}
                   title={t('accounts.autoScroll')}
                 >
@@ -1542,7 +1542,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                 {data?.logs && (
                   <button
                     onClick={handleCopyLogs}
-                    className="p-1.5 sm:px-2.5 sm:py-1 bg-[#1A1C28] hover:bg-white/[0.08] border border-white/[0.08] rounded-lg text-[11px] text-slate-300 hover:text-white transition-all flex items-center space-x-1"
+                    className="p-1.5 sm:px-2.5 sm:py-1 ui-btn-secondary rounded-lg text-[11px] transition-all flex items-center space-x-1"
                     title={t('accounts.copyLogs')}
                   >
                     {copiedLogs ? (
@@ -1563,7 +1563,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
 
             <button
               onClick={() => setIsLogsExpanded(!isLogsExpanded)}
-              className="p-1 bg-[#1A1C28] hover:bg-white/[0.08] border border-white/[0.08] rounded-lg text-slate-400 hover:text-white transition-all"
+              className="p-1 ui-btn-secondary rounded-lg transition-all"
               title={isLogsExpanded ? 'Collapse' : 'Expand'}
             >
               <ChevronDown className={`w-3.5 h-3.5 transform transition-transform ${isLogsExpanded ? 'rotate-180' : ''}`} />
@@ -1573,7 +1573,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
 
         {/* Terminal Log Viewport */}
         {isLogsExpanded && (
-          <div className="p-4 bg-[#07090E] text-slate-300 font-mono text-[11px] leading-relaxed max-h-80 overflow-y-auto select-text whitespace-pre-wrap">
+          <div className="p-4 bg-[var(--code-bg)] text-[var(--code-text)] border-t border-[var(--border-subtle)] font-mono text-[11px] leading-relaxed max-h-80 overflow-y-auto select-text whitespace-pre-wrap">
             {data?.logs ? (
               <div className="space-y-0.5">
                 {data.logs.split('\n').map((line, idx) => {
@@ -1613,28 +1613,28 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
       {/* Close Context Confirm Dialog */}
       {closeContextConfirm && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-[#12141F] border border-white/[0.1] rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-200">
-            <div className="flex items-center space-x-3 text-amber-400">
+          <div className="ui-card max-w-md w-full p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center space-x-3 text-amber-500 dark:text-amber-400">
               <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl">
                 <ZapOff className="w-5 h-5" />
               </div>
-              <h3 className="text-base font-bold text-white">
+              <h3 className="text-base font-bold text-[var(--text-primary)]">
                 {t('accounts.confirmCloseContextTitle')}
               </h3>
             </div>
 
-            <div className="space-y-2 text-xs leading-relaxed text-slate-300">
+            <div className="space-y-2 text-xs leading-relaxed text-[var(--text-secondary)]">
               <p>
                 {t('accounts.confirmCloseContextMessage', {
                   index: String(closeContextConfirm.index),
                   email: closeContextConfirm.email || 'No email'
                 })}
               </p>
-              <p className="text-slate-400">
+              <p className="text-[var(--text-muted)]">
                 {t('accounts.confirmCloseContextDesc')}
               </p>
               {closeContextConfirm.isCurrent && (
-                <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-lg text-amber-300 flex items-start space-x-2">
+                <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-lg text-amber-600 dark:text-amber-300 flex items-start space-x-2">
                   <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                   <span>{t('accounts.confirmDeleteCurrentWarning')}</span>
                 </div>
@@ -1646,7 +1646,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                 type="button"
                 onClick={() => setCloseContextConfirm(null)}
                 disabled={actionLoading}
-                className="px-4 py-2 bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 border border-white/[0.08] rounded-xl text-xs font-semibold transition-all"
+                className="px-4 py-2 ui-btn-secondary text-xs font-semibold transition-all"
               >
                 {t('accounts.cancel')}
               </button>
@@ -1654,7 +1654,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                 type="button"
                 onClick={() => handleCloseContext(closeContextConfirm.index)}
                 disabled={actionLoading}
-                className="px-4 py-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition-all shadow-sm active:scale-95"
+                className="px-4 py-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-600 dark:text-amber-300 border border-amber-500/40 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition-all shadow-sm active:scale-95"
               >
                 {actionLoading && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
                 <span>{t('accounts.closeContext')}</span>
@@ -1668,13 +1668,13 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
       {/* Delete Confirmation Modal */}
       {deleteConfirm && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-[#0F1118] border border-white/[0.12] rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
-            <h3 className="text-sm font-bold text-white flex items-center space-x-2">
-              <AlertTriangle className="w-4 h-4 text-rose-400" />
+          <div className="ui-card max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
+            <h3 className="text-sm font-bold text-[var(--text-primary)] flex items-center space-x-2">
+              <AlertTriangle className="w-4 h-4 text-rose-500 dark:text-rose-400" />
               <span>{t('accounts.confirmDeleteTitle')}</span>
             </h3>
 
-            <p className="text-xs text-slate-300 leading-relaxed">
+            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
               {t('accounts.confirmDeleteMessage', {
                 index: deleteConfirm.index,
                 email: deleteConfirm.email
@@ -1682,7 +1682,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
             </p>
 
             {deleteConfirm.isCurrent && (
-              <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-300 text-xs">
+              <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-600 dark:text-amber-300 text-xs">
                 {t('accounts.confirmDeleteCurrentWarning')}
               </div>
             )}
@@ -1690,7 +1690,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
             <div className="flex items-center justify-end space-x-3 pt-2">
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition-all"
+                className="px-4 py-2 ui-btn-secondary text-xs font-semibold transition-all"
               >
                 {t('accounts.cancel')}
               </button>
@@ -1709,20 +1709,20 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
       {/* Batch Delete Modal */}
       {batchDeleteConfirm && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-[#0F1118] border border-white/[0.12] rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
-            <h3 className="text-sm font-bold text-white flex items-center space-x-2">
-              <AlertTriangle className="w-4 h-4 text-rose-400" />
+          <div className="ui-card max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
+            <h3 className="text-sm font-bold text-[var(--text-primary)] flex items-center space-x-2">
+              <AlertTriangle className="w-4 h-4 text-rose-500 dark:text-rose-400" />
               <span>{t('accounts.batchDelete')}</span>
             </h3>
 
-            <p className="text-xs text-slate-300 leading-relaxed">
+            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
               {t('accounts.confirmBatchDeleteMessage', { count: selectedIndices.length })}
             </p>
 
             <div className="flex items-center justify-end space-x-3 pt-2">
               <button
                 onClick={() => setBatchDeleteConfirm(false)}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition-all"
+                className="px-4 py-2 ui-btn-secondary text-xs font-semibold transition-all"
               >
                 {t('accounts.cancel')}
               </button>
@@ -1741,20 +1741,20 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
       {/* Deduplicate Confirmation Modal */}
       {dedupConfirm && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-[#0F1118] border border-white/[0.12] rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
-            <h3 className="text-sm font-bold text-white flex items-center space-x-2">
-              <Layers className="w-4 h-4 text-amber-400" />
+          <div className="ui-card max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
+            <h3 className="text-sm font-bold text-[var(--text-primary)] flex items-center space-x-2">
+              <Layers className="w-4 h-4 text-amber-500 dark:text-amber-400" />
               <span>{t('accounts.confirmDeduplicateTitle')}</span>
             </h3>
 
-            <p className="text-xs text-slate-300 leading-relaxed">
+            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
               {t('accounts.confirmDeduplicateMessage')}
             </p>
 
             <div className="flex items-center justify-end space-x-3 pt-2">
               <button
                 onClick={() => setDedupConfirm(false)}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition-all"
+                className="px-4 py-2 ui-btn-secondary text-xs font-semibold transition-all"
               >
                 {t('accounts.cancel')}
               </button>
@@ -1802,21 +1802,21 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
           <div
             ref={popoverRef}
             style={popoverStyle}
-            className="p-3 bg-[#0F1118] border border-white/[0.12] rounded-xl shadow-2xl backdrop-blur-xl pointer-events-auto animate-in fade-in duration-150"
+            className="p-3 ui-card rounded-xl shadow-2xl backdrop-blur-xl pointer-events-auto animate-in fade-in duration-150"
             onMouseLeave={() => setPopoverAnchor(null)}
           >
-            <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/[0.08]">
-              <span className="text-[11px] font-bold text-slate-200 flex items-center space-x-1.5">
+            <div className="flex items-center justify-between pb-2 mb-2 border-b border-[var(--border-subtle)]">
+              <span className="text-[11px] font-bold text-[var(--text-primary)] flex items-center space-x-1.5">
                 <Clock className="w-3.5 h-3.5 text-indigo-400" />
                 <span>{t('accounts.todayUsage')}</span>
               </span>
-              <span className="text-xs font-mono font-bold text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-md">
+              <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-md">
                 {totalUsage}
               </span>
             </div>
 
             {breakdowns.length === 0 ? (
-              <div className="text-[10px] text-slate-400 italic py-1">
+              <div className="text-[10px] text-[var(--text-secondary)] italic py-1">
                 {totalUsage === 0 ? 'No model request breakdown' : `Total: ${totalUsage}`}
               </div>
             ) : (
@@ -1826,16 +1826,16 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                   return (
                     <div key={idx} className="space-y-1">
                       <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-slate-300 font-mono truncate max-w-[130px]" title={item.model}>
+                        <span className="text-[var(--text-secondary)] font-mono truncate max-w-[130px]" title={item.model}>
                           {item.model}
                         </span>
-                        <span className="text-slate-400 font-mono font-semibold">
-                          <strong className="text-slate-200">{item.count}</strong>
-                          {item.limit !== undefined && <span className="text-slate-500 text-[10px]"> / {item.limit}</span>}
+                        <span className="text-[var(--text-secondary)] font-mono font-semibold">
+                          <strong className="text-[var(--text-primary)]">{item.count}</strong>
+                          {item.limit !== undefined && <span className="text-[var(--text-muted)] text-[10px]"> / {item.limit}</span>}
                         </span>
                       </div>
                       {ratio !== null && (
-                        <div className="w-full bg-[#0A0C10] rounded-full h-1.5 overflow-hidden border border-white/[0.06]">
+                        <div className="w-full bg-black/10 dark:bg-white/10 rounded-full h-1.5 overflow-hidden border border-[var(--border-subtle)]">
                           <div
                             className={`h-full rounded-full transition-all ${
                               ratio >= 90 ? 'bg-rose-500' : ratio >= 70 ? 'bg-amber-500' : 'bg-indigo-500'
@@ -1856,7 +1856,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                 isTop
                   ? 'top-full -mt-px border-r border-b'
                   : 'bottom-full -mb-px border-l border-t'
-              } w-2.5 h-2.5 bg-[#0F1118] border-white/[0.12] transform rotate-45`}
+              } w-2.5 h-2.5 bg-[var(--bg-surface)] border-[var(--border-subtle)] transform rotate-45`}
             />
           </div>,
           document.body

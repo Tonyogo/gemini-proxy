@@ -568,7 +568,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                     className={`p-2.5 rounded-xl cursor-pointer transition-all border relative overflow-hidden group ${
                       isSelected
                         ? 'bg-indigo-600/15 border-indigo-500/80 text-indigo-100 shadow-md ring-1 ring-indigo-500/30'
-                        : 'bg-[#10121A]/80 border-white/[0.05] hover:border-white/[0.12] hover:bg-[#151824] text-slate-300'
+                        : 'ui-card-sub hover:bg-[var(--bg-surface-hover)] border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                     }`}
                   >
                     {/* Purple active indicator bar on selected item */}
@@ -933,7 +933,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                   {viewMode === 'preview' ? (
                     <JsonTreeView data={selectedLog.client_req} />
                   ) : (
-                    <div className="flex-1 min-h-[420px] rounded-xl overflow-hidden border border-white/[0.08] shadow-inner bg-[#020617]">
+                    <div className="flex-1 min-h-[420px] rounded-xl overflow-hidden border border-[var(--border-subtle)] shadow-inner bg-[var(--code-bg)]">
                       <Editor
                         height="100%"
                         language="json"
@@ -963,7 +963,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                   {viewMode === 'preview' ? (
                     <JsonTreeView data={selectedLog.gem_req} />
                   ) : (
-                    <div className="flex-1 min-h-[420px] rounded-xl overflow-hidden border border-white/[0.08] shadow-inner bg-[#020617]">
+                    <div className="flex-1 min-h-[420px] rounded-xl overflow-hidden border border-[var(--border-subtle)] shadow-inner bg-[var(--code-bg)]">
                       <Editor
                         height="100%"
                         language="json"
@@ -1008,7 +1008,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                       <JsonTreeView data={selectedLog.claude_res} />
                     )
                   ) : (
-                    <div className="flex-1 min-h-[420px] rounded-xl overflow-hidden border border-white/[0.08] shadow-inner bg-[#020617]">
+                    <div className="flex-1 min-h-[420px] rounded-xl overflow-hidden border border-[var(--border-subtle)] shadow-inner bg-[var(--code-bg)]">
                       <Editor
                         height="100%"
                         language="json"
@@ -1049,7 +1049,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                       <JsonTreeView data={selectedLog.gem_res} />
                     )
                   ) : (
-                    <div className="flex-1 min-h-[420px] rounded-xl overflow-hidden border border-white/[0.08] shadow-inner bg-[#020617]">
+                    <div className="flex-1 min-h-[420px] rounded-xl overflow-hidden border border-[var(--border-subtle)] shadow-inner bg-[var(--code-bg)]">
                       <Editor
                         height="100%"
                         language="json"
