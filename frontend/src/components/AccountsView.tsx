@@ -716,11 +716,11 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
       {/* Modern Page Header & Stats Banner */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-white tracking-tight flex items-center space-x-2.5">
-            <Users className="w-5 h-5 text-indigo-400" />
+          <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center space-x-2.5">
+            <Users className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
             <span>{t('accounts.title')}</span>
           </h1>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             {t('accounts.sub', 'Manage multi-account credentials, automatic context rotation, and per-account usage quotas.')}
           </p>
         </div>
@@ -728,80 +728,80 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
         {/* Stats Chips */}
         <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-2.5">
           {/* Total Accounts */}
-          <div className="ui-card-sub p-2 sm:px-3.5 sm:py-2 flex flex-col sm:flex-row items-start sm:items-center space-y-1 sm:space-y-0 sm:space-x-3">
-            <div className="p-1.5 sm:p-2 rounded-lg bg-slate-800/60 text-slate-300 border border-white/[0.04]">
+          <div className="ui-card-sub p-2.5 sm:px-4 sm:py-3 flex items-center space-x-3">
+            <div className="p-1.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] text-slate-500 dark:text-slate-400 shrink-0">
               <Users className="w-3.5 h-3.5" />
             </div>
             <div className="min-w-0">
-              <div className="text-[9px] sm:text-[10px] font-medium text-slate-400 uppercase tracking-wider truncate">
+              <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">
                 {t('accounts.totalAccounts')}
               </div>
-              <div className="text-sm sm:text-base font-bold text-slate-100 font-mono">{totalCount}</div>
+              <div className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 font-mono">{totalCount}</div>
             </div>
           </div>
 
           {/* Activated */}
-          <div className="ui-card-sub p-2 sm:px-3.5 sm:py-2 flex flex-col sm:flex-row items-start sm:items-center space-y-1 sm:space-y-0 sm:space-x-3">
-            <div className="p-1.5 sm:p-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <div className="ui-card-sub p-2.5 sm:px-4 sm:py-3 flex items-center space-x-3">
+            <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
               <CheckCircle2 className="w-3.5 h-3.5" />
             </div>
             <div className="min-w-0">
-              <div className="text-[9px] sm:text-[10px] font-medium text-emerald-400 uppercase tracking-wider truncate">
+              <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">
                 {t('accounts.activeAccounts')}
               </div>
-              <div className="text-sm sm:text-base font-bold text-emerald-300 font-mono">{activatedCount}</div>
+              <div className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 font-mono">{activatedCount}</div>
             </div>
           </div>
 
           {/* Activating */}
-          <div className="ui-card-sub p-2 sm:px-3.5 sm:py-2 flex flex-col sm:flex-row items-start sm:items-center space-y-1 sm:space-y-0 sm:space-x-3">
-            <div className="p-1.5 sm:p-2 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+          <div className="ui-card-sub p-2.5 sm:px-4 sm:py-3 flex items-center space-x-3">
+            <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
               <Sparkles className="w-3.5 h-3.5" />
             </div>
             <div className="min-w-0">
-              <div className="text-[9px] sm:text-[10px] font-medium text-indigo-400 uppercase tracking-wider truncate">
+              <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">
                 {t('accounts.activatingAccounts')}
               </div>
-              <div className="text-sm sm:text-base font-bold text-indigo-300 font-mono">{activatingCount}</div>
+              <div className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 font-mono">{activatingCount}</div>
             </div>
           </div>
 
           {/* Retired */}
-          <div className="ui-card-sub p-2 sm:px-3.5 sm:py-2 flex flex-col sm:flex-row items-start sm:items-center space-y-1 sm:space-y-0 sm:space-x-3">
-            <div className="p-1.5 sm:p-2 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20">
+          <div className="ui-card-sub p-2.5 sm:px-4 sm:py-3 flex items-center space-x-3">
+            <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
               <Clock className="w-3.5 h-3.5" />
             </div>
             <div className="min-w-0">
-              <div className="text-[9px] sm:text-[10px] font-medium text-amber-400 uppercase tracking-wider truncate">
+              <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">
                 {t('accounts.retiredAccounts', '已下线')}
               </div>
-              <div className="text-sm sm:text-base font-bold text-amber-300 font-mono">{retiredCount}</div>
+              <div className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 font-mono">{retiredCount}</div>
             </div>
           </div>
 
           {/* Inactive */}
-          <div className="ui-card-sub p-2 sm:px-3.5 sm:py-2 flex flex-col sm:flex-row items-start sm:items-center space-y-1 sm:space-y-0 sm:space-x-3">
-            <div className="p-1.5 sm:p-2 rounded-lg bg-slate-800/50 text-slate-400 border border-slate-700/40">
+          <div className="ui-card-sub p-2.5 sm:px-4 sm:py-3 flex items-center space-x-3">
+            <div className="p-1.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] text-slate-500 dark:text-slate-400 shrink-0">
               <Power className="w-3.5 h-3.5" />
             </div>
             <div className="min-w-0">
-              <div className="text-[9px] sm:text-[10px] font-medium text-slate-400 uppercase tracking-wider truncate">
+              <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">
                 {t('accounts.inactiveAccounts', '未激活')}
               </div>
-              <div className="text-sm sm:text-base font-bold text-slate-300 font-mono">{inactiveCount}</div>
+              <div className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 font-mono">{inactiveCount}</div>
             </div>
           </div>
 
           {/* Disabled */}
-          <div className="ui-card-sub p-2 sm:px-3.5 sm:py-2 flex flex-col sm:flex-row items-start sm:items-center space-y-1 sm:space-y-0 sm:space-x-3">
-            <div className="p-1.5 sm:p-2 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20">
+          <div className="ui-card-sub p-2.5 sm:px-4 sm:py-3 flex items-center space-x-3">
+            <div className="p-1.5 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 shrink-0">
               <AlertCircle className="w-3.5 h-3.5" />
             </div>
             <div className="min-w-0">
-              <div className="text-[9px] sm:text-[10px] font-medium text-rose-400 uppercase tracking-wider truncate">
+              <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">
                 {t('accounts.disabledAccounts')}
               </div>
-              <div className="text-sm sm:text-base font-bold text-rose-300 font-mono">{disabledCount}</div>
+              <div className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 font-mono">{disabledCount}</div>
             </div>
           </div>
         </div>
