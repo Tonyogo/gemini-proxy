@@ -1161,9 +1161,9 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                         : ''
                     }`}
                   >
-                    {/* Row 1: Checkbox + Index + Badges + Account Name & Status */}
+                    {/* Row 1: Checkbox + Index + Badges + Adaptive Account Name + Status */}
                     <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center space-x-1.5 min-w-0 flex-1">
+                      <div className="flex items-center space-x-1.5 min-w-0 flex-1 overflow-hidden">
                         <input
                           type="checkbox"
                           checked={isChecked}
@@ -1180,12 +1180,12 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                           </span>
                         )}
 
-                        {/* Simplified Account Name / Identifier */}
+                        {/* Adaptive Auto-Truncated Account Name / Identifier */}
                         {acc.name && (
-                          <div className="flex items-center space-x-1 min-w-0 truncate ml-0.5">
+                          <div className="flex items-center space-x-1 min-w-0 flex-1 overflow-hidden ml-0.5">
                             <span
                               title={acc.name}
-                              className={`text-[11px] font-mono truncate max-w-[110px] sm:max-w-[180px] ${
+                              className={`text-[11px] font-mono truncate min-w-0 flex-1 ${
                                 isManuallyDisabled
                                   ? 'text-slate-400 line-through decoration-slate-500'
                                   : 'text-slate-600 dark:text-slate-300'
@@ -1212,7 +1212,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                         )}
                       </div>
 
-                      <div className="flex items-center space-x-1.5 shrink-0">
+                      <div className="flex items-center space-x-1.5 shrink-0 ml-1">
                         {renderStatusBadge(acc)}
                         {hasContext && (
                           <span
