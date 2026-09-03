@@ -277,6 +277,7 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
       };
       if (adminKey) {
         headers['x-admin-key'] = adminKey;
+        headers['x-api-key'] = adminKey;
       }
 
       const response = await fetch('/v1/messages', {

@@ -226,6 +226,8 @@ export const en = {
   playground: {
     title: "Raw Request Debugger",
     subtitle: "Post custom payloads directly to local proxy endpoints",
+    systemKeyActive: "Admin Key Ready",
+    systemKeyDesc: "Using configured ADMIN_SECRET_KEY",
     geminiApiKey: "Gemini Key:",
     apiKeyPlaceholder: "AIzaSy...",
     endpoint: "Endpoint:",

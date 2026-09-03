@@ -228,6 +228,8 @@ export const zh: Translations = {
   playground: {
     title: "原始请求调试器",
     subtitle: "向本地代理端点发送自定义请求进行调试",
+    systemKeyActive: "系统密钥已就绪",
+    systemKeyDesc: "已使用系统配置的 ADMIN_SECRET_KEY",
     geminiApiKey: "Gemini 密钥:",
     apiKeyPlaceholder: "AIzaSy...",
     endpoint: "请求端点:",
