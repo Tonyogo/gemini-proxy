@@ -357,10 +357,10 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
   };
 
   return (
-    <div className="w-full flex-1 flex flex-col md:flex-row gap-4 items-stretch h-full min-h-[600px] md:h-[calc(100dvh-6.5rem)] overflow-hidden">
+    <div className="w-full flex-1 flex flex-col md:flex-row gap-4 items-stretch min-h-0 h-full md:h-[calc(100dvh-6.5rem)] overflow-hidden">
       {/* Left Column (Request Master List) */}
       {!sidebarCollapsed && (
-        <div className={`w-full md:w-80 lg:w-[360px] xl:w-[380px] shrink-0 ui-card p-3.5 flex flex-col h-[520px] md:h-full transition-all ${
+        <div className={`w-full md:w-80 lg:w-[360px] xl:w-[380px] shrink-0 ui-card p-3.5 flex flex-col min-h-0 h-full overflow-hidden transition-all ${
           mobileDetailOpen ? 'hidden md:flex' : 'flex'
         }`}>
           {/* Header Bar */}
@@ -654,7 +654,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                 <select
                   value={limit}
                   onChange={(e) => handleLimitChange(Number(e.target.value))}
-                  className="bg-slate-950 border border-slate-800 rounded px-1.5 py-0.5 text-slate-200 text-[10px] focus:outline-none focus:border-indigo-500"
+                  className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded px-1.5 py-0.5 text-[var(--text-primary)] text-[10px] focus:outline-none focus:border-indigo-500 cursor-pointer"
                 >
                   <option value={30}>30/page</option>
                   <option value={50}>50/page</option>
@@ -667,19 +667,19 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                 <button
                   disabled={page <= 1 || loading}
                   onClick={() => handlePageChange(page - 1)}
-                  className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-slate-200 border border-slate-700/60 transition-colors text-[10px]"
+                  className="px-2.5 py-1 rounded-lg ui-btn-secondary disabled:opacity-40 disabled:cursor-not-allowed text-[10px] transition-colors"
                 >
                   ‹ {t('logs.prevPage', 'Prev')}
                 </button>
 
-                <span className="text-slate-300 font-semibold text-[10px]">
+                <span className="text-[var(--text-primary)] font-semibold text-[10px]">
                   {page} / {Math.ceil(totalLogs / limit) || 1}
                 </span>
 
                 <button
                   disabled={page >= Math.ceil(totalLogs / limit) || loading}
                   onClick={() => handlePageChange(page + 1)}
-                  className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-slate-200 border border-slate-700/60 transition-colors text-[10px]"
+                  className="px-2.5 py-1 rounded-lg ui-btn-secondary disabled:opacity-40 disabled:cursor-not-allowed text-[10px] transition-colors"
                 >
                   {t('logs.nextPage', 'Next')} ›
                 </button>
@@ -690,7 +690,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
       )}
 
       {/* Right Column (Detail Inspector) */}
-      <div className={`flex-1 min-w-0 ui-card p-3 sm:p-4 flex flex-col h-full min-h-[500px] ${
+      <div className={`flex-1 min-w-0 ui-card p-3 sm:p-4 flex flex-col min-h-0 h-full overflow-hidden ${
         !mobileDetailOpen ? 'hidden md:flex' : 'flex'
       }`}>
         {/* Top Header & Navigation Bar */}
@@ -866,47 +866,47 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
               {selectedLog.filename && (
                 <div
                   onClick={handleCopyDetailFilename}
-                  className="flex items-center space-x-1.5 bg-slate-900 border border-slate-800 px-2 py-0.5 rounded-md text-slate-300 hover:border-slate-700 cursor-pointer transition-colors"
+                  className="flex items-center space-x-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700/80 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded-md text-slate-700 dark:text-slate-300 cursor-pointer transition-colors"
                   title={t('logs.copyFilename', 'Copy filename')}
                 >
-                  <span className="text-slate-500 font-semibold">{t('logs.fileLabel', 'File')}:</span>
+                  <span className="text-slate-400 dark:text-slate-500 font-semibold">{t('logs.fileLabel', 'File')}:</span>
                   <span>{selectedLog.filename}</span>
                   {copiedDetailFile ? (
-                    <Check className="w-3 h-3 text-emerald-400 shrink-0" />
+                    <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
                   ) : (
-                    <Copy className="w-3 h-3 text-slate-500 shrink-0" />
+                    <Copy className="w-3 h-3 text-slate-400 dark:text-slate-500 shrink-0" />
                   )}
                 </div>
               )}
 
               {selectedLog.path && (
-                <span className="bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-2 py-0.5 rounded-md font-medium">
+                <span className="bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20 px-2 py-0.5 rounded-md font-medium">
                   {selectedLog.path}
                 </span>
               )}
 
               {selectedLog.isStream && (
-                <span className="bg-blue-500/10 text-blue-300 border border-blue-500/20 px-2 py-0.5 rounded-md font-bold">
+                <span className="bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20 px-2 py-0.5 rounded-md font-bold">
                   STREAM
                 </span>
               )}
             </div>
 
-            <div className="flex items-center space-x-2 text-slate-400">
+            <div className="flex items-center space-x-2 text-slate-500 dark:text-slate-400">
               {selectedLog.model && (
-                <span className="bg-purple-500/10 text-purple-300 border border-purple-500/20 px-2 py-0.5 rounded-md font-medium">
+                <span className="bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 px-2 py-0.5 rounded-md font-medium">
                   Model: {selectedLog.model}
                 </span>
               )}
 
               {selectedLog.duration !== undefined && selectedLog.duration !== null && (
-                <span className="bg-slate-900 border border-slate-800 px-2 py-0.5 rounded-md text-slate-300">
+                <span className="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded-md text-slate-700 dark:text-slate-300">
                   Latency: {selectedLog.duration}ms
                 </span>
               )}
 
               {selectedLog.timestamp && (
-                <span className="bg-slate-900 border border-slate-800 px-2 py-0.5 rounded-md text-slate-400">
+                <span className="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded-md text-slate-600 dark:text-slate-400">
                   {new Date(selectedLog.timestamp).toLocaleString()}
                 </span>
               )}
