@@ -1018,10 +1018,9 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                             {hasContext && (
                               <span
                                 title={t('accounts.contextReadyTooltip', '浏览器上下文已连接就绪 (约占用 500~700MB 内存)')}
-                                className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/25 shadow-xs cursor-help select-none"
+                                className="inline-flex items-center justify-center p-1 rounded-full bg-amber-500/10 text-amber-500 dark:text-amber-400 border border-amber-500/25 shadow-xs cursor-help select-none hover:bg-amber-500/20 transition-colors"
                               >
-                                <Zap className="w-2.5 h-2.5 text-amber-500 dark:text-amber-400 fill-amber-500 dark:fill-amber-400" />
-                                <span>{t('accounts.contextReadyBadge', 'Context 就绪')}</span>
+                                <Zap className="w-3 h-3 fill-amber-500 dark:fill-amber-400" />
                               </span>
                             )}
                             {isCurrent && (
@@ -1153,8 +1152,8 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
               </table>
             </div>
 
-            {/* Mobile Native Card List View */}
-            <div className="block md:hidden divide-y divide-white/[0.06]">
+            {/* Mobile Native Card List View (Clean 2-Row Layout) */}
+            <div className="block md:hidden divide-y divide-[var(--border-subtle)]">
               {filteredAccounts.map((acc) => {
                 const isCurrent = acc.index === currentAuthIndex;
                 const isChecked = selectedIndices.includes(acc.index);
@@ -1167,17 +1166,17 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                 return (
                   <div
                     key={acc.index}
-                    className={`p-3.5 transition-colors space-y-3 ${
+                    className={`p-3 transition-colors space-y-2 ${
                       isCurrent
                         ? 'bg-emerald-50/50 dark:bg-emerald-950/30 border-l-2 border-emerald-500'
                         : isChecked
                         ? 'bg-indigo-50/60 dark:bg-indigo-950/25'
                         : isManuallyDisabled
                         ? 'opacity-60'
-                        : 'ui-card-sub'
+                        : ''
                     }`}
                   >
-                    {/* Card Header: Checkbox + Index + Badges */}
+                    {/* Row 1: Checkbox + Index + Badges & Status */}
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center space-x-2 min-w-0">
                         <input
@@ -1186,7 +1185,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                           onChange={() => handleSelectOne(acc.index)}
                           className="w-4 h-4 rounded bg-[var(--bg-surface)] border-[var(--border-subtle)] text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer shrink-0"
                         />
-                        <span className="font-mono text-xs font-bold text-slate-700 dark:text-slate-300">
+                        <span className="font-mono text-xs font-bold text-slate-800 dark:text-slate-200">
                           #{acc.index}
                         </span>
 
@@ -1197,182 +1196,144 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                         )}
                       </div>
 
-                      <div className="flex flex-wrap items-center justify-end gap-1.5 shrink-0">
+                      <div className="flex items-center space-x-1.5 shrink-0">
                         {renderStatusBadge(acc)}
                         {hasContext && (
                           <span
                             title={t('accounts.contextReadyTooltip', '浏览器上下文已连接就绪 (约占用 500~700MB 内存)')}
-                            className="inline-flex items-center space-x-1 px-1.5 py-0.5 rounded-full text-[9px] font-medium bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/25 shrink-0"
+                            className="inline-flex items-center justify-center p-1 rounded-full bg-amber-500/10 text-amber-500 dark:text-amber-400 border border-amber-500/25 shrink-0"
                           >
-                            <Zap className="w-2.5 h-2.5 text-amber-500 dark:text-amber-400 fill-amber-500 dark:fill-amber-400" />
-                            <span>{t('accounts.contextReadyBadge', 'Context 就绪')}</span>
+                            <Zap className="w-3 h-3 fill-amber-500 dark:fill-amber-400" />
                           </span>
                         )}
                       </div>
                     </div>
 
-                    {/* Card Body: Account Identifier & Canonical */}
-                    <div className="ui-card-sub p-2.5 space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span
-                          className={`text-xs font-mono font-medium truncate ${
-                            isManuallyDisabled
-                              ? 'text-slate-400 line-through decoration-slate-600'
-                              : 'text-slate-100'
-                          }`}
-                        >
-                          {acc.name || `Account #${acc.index}`}
-                        </span>
-
-                        {acc.name && (
-                          <button
-                            onClick={() => handleCopyAccountName(acc.index, acc.name)}
-                            className="p-1 rounded-lg text-slate-400 hover:text-white bg-white/[0.04] shrink-0 ml-2"
-                            title={t('accounts.copyAccountName', '复制账号邮箱/名称')}
-                          >
-                            {copiedKeyIndex === acc.index ? (
-                              <Check className="w-3.5 h-3.5 text-emerald-400" />
-                            ) : (
-                              <Copy className="w-3.5 h-3.5" />
-                            )}
-                          </button>
-                        )}
-                      </div>
-
-                      {acc.canonicalIndex !== null && acc.canonicalIndex !== undefined && (
-                        <div className="text-[10px] text-slate-500 font-mono">
-                          canonical #{acc.canonicalIndex}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Card Quota & In-Card Expandable Usage */}
-                    <div className="space-y-1.5">
+                    {/* Row 2: Today Usage (Left) + Quick Actions Group (Right) */}
+                    <div className="flex items-center justify-between gap-2 pt-0.5">
+                      {/* Usage Button */}
                       <button
                         type="button"
                         onClick={() => toggleMobileUsage(acc.index)}
-                        className="w-full px-3 py-2 rounded-xl text-xs font-mono ui-card-sub hover:bg-[var(--bg-surface-hover)] text-[var(--text-secondary)] border border-[var(--border-subtle)] flex items-center justify-between transition-colors"
+                        className="px-2 py-1 rounded-lg text-xs font-mono ui-card-sub hover:bg-[var(--bg-surface-hover)] text-[var(--text-secondary)] border border-[var(--border-subtle)] flex items-center space-x-1.5 transition-colors"
                       >
-                        <div className="flex items-center space-x-2">
-                          <Clock className="w-3.5 h-3.5 text-indigo-400" />
-                          <span className="text-[var(--text-secondary)]">{t('accounts.todayUsage')}:</span>
-                          <strong className="text-indigo-600 dark:text-indigo-300 font-bold">{totalUsage}</strong>
-                        </div>
-                        <div className="flex items-center space-x-1 text-[var(--text-secondary)] text-[11px]">
-                          <span>{breakdowns.length > 0 ? `${breakdowns.length} models` : 'Details'}</span>
-                          <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isUsageExpanded ? 'rotate-180 text-indigo-400' : ''}`} />
-                        </div>
+                        <Clock className="w-3 h-3 text-indigo-500 dark:text-indigo-400 shrink-0" />
+                        <span className="font-bold text-slate-800 dark:text-slate-200">{totalUsage}</span>
+                        <span className="text-[10px] text-slate-500 font-mono">reqs</span>
+                        {breakdowns.length > 0 && (
+                          <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform duration-200 ${isUsageExpanded ? 'rotate-180 text-indigo-400' : ''}`} />
+                        )}
                       </button>
 
-                      {/* Expandable Model Usage Breakdown */}
-                      {isUsageExpanded && (
-                        <div className="p-3 ui-card-sub rounded-xl space-y-2.5 animate-in fade-in duration-150">
-                          {breakdowns.length === 0 ? (
-                            <div className="text-[11px] text-slate-500 italic text-center py-1">
-                              {totalUsage === 0 ? 'No model requests today' : `Total requests: ${totalUsage}`}
-                            </div>
-                          ) : (
-                            breakdowns.map((item, idx) => {
-                              const ratio = item.limit ? Math.min(100, Math.round((item.count / item.limit) * 100)) : null;
-                              return (
-                                <div key={idx} className="space-y-1">
-                                  <div className="flex items-center justify-between text-xs font-mono">
-                                    <span className="text-slate-300 truncate max-w-[180px]" title={item.model}>
-                                      {item.model}
-                                    </span>
-                                    <span className="text-slate-400 font-semibold">
-                                      <strong className="text-slate-200">{item.count}</strong>
-                                      {item.limit !== undefined && <span className="text-slate-500 text-[10px]"> / {item.limit}</span>}
-                                    </span>
-                                  </div>
-                                  {ratio !== null && (
-                                    <div className="w-full bg-white/[0.04] rounded-full h-1.5 overflow-hidden">
-                                      <div
-                                        className={`h-full rounded-full transition-all ${
-                                          ratio >= 90 ? 'bg-rose-500' : ratio >= 70 ? 'bg-amber-500' : 'bg-indigo-500'
-                                        }`}
-                                        style={{ width: `${ratio}%` }}
-                                      />
-                                    </div>
-                                  )}
+                      {/* Action Buttons Group */}
+                      <div className="flex items-center space-x-1 shrink-0">
+                        {/* Set as Current */}
+                        <button
+                          onClick={() => handleSetCurrent(acc.index)}
+                          disabled={actionLoading || isCurrent || isManuallyDisabled}
+                          className={`p-1.5 rounded-lg border text-xs flex items-center justify-center transition-all ${
+                            isCurrent
+                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 cursor-default'
+                              : 'ui-btn-secondary text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 disabled:opacity-20'
+                          }`}
+                          title={isCurrent ? t('accounts.isCurrentAccount') : t('accounts.setAsCurrent')}
+                        >
+                          <ArrowRightLeft className="w-3.5 h-3.5" />
+                        </button>
+
+                        {/* Enable / Disable */}
+                        <button
+                          onClick={() => handleToggleDisabled(acc.index, isManuallyDisabled)}
+                          disabled={actionLoading}
+                          className={`p-1.5 rounded-lg border text-xs flex items-center justify-center transition-all ${
+                            isManuallyDisabled
+                              ? 'ui-btn-secondary text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 hover:border-emerald-500/30'
+                              : 'ui-btn-secondary text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 hover:border-rose-500/30'
+                          }`}
+                          title={isManuallyDisabled ? t('accounts.toggleEnable') : t('accounts.toggleDisable')}
+                        >
+                          <Power className="w-3.5 h-3.5" />
+                        </button>
+
+                        {/* Close Context */}
+                        <button
+                          onClick={() => setCloseContextConfirm({ index: acc.index, email: acc.name || '', isCurrent })}
+                          disabled={actionLoading || !acc.hasContext}
+                          className={`p-1.5 rounded-lg border text-xs flex items-center justify-center transition-all ${
+                            acc.hasContext
+                              ? 'ui-btn-secondary text-slate-500 hover:text-amber-600 dark:text-slate-400 dark:hover:text-amber-400 hover:border-amber-500/30'
+                              : 'ui-btn-secondary cursor-not-allowed opacity-30 text-slate-400'
+                          }`}
+                          title={acc.hasContext ? t('accounts.closeContext') : t('accounts.contextAlreadyClosed')}
+                        >
+                          <ZapOff className="w-3.5 h-3.5" />
+                        </button>
+
+                        {/* Download JSON */}
+                        <button
+                          onClick={() => handleDownloadSingle(acc.index)}
+                          disabled={actionLoading}
+                          className="p-1.5 ui-btn-secondary text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 rounded-lg text-xs"
+                          title={t('accounts.downloadCredential')}
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                        </button>
+
+                        {/* Delete */}
+                        <button
+                          onClick={() => {
+                            if (isCurrent) {
+                              setDeleteConfirm({ index: acc.index, email: acc.name || '', isCurrent: true });
+                            } else {
+                              setDeleteConfirm({ index: acc.index, email: acc.name || '', isCurrent: false });
+                            }
+                          }}
+                          disabled={actionLoading}
+                          className="p-1.5 ui-btn-secondary text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 hover:border-rose-500/30 rounded-lg text-xs"
+                          title={t('accounts.deleteAccount')}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Expandable Model Usage Breakdown when clicked */}
+                    {isUsageExpanded && (
+                      <div className="p-2.5 ui-card-sub rounded-xl space-y-2 animate-in fade-in duration-150 text-xs">
+                        {breakdowns.length === 0 ? (
+                          <div className="text-[11px] text-slate-500 italic text-center py-1">
+                            {totalUsage === 0 ? 'No model requests today' : `Total requests: ${totalUsage}`}
+                          </div>
+                        ) : (
+                          breakdowns.map((item, idx) => {
+                            const ratio = item.limit ? Math.min(100, Math.round((item.count / item.limit) * 100)) : null;
+                            return (
+                              <div key={idx} className="space-y-1">
+                                <div className="flex items-center justify-between text-xs font-mono">
+                                  <span className="text-slate-700 dark:text-slate-300 truncate max-w-[180px]" title={item.model}>
+                                    {item.model}
+                                  </span>
+                                  <span className="text-slate-500 dark:text-slate-400 font-semibold">
+                                    <strong className="text-slate-800 dark:text-slate-200">{item.count}</strong>
+                                    {item.limit !== undefined && <span className="text-slate-500 text-[10px]"> / {item.limit}</span>}
+                                  </span>
                                 </div>
-                              );
-                            })
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Card Actions Footer: Big Touch Targets */}
-                    <div className="flex items-center gap-2 pt-1 border-t border-white/[0.04]">
-                      {/* Set as Current */}
-                      <button
-                        onClick={() => handleSetCurrent(acc.index)}
-                        disabled={actionLoading || isCurrent || isManuallyDisabled}
-                        className={`flex-1 py-1.5 px-2 rounded-lg border text-xs font-semibold flex items-center justify-center space-x-1.5 transition-all active:scale-95 ${
-                          isCurrent
-                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
-                            : 'ui-btn-secondary text-slate-600 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400 disabled:opacity-30'
-                        }`}
-                      >
-                        <ArrowRightLeft className="w-3.5 h-3.5" />
-                        <span>{isCurrent ? t('accounts.isCurrentAccount', '当前账号') : t('accounts.setAsCurrent', '设为当前')}</span>
-                      </button>
-
-                      {/* Enable / Disable */}
-                      <button
-                        onClick={() => handleToggleDisabled(acc.index, isManuallyDisabled)}
-                        disabled={actionLoading}
-                        className={`py-1.5 px-2.5 rounded-lg border text-xs font-semibold flex items-center justify-center space-x-1 transition-all active:scale-95 ${
-                          isManuallyDisabled
-                            ? 'ui-btn-secondary text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10'
-                            : 'ui-btn-secondary text-slate-600 dark:text-slate-300 hover:text-rose-600 hover:border-rose-500/30'
-                        }`}
-                      >
-                        <Power className="w-3.5 h-3.5" />
-                        <span>{isManuallyDisabled ? t('accounts.toggleEnable', '启用') : t('accounts.toggleDisable', '禁用')}</span>
-                      </button>
-
-                      {/* Close Context (Mobile) */}
-                      <button
-                        onClick={() => setCloseContextConfirm({ index: acc.index, email: acc.name || '', isCurrent })}
-                        disabled={actionLoading || !acc.hasContext}
-                        className={`p-1.5 rounded-lg border text-xs flex items-center justify-center transition-all ${
-                          acc.hasContext
-                            ? 'ui-btn-secondary text-slate-500 hover:text-amber-600 dark:text-slate-400 dark:hover:text-amber-400 hover:border-amber-500/30'
-                            : 'ui-btn-secondary cursor-not-allowed opacity-30 text-slate-400'
-                        }`}
-                        title={acc.hasContext ? t('accounts.closeContext') : t('accounts.contextAlreadyClosed')}
-                      >
-                        <ZapOff className="w-3.5 h-3.5" />
-                      </button>
-
-                      {/* Download */}
-                      <button
-                        onClick={() => handleDownloadSingle(acc.index)}
-                        disabled={actionLoading}
-                        className="p-1.5 ui-btn-secondary text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 rounded-lg text-xs"
-                        title={t('accounts.downloadCredential')}
-                      >
-                        <Download className="w-3.5 h-3.5" />
-                      </button>
-
-                      {/* Delete */}
-                      <button
-                        onClick={() => {
-                          if (isCurrent) {
-                            setDeleteConfirm({ index: acc.index, email: acc.name || '', isCurrent: true });
-                          } else {
-                            setDeleteConfirm({ index: acc.index, email: acc.name || '', isCurrent: false });
-                          }
-                        }}
-                        disabled={actionLoading}
-                        className="p-1.5 ui-btn-secondary text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 hover:border-rose-500/30 rounded-lg text-xs"
-                        title={t('accounts.deleteAccount')}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+                                {ratio !== null && (
+                                  <div className="w-full bg-black/[0.04] dark:bg-white/[0.04] rounded-full h-1.5 overflow-hidden">
+                                    <div
+                                      className={`h-full rounded-full transition-all ${
+                                        ratio >= 90 ? 'bg-rose-500' : ratio >= 70 ? 'bg-amber-500' : 'bg-indigo-500'
+                                      }`}
+                                      style={{ width: `${ratio}%` }}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}
