@@ -242,7 +242,8 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
             y1={y}
             x2={svgWidth - paddingRight}
             y2={y}
-            stroke="rgba(255, 255, 255, 0.04)"
+            stroke="currentColor"
+            className="text-black/[0.06] dark:text-white/[0.06]"
             strokeDasharray="4 4"
             strokeWidth="1"
           />
@@ -461,7 +462,8 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                       y1={yMax}
                       x2={svgWidth - paddingRight}
                       y2={yMax}
-                      stroke="rgba(255, 255, 255, 0.08)"
+                      stroke="currentColor"
+                      className="text-black/[0.08] dark:text-white/[0.08]"
                       strokeWidth="1"
                     />
 
@@ -534,14 +536,14 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                   {/* Glassmorphic Hover Tooltip Overlay */}
                   {hoveredIndex !== null && timeSeries[hoveredIndex] && (
                     <div
-                      className="absolute z-20 backdrop-blur-xl bg-[#151824]/95 border border-white/[0.12] shadow-2xl rounded-xl p-3.5 text-xs pointer-events-none space-y-2 min-w-[190px]"
+                      className="absolute z-20 backdrop-blur-xl bg-[var(--bg-surface)]/95 border border-[var(--border-subtle)] shadow-2xl rounded-xl p-3.5 text-xs pointer-events-none space-y-2 min-w-[190px]"
                       style={{
                         left: `${((getX(hoveredIndex) - paddingLeft) / plottingWidth) * 85 + 8}%`,
                         top: '10%',
                         transform: hoveredIndex > N / 2 ? 'translateX(-105%)' : 'translateX(5%)',
                       }}
                     >
-                      <div className="font-semibold text-slate-200 font-mono border-b border-white/[0.08] pb-1.5 mb-1 flex items-center justify-between">
+                      <div className="font-semibold text-[var(--text-primary)] font-mono border-b border-[var(--border-subtle)] pb-1.5 mb-1 flex items-center justify-between">
                         <span>{timeSeries[hoveredIndex].time}</span>
                         <span className="text-[10px] text-slate-400">{timeSeries[hoveredIndex].total} reqs</span>
                       </div>
@@ -669,7 +671,8 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                       y1={yMax}
                       x2={svgWidth - paddingRight}
                       y2={yMax}
-                      stroke="rgba(255, 255, 255, 0.08)"
+                      stroke="currentColor"
+                      className="text-black/[0.08] dark:text-white/[0.08]"
                       strokeWidth="1"
                     />
 
@@ -679,58 +682,63 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                         allModels.map((model, idx) => {
                           const mPath = getModelLatencyPath(model);
                           if (!mPath) return null;
+                          const mColor = getModelColor(model, idx);
                           return (
                             <path
-                              key={model}
+                              key={`line-${model}`}
                               d={mPath}
                               fill="none"
-                              stroke={getModelColor(model, idx)}
-                              strokeWidth="2.5"
+                              stroke={mColor}
+                              strokeWidth="2"
                               strokeLinecap="round"
                               strokeLinejoin="round"
+                              className="transition-all duration-300"
                             />
                           );
                         })
                       ) : (
                         <path
-                          d={`M ${timeSeries.map((p, i) => `${getX(i)},${getYLatency(p.avgDurationMs)}`).join(' L ')}`}
+                          d={getOverallLatencyPath()}
                           fill="none"
                           stroke="#a855f7"
-                          strokeWidth="2.5"
+                          strokeWidth="2"
                           strokeLinecap="round"
                           strokeLinejoin="round"
                         />
                       )
                     ) : (
                       allModels.map((model, idx) => {
-                        const mPath = getModelPath(model);
+                        const mPath = getModelDistributionPath(model);
                         if (!mPath) return null;
+                        const mColor = getModelColor(model, idx);
                         return (
                           <path
-                            key={model}
+                            key={`area-${model}`}
                             d={mPath}
                             fill="none"
-                            stroke={getModelColor(model, idx)}
-                            strokeWidth="2.5"
+                            stroke={mColor}
+                            strokeWidth="2"
                             strokeLinecap="round"
                             strokeLinejoin="round"
+                            className="transition-all duration-300"
                           />
                         );
                       })
                     )}
 
-                    {/* Node points for each active model across all time points */}
+                    {/* Data Node Dots */}
                     {analyticsTab === 'latency' ? (
                       allModels.length > 0 ? (
                         allModels.map((model, mIdx) => {
                           const mColor = getModelColor(model, mIdx);
                           return timeSeries.map((p, i) => {
-                            const dur = p.modelDurations?.[model] || 0;
+                            const val = p.modelMetrics?.[model]?.avgDurationMs;
+                            if (val === undefined || val === null) return null;
                             return (
                               <circle
-                                key={`latency-${model}-${i}`}
+                                key={`dot-${model}-${i}`}
                                 cx={getX(i)}
-                                cy={getYLatency(dur)}
+                                cy={getYLatency(val)}
                                 r="2.5"
                                 fill={mColor}
                                 stroke="#0F1118"
@@ -826,14 +834,14 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                   {/* Glassmorphic Hover Tooltip Overlay */}
                   {hoveredIndex !== null && timeSeries[hoveredIndex] && (
                     <div
-                      className="absolute z-20 backdrop-blur-xl bg-[#151824]/95 border border-white/[0.12] shadow-2xl rounded-xl p-3.5 text-xs pointer-events-none space-y-2 min-w-[200px] max-w-[290px]"
+                      className="absolute z-20 backdrop-blur-xl bg-[var(--bg-surface)]/95 border border-[var(--border-subtle)] shadow-2xl rounded-xl p-3.5 text-xs pointer-events-none space-y-2 min-w-[200px] max-w-[290px]"
                       style={{
                         left: `${((getX(hoveredIndex) - paddingLeft) / plottingWidth) * 85 + 8}%`,
                         top: '10%',
                         transform: hoveredIndex > N / 2 ? 'translateX(-105%)' : 'translateX(5%)',
                       }}
                     >
-                      <div className="font-semibold text-slate-200 font-mono border-b border-white/[0.08] pb-1.5 mb-1 text-center">
+                      <div className="font-semibold text-[var(--text-primary)] font-mono border-b border-[var(--border-subtle)] pb-1.5 mb-1 text-center">
                         {timeSeries[hoveredIndex].time}
                       </div>
                       {timeSeries[hoveredIndex].total === 0 ? (

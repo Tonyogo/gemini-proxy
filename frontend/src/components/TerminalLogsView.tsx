@@ -190,13 +190,13 @@ export default function TerminalLogsView({
   };
 
   return (
-    <div className={`mx-auto flex flex-col bg-[#0A0C10] border border-white/[0.08] overflow-hidden shadow-2xl font-mono text-xs transition-all ${
+    <div className={`mx-auto flex flex-col bg-[var(--bg-canvas)] border border-[var(--border-subtle)] overflow-hidden shadow-2xl font-mono text-xs transition-all ${
       isFullscreen
         ? 'fixed inset-0 z-50 rounded-none h-screen w-screen'
         : 'w-full h-full md:max-w-7xl md:h-[calc(100vh-140px)] md:min-h-[500px] rounded-none md:rounded-2xl border-x-0 md:border-x border-t-0 md:border-t'
     }`}>
       {/* Top macOS / Linear style window toolbar */}
-      <div className="bg-[#0C0E14] border-b border-white/[0.08] px-2 sm:px-4 py-1.5 sm:py-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 select-none shrink-0">
+      <div className="bg-[var(--bg-surface-sub)] border-b border-[var(--border-subtle)] px-2 sm:px-4 py-1.5 sm:py-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 select-none shrink-0">
         {/* Left: Window Dots & Title & Connection Pill */}
         <div className="flex items-center justify-between sm:justify-start space-x-2 sm:space-x-3">
           <div className="flex items-center space-x-2">
@@ -302,7 +302,7 @@ export default function TerminalLogsView({
             <select
               value={levelFilter}
               onChange={(e) => setLevelFilter(e.target.value)}
-              className="bg-[#141622] border border-white/[0.08] text-slate-300 text-[11px] rounded-lg px-2 py-1 focus:outline-none focus:border-indigo-500/50 appearance-none cursor-pointer hover:border-white/[0.15] transition-all pr-5"
+              className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-[var(--text-secondary)] text-[11px] rounded-lg px-2 py-1 focus:outline-none focus:border-indigo-500/50 appearance-none cursor-pointer hover:border-[var(--border-hover)] transition-all pr-5"
             >
               <option value="ALL">ALL</option>
               <option value="INFO">INFO</option>
@@ -321,7 +321,7 @@ export default function TerminalLogsView({
             className={`p-1.5 rounded-lg border text-xs font-medium flex items-center justify-center transition-all select-none shrink-0 ${
               autoScroll
                 ? 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30 shadow-[0_0_8px_rgba(99,102,241,0.15)]'
-                : 'bg-[#141622] text-slate-400 border-white/[0.08] hover:text-slate-200'
+                : 'bg-black/[0.02] dark:bg-white/[0.04] text-slate-500 dark:text-slate-400 border-[var(--border-subtle)] hover:text-slate-900 dark:hover:text-slate-200'
             }`}
             title={t('terminal.autoScroll')}
           >
@@ -332,7 +332,7 @@ export default function TerminalLogsView({
           <button
             onClick={handleCopyAll}
             disabled={filteredLogs.length === 0}
-            className="p-1.5 bg-[#141622] hover:bg-white/[0.06] disabled:opacity-40 text-slate-300 border border-white/[0.08] rounded-lg text-xs font-medium flex items-center justify-center transition-all active:scale-95 shrink-0"
+            className="p-1.5 bg-black/[0.02] dark:bg-white/[0.04] hover:bg-black/[0.06] dark:hover:bg-white/[0.08] disabled:opacity-40 text-slate-600 dark:text-slate-300 border border-[var(--border-subtle)] rounded-lg text-xs font-medium flex items-center justify-center transition-all active:scale-95 shrink-0"
             title="Copy Logs"
           >
             {copied ? (
@@ -346,7 +346,7 @@ export default function TerminalLogsView({
           <button
             onClick={() => setLogs([])}
             disabled={logs.length === 0}
-            className="p-1.5 bg-[#141622] hover:bg-rose-500/20 hover:border-rose-500/30 text-slate-400 hover:text-rose-300 disabled:opacity-40 border border-white/[0.08] rounded-lg transition-all shrink-0"
+            className="p-1.5 bg-black/[0.02] dark:bg-white/[0.04] hover:bg-rose-500/20 hover:border-rose-500/30 text-slate-500 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-300 disabled:opacity-40 border border-[var(--border-subtle)] rounded-lg transition-all shrink-0"
             title={t('terminal.clear')}
           >
             <Trash2 className="w-3.5 h-3.5" />
@@ -355,7 +355,7 @@ export default function TerminalLogsView({
           {/* Fullscreen Toggle Button */}
           <button
             onClick={() => setIsFullscreen(!isFullscreen)}
-            className="p-1.5 bg-[#141622] hover:bg-indigo-500/20 text-slate-400 hover:text-indigo-300 border border-white/[0.08] rounded-lg transition-all shrink-0"
+            className="p-1.5 bg-black/[0.02] dark:bg-white/[0.04] hover:bg-indigo-500/20 text-slate-500 dark:text-slate-400 hover:text-indigo-500 dark:hover:text-indigo-300 border border-[var(--border-subtle)] rounded-lg transition-all shrink-0"
             title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
           >
             {isFullscreen ? (
@@ -370,7 +370,7 @@ export default function TerminalLogsView({
       {/* Terminal Viewport */}
       <div
         ref={containerRef}
-        className="flex-1 p-4 overflow-y-auto space-y-0.5 bg-[#07090E] selection:bg-indigo-500/30 selection:text-indigo-200 scrollbar-thin scrollbar-thumb-white/10"
+        className="flex-1 p-4 overflow-y-auto space-y-0.5 bg-[var(--bg-canvas)] selection:bg-indigo-500/30 selection:text-indigo-200"
       >
         {filteredLogs.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-slate-500 italic py-16 space-y-2 select-none">

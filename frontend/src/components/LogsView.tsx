@@ -28,9 +28,12 @@ import SseStreamPreview from './SseStreamPreview';
 import ConversationView from './ConversationView';
 import { defineGeminiProxyTheme } from '../utils/monacoTheme';
 import { useTranslation } from '../i18n/LanguageContext';
+import { useTheme } from '../theme/ThemeContext';
 
 export default function LogsView({ adminKey }: { adminKey: string }) {
   const { t } = useTranslation();
+  const { resolvedTheme } = useTheme();
+  const monacoTheme = resolvedTheme === 'dark' ? 'gemini-proxy-dark' : 'gemini-proxy-light';
   const detailCacheRef = useRef<Map<string, any>>(new Map());
   const [logs, setLogs] = useState<any[]>([]);
   const [tree, setTree] = useState<Record<string, Record<string, number>>>({});
@@ -934,7 +937,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                       <Editor
                         height="100%"
                         language="json"
-                        theme="gemini-proxy-dark"
+                        theme={monacoTheme}
                         beforeMount={defineGeminiProxyTheme}
                         value={JSON.stringify(selectedLog.client_req, null, 2)}
                         options={{
@@ -964,7 +967,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                       <Editor
                         height="100%"
                         language="json"
-                        theme="gemini-proxy-dark"
+                        theme={monacoTheme}
                         beforeMount={defineGeminiProxyTheme}
                         value={JSON.stringify(selectedLog.gem_req, null, 2)}
                         options={{
@@ -1009,7 +1012,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                       <Editor
                         height="100%"
                         language="json"
-                        theme="gemini-proxy-dark"
+                        theme={monacoTheme}
                         beforeMount={defineGeminiProxyTheme}
                         value={JSON.stringify(selectedLog.claude_res, null, 2)}
                         options={{
@@ -1050,7 +1053,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                       <Editor
                         height="100%"
                         language="json"
-                        theme="gemini-proxy-dark"
+                        theme={monacoTheme}
                         beforeMount={defineGeminiProxyTheme}
                         value={JSON.stringify(selectedLog.gem_res, null, 2)}
                         options={{

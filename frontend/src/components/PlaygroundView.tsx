@@ -30,6 +30,7 @@ import SseStreamPreview from './SseStreamPreview';
 import ConcurrentTestModal from './ConcurrentTestModal';
 import { defineGeminiProxyTheme } from '../utils/monacoTheme';
 import { useTranslation } from '../i18n/LanguageContext';
+import { useTheme } from '../theme/ThemeContext';
 
 type EndpointOption = 'messages' | 'count_tokens' | 'custom';
 type ViewMode = 'preview' | 'raw';
@@ -122,6 +123,8 @@ const DEFAULT_PRESETS: Record<EndpointOption, any> = {
 
 export default function PlaygroundView() {
   const { t } = useTranslation();
+  const { resolvedTheme } = useTheme();
+  const monacoTheme = resolvedTheme === 'dark' ? 'gemini-proxy-dark' : 'gemini-proxy-light';
   const [apiKey, setApiKey] = useState(localStorage.getItem('geminiApiKey') || '');
   const [endpointOption, setEndpointOption] = useState<EndpointOption>('messages');
   const [customMethod, setCustomMethod] = useState<string>('POST');
@@ -742,11 +745,11 @@ export default function PlaygroundView() {
             </div>
           </div>
 
-          <div className="flex-1 rounded-xl overflow-hidden border border-white/[0.06] bg-[#020617]">
+          <div className="flex-1 rounded-xl overflow-hidden border border-[var(--border-subtle)] bg-[var(--bg-surface-sub)]">
             <Editor
               height="100%"
               language="json"
-              theme="gemini-proxy-dark"
+              theme={monacoTheme}
               beforeMount={defineGeminiProxyTheme}
               value={requestBody}
               onChange={(val) => setRequestBody(val || '')}
@@ -893,7 +896,7 @@ export default function PlaygroundView() {
 
                   {/* Main Text Content */}
                   {parsedMessageView.text ? (
-                    <div className="bg-[#0B0D14] border border-white/[0.06] rounded-xl p-4 text-slate-100 font-sans text-xs sm:text-sm leading-relaxed whitespace-pre-wrap shadow-inner selection:bg-indigo-500 selection:text-white">
+                    <div className="bg-[var(--bg-surface-sub)] border border-[var(--border-subtle)] rounded-xl p-4 text-[var(--text-primary)] font-sans text-xs sm:text-sm leading-relaxed whitespace-pre-wrap shadow-inner selection:bg-indigo-500 selection:text-white">
                       {parsedMessageView.text}
                     </div>
                   ) : responseJson ? (
@@ -908,11 +911,12 @@ export default function PlaygroundView() {
                 </div>
               )
             ) : (
-              <Editor
-                height="100%"
-                language={responseRaw.startsWith('{') ? 'json' : 'plaintext'}
-                theme="gemini-proxy-dark"
-                beforeMount={defineGeminiProxyTheme}
+              <div className="flex-1 rounded-xl overflow-hidden border border-[var(--border-subtle)] bg-[var(--bg-surface-sub)]">
+                <Editor
+                  height="100%"
+                  language={responseRaw.startsWith('{') ? 'json' : 'plaintext'}
+                  theme={monacoTheme}
+                  beforeMount={defineGeminiProxyTheme}
                 value={responseRaw}
                 options={{
                   readOnly: true,
@@ -925,7 +929,8 @@ export default function PlaygroundView() {
                   padding: { top: 10, bottom: 10 }
                 }}
               />
-            )}
+            </div>
+          )}
           </div>
         </div>
       </div>

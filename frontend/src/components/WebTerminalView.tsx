@@ -16,10 +16,59 @@ import {
   FileText
 } from 'lucide-react';
 import { useTranslation } from '../i18n/LanguageContext';
+import { useTheme } from '../theme/ThemeContext';
 import { TerminalAccessoryBar } from './terminal/TerminalAccessoryBar';
 import { TerminalSnippetsDrawer } from './terminal/TerminalSnippetsDrawer';
 import { isSyntheticTerminalReport } from '../utils/terminalFilter';
 import { encodeModifierKey } from '../utils/terminalKeyEncoder';
+
+const DARK_TERMINAL_THEME = {
+  background: '#090A0F',
+  foreground: '#F1F5F9',
+  cursor: '#818CF8',
+  cursorAccent: '#090A0F',
+  selectionBackground: 'rgba(99, 102, 241, 0.4)',
+  black: '#090A0F',
+  red: '#F43F5E',
+  green: '#10B981',
+  yellow: '#F59E0B',
+  blue: '#6366F1',
+  magenta: '#D946EF',
+  cyan: '#06B6D4',
+  white: '#F8FAFC',
+  brightBlack: '#475569',
+  brightRed: '#FB7185',
+  brightGreen: '#34D399',
+  brightYellow: '#FBBF24',
+  brightBlue: '#818CF8',
+  brightMagenta: '#E879F9',
+  brightCyan: '#22D3EE',
+  brightWhite: '#FFFFFF',
+};
+
+const LIGHT_TERMINAL_THEME = {
+  background: '#FFFFFF',
+  foreground: '#0F172A',
+  cursor: '#4F46E5',
+  cursorAccent: '#FFFFFF',
+  selectionBackground: 'rgba(79, 70, 229, 0.2)',
+  black: '#0F172A',
+  red: '#E11D48',
+  green: '#059669',
+  yellow: '#D97706',
+  blue: '#2563EB',
+  magenta: '#9333EA',
+  cyan: '#0891B2',
+  white: '#F1F5F9',
+  brightBlack: '#64748B',
+  brightRed: '#F43F5E',
+  brightGreen: '#10B981',
+  brightYellow: '#F59E0B',
+  brightBlue: '#4F46E5',
+  brightMagenta: '#A855F7',
+  brightCyan: '#06B6D4',
+  brightWhite: '#0F172A',
+};
 
 interface WebTerminalViewProps {
   adminKey: string;
@@ -39,6 +88,7 @@ export default function WebTerminalView({
   onSubTabChange,
 }: WebTerminalViewProps) {
   const { t } = useTranslation();
+  const { resolvedTheme } = useTheme();
   const terminalContainerRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<Terminal | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
@@ -258,29 +308,7 @@ export default function WebTerminalView({
       scrollback: 5000,
       macOptionIsMeta: true,
       altClickMovesCursor: true,
-      theme: {
-        background: '#090A0F',
-        foreground: '#F1F5F9',
-        cursor: '#818CF8',
-        cursorAccent: '#090A0F',
-        selectionBackground: 'rgba(99, 102, 241, 0.4)',
-        black: '#090A0F',
-        red: '#F43F5E',
-        green: '#10B981',
-        yellow: '#F59E0B',
-        blue: '#6366F1',
-        magenta: '#D946EF',
-        cyan: '#06B6D4',
-        white: '#F8FAFC',
-        brightBlack: '#475569',
-        brightRed: '#FB7185',
-        brightGreen: '#34D399',
-        brightYellow: '#FBBF24',
-        brightBlue: '#818CF8',
-        brightMagenta: '#E879F9',
-        brightCyan: '#22D3EE',
-        brightWhite: '#FFFFFF',
-      },
+      theme: resolvedTheme === 'dark' ? DARK_TERMINAL_THEME : LIGHT_TERMINAL_THEME,
       allowProposedApi: true,
     });
 
@@ -567,6 +595,13 @@ export default function WebTerminalView({
     }
   }, [fontSize, sendResize]);
 
+  // Dynamically update terminal palette when resolvedTheme changes
+  useEffect(() => {
+    if (xtermRef.current) {
+      xtermRef.current.options.theme = resolvedTheme === 'dark' ? DARK_TERMINAL_THEME : LIGHT_TERMINAL_THEME;
+    }
+  }, [resolvedTheme]);
+
   const handleSendInput = (data: string) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(data);
@@ -623,14 +658,14 @@ export default function WebTerminalView({
   return (
     <div
       style={isMobile && standalone ? viewportStyle : undefined}
-      className={`mx-auto flex flex-col bg-[#07090E] border border-white/[0.08] overflow-hidden shadow-2xl font-mono text-xs transition-all ${
+      className={`mx-auto flex flex-col bg-[var(--bg-canvas)] border border-[var(--border-subtle)] overflow-hidden shadow-2xl font-mono text-xs transition-all ${
         standalone
           ? 'fixed inset-0 z-50 rounded-none h-screen w-screen overflow-hidden overscroll-none border-none'
           : 'w-full h-full md:max-w-7xl md:h-[calc(100vh-140px)] md:min-h-[500px] rounded-none md:rounded-2xl border-x-0 md:border-x border-t-0 md:border-t'
       }`}
     >
       {/* Top Window Bar */}
-      <div className="bg-[#0C0E14] border-b border-white/[0.08] px-2 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between select-none shrink-0 sticky top-0 z-10">
+      <div className="bg-[var(--bg-surface-sub)] border-b border-[var(--border-subtle)] px-2 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between select-none shrink-0 sticky top-0 z-10">
         <div className="flex items-center space-x-1.5 sm:space-x-2 min-w-0">
           {/* Back to Console (Standalone Mode) */}
           {standalone && onExitStandalone && (
@@ -784,7 +819,7 @@ export default function WebTerminalView({
       {/* xterm.js Canvas Container */}
       <div
         onClick={() => xtermRef.current?.focus()}
-        className="flex-1 p-2 bg-[#090A0F] overflow-hidden min-h-0 relative cursor-text"
+        className="flex-1 p-2 bg-[var(--bg-canvas)] overflow-hidden min-h-0 relative cursor-text"
       >
         {/* Floating Disconnect & Auto-Reconnect Toast */}
         {!isConnected && !isConnecting && reconnectCountdown > 0 && (

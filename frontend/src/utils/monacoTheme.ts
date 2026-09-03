@@ -16,4 +16,22 @@ export const defineGeminiProxyTheme = (monaco: any) => {
       'editorLineNumber.activeForeground': '#94a3b8'                        // Slate 400
     }
   });
+
+  monaco.editor.defineTheme('gemini-proxy-light', {
+    base: 'vs',
+    inherit: true,
+    rules: [
+      { token: 'string.key.json', foreground: 'b45309', fontStyle: 'bold' }, // Amber 700
+      { token: 'string.value.json', foreground: '059669' },                // Emerald 600
+      { token: 'number', foreground: '2563eb' },                           // Blue 600
+      { token: 'keyword.json', foreground: '7c3aed' },                     // Purple 600
+      { token: 'null', foreground: '94a3b8', fontStyle: 'italic' }         // Slate 400
+    ],
+    colors: {
+      'editor.background': '#FFFFFF',
+      'editor.lineHighlightBackground': '#F1F5F9',
+      'editorLineNumber.foreground': '#94A3B8',
+      'editorLineNumber.activeForeground': '#334155'
+    }
+  });
 };
