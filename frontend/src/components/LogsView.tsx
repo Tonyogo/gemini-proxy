@@ -921,7 +921,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
             <span>{t('logs.loadingDetail')}</span>
           </div>
         ) : selectedLog ? (
-          <div className="flex-1 overflow-y-auto space-y-4 pr-1 flex flex-col min-h-0">
+          <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
             {activeTab === 'payload' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 min-h-0 h-full overflow-hidden">
                 {/* Claude Client Request */}
@@ -1003,7 +1003,9 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                   </div>
                   {viewMode === 'preview' ? (
                     isStreamPayload(selectedLog.claude_res) ? (
-                      <SseStreamPreview streamData={selectedLog.claude_res} />
+                      <div className="flex-1 min-h-0 overflow-y-auto pr-1">
+                        <SseStreamPreview streamData={selectedLog.claude_res} />
+                      </div>
                     ) : (
                       <JsonTreeView data={selectedLog.claude_res} />
                     )
@@ -1044,7 +1046,9 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                   </div>
                   {viewMode === 'preview' ? (
                     isStreamPayload(selectedLog.gem_res) ? (
-                      <SseStreamPreview streamData={selectedLog.gem_res} />
+                      <div className="flex-1 min-h-0 overflow-y-auto pr-1">
+                        <SseStreamPreview streamData={selectedLog.gem_res} />
+                      </div>
                     ) : (
                       <JsonTreeView data={selectedLog.gem_res} />
                     )
@@ -1073,7 +1077,9 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
             )}
 
             {activeTab === 'chat' && (
-              <ConversationView log={selectedLog} />
+              <div className="flex-1 min-h-0 overflow-y-auto pr-1">
+                <ConversationView log={selectedLog} />
+              </div>
             )}
           </div>
         ) : (
