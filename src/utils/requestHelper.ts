@@ -14,6 +14,9 @@ export function extractClientKey(req: Request): string | null {
   if (req.headers.authorization && req.headers.authorization.startsWith("Bearer ")) {
     return req.headers.authorization.substring(7).trim();
   }
+  if (req.headers["x-admin-key"]) {
+    return req.headers["x-admin-key"] as string;
+  }
   if (req.query && req.query.key) {
     return req.query.key as string;
   }
@@ -73,11 +76,17 @@ export function generateTransactionId(): string {
  * Builds standard HTTP headers for proxying requests to Gemini upstream.
  */
 export function buildUpstreamHeaders(apiKey: string, customHeaders?: Record<string, string>): Record<string, string> {
-  return {
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     'x-goog-api-key': apiKey,
     ...customHeaders
   };
+
+  if (config.adminSecretKey && apiKey === config.adminSecretKey && !headers['Authorization']) {
+    headers['Authorization'] = `Bearer ${apiKey}`;
+  }
+
+  return headers;
 }
 
 /**

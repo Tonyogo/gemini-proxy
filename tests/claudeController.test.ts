@@ -65,6 +65,19 @@ describe('POST /v1/messages (Authentication / Headers)', () => {
     expect(res.body.content[0].text).toEqual('Mock response from Gemini!');
   });
 
+  it('authenticates successfully via x-admin-key header', async () => {
+    const res = await request(app)
+      .post('/v1/messages')
+      .set('x-admin-key', 'admin-proxy-key')
+      .send({
+        model: 'gemini-3.5-flash',
+        messages: [{ role: 'user', content: 'Hello' }]
+      });
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.body.content[0].text).toEqual('Mock response from Gemini!');
+  });
+
   it('denies access if no API key is provided', async () => {
     const resFail = await request(app)
       .post('/v1/messages')
@@ -115,6 +128,14 @@ describe('extractClientKey helper', () => {
     expect(extractClientKey(mockReq)).toEqual('test-key-3');
   });
 
+  it('extracts key from x-admin-key header', () => {
+    const mockReq = {
+      headers: { 'x-admin-key': 'test-admin-key' },
+      query: {}
+    } as any;
+    expect(extractClientKey(mockReq)).toEqual('test-admin-key');
+  });
+
   it('extracts key from query parameter', () => {
     const mockReq = {
       headers: {},
@@ -152,6 +173,18 @@ describe('Security and Request Helpers', () => {
         'Content-Type': 'application/json',
         'x-goog-api-key': 'my-secret-key'
       });
+    });
+
+    it('injects Bearer Authorization header when apiKey matches config.adminSecretKey', () => {
+      const originalKey = config.adminSecretKey;
+      config.adminSecretKey = 'admin-secret-123';
+      try {
+        const headers = buildUpstreamHeaders('admin-secret-123');
+        expect(headers['Authorization']).toEqual('Bearer admin-secret-123');
+        expect(headers['x-goog-api-key']).toEqual('admin-secret-123');
+      } finally {
+        config.adminSecretKey = originalKey;
+      }
     });
 
     it('merges custom headers', () => {
