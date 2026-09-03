@@ -29,4 +29,26 @@ describe('LogsView & Preview Modes Theme Cleanliness Test', () => {
     expect(toolCode).not.toContain('bg-slate-950/80');
     expect(toolCode).toContain('--code-bg');
   });
+
+  it('verifies LogsView has viewport-bounded classes without min-h-600px or h-520px', () => {
+    const code = read('LogsView.tsx');
+    expect(code).not.toContain('min-h-[600px]');
+    expect(code).not.toContain('h-[520px]');
+    expect(code).toContain('md:h-[calc(100dvh-6.5rem)]');
+  });
+
+  it('verifies LogsView does not have hardcoded dark boxes in metadata and pagination', () => {
+    const code = read('LogsView.tsx');
+    expect(code).not.toContain('bg-slate-900 border border-slate-800');
+    expect(code).not.toContain('bg-slate-950 border border-slate-800');
+  });
+
+  it('verifies chat components do not have hardcoded black codeblocks or tables in light mode', () => {
+    const mdCode = read('chat/MarkdownContent.tsx');
+    expect(mdCode).not.toContain('border border-slate-800 bg-slate-950');
+    expect(mdCode).toContain('--code-bg');
+
+    const thinkingCode = read('chat/ThinkingBlock.tsx');
+    expect(thinkingCode).not.toContain('bg-slate-950/60 border-t border-amber-500/20 text-slate-300');
+  });
 });
