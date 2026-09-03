@@ -11,7 +11,9 @@ import {
   Clock,
   Sparkles,
   Maximize2,
-  Minimize2
+  Minimize2,
+  TerminalSquare,
+  FileText
 } from 'lucide-react';
 import { useTranslation } from '../i18n/LanguageContext';
 
@@ -23,7 +25,17 @@ interface LogEntry {
   [key: string]: any;
 }
 
-export default function TerminalLogsView({ adminKey }: { adminKey: string }) {
+export interface TerminalLogsViewProps {
+  adminKey: string;
+  subTab?: 'interactive' | 'logs';
+  onSubTabChange?: (tab: 'interactive' | 'logs') => void;
+}
+
+export default function TerminalLogsView({
+  adminKey,
+  subTab,
+  onSubTabChange
+}: TerminalLogsViewProps) {
   const { t } = useTranslation();
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [levelFilter, setLevelFilter] = useState<string>('ALL');
@@ -184,23 +196,56 @@ export default function TerminalLogsView({ adminKey }: { adminKey: string }) {
         : 'w-full h-full md:max-w-7xl md:h-[calc(100vh-140px)] md:min-h-[500px] rounded-none md:rounded-2xl border-x-0 md:border-x border-t-0 md:border-t'
     }`}>
       {/* Top macOS / Linear style window toolbar */}
-      <div className="bg-[#0F1118] border-b border-white/[0.08] px-3 sm:px-4 py-2 sm:py-2.5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 select-none">
+      <div className="bg-[#0C0E14] border-b border-white/[0.08] px-2 sm:px-4 py-1.5 sm:py-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 select-none shrink-0">
         {/* Left: Window Dots & Title & Connection Pill */}
         <div className="flex items-center justify-between sm:justify-start space-x-2 sm:space-x-3">
           <div className="flex items-center space-x-2">
             {/* macOS Action Dots */}
-            <div className="flex items-center space-x-1.5 mr-1">
-              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#EF4444]/90 border border-[#DC2626]/60 shadow-[0_0_6px_rgba(239,68,68,0.3)]" />
-              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#F59E0B]/90 border border-[#D97706]/60 shadow-[0_0_6px_rgba(245,158,11,0.3)]" />
-              <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#10B981]/90 border border-[#059669]/60 shadow-[0_0_6px_rgba(16,185,129,0.3)]" />
+            <div className="flex items-center space-x-1.5 mr-0.5 sm:mr-1">
+              <div className="w-2.5 h-2.5 rounded-full bg-[#EF4444]/90 border border-[#DC2626]/60 shadow-[0_0_6px_rgba(239,68,68,0.3)]" />
+              <div className="w-2.5 h-2.5 rounded-full bg-[#F59E0B]/90 border border-[#D97706]/60 shadow-[0_0_6px_rgba(245,158,11,0.3)]" />
+              <div
+                onClick={() => setIsFullscreen(!isFullscreen)}
+                className="w-2.5 h-2.5 rounded-full bg-[#10B981]/90 border border-[#059669]/60 shadow-[0_0_6px_rgba(16,185,129,0.3)] cursor-pointer hover:opacity-80"
+                title={isFullscreen ? t('terminal.exitFullscreen', '退出全屏') : t('terminal.fullscreen', '全屏')}
+              />
             </div>
 
-            <div className="flex items-center space-x-1.5 text-slate-200">
-              <TerminalIcon className="w-3.5 h-3.5 text-indigo-400" />
-              <span className="font-semibold text-slate-200 tracking-wide text-xs">
-                {t('terminal.title')}
-              </span>
-            </div>
+            {onSubTabChange ? (
+              <div className="ui-tab-container p-0.5 text-[11px] font-medium shrink-0">
+                <button
+                  type="button"
+                  onClick={() => onSubTabChange('interactive')}
+                  className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-lg transition-all ${
+                    subTab === 'interactive'
+                      ? 'ui-tab-pill-active font-semibold shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <TerminalSquare className="w-3.5 h-3.5" />
+                  <span>{t('terminal.interactiveTab')}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onSubTabChange('logs')}
+                  className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-lg transition-all ${
+                    (subTab || 'logs') === 'logs'
+                      ? 'ui-tab-pill-active font-semibold shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>{t('terminal.logsTab')}</span>
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-1.5 text-slate-200">
+                <TerminalSquare className="w-3.5 h-3.5 text-indigo-400" />
+                <span className="font-semibold text-slate-200 tracking-wide text-xs">
+                  {t('terminal.title')}
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center space-x-2">
