@@ -515,218 +515,216 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-3.5rem)] bg-[#090A0F] text-slate-200 overflow-hidden font-sans">
-      {/* Top Bar Toolbar */}
-      <div className="flex-shrink-0 bg-[#0C0E14]/90 border-b border-white/[0.08] px-4 py-3 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
-          {/* Left Controls: Language Selectors & Swap */}
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Source Language Select */}
-            <div className="relative">
-              <select
-                value={sourceLang}
-                onChange={e => setSourceLang(e.target.value)}
-                className="appearance-none bg-[#141824] border border-white/10 text-xs font-medium text-slate-200 rounded-lg pl-3 pr-8 py-2 focus:outline-none focus:border-cyan-500/50 hover:border-white/20 transition cursor-pointer"
-              >
-                {SUPPORTED_LANGUAGES.map(langOpt => (
-                  <option key={langOpt.code} value={langOpt.code} className="bg-[#141824] text-slate-200">
-                    {isZh ? langOpt.name : langOpt.enName}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
-
-            {/* Swap Button */}
-            <button
-              onClick={handleSwapLanguages}
-              title={t('translate.swapLanguage')}
-              className="p-2 bg-[#141824] border border-white/10 hover:border-white/20 hover:bg-white/5 rounded-lg text-slate-300 transition hover:scale-105 active:scale-95"
+    <div className="w-full flex-1 space-y-4 flex flex-col font-sans h-full min-h-[600px] md:h-[calc(100dvh-6.5rem)] overflow-hidden">
+      {/* Top Controls Header Workbench */}
+      <div className="ui-card p-3.5 flex flex-wrap items-center justify-between gap-3 relative z-30 shrink-0">
+        {/* Left Controls: Language Selectors & Swap */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Source Language Select */}
+          <div className="relative">
+            <select
+              value={sourceLang}
+              onChange={e => setSourceLang(e.target.value)}
+              className="appearance-none ui-input pr-8 py-2 cursor-pointer font-sans"
             >
-              <ArrowLeftRight className="w-3.5 h-3.5" />
+              {SUPPORTED_LANGUAGES.map(langOpt => (
+                <option key={langOpt.code} value={langOpt.code} className="bg-[#10121A] text-slate-200">
+                  {isZh ? langOpt.name : langOpt.enName}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
+
+          {/* Swap Button */}
+          <button
+            onClick={handleSwapLanguages}
+            title={t('translate.swapLanguage')}
+            className="p-2 ui-btn-secondary flex items-center justify-center"
+          >
+            <ArrowLeftRight className="w-3.5 h-3.5" />
+          </button>
+
+          {/* Target Language Select */}
+          <div className="relative">
+            <select
+              value={targetLang}
+              onChange={e => setTargetLang(e.target.value)}
+              className="appearance-none ui-input pr-8 py-2 cursor-pointer font-sans"
+            >
+              {SUPPORTED_LANGUAGES.filter(l => l.code !== 'auto').map(langOpt => (
+                <option key={langOpt.code} value={langOpt.code} className="bg-[#10121A] text-slate-200">
+                  {isZh ? langOpt.name : langOpt.enName}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
+
+          <div className="h-4 w-[1px] bg-white/10 mx-1 hidden sm:block" />
+
+          {/* Style Preset Selector Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setShowStyleDropdown(!showStyleDropdown)}
+              className="flex items-center gap-1.5 ui-btn-secondary px-3 py-2"
+            >
+              <span className="text-indigo-400">{renderStyleIcon(currentStyleObj.iconName)}</span>
+              <span>{isZh ? currentStyleObj.name : currentStyleObj.enName}</span>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
             </button>
 
-            {/* Target Language Select */}
-            <div className="relative">
-              <select
-                value={targetLang}
-                onChange={e => setTargetLang(e.target.value)}
-                className="appearance-none bg-[#141824] border border-white/10 text-xs font-medium text-slate-200 rounded-lg pl-3 pr-8 py-2 focus:outline-none focus:border-cyan-500/50 hover:border-white/20 transition cursor-pointer"
+            {showStyleDropdown && (
+              <div
+                className="absolute left-0 mt-1.5 w-64 ui-card p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100"
+                onClick={() => setShowStyleDropdown(false)}
               >
-                {SUPPORTED_LANGUAGES.filter(l => l.code !== 'auto').map(langOpt => (
-                  <option key={langOpt.code} value={langOpt.code} className="bg-[#141824] text-slate-200">
-                    {isZh ? langOpt.name : langOpt.enName}
-                  </option>
+                {STYLE_PRESETS.map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => setStyle(p.id)}
+                    className={`w-full text-left px-3 py-2 rounded-xl text-xs flex items-start gap-2.5 transition ${
+                      style === p.id
+                        ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30'
+                        : 'text-slate-300 hover:bg-white/5 border border-transparent'
+                    }`}
+                  >
+                    <span className="mt-0.5 text-indigo-400">{renderStyleIcon(p.iconName)}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-medium">{isZh ? p.name : p.enName}</div>
+                      <div className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">
+                        {isZh ? p.desc : p.enDesc}
+                      </div>
+                    </div>
+                  </button>
                 ))}
-              </select>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
+              </div>
+            )}
+          </div>
+        </div>
 
-            <div className="h-4 w-[1px] bg-white/10 mx-1 hidden sm:block" />
+        {/* Right Controls: Mode Toggle, Model Selector & Translate Action */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Mode Switcher: Single vs Compare */}
+          <div className="ui-tab-container text-xs">
+            <button
+              onClick={() => setCompareMode(false)}
+              className={`ui-tab-pill ${
+                !compareMode
+                  ? 'ui-tab-pill-active font-semibold'
+                  : ''
+              }`}
+            >
+              {t('translate.singleModel')}
+            </button>
+            <button
+              onClick={() => setCompareMode(true)}
+              className={`ui-tab-pill flex items-center gap-1 ${
+                compareMode
+                  ? 'ui-tab-pill-active font-semibold'
+                  : ''
+              }`}
+            >
+              <Layers className="w-3 h-3" />
+              {t('translate.compareModels')}
+            </button>
+          </div>
 
-            {/* Style Preset Selector Dropdown */}
+          {/* Model Selector based on mode */}
+          {!compareMode ? (
+            /* Single Model Dropdown */
             <div className="relative">
               <button
-                onClick={() => setShowStyleDropdown(!showStyleDropdown)}
-                className="flex items-center gap-1.5 bg-[#141824] border border-white/10 text-xs font-medium text-slate-200 rounded-lg px-3 py-2 hover:border-white/20 transition"
+                onClick={() => setShowModelDropdown(!showModelDropdown)}
+                className="flex items-center gap-1.5 ui-btn-secondary px-3 py-2 font-mono"
               >
-                <span className="text-cyan-400">{renderStyleIcon(currentStyleObj.iconName)}</span>
-                <span>{isZh ? currentStyleObj.name : currentStyleObj.enName}</span>
+                <span className="text-purple-400">⚡</span>
+                <span>{selectedSingleModel}</span>
                 <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
               </button>
 
-              {showStyleDropdown && (
+              {showModelDropdown && (
                 <div
-                  className="absolute left-0 mt-1.5 w-64 bg-[#121520] border border-white/10 rounded-xl shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100"
-                  onClick={() => setShowStyleDropdown(false)}
+                  className="absolute right-0 mt-1.5 w-56 ui-card p-1.5 z-50 max-h-60 overflow-y-auto"
+                  onClick={() => setShowModelDropdown(false)}
                 >
-                  {STYLE_PRESETS.map(p => (
+                  {availableModels.map(m => (
                     <button
-                      key={p.id}
-                      onClick={() => setStyle(p.id)}
-                      className={`w-full text-left px-3 py-2 rounded-lg text-xs flex items-start gap-2.5 transition ${
-                        style === p.id
-                          ? 'bg-cyan-500/10 text-cyan-300 border border-cyan-500/20'
+                      key={m}
+                      onClick={() => handleSelectSingleModel(m)}
+                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-mono transition flex items-center justify-between ${
+                        selectedSingleModel === m
+                          ? 'bg-purple-500/15 text-purple-300 border border-purple-500/30'
                           : 'text-slate-300 hover:bg-white/5 border border-transparent'
                       }`}
                     >
-                      <span className="mt-0.5 text-cyan-400">{renderStyleIcon(p.iconName)}</span>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium">{isZh ? p.name : p.enName}</div>
-                        <div className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">
-                          {isZh ? p.desc : p.enDesc}
-                        </div>
-                      </div>
+                      <span className="truncate">{m}</span>
+                      {selectedSingleModel === m && <Check className="w-3.5 h-3.5 text-purple-400" />}
                     </button>
                   ))}
                 </div>
               )}
             </div>
-          </div>
-
-          {/* Right Controls: Mode Toggle, Model Selector & Translate Action */}
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Mode Switcher: Single vs Compare */}
-            <div className="flex items-center bg-[#141824] p-0.5 rounded-lg border border-white/10 text-xs">
-              <button
-                onClick={() => setCompareMode(false)}
-                className={`px-2.5 py-1 rounded-md transition font-medium ${
-                  !compareMode
-                    ? 'bg-cyan-500/20 text-cyan-300 shadow-sm border border-cyan-500/30'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                {t('translate.singleModel')}
-              </button>
-              <button
-                onClick={() => setCompareMode(true)}
-                className={`px-2.5 py-1 rounded-md transition font-medium flex items-center gap-1 ${
-                  compareMode
-                    ? 'bg-cyan-500/20 text-cyan-300 shadow-sm border border-cyan-500/30'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <Layers className="w-3 h-3" />
-                {t('translate.compareModels')}
-              </button>
-            </div>
-
-            {/* Model Selector based on mode */}
-            {!compareMode ? (
-              /* Single Model Dropdown */
-              <div className="relative">
-                <button
-                  onClick={() => setShowModelDropdown(!showModelDropdown)}
-                  className="flex items-center gap-1.5 bg-[#141824] border border-white/10 text-xs font-mono text-slate-200 rounded-lg px-3 py-2 hover:border-white/20 transition"
-                >
-                  <span className="text-purple-400">⚡</span>
-                  <span>{selectedSingleModel}</span>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-                </button>
-
-                {showModelDropdown && (
-                  <div
-                    className="absolute right-0 mt-1.5 w-56 bg-[#121520] border border-white/10 rounded-xl shadow-2xl p-1.5 z-50 max-h-60 overflow-y-auto"
-                    onClick={() => setShowModelDropdown(false)}
+          ) : (
+            /* Multi Model Comparison Pills */
+            <div className="flex items-center gap-1 ui-tab-container max-w-xs overflow-x-auto p-1">
+              {availableModels.slice(0, 5).map(m => {
+                const isSelected = selectedCompareModels.includes(m);
+                return (
+                  <button
+                    key={m}
+                    onClick={() => handleToggleCompareModel(m)}
+                    className={`px-2 py-1 rounded-lg text-[11px] font-mono transition whitespace-nowrap ${
+                      isSelected
+                        ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 font-semibold'
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-white/5 border border-transparent'
+                    }`}
                   >
-                    {availableModels.map(m => (
-                      <button
-                        key={m}
-                        onClick={() => handleSelectSingleModel(m)}
-                        className={`w-full text-left px-3 py-2 rounded-lg text-xs font-mono transition flex items-center justify-between ${
-                          selectedSingleModel === m
-                            ? 'bg-purple-500/10 text-purple-300 border border-purple-500/20'
-                            : 'text-slate-300 hover:bg-white/5 border border-transparent'
-                        }`}
-                      >
-                        <span className="truncate">{m}</span>
-                        {selectedSingleModel === m && <Check className="w-3.5 h-3.5 text-purple-400" />}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : (
-              /* Multi Model Comparison Pills */
-              <div className="flex items-center gap-1 bg-[#141824] p-1 rounded-lg border border-white/10 max-w-xs overflow-x-auto">
-                {availableModels.slice(0, 5).map(m => {
-                  const isSelected = selectedCompareModels.includes(m);
-                  return (
-                    <button
-                      key={m}
-                      onClick={() => handleToggleCompareModel(m)}
-                      className={`px-2 py-0.5 rounded text-[11px] font-mono transition whitespace-nowrap ${
-                        isSelected
-                          ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 font-semibold'
-                          : 'text-slate-400 hover:text-slate-200 hover:bg-white/5 border border-transparent'
-                      }`}
-                    >
-                      {m.replace('gemini-', '')}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+                    {m.replace('gemini-', '')}
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
-            {/* Main Action Button: Translate vs Stop All */}
-            {isAnyStreaming ? (
-              <button
-                onClick={handleStopAll}
-                className="flex items-center gap-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40 text-xs font-semibold px-4 py-2 rounded-lg transition shadow-lg shadow-red-500/10 active:scale-95"
-              >
-                <Square className="w-3.5 h-3.5 fill-current" />
-                <span>{t('translate.stopAll')}</span>
-              </button>
-            ) : (
-              <button
-                onClick={handleTranslate}
-                disabled={!sourceText.trim()}
-                className={`flex items-center gap-1.5 text-xs font-semibold px-4 py-2 rounded-lg transition shadow-lg active:scale-95 ${
-                  sourceText.trim()
-                    ? 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-cyan-500/20 cursor-pointer'
-                    : 'bg-white/5 text-slate-500 border border-white/5 cursor-not-allowed'
-                }`}
-              >
-                <Play className="w-3.5 h-3.5 fill-current" />
-                <span>{t('translate.translateBtn')}</span>
-                <span className="text-[10px] opacity-70 bg-black/20 px-1 rounded ml-1 font-mono">⌘↵</span>
-              </button>
-            )}
-          </div>
+          {/* Main Action Button: Translate vs Stop All */}
+          {isAnyStreaming ? (
+            <button
+              onClick={handleStopAll}
+              className="flex items-center gap-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40 text-xs font-semibold px-4 py-2 rounded-xl transition shadow-lg shadow-red-500/10 active:scale-95"
+            >
+              <Square className="w-3.5 h-3.5 fill-current" />
+              <span>{t('translate.stopAll')}</span>
+            </button>
+          ) : (
+            <button
+              onClick={handleTranslate}
+              disabled={!sourceText.trim()}
+              className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl transition ${
+                sourceText.trim()
+                  ? 'ui-btn-primary cursor-pointer'
+                  : 'bg-white/5 text-slate-500 border border-white/5 cursor-not-allowed'
+              }`}
+            >
+              <Play className="w-3.5 h-3.5 fill-current" />
+              <span>{t('translate.translateBtn')}</span>
+              <span className="text-[10px] opacity-70 bg-black/20 px-1 rounded ml-1 font-mono">⌘↵</span>
+            </button>
+          )}
         </div>
       </div>
 
       {/* Main Grid Workspace */}
-      <div className="flex-1 p-4 grid grid-cols-1 lg:grid-cols-2 gap-4 min-h-0 overflow-y-auto">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 min-h-0 overflow-hidden">
         {/* Left Panel: Source Text Area */}
-        <div className="flex flex-col bg-[#0C0E14] border border-white/[0.08] rounded-xl overflow-hidden shadow-xl">
+        <div className="ui-card flex flex-col h-full overflow-hidden">
           {/* Panel Header */}
-          <div className="flex items-center justify-between px-4 py-2.5 bg-[#121520]/60 border-b border-white/[0.06] text-xs font-medium text-slate-400">
+          <div className="flex items-center justify-between px-4 py-2.5 bg-white/[0.02] border-b border-white/[0.06] text-xs font-medium text-slate-400 shrink-0">
             <div className="flex items-center gap-2">
-              <Languages className="w-4 h-4 text-cyan-400" />
+              <Languages className="w-4 h-4 text-indigo-400" />
               <span>{t('translate.sourceLanguage')}</span>
               {sourceLang === 'auto' && sourceText.trim() && (
-                <span className="bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 px-2 py-0.5 rounded-full text-[10px]">
+                <span className="bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-2 py-0.5 rounded-full text-[10px]">
                   {t('translate.detectedAs')}: {getLanguageName(detectedLang, isZh)}
                 </span>
               )}
@@ -736,7 +734,7 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
               <button
                 onClick={handlePaste}
                 title={t('translate.paste')}
-                className="p-1.5 hover:bg-white/5 text-slate-400 hover:text-slate-200 rounded transition"
+                className="p-1.5 hover:bg-white/5 text-slate-400 hover:text-slate-200 rounded-lg transition"
               >
                 <Clipboard className="w-3.5 h-3.5" />
               </button>
@@ -744,15 +742,15 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
                 onClick={handleCopySource}
                 disabled={!sourceText}
                 title={t('translate.copySource')}
-                className="p-1.5 hover:bg-white/5 text-slate-400 hover:text-slate-200 rounded transition disabled:opacity-30"
+                className="p-1.5 hover:bg-white/5 text-slate-400 hover:text-slate-200 rounded-lg transition disabled:opacity-30"
               >
-                {copiedSource ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
+                {copiedSource ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
               </button>
               <button
                 onClick={handleClear}
                 disabled={!sourceText}
                 title={t('translate.clear')}
-                className="p-1.5 hover:bg-white/5 text-slate-400 hover:text-red-400 rounded transition disabled:opacity-30"
+                className="p-1.5 hover:bg-white/5 text-slate-400 hover:text-rose-400 rounded-lg transition disabled:opacity-30"
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
@@ -760,31 +758,31 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
           </div>
 
           {/* Textarea */}
-          <div className="flex-1 p-4 relative flex flex-col min-h-[280px]">
+          <div className="flex-1 p-4 relative flex flex-col min-h-0">
             <textarea
               value={sourceText}
               onChange={e => setSourceText(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={t('translate.sourcePlaceholder')}
-              className="w-full flex-1 bg-transparent text-slate-100 placeholder-slate-600 text-sm leading-relaxed resize-none focus:outline-none font-sans"
+              className="w-full flex-1 bg-transparent text-slate-100 placeholder-slate-600 text-sm leading-relaxed resize-none focus:outline-none font-sans overflow-y-auto"
             />
           </div>
 
           {/* Footer Bar */}
-          <div className="px-4 py-2 bg-[#121520]/40 border-t border-white/[0.06] flex items-center justify-between text-[11px] text-slate-500 font-mono">
+          <div className="px-4 py-2 bg-white/[0.02] border-t border-white/[0.06] flex items-center justify-between text-[11px] text-slate-500 font-mono shrink-0">
             <div>
               {charCount} {t('translate.characters')} · {wordCount} {t('translate.words')}
             </div>
-            <div className="text-slate-600">
+            <div className="text-slate-500">
               {sourceLang === 'auto' ? `Auto → ${getLanguageName(targetLang, isZh)}` : `${getLanguageName(sourceLang, isZh)} → ${getLanguageName(targetLang, isZh)}`}
             </div>
           </div>
         </div>
 
         {/* Right Panel: Target Results (Single or Compare Cards) */}
-        <div className="flex flex-col min-h-0">
+        <div className="flex flex-col h-full min-h-0 overflow-hidden">
           <div
-            className={`grid gap-4 flex-1 overflow-y-auto ${
+            className={`grid gap-4 flex-1 min-h-0 overflow-y-auto ${
               compareMode && activeModelIds.length > 1
                 ? 'grid-cols-1 md:grid-cols-2'
                 : 'grid-cols-1'
@@ -804,30 +802,30 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
               return (
                 <div
                   key={modelId}
-                  className="flex flex-col bg-[#0C0E14] border border-white/[0.08] rounded-xl overflow-hidden shadow-xl"
+                  className="flex flex-col h-full overflow-hidden ui-card min-h-[300px]"
                 >
                   {/* Card Header */}
-                  <div className="flex items-center justify-between px-4 py-2.5 bg-[#121520]/60 border-b border-white/[0.06] text-xs font-medium">
+                  <div className="flex items-center justify-between px-4 py-2.5 bg-white/[0.02] border-b border-white/[0.06] text-xs font-medium shrink-0">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-purple-300 font-semibold">{modelId}</span>
+                      <span className="font-mono text-indigo-300 font-semibold">{modelId}</span>
 
                       {/* Status indicator */}
                       {res.status === 'streaming' && (
-                        <span className="flex items-center gap-1.5 text-cyan-400 text-[11px]">
+                        <span className="flex items-center gap-1.5 text-indigo-400 text-[11px]">
                           <span className="relative flex h-2 w-2">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
                           </span>
                           {t('translate.translating')}
                         </span>
                       )}
 
                       {res.status === 'success' && (
-                        <CheckCircle2 className="w-3.5 h-3.5 text-green-400" />
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                       )}
 
                       {res.status === 'error' && (
-                        <AlertCircle className="w-3.5 h-3.5 text-red-400" />
+                        <AlertCircle className="w-3.5 h-3.5 text-rose-400" />
                       )}
                     </div>
 
@@ -844,10 +842,10 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
                       <button
                         onClick={() => toggleRenderMode(modelId)}
                         title={res.renderMarkdown ? t('translate.renderRaw') : t('translate.renderMarkdown')}
-                        className={`p-1 rounded text-[11px] font-mono flex items-center gap-1 border transition ${
+                        className={`p-1 rounded-lg text-[11px] font-mono flex items-center gap-1 border transition ${
                           res.renderMarkdown
-                            ? 'bg-cyan-500/10 text-cyan-300 border-cyan-500/20'
-                            : 'bg-white/5 text-slate-400 border-white/10'
+                            ? 'bg-indigo-500/15 text-indigo-300 border-indigo-500/30'
+                            : 'bg-white/5 text-slate-400 border-white/10 hover:text-slate-200'
                         }`}
                       >
                         {res.renderMarkdown ? <Eye className="w-3 h-3" /> : <AlignLeft className="w-3 h-3" />}
@@ -861,7 +859,7 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
                         <button
                           onClick={() => handleStopModel(modelId)}
                           title={t('translate.stop')}
-                          className="p-1 text-red-400 hover:bg-red-500/10 rounded transition"
+                          className="p-1 text-rose-400 hover:bg-rose-500/10 rounded-lg transition"
                         >
                           <Square className="w-3.5 h-3.5 fill-current" />
                         </button>
@@ -870,7 +868,7 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
                   </div>
 
                   {/* Card Body */}
-                  <div className="flex-1 p-4 overflow-y-auto min-h-[220px] max-h-[500px]">
+                  <div className="flex-1 min-h-0 p-4 overflow-y-auto">
                     {res.status === 'idle' && !res.text && (
                       <div className="h-full flex items-center justify-center text-slate-600 text-sm font-sans italic">
                         {t('translate.targetPlaceholder')}
@@ -878,9 +876,9 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
                     )}
 
                     {res.status === 'error' && !res.text && (
-                      <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg text-red-300 text-xs flex flex-col gap-2">
+                      <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-300 text-xs flex flex-col gap-2">
                         <div className="flex items-center gap-1.5 font-semibold">
-                          <AlertCircle className="w-4 h-4 text-red-400" />
+                          <AlertCircle className="w-4 h-4 text-rose-400" />
                           <span>{t('translate.requestFailed')}</span>
                         </div>
                         <div className="font-mono text-[11px] opacity-90 break-words">{res.error}</div>
@@ -889,7 +887,7 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
                             const systemPrompt = buildTranslationSystemPrompt(sourceLang, targetLang, style);
                             translateSingleModel(modelId, systemPrompt, sourceText);
                           }}
-                          className="mt-1 self-start flex items-center gap-1 bg-red-500/20 hover:bg-red-500/30 text-red-200 px-3 py-1 rounded text-xs transition"
+                          className="mt-1 self-start flex items-center gap-1 bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 px-3 py-1 rounded-lg text-xs transition"
                         >
                           <RotateCcw className="w-3 h-3" />
                           <span>{t('translate.retry')}</span>
@@ -914,14 +912,14 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
 
                   {/* Truncated Warning Banner */}
                   {res.stopReason === 'max_tokens' && (
-                    <div className="px-4 py-1.5 bg-amber-500/10 border-t border-amber-500/20 text-amber-300 text-[11px] flex items-center gap-1.5">
+                    <div className="px-4 py-1.5 bg-amber-500/10 border-t border-amber-500/20 text-amber-300 text-[11px] flex items-center gap-1.5 shrink-0">
                       <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
                       <span>{t('translate.truncatedWarning')}</span>
                     </div>
                   )}
 
                   {/* Card Footer */}
-                  <div className="px-4 py-2 bg-[#121520]/40 border-t border-white/[0.06] flex items-center justify-between text-[11px] text-slate-500 font-mono">
+                  <div className="px-4 py-2 bg-white/[0.02] border-t border-white/[0.06] flex items-center justify-between text-[11px] text-slate-500 font-mono shrink-0">
                     <div>
                       {res.tokens > 0 ? `${res.tokens} tokens` : ''}
                     </div>
@@ -933,8 +931,8 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
                     >
                       {copiedTarget[modelId] ? (
                         <>
-                          <Check className="w-3.5 h-3.5 text-green-400" />
-                          <span className="text-green-400">{t('translate.copied')}</span>
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
+                          <span className="text-emerald-400">{t('translate.copied')}</span>
                         </>
                       ) : (
                         <>
