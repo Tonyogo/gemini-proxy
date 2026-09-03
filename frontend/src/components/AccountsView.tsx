@@ -1039,36 +1039,21 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                             </span>
                             <span className="text-[10px] text-slate-400 font-mono">reqs</span>
 
-                            {/* Breakdown Popover Trigger (Instant CSS Hover) */}
+                            {/* Breakdown Popover Trigger (Portal-based Top Layer) */}
                             {breakdowns.length > 0 && (
-                              <div className="relative group inline-block">
-                                <button
-                                  type="button"
-                                  className="p-0.5 text-slate-400 hover:text-indigo-400 rounded transition-colors"
-                                  title="View model breakdown"
-                                >
-                                  <Info className="w-3.5 h-3.5" />
-                                </button>
-
-                                {/* Hover Popover Content */}
-                                <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block z-50 pointer-events-none">
-                                  <div className="ui-card p-3 rounded-xl shadow-2xl min-w-[200px] border border-[var(--border-subtle)] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-150">
-                                    <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2 pb-1.5 border-b border-[var(--border-subtle)] flex items-center justify-between">
-                                      <span>Model Breakdown</span>
-                                      <span className="font-mono text-indigo-400">Total: {totalUsage}</span>
-                                    </div>
-                                    <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                                      {breakdowns.map(({ model, count }) => (
-                                        <div key={model} className="flex items-center justify-between text-xs font-mono">
-                                          <span className="text-slate-300 truncate max-w-[130px]">{model}</span>
-                                          <span className="font-semibold text-indigo-400 shrink-0 ml-2">{count}</span>
-                                        </div>
-                                      ))}
-                                    </div>
-                                    <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-[var(--border-subtle)]" />
-                                  </div>
-                                </div>
-                              </div>
+                              <button
+                                type="button"
+                                onClick={(e) => handleTogglePopover(e, acc.index)}
+                                onMouseEnter={(e) => handleMouseEnterPopover(e, acc.index)}
+                                className={`p-1 rounded-md transition-colors ${
+                                  popoverAnchor?.index === acc.index
+                                    ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-500/15'
+                                    : 'text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-black/5 dark:hover:bg-white/5'
+                                }`}
+                                title={t('accounts.todayUsage', '查看用量明细')}
+                              >
+                                <Info className="w-3.5 h-3.5" />
+                              </button>
                             )}
                           </div>
                         </td>
@@ -1715,7 +1700,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
         </div>
       )}
 
-      {/* Portal Usage Details Popover */}
+      {/* Portal Usage Details Popover (Top Layer via Body Portal) */}
       {popoverAnchor && (() => {
         const acc = accounts.find(a => a.index === popoverAnchor.index);
         if (!acc) return null;
@@ -1725,62 +1710,66 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
         const { rect } = popoverAnchor;
         const spaceBelow = window.innerHeight - rect.bottom;
 
-        // Determine top/bottom placement
+        // Determine top/bottom placement (default to top if not enough space below)
         const isTop = spaceBelow < 280 && rect.top > 280;
-        const leftPos = Math.max(12, Math.min(rect.left, window.innerWidth - 280));
+        const popoverWidth = 270; // 270px for pleasant proportions
+        const idealLeft = rect.left + rect.width / 2 - popoverWidth / 2;
+        const leftPos = Math.max(16, Math.min(idealLeft, window.innerWidth - popoverWidth - 16));
+
         const popoverStyle: React.CSSProperties = {
           position: 'fixed',
-          zIndex: 100,
-          width: '16rem', // w-64 = 256px
-          maxWidth: '85vw',
+          zIndex: 9999,
+          width: `${popoverWidth}px`,
+          maxWidth: '90vw',
           left: `${leftPos}px`,
           ...(isTop
             ? { bottom: `${window.innerHeight - rect.top + 8}px` }
             : { top: `${rect.bottom + 8}px` })
         };
 
+        const arrowLeft = Math.max(14, Math.min(rect.left + rect.width / 2 - leftPos - 5, popoverWidth - 24));
         const arrowStyle: React.CSSProperties = {
-          left: `${Math.max(12, Math.min(rect.left + rect.width / 2 - leftPos - 5, 236))}px`
+          left: `${arrowLeft}px`
         };
 
         return createPortal(
           <div
             ref={popoverRef}
             style={popoverStyle}
-            className="p-3 ui-card rounded-xl shadow-2xl backdrop-blur-xl pointer-events-auto animate-in fade-in duration-150"
+            className="p-3.5 ui-card rounded-2xl shadow-2xl backdrop-blur-2xl border border-[var(--border-subtle)] pointer-events-auto animate-in fade-in zoom-in-95 duration-150"
             onMouseLeave={() => setPopoverAnchor(null)}
           >
-            <div className="flex items-center justify-between pb-2 mb-2 border-b border-[var(--border-subtle)]">
-              <span className="text-[11px] font-bold text-[var(--text-primary)] flex items-center space-x-1.5">
-                <Clock className="w-3.5 h-3.5 text-indigo-400" />
+            <div className="flex items-center justify-between pb-2 mb-2.5 border-b border-[var(--border-subtle)]">
+              <span className="text-xs font-bold text-[var(--text-primary)] flex items-center space-x-1.5">
+                <Clock className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
                 <span>{t('accounts.todayUsage')}</span>
               </span>
-              <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-md">
-                {totalUsage}
+              <span className="text-xs font-mono font-bold text-indigo-600 dark:text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-lg">
+                {totalUsage.toLocaleString()} <span className="text-[10px] font-normal text-[var(--text-muted)]">reqs</span>
               </span>
             </div>
 
             {breakdowns.length === 0 ? (
-              <div className="text-[10px] text-[var(--text-secondary)] italic py-1">
-                {totalUsage === 0 ? 'No model request breakdown' : `Total: ${totalUsage}`}
+              <div className="text-xs text-[var(--text-muted)] italic py-2 text-center">
+                {totalUsage === 0 ? 'No model requests today' : `Total requests: ${totalUsage}`}
               </div>
             ) : (
-              <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+              <div className="space-y-2.5 max-h-56 overflow-y-auto pr-1">
                 {breakdowns.map((item, idx) => {
                   const ratio = item.limit ? Math.min(100, Math.round((item.count / item.limit) * 100)) : null;
                   return (
                     <div key={idx} className="space-y-1">
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-[var(--text-secondary)] font-mono truncate max-w-[130px]" title={item.model}>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-[var(--text-secondary)] font-mono text-[11px] truncate max-w-[140px]" title={item.model}>
                           {item.model}
                         </span>
-                        <span className="text-[var(--text-secondary)] font-mono font-semibold">
-                          <strong className="text-[var(--text-primary)]">{item.count}</strong>
+                        <span className="text-[var(--text-secondary)] font-mono text-xs font-semibold shrink-0 ml-2">
+                          <strong className="text-[var(--text-primary)]">{item.count.toLocaleString()}</strong>
                           {item.limit !== undefined && <span className="text-[var(--text-muted)] text-[10px]"> / {item.limit}</span>}
                         </span>
                       </div>
                       {ratio !== null && (
-                        <div className="w-full bg-black/10 dark:bg-white/10 rounded-full h-1.5 overflow-hidden border border-[var(--border-subtle)]">
+                        <div className="w-full bg-black/5 dark:bg-white/10 rounded-full h-1.5 overflow-hidden border border-[var(--border-subtle)]">
                           <div
                             className={`h-full rounded-full transition-all ${
                               ratio >= 90 ? 'bg-rose-500' : ratio >= 70 ? 'bg-amber-500' : 'bg-indigo-500'
@@ -1799,8 +1788,8 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
               style={arrowStyle}
               className={`absolute ${
                 isTop
-                  ? 'top-full -mt-px border-r border-b'
-                  : 'bottom-full -mb-px border-l border-t'
+                  ? 'top-full -mt-1 border-r border-b'
+                  : 'bottom-full -mb-1 border-l border-t'
               } w-2.5 h-2.5 bg-[var(--bg-surface)] border-[var(--border-subtle)] transform rotate-45`}
             />
           </div>,
