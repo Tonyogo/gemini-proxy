@@ -97,10 +97,10 @@ export default function ConversationView({ log }: ConversationViewProps) {
 
   if (conversationMessages.length === 0 && !systemPrompt) {
     return (
-      <div className="flex flex-col items-center justify-center h-96 text-slate-500 text-xs space-y-2 font-mono bg-slate-900/40 rounded-2xl border border-slate-800/80 p-6">
+      <div className="flex flex-col items-center justify-center h-96 text-slate-500 text-xs space-y-2 font-mono ui-card-sub rounded-2xl border border-[var(--border-subtle)] p-6">
         <AlertCircle className="w-8 h-8 text-amber-500/60" />
-        <span className="text-slate-300 font-semibold">{t('logs.noMessages', 'No conversation messages in this log.')}</span>
-        <span className="text-[11px] text-slate-500 text-center max-w-sm">
+        <span className="text-[var(--text-primary)] font-semibold">{t('logs.noMessages', 'No conversation messages in this log.')}</span>
+        <span className="text-[11px] text-[var(--text-secondary)] text-center max-w-sm">
           This request might be a token count endpoint, models list, or did not supply standard Claude Messages API structure.
         </span>
       </div>
@@ -111,32 +111,32 @@ export default function ConversationView({ log }: ConversationViewProps) {
     <div ref={containerRef} className="flex flex-col space-y-4 pb-8 max-w-5xl mx-auto w-full relative">
       {/* System Prompt Collapsible Card */}
       {systemPrompt && (
-        <div className="rounded-2xl border border-indigo-500/30 bg-indigo-950/20 overflow-hidden font-mono text-xs transition-all shadow-md">
+        <div className="rounded-2xl border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50/50 dark:bg-indigo-950/20 overflow-hidden font-mono text-xs transition-all shadow-md">
           <div
             onClick={() => setSystemExpanded(!systemExpanded)}
-            className="flex items-center justify-between px-4 py-2.5 bg-indigo-500/10 cursor-pointer hover:bg-indigo-500/15 transition-colors select-none text-indigo-300"
+            className="flex items-center justify-between px-4 py-2.5 bg-indigo-100/60 dark:bg-indigo-500/10 cursor-pointer hover:bg-indigo-200/60 dark:hover:bg-indigo-500/15 transition-colors select-none text-indigo-700 dark:text-indigo-300"
           >
             <div className="flex items-center space-x-2">
               {systemExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-              <Shield className="w-4 h-4 text-indigo-400" />
+              <Shield className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
               <span className="font-semibold tracking-wide">{t('logs.systemPrompt', 'System Prompt')}</span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-200 border border-indigo-500/30">
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-200/60 dark:bg-indigo-500/20 text-indigo-800 dark:text-indigo-200 border border-indigo-300 dark:border-indigo-500/30">
                 {systemPrompt.length.toLocaleString()} chars
               </span>
             </div>
 
             <button
               onClick={handleCopySystem}
-              className="flex items-center space-x-1 text-indigo-300/80 hover:text-indigo-100 text-[10px] px-2 py-1 rounded bg-indigo-500/10 hover:bg-indigo-500/25 transition-colors"
+              className="flex items-center space-x-1 text-indigo-700 dark:text-indigo-300 hover:text-indigo-900 dark:hover:text-indigo-100 text-[10px] px-2 py-1 rounded bg-indigo-200/60 dark:bg-indigo-500/10 hover:bg-indigo-300/60 dark:hover:bg-indigo-500/25 transition-colors"
               title="Copy system prompt"
             >
-              {copiedSystem ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+              {copiedSystem ? <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-3 h-3" />}
               <span>{copiedSystem ? t('logs.messageCopied', 'Copied!') : t('logs.copyMessage', 'Copy')}</span>
             </button>
           </div>
 
           {systemExpanded && (
-            <div className="p-4 bg-slate-950/80 border-t border-indigo-500/20 text-slate-300 max-h-96 overflow-y-auto leading-relaxed">
+            <div className="p-4 bg-[var(--code-bg)] border-t border-[var(--border-subtle)] text-[var(--code-text)] max-h-96 overflow-y-auto leading-relaxed">
               <MarkdownContent content={systemPrompt} />
             </div>
           )}
@@ -151,17 +151,17 @@ export default function ConversationView({ log }: ConversationViewProps) {
       </div>
 
       {/* Floating Scroll Navigation */}
-      <div className="sticky bottom-4 self-end flex flex-col space-y-1.5 z-20 bg-slate-900/80 backdrop-blur-md p-1.5 rounded-xl border border-slate-700/60 shadow-2xl">
+      <div className="sticky bottom-4 self-end flex flex-col space-y-1.5 z-20 bg-[var(--bg-surface)]/90 backdrop-blur-md p-1.5 rounded-xl border border-[var(--border-subtle)] shadow-2xl">
         <button
           onClick={scrollToTop}
-          className="p-2 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800/80 active:bg-slate-700/80 transition-colors"
+          className="p-2 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors"
           title={t('logs.scrollToTop', '回到最前')}
         >
           <ChevronsUp className="w-4 h-4" />
         </button>
         <button
           onClick={scrollToBottom}
-          className="p-2 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800/80 active:bg-slate-700/80 transition-colors"
+          className="p-2 rounded-lg text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] transition-colors"
           title={t('logs.scrollToBottom', '跳到最后')}
         >
           <ChevronsDown className="w-4 h-4" />

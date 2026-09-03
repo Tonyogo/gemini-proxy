@@ -55,17 +55,17 @@ export default function MessageBubble({ message }: { message: ChatMessage }) {
   return (
     <div className={`flex flex-col mb-5 w-full group ${isUser ? 'items-end' : 'items-start'}`}>
       {/* Role Header */}
-      <div className={`flex items-center space-x-2 mb-1.5 text-[11px] font-mono select-none ${
+      <div className={`flex items-center space-x-2 text-xs font-mono select-none ${
         isUser ? 'flex-row-reverse space-x-reverse' : ''
       }`}>
         <div className={`w-6 h-6 rounded-xl flex items-center justify-center border shadow-sm ${
           isUser
-            ? 'bg-indigo-500/20 border-indigo-400/40 text-indigo-300 shadow-[0_0_10px_rgba(99,102,241,0.25)]'
-            : 'bg-gradient-to-br from-purple-500/25 via-indigo-500/20 to-purple-500/10 border-purple-400/40 text-purple-300 shadow-[0_0_10px_rgba(168,85,247,0.25)]'
+            ? 'bg-indigo-500/20 border-indigo-400/40 text-indigo-500 dark:text-indigo-300 shadow-[0_0_10px_rgba(99,102,241,0.25)]'
+            : 'bg-gradient-to-br from-purple-500/25 via-indigo-500/20 to-purple-500/10 border-purple-400/40 text-purple-600 dark:text-purple-300 shadow-[0_0_10px_rgba(168,85,247,0.25)]'
         }`}>
           {isUser ? <User className="w-3.5 h-3.5" /> : <Sparkles className="w-3.5 h-3.5" />}
         </div>
-        <span className={`font-semibold ${isUser ? 'text-indigo-200' : 'text-purple-200'}`}>
+        <span className={`font-semibold ${isUser ? 'text-indigo-700 dark:text-indigo-200' : 'text-purple-700 dark:text-purple-200'}`}>
           {isUser ? t('logs.user', 'User') : t('logs.assistant', 'Claude Assistant')}
         </span>
 
@@ -81,8 +81,8 @@ export default function MessageBubble({ message }: { message: ChatMessage }) {
       {/* Bubble Container */}
       <div className={`rounded-2xl p-4 sm:p-5 border shadow-xl transition-all ${
         isUser
-          ? 'w-fit max-w-[85%] bg-gradient-to-br from-indigo-950/60 via-[#0F1322] to-[#0A0C14] border-indigo-500/35 rounded-tr-xs text-slate-100 selection:bg-indigo-500 selection:text-white'
-          : 'w-full max-w-[92%] bg-[#0A0C13]/95 border-purple-500/25 border-l-purple-500/70 border-l-[3px] rounded-tl-xs text-slate-200 shadow-[0_4px_24px_rgba(0,0,0,0.7)]'
+          ? 'w-fit max-w-[85%] bg-indigo-50/90 dark:bg-gradient-to-br dark:from-indigo-950/60 dark:via-[#0F1322] dark:to-[#0A0C14] border-indigo-200 dark:border-indigo-500/35 rounded-tr-xs text-indigo-950 dark:text-slate-100 selection:bg-indigo-500 selection:text-white'
+          : 'w-full max-w-[92%] bg-[var(--bg-surface)] dark:bg-[#0A0C13]/95 border-[var(--border-subtle)] dark:border-purple-500/25 border-l-purple-500 dark:border-l-purple-500/70 border-l-[3px] rounded-tl-xs text-[var(--text-primary)] dark:text-slate-200 shadow-sm dark:shadow-[0_4px_24px_rgba(0,0,0,0.7)]'
       }`}>
         <div className="space-y-3">
           {message.blocks.map((block, idx) => {
@@ -118,9 +118,9 @@ export default function MessageBubble({ message }: { message: ChatMessage }) {
 
               case 'image':
                 return (
-                  <div key={idx} className="my-2 rounded-xl border border-slate-800 bg-slate-950/60 p-2 inline-block">
-                    <div className="flex items-center space-x-1.5 text-[10px] text-slate-400 font-mono mb-1.5">
-                      <ImageIcon className="w-3 h-3 text-indigo-400" />
+                  <div key={idx} className="my-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--code-bg)] p-2 inline-block">
+                    <div className="flex items-center space-x-1.5 text-[10px] text-[var(--text-secondary)] font-mono mb-1.5">
+                      <ImageIcon className="w-3 h-3 text-indigo-500 dark:text-indigo-400" />
                       <span>Image ({block.mediaType || 'image'})</span>
                     </div>
                     {block.url ? (
@@ -133,15 +133,15 @@ export default function MessageBubble({ message }: { message: ChatMessage }) {
 
               case 'document':
                 return (
-                  <div key={idx} className="my-2 p-2.5 rounded-xl border border-slate-800 bg-slate-950/80 flex items-center space-x-2 text-xs font-mono text-slate-300">
-                    <FileText className="w-4 h-4 text-purple-400" />
+                  <div key={idx} className="my-2 p-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--code-bg)] flex items-center space-x-2 text-xs font-mono text-[var(--code-text)]">
+                    <FileText className="w-4 h-4 text-purple-500 dark:text-purple-400" />
                     <span>Document Attachment ({block.mediaType || 'application/pdf'})</span>
                   </div>
                 );
 
               default:
                 return (
-                  <div key={idx} className="text-xs font-mono text-slate-400 bg-slate-950 p-2 rounded-lg">
+                  <div key={idx} className="text-xs font-mono text-[var(--code-text)] bg-[var(--code-bg)] border border-[var(--border-subtle)] p-2 rounded-lg">
                     <pre className="overflow-x-auto">{JSON.stringify(block, null, 2)}</pre>
                   </div>
                 );

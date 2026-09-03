@@ -274,20 +274,20 @@ export default function SseStreamPreview({ streamData }: { streamData: any }) {
   return (
     <div className="space-y-4 text-xs font-sans">
       {/* Top Stream Metric Ribbon Header */}
-      <div className="bg-slate-900/90 border border-slate-800/80 rounded-xl p-3.5 shadow-sm">
+      <div className="ui-card p-3.5 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
               <Zap className="w-4 h-4" />
             </div>
             <div>
               <div className="flex items-center space-x-2">
-                <span className="font-bold text-slate-100 text-xs">SSE Stream Assembly</span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                <span className="font-bold text-[var(--text-primary)] text-xs">SSE Stream Assembly</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
                   {chunks.length} chunks
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-[var(--text-secondary)]">
                 Live EventSource timeline with multi-block stream reconstruction
               </p>
             </div>
@@ -295,7 +295,7 @@ export default function SseStreamPreview({ streamData }: { streamData: any }) {
 
           <div className="flex items-center space-x-2 font-mono text-[11px]">
             <div className="px-2.5 py-1 rounded-lg ui-card-sub text-[var(--text-secondary)] flex items-center space-x-1.5">
-              <Sparkles className="w-3 h-3 text-indigo-400" />
+              <Sparkles className="w-3 h-3 text-indigo-500 dark:text-indigo-400" />
               <span>{outputTokens} tokens</span>
             </div>
 
@@ -316,11 +316,11 @@ export default function SseStreamPreview({ streamData }: { streamData: any }) {
       </div>
 
       {/* Assembled Response Card */}
-      <div className="bg-emerald-950/20 border border-emerald-800/40 rounded-xl p-4 space-y-3 shadow-inner">
-        <div className="flex items-center justify-between pb-2 border-b border-emerald-800/30">
+      <div className="bg-emerald-50/40 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/40 rounded-xl p-4 space-y-3 shadow-inner">
+        <div className="flex items-center justify-between pb-2 border-b border-emerald-200 dark:border-emerald-800/30">
           <div className="flex items-center space-x-2">
-            <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="font-bold text-emerald-300 text-xs uppercase tracking-wide">
+            <Sparkles className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+            <span className="font-bold text-emerald-700 dark:text-emerald-300 text-xs uppercase tracking-wide">
               Assembled Full Output
             </span>
           </div>
@@ -329,17 +329,17 @@ export default function SseStreamPreview({ streamData }: { streamData: any }) {
             {/* Typewriter Playback Button */}
             <button
               onClick={handleTogglePlayTypewriter}
-              className="px-2 py-1 rounded bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/60 text-[10px] flex items-center space-x-1 transition-colors"
+              className="px-2 py-1 rounded ui-btn-secondary text-[10px] flex items-center space-x-1 transition-colors"
               title={isPlayingTypewriter ? "Pause typewriter" : "Play typewriter simulation"}
             >
               {isPlayingTypewriter ? (
                 <>
-                  <Pause className="w-3 h-3 text-amber-400" />
+                  <Pause className="w-3 h-3 text-amber-500 dark:text-amber-400" />
                   <span>{typewriterProgress}%</span>
                 </>
               ) : (
                 <>
-                  <Play className="w-3 h-3 text-emerald-400" />
+                  <Play className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                   <span>Play Replay</span>
                 </>
               )}
@@ -348,7 +348,7 @@ export default function SseStreamPreview({ streamData }: { streamData: any }) {
             {typewriterText && !isPlayingTypewriter && (
               <button
                 onClick={handleResetTypewriter}
-                className="p-1 rounded bg-slate-900/80 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-700/60 text-[10px] transition-colors"
+                className="p-1 rounded ui-btn-secondary text-[10px] transition-colors"
                 title="Reset simulation view"
               >
                 <RotateCcw className="w-3 h-3" />
@@ -358,12 +358,12 @@ export default function SseStreamPreview({ streamData }: { streamData: any }) {
             {/* Quick Full Text Copy */}
             <button
               onClick={handleCopyFullText}
-              className="px-2 py-1 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] flex items-center space-x-1 transition-colors"
+              className="px-2 py-1 rounded ui-btn-secondary text-[10px] flex items-center space-x-1 transition-colors text-emerald-700 dark:text-emerald-300"
               title="Copy assembled output text"
             >
               {copiedText ? (
                 <>
-                  <Check className="w-3 h-3 text-emerald-400" />
+                  <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
                   <span>Copied!</span>
                 </>
               ) : (
@@ -378,12 +378,12 @@ export default function SseStreamPreview({ streamData }: { streamData: any }) {
 
         {/* Thinking Chain (if present) */}
         {fullThinking && (
-          <details className="bg-purple-950/30 border border-purple-800/40 rounded-xl p-3 text-purple-200 transition-all">
-            <summary className="font-bold text-[11px] uppercase cursor-pointer text-purple-300 flex items-center space-x-1.5 select-none">
+          <details className="bg-purple-50/50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/40 rounded-xl p-3 text-purple-900 dark:text-purple-200 transition-all">
+            <summary className="font-bold text-[11px] uppercase cursor-pointer text-purple-700 dark:text-purple-300 flex items-center space-x-1.5 select-none">
               <span>💭</span>
               <span>Thinking Chain ({fullThinking.length} chars)</span>
             </summary>
-            <div className="mt-2 font-mono text-[11px] text-purple-200 leading-relaxed whitespace-pre-wrap max-h-48 overflow-y-auto bg-purple-950/60 p-2.5 rounded-lg border border-purple-800/50">
+            <div className="mt-2 font-mono text-[11px] text-purple-950 dark:text-purple-200 leading-relaxed whitespace-pre-wrap max-h-48 overflow-y-auto bg-purple-100/50 dark:bg-purple-950/60 p-2.5 rounded-lg border border-purple-200 dark:border-purple-800/50">
               {fullThinking}
             </div>
           </details>
@@ -392,12 +392,12 @@ export default function SseStreamPreview({ streamData }: { streamData: any }) {
         {/* Final Text Message or Typewriter Simulator */}
         {isPlayingTypewriter || typewriterText ? (
           <div className="font-mono text-xs text-[var(--code-text)] leading-relaxed whitespace-pre-wrap bg-[var(--code-bg)] p-3.5 rounded-xl border border-[var(--border-subtle)] relative">
-            <div className="text-[10px] font-sans font-semibold text-emerald-400 mb-1 flex items-center space-x-1">
+            <div className="text-[10px] font-sans font-semibold text-emerald-600 dark:text-emerald-400 mb-1 flex items-center space-x-1">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
               <span>Simulated Stream Playback ({typewriterProgress}%):</span>
             </div>
             {typewriterText}
-            {isPlayingTypewriter && <span className="inline-block w-1.5 h-3.5 bg-emerald-400 ml-0.5 animate-pulse" />}
+            {isPlayingTypewriter && <span className="inline-block w-1.5 h-3.5 bg-emerald-500 dark:bg-emerald-400 ml-0.5 animate-pulse" />}
           </div>
         ) : fullText ? (
           <div className="font-mono text-xs text-[var(--code-text)] leading-relaxed whitespace-pre-wrap bg-[var(--code-bg)] p-3.5 rounded-xl border border-[var(--border-subtle)]">
@@ -412,7 +412,7 @@ export default function SseStreamPreview({ streamData }: { streamData: any }) {
       <div className="ui-card-sub p-3.5 space-y-2.5">
         <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] flex items-center justify-between pb-1 border-b border-[var(--border-subtle)]">
           <div className="flex items-center space-x-1.5 text-[var(--text-primary)]">
-            <Layers className="w-3.5 h-3.5 text-indigo-400" />
+            <Layers className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
             <span>EventSource Timeline ({chunks.length} Events)</span>
           </div>
           <span className="text-[var(--text-muted)] text-[10px] font-mono lowercase">click row to inspect raw payload</span>
@@ -447,7 +447,7 @@ export default function SseStreamPreview({ streamData }: { streamData: any }) {
 
                   <div className="flex items-center space-x-2 shrink-0 text-[10px]">
                     {abstract.tokenDelta && (
-                      <span className="text-emerald-400/80 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800/40 text-[9px]">
+                      <span className="text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800/40 text-[9px]">
                         {abstract.tokenDelta}
                       </span>
                     )}
