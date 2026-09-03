@@ -667,26 +667,26 @@ export default function WebTerminalView({
               <button
                 type="button"
                 onClick={() => onSubTabChange('interactive')}
-                className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-lg transition-all ${
+                className={`flex items-center space-x-1.5 px-2 sm:px-2.5 py-1 rounded-lg transition-all ${
                   (subTab || 'interactive') === 'interactive'
                     ? 'ui-tab-pill-active font-semibold shadow-sm'
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
                 <TerminalSquare className="w-3.5 h-3.5" />
-                <span>{t('terminal.interactiveTab')}</span>
+                <span className="hidden sm:inline">{t('terminal.interactiveTab')}</span>
               </button>
               <button
                 type="button"
                 onClick={() => onSubTabChange('logs')}
-                className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-lg transition-all ${
+                className={`flex items-center space-x-1.5 px-2 sm:px-2.5 py-1 rounded-lg transition-all ${
                   subTab === 'logs'
                     ? 'ui-tab-pill-active font-semibold shadow-sm'
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
                 <FileText className="w-3.5 h-3.5" />
-                <span>{t('terminal.logsTab')}</span>
+                <span className="hidden sm:inline">{t('terminal.logsTab')}</span>
               </button>
             </div>
           ) : (
@@ -713,7 +713,7 @@ export default function WebTerminalView({
                 isConnected ? 'bg-emerald-400 animate-pulse' : isConnecting ? 'bg-amber-400 animate-ping' : 'bg-rose-400'
               }`}
             />
-            <span className="text-[9px] sm:text-[10px]">
+            <span className="hidden sm:inline text-[10px]">
               {isConnected
                 ? t('webTerminal.connected')
                 : isConnecting
@@ -729,7 +729,7 @@ export default function WebTerminalView({
           <button
             type="button"
             onClick={() => setFontSize((prev) => Math.max(9, prev - 1))}
-            className="p-1 sm:p-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-slate-400 hover:text-white border border-white/[0.06] transition-all"
+            className="hidden sm:inline-flex p-1 sm:p-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-slate-400 hover:text-white border border-white/[0.06] transition-all"
             title="Zoom Out"
           >
             <ZoomOut className="w-3.5 h-3.5" />
@@ -739,7 +739,7 @@ export default function WebTerminalView({
           <button
             type="button"
             onClick={() => setFontSize((prev) => Math.min(22, prev + 1))}
-            className="p-1 sm:p-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-slate-400 hover:text-white border border-white/[0.06] transition-all"
+            className="hidden sm:inline-flex p-1 sm:p-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-slate-400 hover:text-white border border-white/[0.06] transition-all"
             title="Zoom In"
           >
             <ZoomIn className="w-3.5 h-3.5" />
