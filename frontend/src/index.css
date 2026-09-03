@@ -71,11 +71,17 @@
 }
 
 :root:not(.dark) {
-  .text-slate-100, .text-slate-200, .text-slate-300 {
+  .text-slate-100, .text-slate-200 {
     color: var(--text-primary);
+  }
+  .text-slate-300 {
+    color: #334155;
   }
   .text-slate-400 {
     color: var(--text-secondary);
+  }
+  .text-slate-500 {
+    color: #94A3B8;
   }
   .border-white\/\[0\.08\], .border-white\/\[0\.06\], .border-white\/\[0\.1\] {
     border-color: var(--border-subtle);
