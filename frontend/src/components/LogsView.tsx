@@ -357,7 +357,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
   };
 
   return (
-    <div className="w-full flex-1 flex flex-col md:flex-row gap-4 items-stretch min-h-0 h-full md:h-[calc(100dvh-6.5rem)] overflow-hidden">
+    <div className="w-full flex-1 min-h-0 h-full flex flex-col md:flex-row gap-4 items-stretch overflow-hidden">
       {/* Left Column (Request Master List) */}
       {!sidebarCollapsed && (
         <div className={`w-full md:w-80 lg:w-[360px] xl:w-[380px] shrink-0 ui-card p-3.5 flex flex-col min-h-0 h-full overflow-hidden transition-all ${
@@ -694,7 +694,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
         !mobileDetailOpen ? 'hidden md:flex' : 'flex'
       }`}>
         {/* Top Header & Navigation Bar */}
-        <div className="flex flex-wrap items-center justify-between pb-3 mb-3.5 border-b border-white/[0.08] gap-2.5">
+        <div className="flex flex-wrap items-center justify-between pb-3 mb-3.5 border-b border-white/[0.08] gap-2.5 shrink-0">
           <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
             {/* Mobile back to list button */}
             <button
@@ -851,7 +851,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
 
         {/* Metadata Summary Header Ribbon */}
         {selectedLog && (
-          <div className="ui-card-sub p-2.5 mb-3.5 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+          <div className="ui-card-sub p-2.5 mb-3.5 flex flex-wrap items-center justify-between gap-2 text-xs font-mono shrink-0">
             <div className="flex items-center space-x-2 flex-wrap">
               {selectedLog.status !== null && selectedLog.status !== undefined && (
                 <span className={`px-2 py-0.5 rounded-md font-bold border ${
@@ -921,7 +921,9 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
             <span>{t('logs.loadingDetail')}</span>
           </div>
         ) : selectedLog ? (
-          <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
+          <div className={`flex-1 min-h-0 flex flex-col pr-1 ${
+            activeTab === 'chat' ? 'overflow-y-auto space-y-4' : 'overflow-hidden'
+          }`}>
             {activeTab === 'payload' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 min-h-0 h-full overflow-hidden">
                 {/* Claude Client Request */}
@@ -1077,9 +1079,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
             )}
 
             {activeTab === 'chat' && (
-              <div className="flex-1 min-h-0 overflow-y-auto pr-1">
-                <ConversationView log={selectedLog} />
-              </div>
+              <ConversationView log={selectedLog} />
             )}
           </div>
         ) : (

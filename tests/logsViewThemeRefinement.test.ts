@@ -34,7 +34,8 @@ describe('LogsView & Preview Modes Theme Cleanliness Test', () => {
     const code = read('LogsView.tsx');
     expect(code).not.toContain('min-h-[600px]');
     expect(code).not.toContain('h-[520px]');
-    expect(code).toContain('md:h-[calc(100dvh-6.5rem)]');
+    expect(code).not.toContain('md:h-[calc(100dvh-6.5rem)]');
+    expect(code).toContain('w-full flex-1 min-h-0 h-full flex flex-col md:flex-row gap-4 items-stretch overflow-hidden');
   });
 
   it('verifies LogsView does not have hardcoded dark boxes in metadata and pagination', () => {
@@ -61,5 +62,19 @@ describe('LogsView & Preview Modes Theme Cleanliness Test', () => {
   it('verifies LogsView list area has flex-1 min-h-0 overflow-y-auto', () => {
     const code = read('LogsView.tsx');
     expect(code).toContain('flex-1 min-h-0 overflow-y-auto');
+  });
+
+  it('verifies App shell applies dynamic viewport locking for workbench tabs', () => {
+    const appCode = fs.readFileSync(path.join(__dirname, '../frontend/src/App.tsx'), 'utf-8');
+    expect(appCode).toContain("const isWorkbenchTab = ['playground', 'logs', 'translate', 'terminal'].includes(activeTab);");
+    expect(appCode).toContain("isWorkbenchTab ? 'h-screen max-h-screen overflow-hidden' : 'min-h-screen'");
+    expect(appCode).toContain("isWorkbenchTab ? 'h-full min-h-0 overflow-hidden' : ''");
+  });
+
+  it('verifies LogsView detail inspector sections have shrink-0 and tab-appropriate overflow', () => {
+    const code = read('LogsView.tsx');
+    expect(code).toContain('gap-2.5 shrink-0');
+    expect(code).toContain('text-xs font-mono shrink-0');
+    expect(code).toContain("activeTab === 'chat' ? 'overflow-y-auto space-y-4' : 'overflow-hidden'");
   });
 });

@@ -346,10 +346,12 @@ export default function App() {
     return t(`nav.${activeTab}`);
   };
 
-  const isWorkbenchTab = ['playground', 'logs', 'translate'].includes(activeTab);
+  const isWorkbenchTab = ['playground', 'logs', 'translate', 'terminal'].includes(activeTab);
 
   return (
-    <div className="flex min-h-screen bg-[var(--bg-canvas)] text-[var(--text-primary)] font-sans selection:bg-indigo-500 selection:text-white antialiased">
+    <div className={`flex bg-[var(--bg-canvas)] text-[var(--text-primary)] font-sans selection:bg-indigo-500 selection:text-white antialiased ${
+      isWorkbenchTab ? 'h-screen max-h-screen overflow-hidden' : 'min-h-screen'
+    }`}>
       {/* Collapsible Sidebar (Desktop only) */}
       <aside
         className={`fixed top-0 bottom-0 left-0 z-40 hidden md:flex flex-col bg-[var(--bg-surface)] border-r border-[var(--border-subtle)] transition-all duration-300 ease-in-out ${
@@ -511,10 +513,10 @@ export default function App() {
       <div
         className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out ${
           isSidebarCollapsed ? 'md:pl-16' : 'md:pl-60'
-        } pl-0`}
+        } pl-0 ${isWorkbenchTab ? 'h-full min-h-0 overflow-hidden' : ''}`}
       >
         {/* Minimal Glass Top Bar */}
-        <header className="h-12 sm:h-14 backdrop-blur-md bg-[var(--bg-surface)]/80 border-b border-[var(--border-subtle)] px-3 sm:px-6 flex items-center justify-between sticky top-0 z-30">
+        <header className="h-12 sm:h-14 backdrop-blur-md bg-[var(--bg-surface)]/80 border-b border-[var(--border-subtle)] px-3 sm:px-6 flex items-center justify-between sticky top-0 z-30 shrink-0">
           {/* Left Breadcrumbs & Brand / Sidebar Toggle */}
           <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
             {/* Mobile Brand Logo Icon */}
@@ -624,9 +626,9 @@ export default function App() {
         {/* Main View Workspace */}
         <main className={`flex-1 overflow-x-hidden ${
           activeTab === 'terminal'
-            ? 'p-0 md:p-6 pb-0 md:pb-6 flex flex-col min-h-0 h-[calc(100dvh-3rem-3.5rem)] max-h-[calc(100dvh-3rem-3.5rem)] md:h-auto md:max-h-none overflow-hidden'
+            ? 'p-0 md:p-6 pb-0 md:pb-6 flex flex-col min-h-0 h-full max-h-full overflow-hidden'
             : isWorkbenchTab
-              ? 'p-2.5 sm:p-4 md:p-6 pb-20 md:pb-6 flex flex-col min-h-0 md:overflow-hidden'
+              ? 'p-2.5 sm:p-4 md:p-6 pb-20 md:pb-6 flex flex-col min-h-0 h-full overflow-hidden'
               : 'p-2.5 sm:p-4 md:p-6 pb-20 md:pb-6'
         }`}>
           {activeTab === 'dashboard' && (
