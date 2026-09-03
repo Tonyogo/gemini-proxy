@@ -356,33 +356,33 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
 
   return (
     <div className="backdrop-blur-xl bg-black/60 fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 animate-in fade-in duration-200 font-sans">
-      <div className="bg-[#0C0E14] border border-white/[0.08] rounded-t-2xl sm:rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col h-[92vh] sm:h-auto sm:max-h-[90vh]">
+      <div className="ui-card rounded-t-2xl sm:rounded-2xl w-full max-w-3xl overflow-hidden flex flex-col h-[92vh] sm:h-auto sm:max-h-[90vh]">
         {/* Mobile Drag Handle Pill */}
-        <div className="w-10 h-1 bg-white/20 rounded-full mx-auto my-1.5 block sm:hidden shrink-0" />
+        <div className="w-10 h-1 bg-black/20 dark:bg-white/20 rounded-full mx-auto my-1.5 block sm:hidden shrink-0" />
 
         {/* Header */}
-        <div className="flex items-center justify-between px-3.5 sm:px-6 py-3 sm:py-4 border-b border-white/[0.08] bg-[#10121A] shrink-0">
+        <div className="flex items-center justify-between px-3.5 sm:px-6 py-3 sm:py-4 border-b border-[var(--border-subtle)] bg-[var(--bg-surface-sub)] shrink-0">
           <div className="flex items-center space-x-3 min-w-0">
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-indigo-600/30 to-purple-600/30 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold shadow-inner shrink-0">
               <Settings className="w-4 h-4 text-indigo-400" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-sm font-bold text-white flex items-center space-x-2 truncate">
+              <h2 className="text-sm font-bold text-[var(--text-primary)] flex items-center space-x-2 truncate">
                 <span>{t('config.modalTitle')}</span>
               </h2>
-              <p className="text-[10px] sm:text-[11px] text-slate-400 truncate">{t('config.modalSub')}</p>
+              <p className="text-[10px] sm:text-[11px] text-[var(--text-secondary)] truncate">{t('config.modalSub')}</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-200 p-1.5 rounded-xl hover:bg-white/[0.05] transition-colors shrink-0"
+            className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-1.5 rounded-xl hover:bg-[var(--bg-surface-hover)] transition-colors shrink-0"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Linear Styled Tab Pills */}
-        <div className="flex items-center space-x-1 px-3 sm:px-6 py-2 border-b border-white/[0.06] bg-[#0A0C10] overflow-x-auto scrollbar-none shrink-0">
+        <div className="flex items-center space-x-1 px-3 sm:px-6 py-2 border-b border-[var(--border-subtle)] bg-[var(--bg-surface-sub)]/80 overflow-x-auto scrollbar-none shrink-0">
           {TABS.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -510,7 +510,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                     </div>
 
                     {/* Refined Toggle Switch */}
-                    <div className="bg-[#10121A] p-3.5 sm:p-4 rounded-xl border border-white/[0.06] flex items-center justify-between gap-3">
+                    <div className="ui-card-sub p-3.5 sm:p-4 flex items-center justify-between gap-3">
                       <div>
                         <span className="text-xs font-semibold text-slate-200 block">SYSTEM_ROLE_TO_INSTRUCTION</span>
                         <p className="text-[10px] text-slate-400 mt-0.5">{t('config.systemRoleDesc')}</p>
@@ -627,7 +627,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                   className={`p-2 rounded-xl transition-all ${
                                     isMultiTarget
                                       ? 'border border-amber-500/40 border-l-4 border-l-amber-500 bg-amber-500/[0.04] shadow-[0_0_12px_rgba(245,158,11,0.08)]'
-                                      : 'bg-[#10121A] sm:bg-white/[0.02] border border-white/[0.06] sm:border-white/[0.04]'
+                                      : 'ui-card-sub'
                                   }`}
                                 >
                                   <div className="space-y-2 sm:space-y-0 sm:flex sm:items-center sm:gap-1.5">
@@ -661,14 +661,14 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                             onFocus={() => setFocusedTargetId(entry.id)}
                                             onBlur={() => setFocusedTargetId(null)}
                                             placeholder={t('config.targetModel')}
-                                            className={`w-full ui-input p-1.5 sm:p-2 text-xs text-amber-300 ${
+                                            className={`w-full ui-input p-1.5 sm:p-2 text-xs text-amber-500 dark:text-amber-300 ${
                                               isMultiTarget && focusedTargetId !== entry.id ? 'pr-6' : ''
                                             }`}
                                           />
                                           {isMultiTarget && focusedTargetId !== entry.id && (
                                             <div className="absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none z-10 flex items-center">
                                               <span
-                                                className="text-[9px] font-mono font-bold text-amber-300 bg-[#10121A] border border-amber-500/60 shadow-sm px-1 py-0.5 rounded leading-none flex items-center select-none"
+                                                className="text-[9px] font-mono font-bold text-amber-500 dark:text-amber-300 bg-[var(--bg-surface-sub)] border border-amber-500/60 shadow-sm px-1 py-0.5 rounded leading-none flex items-center select-none"
                                                 title={`${targets.length} targets configured`}
                                               >
                                                 ×{targets.length}
@@ -687,10 +687,10 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                         className="w-24 sm:w-[94px] ui-input p-1.5 sm:p-2 text-[10px] sm:text-[11px] shrink-0 appearance-none cursor-pointer"
                                         title={t('config.strategy')}
                                       >
-                                        <option value="" className="bg-[#0C0E14]">{t('config.strategyDefault')}</option>
-                                        <option value="least-used" className="bg-[#0C0E14]">{t('config.strategyLeastUsed')}</option>
-                                        <option value="round-robin" className="bg-[#0C0E14]">{t('config.strategyRoundRobin')}</option>
-                                        <option value="weighted" className="bg-[#0C0E14]">{t('config.strategyWeighted')}</option>
+                                        <option value="">{t('config.strategyDefault')}</option>
+                                        <option value="least-used">{t('config.strategyLeastUsed')}</option>
+                                        <option value="round-robin">{t('config.strategyRoundRobin')}</option>
+                                        <option value="weighted">{t('config.strategyWeighted')}</option>
                                       </select>
                                       <button
                                         type="button"
@@ -744,7 +744,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                       <span>{t('config.securityGroup')}</span>
                     </div>
 
-                    <div className="bg-[#10121A] p-3.5 sm:p-4 rounded-xl border border-white/[0.06] space-y-2">
+                    <div className="ui-card-sub p-3.5 sm:p-4 space-y-2">
                       <div className="flex items-center space-x-2 text-xs font-semibold text-slate-200">
                         <Info className="w-4 h-4 text-indigo-400" />
                         <span>{t('config.adminSecretTitle')}</span>
@@ -778,7 +778,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
             </div>
 
             {/* Modal Sticky Footer */}
-            <div className="sticky bottom-0 bg-[#10121A]/95 backdrop-blur-xl border-t border-white/[0.08] p-3.5 sm:p-4 flex flex-col-reverse sm:flex-row items-center justify-between gap-3 shrink-0">
+            <div className="sticky bottom-0 bg-[var(--bg-surface-sub)]/95 backdrop-blur-xl border-t border-[var(--border-subtle)] p-3.5 sm:p-4 flex flex-col-reverse sm:flex-row items-center justify-between gap-3 shrink-0">
               <span className="text-[10px] sm:text-[11px] text-slate-500 font-mono text-center sm:text-left">
                 {t('config.footerNote')}
               </span>

@@ -155,29 +155,29 @@ export default function ConcurrentTestModal({
 
   return (
     <div className="backdrop-blur-xl bg-black/60 fixed inset-0 flex items-center justify-center z-50 p-2 sm:p-4 animate-in fade-in duration-200 font-sans">
-      <div className="bg-[#0F1118] border border-white/[0.1] rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[92vh]">
+      <div className="ui-card rounded-2xl w-full max-w-3xl overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header with benchmark title and warning badge */}
-        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-white/[0.08] bg-[#121520]">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-[var(--border-subtle)] bg-[var(--bg-surface-sub)]">
           <div className="flex items-center space-x-3 min-w-0">
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-purple-600/30 to-pink-600/30 border border-purple-500/30 flex items-center justify-center text-purple-400 font-bold shadow-inner shrink-0">
               <Zap className="w-4 h-4 text-purple-400" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center space-x-2 truncate">
-                <h3 className="text-sm font-bold text-white truncate">{t('concurrentTest.title')}</h3>
-                <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 items-center space-x-1 shrink-0">
+                <h3 className="text-sm font-bold text-[var(--text-primary)] truncate">{t('concurrentTest.title')}</h3>
+                <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-500 dark:text-amber-300 border border-amber-500/30 items-center space-x-1 shrink-0">
                   <AlertTriangle className="w-3 h-3 text-amber-400" />
                   <span>Pressure Benchmark</span>
                 </span>
               </div>
-              <p className="text-[10px] sm:text-[11px] text-slate-400 truncate">
+              <p className="text-[10px] sm:text-[11px] text-[var(--text-secondary)] truncate">
                 {t('concurrentTest.sub').replace('{method}', targetMethod).replace('{url}', targetUrl)}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-200 p-1.5 rounded-xl hover:bg-white/[0.05] transition-colors"
+            className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-1.5 rounded-xl hover:bg-[var(--bg-surface-hover)] transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -185,7 +185,7 @@ export default function ConcurrentTestModal({
 
         <div className="p-4 sm:p-6 overflow-y-auto space-y-5 flex-1">
           {/* Configuration Controls */}
-          <div className="bg-[#121520] p-5 rounded-2xl border border-white/[0.06] space-y-4">
+          <div className="ui-card-sub p-5 space-y-4">
             <div className="flex items-center space-x-2 text-xs font-bold text-purple-400 uppercase tracking-wider">
               <Sliders className="w-3.5 h-3.5 text-purple-400" />
               <span>Benchmark Configuration</span>
@@ -205,7 +205,7 @@ export default function ConcurrentTestModal({
                   disabled={testing}
                   value={concurrency}
                   onChange={(e) => setConcurrency(parseInt(e.target.value, 10) || 1)}
-                  className="w-full accent-purple-500 cursor-pointer h-1.5 bg-[#151824] rounded-lg"
+                  className="w-full accent-purple-500 cursor-pointer h-1.5 bg-black/10 dark:bg-white/10 rounded-lg"
                 />
               </div>
 
@@ -219,7 +219,7 @@ export default function ConcurrentTestModal({
                   disabled={testing}
                   value={totalRequests}
                   onChange={(e) => setTotalRequests(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                  className="w-full bg-[#151824] border border-white/[0.08] rounded-xl p-2 text-xs font-mono text-slate-100 focus:outline-none focus:border-indigo-500"
+                  className="w-full ui-input p-2 text-xs font-mono"
                 />
               </div>
 
@@ -230,7 +230,7 @@ export default function ConcurrentTestModal({
                   value={targetModel}
                   disabled={testing}
                   onChange={(e) => setTargetModel(e.target.value)}
-                  className="w-full bg-[#151824] border border-white/[0.08] rounded-xl p-2 text-xs font-mono text-slate-100 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                  className="w-full ui-input p-2 text-xs font-mono cursor-pointer"
                 >
                   <option value="gemini-3.1-flash-lite">gemini-3.1-flash-lite</option>
                   <option value="gemini-2.5-flash">gemini-2.5-flash</option>
@@ -266,15 +266,15 @@ export default function ConcurrentTestModal({
           {(results.length > 0 || testing) && (
             <div className="space-y-4 animate-in fade-in duration-200">
               {/* Progress bar with glowing gradient */}
-              <div className="bg-[#121520] p-4 rounded-2xl border border-white/[0.06] space-y-2">
-                <div className="flex justify-between text-xs text-slate-300 font-mono">
-                  <span className="flex items-center space-x-1.5 font-sans font-semibold">
+              <div className="ui-card-sub p-4 space-y-2">
+                <div className="flex justify-between text-xs text-[var(--text-secondary)] font-mono">
+                  <span className="flex items-center space-x-1.5 font-sans font-semibold text-[var(--text-primary)]">
                     <Activity className="w-3.5 h-3.5 text-indigo-400" />
                     <span>{t('concurrentTest.progress')}</span>
                   </span>
                   <span>{completedCount} / {totalRequests} ({progressPercent}%)</span>
                 </div>
-                <div className="w-full bg-[#151824] rounded-full h-2.5 overflow-hidden border border-white/[0.06]">
+                <div className="w-full bg-black/10 dark:bg-white/10 rounded-full h-2.5 overflow-hidden border border-[var(--border-subtle)]">
                   <div
                     className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 h-full transition-all duration-150 shadow-[0_0_12px_rgba(168,85,247,0.5)]"
                     style={{ width: `${progressPercent}%` }}
@@ -285,60 +285,60 @@ export default function ConcurrentTestModal({
               {/* KPI Badges Row */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
                 {/* Success / Failure */}
-                <div className="bg-[#121520] p-3.5 rounded-2xl border border-white/[0.06]">
-                  <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold flex items-center justify-center space-x-1">
+                <div className="ui-card-sub p-3.5">
+                  <div className="text-[10px] uppercase tracking-wider text-[var(--text-secondary)] font-semibold flex items-center justify-center space-x-1">
                     <CheckCircle2 className="w-3 h-3 text-emerald-400" />
                     <span>Success</span>
                   </div>
-                  <div className="text-base font-bold font-mono mt-1 text-emerald-400">
+                  <div className="text-base font-bold font-mono mt-1 text-emerald-500 dark:text-emerald-400">
                     {successCount}
                   </div>
                 </div>
 
                 {/* 429 Rate Limit / Other Errors */}
-                <div className="bg-[#121520] p-3.5 rounded-2xl border border-white/[0.06]">
-                  <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold flex items-center justify-center space-x-1">
+                <div className="ui-card-sub p-3.5">
+                  <div className="text-[10px] uppercase tracking-wider text-[var(--text-secondary)] font-semibold flex items-center justify-center space-x-1">
                     <AlertCircle className="w-3 h-3 text-rose-400" />
                     <span>429 / Failed</span>
                   </div>
                   <div className="text-base font-bold font-mono mt-1">
-                    <span className="text-amber-400" title="429 Rate Limit Errors">{rateLimit429Count}</span>
-                    <span className="text-slate-600 mx-1">/</span>
-                    <span className="text-rose-400" title="Other Failures">{otherErrorCount}</span>
+                    <span className="text-amber-500 dark:text-amber-400" title="429 Rate Limit Errors">{rateLimit429Count}</span>
+                    <span className="text-slate-400 mx-1">/</span>
+                    <span className="text-rose-500 dark:text-rose-400" title="Other Failures">{otherErrorCount}</span>
                   </div>
                 </div>
 
                 {/* Avg Latency */}
-                <div className="bg-[#121520] p-3.5 rounded-2xl border border-white/[0.06]">
-                  <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold flex items-center justify-center space-x-1">
+                <div className="ui-card-sub p-3.5">
+                  <div className="text-[10px] uppercase tracking-wider text-[var(--text-secondary)] font-semibold flex items-center justify-center space-x-1">
                     <Clock className="w-3 h-3 text-purple-400" />
                     <span>{t('concurrentTest.avgLatency')}</span>
                   </div>
-                  <div className="text-base font-bold font-mono mt-1 text-purple-300">
-                    {avgLatency} <span className="text-xs font-normal text-slate-500">ms</span>
+                  <div className="text-base font-bold font-mono mt-1 text-purple-600 dark:text-purple-300">
+                    {avgLatency} <span className="text-xs font-normal text-[var(--text-muted)]">ms</span>
                   </div>
                 </div>
 
                 {/* Live Throughput QPS */}
-                <div className="bg-[#121520] p-3.5 rounded-2xl border border-white/[0.06]">
-                  <div className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold flex items-center justify-center space-x-1">
+                <div className="ui-card-sub p-3.5">
+                  <div className="text-[10px] uppercase tracking-wider text-[var(--text-secondary)] font-semibold flex items-center justify-center space-x-1">
                     <TrendingUp className="w-3 h-3 text-indigo-400" />
                     <span>RPS (QPS)</span>
                   </div>
-                  <div className="text-base font-bold font-mono mt-1 text-indigo-300">
-                    {qps} <span className="text-xs font-normal text-slate-500">req/s</span>
+                  <div className="text-base font-bold font-mono mt-1 text-indigo-600 dark:text-indigo-300">
+                    {qps} <span className="text-xs font-normal text-[var(--text-muted)]">req/s</span>
                   </div>
                 </div>
               </div>
 
               {/* Request Timeline / Latency Distribution List */}
-              <div className="bg-[#121520] rounded-2xl border border-white/[0.06] overflow-hidden">
-                <div className="p-3 bg-[#151824] border-b border-white/[0.06] flex items-center justify-between text-xs font-semibold text-slate-300">
-                  <div className="flex items-center space-x-1.5">
+              <div className="ui-card-sub overflow-hidden">
+                <div className="p-3 bg-[var(--bg-surface-sub)] border-b border-[var(--border-subtle)] flex items-center justify-between text-xs font-semibold text-[var(--text-secondary)]">
+                  <div className="flex items-center space-x-1.5 text-[var(--text-primary)]">
                     <Layers className="w-3.5 h-3.5 text-indigo-400" />
                     <span>Request Execution Timeline</span>
                   </div>
-                  <span className="text-[11px] font-mono text-slate-500">
+                  <span className="text-[11px] font-mono text-[var(--text-muted)]">
                     Min: {minLatency}ms | Max: {maxLatency}ms
                   </span>
                 </div>

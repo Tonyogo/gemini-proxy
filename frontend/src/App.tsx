@@ -251,7 +251,7 @@ export default function App() {
                   onChange={(e) => setInputKey(e.target.value)}
                   placeholder={t('nav.adminKeyPlaceholder')}
                   autoFocus
-                  className="w-full bg-[#090A0F] border border-white/[0.1] hover:border-white/[0.2] focus:border-indigo-500/80 rounded-xl px-4 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500/40 font-mono transition-all"
+                  className="w-full ui-input px-4 py-2.5"
                 />
               </div>
             </div>
@@ -380,8 +380,8 @@ export default function App() {
                   isSidebarCollapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2.5 space-x-3'
                 } ${
                   isActive
-                    ? 'bg-gradient-to-r from-indigo-500/15 via-purple-500/10 to-transparent text-white border border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.08)]'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04] border border-transparent'
+                    ? 'bg-gradient-to-r from-indigo-500/15 via-purple-500/10 to-transparent text-indigo-600 dark:text-white border border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.08)]'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)] border border-transparent'
                 }`}
               >
                 {/* Active Indicator Bar */}
@@ -391,7 +391,7 @@ export default function App() {
 
                 <Icon
                   className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-110 ${
-                    isActive ? 'text-indigo-400' : 'text-slate-400 group-hover:text-slate-200'
+                    isActive ? 'text-indigo-500 dark:text-indigo-400' : 'text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]'
                   }`}
                 />
 
@@ -400,8 +400,8 @@ export default function App() {
                     <span className="truncate">{title}</span>
                     <kbd className={`text-[10px] font-mono px-1.5 py-0.5 rounded border transition-colors ${
                       isActive
-                        ? 'bg-indigo-500/20 border-indigo-500/30 text-indigo-300'
-                        : 'bg-white/[0.03] border-white/[0.06] text-slate-500 group-hover:text-slate-400'
+                        ? 'bg-indigo-500/20 border-indigo-500/30 text-indigo-600 dark:text-indigo-300'
+                        : 'bg-[var(--bg-surface-sub)] border-[var(--border-subtle)] text-[var(--text-muted)] group-hover:text-[var(--text-secondary)]'
                     }`}>
                       {item.shortcut}
                     </kbd>
