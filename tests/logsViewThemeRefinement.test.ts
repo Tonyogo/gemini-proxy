@@ -51,4 +51,15 @@ describe('LogsView & Preview Modes Theme Cleanliness Test', () => {
     const thinkingCode = read('chat/ThinkingBlock.tsx');
     expect(thinkingCode).not.toContain('bg-slate-950/60 border-t border-amber-500/20 text-slate-300');
   });
+
+  it('verifies JsonTreeView has h-full flex flex-col overflow-hidden layout', () => {
+    const code = read('JsonTreeView.tsx');
+    expect(code).toContain('h-full flex-1 min-h-0 flex flex-col overflow-hidden');
+    expect(code).toContain('flex-1 min-h-0 overflow-auto');
+  });
+
+  it('verifies LogsView list area has flex-1 min-h-0 overflow-y-auto', () => {
+    const code = read('LogsView.tsx');
+    expect(code).toContain('flex-1 min-h-0 overflow-y-auto');
+  });
 });

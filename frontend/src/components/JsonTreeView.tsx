@@ -193,9 +193,9 @@ export default function JsonTreeView({
   };
 
   return (
-    <div className="bg-[var(--code-bg)] rounded-xl border border-[var(--border-subtle)] overflow-hidden flex flex-col">
+    <div className="h-full flex-1 min-h-0 flex flex-col overflow-hidden bg-[var(--code-bg)] rounded-xl border border-[var(--border-subtle)]">
       {/* Action Toolbar Header */}
-      <div className="flex items-center justify-between px-3 py-1.5 bg-[var(--bg-surface-sub)] border-b border-[var(--border-subtle)] select-none text-[11px]">
+      <div className="flex items-center justify-between px-3 py-1.5 bg-[var(--bg-surface-sub)] border-b border-[var(--border-subtle)] select-none text-[11px] shrink-0">
         <div className="flex items-center space-x-1.5 text-slate-400">
           <ChevronsUpDown className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
           <span className="font-mono text-[10px] text-[var(--text-primary)] font-semibold">{t('logs.jsonInspector', 'JSON 检查器')}</span>
@@ -236,7 +236,7 @@ export default function JsonTreeView({
       </div>
 
       {/* JSON Tree Viewport */}
-      <div className="p-3 overflow-x-auto">
+      <div className="flex-1 min-h-0 overflow-auto p-3">
         <JsonNode
           value={data}
           depth={0}
