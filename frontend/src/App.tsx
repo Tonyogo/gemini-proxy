@@ -329,6 +329,8 @@ export default function App() {
     return t(`nav.${activeTab}`);
   };
 
+  const isWorkbenchTab = ['playground', 'logs', 'translate'].includes(activeTab);
+
   return (
     <div className="flex min-h-screen bg-[#090A0F] text-slate-100 font-sans selection:bg-indigo-500 selection:text-white antialiased">
       {/* Collapsible Sidebar (Desktop only) */}
@@ -567,7 +569,9 @@ export default function App() {
         <main className={`flex-1 overflow-x-hidden ${
           activeTab === 'terminal'
             ? 'p-0 md:p-6 pb-0 md:pb-6 flex flex-col min-h-0 h-[calc(100dvh-3rem-3.5rem)] max-h-[calc(100dvh-3rem-3.5rem)] md:h-auto md:max-h-none overflow-hidden'
-            : 'p-2.5 sm:p-4 md:p-6 pb-20 md:pb-6'
+            : isWorkbenchTab
+              ? 'p-2.5 sm:p-4 md:p-6 pb-20 md:pb-6 flex flex-col min-h-0 md:overflow-hidden'
+              : 'p-2.5 sm:p-4 md:p-6 pb-20 md:pb-6'
         }`}>
           {activeTab === 'dashboard' && (
             <DashboardView
