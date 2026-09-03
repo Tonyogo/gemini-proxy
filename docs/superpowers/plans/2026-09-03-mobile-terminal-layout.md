@@ -27,11 +27,11 @@
 - Consumes: `onSubTabChange: (tab: 'interactive' | 'logs') => void`, `subTab: 'interactive' | 'logs'`, `isConnected: boolean`, `isConnecting: boolean`
 - Produces: 响应式精简顶栏（移动端仅图标 Tab、极简状态点、隐藏 Zoom 按钮）
 
-- [ ] **Step 1: 检查当前 WebTerminalView.tsx 中的 Tab 按钮、状态徽标与缩放按钮结构**
+- [x] **Step 1: 检查当前 WebTerminalView.tsx 中的 Tab 按钮、状态徽标与缩放按钮结构**
 
 定位到 665 行附近的 `ui-tab-container`、702 行附近的连接状态 Badge，以及 728-746 行的 Zoom 按钮。
 
-- [ ] **Step 2: 修改 WebTerminalView.tsx 中的 Tab 文本、状态文本与 Zoom 按钮的 Tailwind 响应式类**
+- [x] **Step 2: 修改 WebTerminalView.tsx 中的 Tab 文本、状态文本与 Zoom 按钮的 Tailwind 响应式类**
 
 在 `frontend/src/components/WebTerminalView.tsx` 中：
 1. Tab 切换按键中的文本标签由 `<span>{t('terminal.interactiveTab')}</span>` 改为 `<span className="hidden sm:inline">{t('terminal.interactiveTab')}</span>`；同理 `<span>{t('terminal.logsTab')}</span>` 改为 `<span className="hidden sm:inline">{t('terminal.logsTab')}</span>`。
@@ -39,7 +39,7 @@
 3. 连接状态 Badge 中的文本 `<span className="text-[9px] sm:text-[10px]">` 改为 `<span className="hidden sm:inline text-[10px]">`，移动端仅保留状态呼吸小点。
 4. Zoom Out 与 Zoom In 按钮添加 `hidden sm:inline-flex` 类名，在移动端自动隐藏。
 
-- [ ] **Step 3: 运行前端构建验证无语法与样式错误**
+- [x] **Step 3: 运行前端构建验证无语法与样式错误**
 
 运行命令：
 ```bash
@@ -47,7 +47,7 @@ zsh -c 'export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm
 ```
 预期：构建通过，无 TypeScript 或打包错误。
 
-- [ ] **Step 4: 提交 Task 1 代码**
+- [x] **Step 4: 提交 Task 1 代码**
 
 ```bash
 git add frontend/src/components/WebTerminalView.tsx
@@ -65,18 +65,18 @@ git commit -m "feat(webTerminal): streamline top bar layout on mobile screens"
 - Consumes: `onSubTabChange: (tab: 'interactive' | 'logs') => void`, `subTab: 'interactive' | 'logs'`, `isConnected: boolean`
 - Produces: 响应式精简顶栏（移动端仅图标 Tab、极简状态点），与 WebTerminalView 视觉尺寸完全对齐
 
-- [ ] **Step 1: 检查 TerminalLogsView.tsx 中 Tab 切换与连接状态渲染**
+- [x] **Step 1: 检查 TerminalLogsView.tsx 中 Tab 切换与连接状态渲染**
 
 定位到 214-240 行的 `ui-tab-container` 及 253-270 行的状态徽标。
 
-- [ ] **Step 2: 修改 TerminalLogsView.tsx 中的 Tab 文本与状态文本**
+- [x] **Step 2: 修改 TerminalLogsView.tsx 中的 Tab 文本与状态文本**
 
 在 `frontend/src/components/TerminalLogsView.tsx` 中：
 1. Tab 切换按键中的文本 `<span className="hidden sm:inline">{t('terminal.interactiveTab')}</span>` 与 `<span className="hidden sm:inline">{t('terminal.logsTab')}</span>`。
 2. 将 Tab 按钮内边距对齐为 `px-2 sm:px-2.5 py-1`。
 3. 状态 Badge 中的文字 `<span className="tracking-wider uppercase">` 改为 `<span className="hidden sm:inline tracking-wider uppercase">`。
 
-- [ ] **Step 3: 运行前端构建验证**
+- [x] **Step 3: 运行前端构建验证**
 
 运行命令：
 ```bash
@@ -84,7 +84,7 @@ zsh -c 'export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm
 ```
 预期：构建通过。
 
-- [ ] **Step 4: 提交 Task 2 代码**
+- [x] **Step 4: 提交 Task 2 代码**
 
 ```bash
 git add frontend/src/components/TerminalLogsView.tsx
@@ -102,14 +102,14 @@ git commit -m "feat(terminalLogs): streamline tab and status layout on mobile sc
 - Consumes: `frontend/src/components/WebTerminalView.tsx`, `frontend/src/components/TerminalLogsView.tsx`
 - Produces: 自动化验证移动端样式类名与响应式断言测试
 
-- [ ] **Step 1: 编写测试用例验证关键组件源代码包含针对移动端的精简与隐藏类名**
+- [x] **Step 1: 编写测试用例验证关键组件源代码包含针对移动端的精简与隐藏类名**
 
 创建 `tests/terminalMobileLayout.test.ts`，验证：
 1. `WebTerminalView.tsx` 中 Tab 文本与状态文本均包含 `hidden sm:inline`。
 2. `WebTerminalView.tsx` 中 ZoomOut / ZoomIn 按钮包含 `hidden sm:inline-flex`。
 3. `TerminalLogsView.tsx` 中 Tab 文本与状态文本均包含 `hidden sm:inline`。
 
-- [ ] **Step 2: 运行测试验证**
+- [x] **Step 2: 运行测试验证**
 
 运行命令：
 ```bash
@@ -117,7 +117,7 @@ zsh -c 'export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm
 ```
 预期：PASS。
 
-- [ ] **Step 3: 运行完整测试套件与全量打包构建**
+- [x] **Step 3: 运行完整测试套件与全量打包构建**
 
 运行命令：
 ```bash
@@ -125,7 +125,7 @@ zsh -c 'export NVM_DIR="$HOME/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm
 ```
 预期：全部测试与生产构建通过。
 
-- [ ] **Step 4: 提交测试与计划完成标记**
+- [x] **Step 4: 提交测试与计划完成标记**
 
 ```bash
 git add tests/terminalMobileLayout.test.ts
