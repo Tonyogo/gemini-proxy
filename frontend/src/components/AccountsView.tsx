@@ -950,7 +950,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                         key={acc.index}
                         className={`hover:bg-[var(--bg-surface-hover)] transition-colors ${
                           isCurrent
-                            ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-l-2 border-emerald-500'
+                            ? 'bg-emerald-50/50 dark:bg-emerald-950/30 border-l-2 border-emerald-500'
                             : isChecked
                             ? 'bg-indigo-50/60 dark:bg-indigo-950/25'
                             : isManuallyDisabled
@@ -1174,7 +1174,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                     key={acc.index}
                     className={`p-3.5 transition-colors space-y-3 ${
                       isCurrent
-                        ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-l-2 border-emerald-500'
+                        ? 'bg-emerald-50/50 dark:bg-emerald-950/30 border-l-2 border-emerald-500'
                         : isChecked
                         ? 'bg-indigo-50/60 dark:bg-indigo-950/25'
                         : isManuallyDisabled
