@@ -528,7 +528,7 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
               className="appearance-none ui-input pr-8 py-2 cursor-pointer font-sans"
             >
               {SUPPORTED_LANGUAGES.map(langOpt => (
-                <option key={langOpt.code} value={langOpt.code} className="bg-[#10121A] text-slate-200">
+                <option key={langOpt.code} value={langOpt.code}>
                   {isZh ? langOpt.name : langOpt.enName}
                 </option>
               ))}
@@ -553,7 +553,7 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
               className="appearance-none ui-input pr-8 py-2 cursor-pointer font-sans"
             >
               {SUPPORTED_LANGUAGES.filter(l => l.code !== 'auto').map(langOpt => (
-                <option key={langOpt.code} value={langOpt.code} className="bg-[#10121A] text-slate-200">
+                <option key={langOpt.code} value={langOpt.code}>
                   {isZh ? langOpt.name : langOpt.enName}
                 </option>
               ))}
@@ -898,7 +898,7 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
                     {res.text && (
                       <div className="text-slate-100 text-sm leading-relaxed font-sans">
                         {res.renderMarkdown ? (
-                          <div className="prose prose-invert max-w-none prose-p:my-2 prose-pre:bg-[#07080B] prose-pre:border prose-pre:border-white/10 prose-pre:p-3 prose-pre:rounded-lg text-slate-200">
+                          <div className="prose dark:prose-invert max-w-none prose-p:my-2 prose-pre:bg-[var(--code-bg)] prose-pre:text-[var(--code-text)] prose-pre:border prose-pre:border-[var(--border-subtle)] prose-pre:p-3 prose-pre:rounded-lg text-[var(--text-primary)]">
                             <ReactMarkdown remarkPlugins={[remarkGfm]}>{res.text}</ReactMarkdown>
                           </div>
                         ) : (

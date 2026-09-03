@@ -514,12 +514,12 @@ export default function PlaygroundView() {
             <select
               value={selectedModel}
               onChange={(e) => handleModelChange(e.target.value)}
-              className="w-full bg-transparent text-xs text-slate-200 focus:outline-none font-mono cursor-pointer"
+              className="w-full bg-transparent text-xs text-[var(--text-primary)] focus:outline-none font-mono cursor-pointer"
             >
-              <option value="gemini-3.1-flash-lite" className="bg-[#0F1118]">gemini-3.1-flash-lite</option>
-              <option value="gemini-pro-latest" className="bg-[#0F1118]">gemini-pro-latest</option>
-              <option value="gemini-flash-latest" className="bg-[#0F1118]">gemini-flash-latest</option>
-              <option value="gemini-flash-lite-latest" className="bg-[#0F1118]">gemini-flash-lite-latest</option>
+              <option value="gemini-3.1-flash-lite">gemini-3.1-flash-lite</option>
+              <option value="gemini-pro-latest">gemini-pro-latest</option>
+              <option value="gemini-flash-latest">gemini-flash-latest</option>
+              <option value="gemini-flash-lite-latest">gemini-flash-lite-latest</option>
             </select>
           </div>
 
@@ -529,31 +529,31 @@ export default function PlaygroundView() {
             <select
               value={endpointOption}
               onChange={(e) => handleEndpointOptionChange(e.target.value as EndpointOption)}
-              className="w-full bg-transparent text-xs text-slate-200 focus:outline-none font-mono cursor-pointer"
+              className="w-full bg-transparent text-xs text-[var(--text-primary)] focus:outline-none font-mono cursor-pointer"
             >
-              <option value="messages" className="bg-[#0F1118]">POST /v1/messages</option>
-              <option value="count_tokens" className="bg-[#0F1118]">POST /v1/messages/count_tokens</option>
-              <option value="custom" className="bg-[#0F1118]">{t('playground.customEndpoint')}</option>
+              <option value="messages">POST /v1/messages</option>
+              <option value="count_tokens">POST /v1/messages/count_tokens</option>
+              <option value="custom">{t('playground.customEndpoint')}</option>
             </select>
 
             {endpointOption === 'custom' && (
-              <div className="flex items-center space-x-1 pl-1.5 border-l border-white/[0.08]">
+              <div className="flex items-center space-x-1 pl-1.5 border-l border-[var(--border-subtle)]">
                 <select
                   value={customMethod}
                   onChange={(e) => setCustomMethod(e.target.value)}
-                  className="bg-transparent text-xs text-indigo-400 font-bold focus:outline-none cursor-pointer"
+                  className="bg-transparent text-xs text-indigo-500 dark:text-indigo-400 font-bold focus:outline-none cursor-pointer"
                 >
-                  <option value="POST" className="bg-[#0F1118]">POST</option>
-                  <option value="GET" className="bg-[#0F1118]">GET</option>
-                  <option value="PUT" className="bg-[#0F1118]">PUT</option>
-                  <option value="DELETE" className="bg-[#0F1118]">DELETE</option>
+                  <option value="POST">POST</option>
+                  <option value="GET">GET</option>
+                  <option value="PUT">PUT</option>
+                  <option value="DELETE">DELETE</option>
                 </select>
                 <input
                   type="text"
                   value={customPath}
                   onChange={(e) => setCustomPath(e.target.value)}
                   placeholder="/v1/..."
-                  className="bg-[#090A0F] border border-white/[0.1] rounded-lg px-2 py-0.5 text-xs text-slate-100 font-mono w-28 sm:w-44 focus:outline-none focus:border-indigo-500/80 transition-all"
+                  className="ui-input py-0.5 px-2 text-xs font-mono w-28 sm:w-44"
                 />
               </div>
             )}
@@ -851,7 +851,7 @@ export default function PlaygroundView() {
             </div>
           </div>
 
-          <div className="flex-1 rounded-xl overflow-hidden border border-white/[0.06] bg-[#020617] overflow-y-auto p-2 sm:p-3">
+          <div className="flex-1 rounded-xl overflow-hidden border border-[var(--border-subtle)] bg-[var(--code-bg)] overflow-y-auto p-2 sm:p-3">
             {viewMode === 'preview' ? (
               isStreamingActive ? (
                 <div className="p-1">
@@ -886,7 +886,7 @@ export default function PlaygroundView() {
                             <Code className="w-3.5 h-3.5 text-blue-400" />
                             <span>{t('playground.toolCall').replace('{name}', tc.name || 'unknown')}</span>
                           </div>
-                          <div className="bg-[#0A0E1A] p-2.5 rounded-lg border border-blue-900/40 overflow-x-auto text-[11px] text-blue-200">
+                          <div className="bg-black/10 dark:bg-[#0A0E1A] p-2.5 rounded-lg border border-blue-900/40 overflow-x-auto text-[11px] text-blue-700 dark:text-blue-200">
                             <pre>{JSON.stringify(tc.args || tc.input || {}, null, 2)}</pre>
                           </div>
                         </div>

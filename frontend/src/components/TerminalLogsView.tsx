@@ -285,7 +285,7 @@ export default function TerminalLogsView({
               placeholder={t('terminal.searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-[#141622] border border-white/[0.08] text-slate-200 text-xs rounded-lg pl-7 pr-6 py-1 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition-all placeholder:text-slate-600 sm:w-32 md:w-44"
+              className="w-full ui-input pl-7 pr-6 py-1 sm:w-32 md:w-44"
             />
             {searchTerm && (
               <button
@@ -387,7 +387,7 @@ export default function TerminalLogsView({
       </div>
 
       {/* Terminal Footer Info */}
-      <div className="bg-[#0D0F17] border-t border-white/[0.06] px-4 py-2 flex items-center justify-between text-[11px] text-slate-500 select-none">
+      <div className="bg-[var(--bg-surface-sub)] border-t border-[var(--border-subtle)] px-4 py-2 flex items-center justify-between text-[11px] text-[var(--text-muted)] select-none">
         <div className="flex items-center space-x-2">
           <span>Buffer: {logs.length} lines</span>
           <span>•</span>
