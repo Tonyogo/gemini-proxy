@@ -108,7 +108,7 @@ export default function ConversationView({ log }: ConversationViewProps) {
   }
 
   return (
-    <div ref={containerRef} className="flex flex-col space-y-4 pb-8 max-w-4xl mx-auto w-full relative">
+    <div ref={containerRef} className="flex flex-col space-y-4 pb-8 max-w-5xl mx-auto w-full relative">
       {/* System Prompt Collapsible Card */}
       {systemPrompt && (
         <div className="rounded-2xl border border-indigo-500/30 bg-indigo-950/20 overflow-hidden font-mono text-xs transition-all shadow-md">

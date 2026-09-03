@@ -354,10 +354,10 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
   };
 
   return (
-    <div className="flex flex-col md:flex-row gap-4 max-w-7xl mx-auto items-stretch min-h-[700px] md:h-[calc(100vh-6.5rem)]">
+    <div className="w-full flex-1 flex flex-col md:flex-row gap-4 items-stretch h-full min-h-[600px] md:h-[calc(100dvh-6.5rem)] overflow-hidden">
       {/* Left Column (Request Master List) */}
       {!sidebarCollapsed && (
-        <div className={`w-full md:w-80 lg:w-[340px] shrink-0 ui-card p-3.5 flex flex-col h-[520px] md:h-full transition-all ${
+        <div className={`w-full md:w-80 lg:w-[360px] xl:w-[380px] shrink-0 ui-card p-3.5 flex flex-col h-[520px] md:h-full transition-all ${
           mobileDetailOpen ? 'hidden md:flex' : 'flex'
         }`}>
           {/* Header Bar */}
@@ -918,21 +918,21 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
             <span>{t('logs.loadingDetail')}</span>
           </div>
         ) : selectedLog ? (
-          <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+          <div className="flex-1 overflow-y-auto space-y-4 pr-1 flex flex-col min-h-0">
             {activeTab === 'payload' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 min-h-0">
                 {/* Claude Client Request */}
-                <div className="flex flex-col">
-                  <div className="text-[11px] font-semibold text-indigo-400 mb-1.5 flex items-center space-x-1.5">
+                <div className="flex-1 min-h-0 flex flex-col">
+                  <div className="text-[11px] font-semibold text-indigo-400 mb-1.5 flex items-center space-x-1.5 shrink-0">
                     <span className="w-2 h-2 rounded-full bg-indigo-400" />
                     <span>{t('logs.claudeClientReq')}</span>
                   </div>
                   {viewMode === 'preview' ? (
                     <JsonTreeView data={selectedLog.client_req} />
                   ) : (
-                    <div className="rounded-xl overflow-hidden border border-slate-800 shadow-inner">
+                    <div className="flex-1 min-h-[420px] rounded-xl overflow-hidden border border-white/[0.08] shadow-inner bg-[#020617]">
                       <Editor
-                        height="620px"
+                        height="100%"
                         language="json"
                         theme="gemini-proxy-dark"
                         beforeMount={defineGeminiProxyTheme}
@@ -952,17 +952,17 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                 </div>
 
                 {/* Gemini Upstream Request */}
-                <div className="flex flex-col">
-                  <div className="text-[11px] font-semibold text-emerald-400 mb-1.5 flex items-center space-x-1.5">
+                <div className="flex-1 min-h-0 flex flex-col">
+                  <div className="text-[11px] font-semibold text-emerald-400 mb-1.5 flex items-center space-x-1.5 shrink-0">
                     <span className="w-2 h-2 rounded-full bg-emerald-400" />
                     <span>{t('logs.geminiUpstreamReq')}</span>
                   </div>
                   {viewMode === 'preview' ? (
                     <JsonTreeView data={selectedLog.gem_req} />
                   ) : (
-                    <div className="rounded-xl overflow-hidden border border-slate-800 shadow-inner">
+                    <div className="flex-1 min-h-[420px] rounded-xl overflow-hidden border border-white/[0.08] shadow-inner bg-[#020617]">
                       <Editor
-                        height="620px"
+                        height="100%"
                         language="json"
                         theme="gemini-proxy-dark"
                         beforeMount={defineGeminiProxyTheme}
@@ -984,10 +984,10 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
             )}
 
             {activeTab === 'response' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 min-h-0">
                 {/* Claude Final Response */}
-                <div className="flex flex-col">
-                  <div className="text-[11px] font-semibold text-amber-400 mb-1.5 flex items-center justify-between">
+                <div className="flex-1 min-h-0 flex flex-col">
+                  <div className="text-[11px] font-semibold text-amber-400 mb-1.5 flex items-center justify-between shrink-0">
                     <div className="flex items-center space-x-1.5">
                       <span className="w-2 h-2 rounded-full bg-amber-400" />
                       <span>{t('logs.claudeFinalRes')}</span>
@@ -1005,9 +1005,9 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                       <JsonTreeView data={selectedLog.claude_res} />
                     )
                   ) : (
-                    <div className="rounded-xl overflow-hidden border border-slate-800 shadow-inner">
+                    <div className="flex-1 min-h-[420px] rounded-xl overflow-hidden border border-white/[0.08] shadow-inner bg-[#020617]">
                       <Editor
-                        height="620px"
+                        height="100%"
                         language="json"
                         theme="gemini-proxy-dark"
                         beforeMount={defineGeminiProxyTheme}
@@ -1027,8 +1027,8 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                 </div>
 
                 {/* Gemini Upstream Response */}
-                <div className="flex flex-col">
-                  <div className="text-[11px] font-semibold text-purple-400 mb-1.5 flex items-center justify-between">
+                <div className="flex-1 min-h-0 flex flex-col">
+                  <div className="text-[11px] font-semibold text-purple-400 mb-1.5 flex items-center justify-between shrink-0">
                     <div className="flex items-center space-x-1.5">
                       <span className="w-2 h-2 rounded-full bg-purple-400" />
                       <span>{t('logs.geminiUpstreamRes')}</span>
@@ -1046,9 +1046,9 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                       <JsonTreeView data={selectedLog.gem_res} />
                     )
                   ) : (
-                    <div className="rounded-xl overflow-hidden border border-slate-800 shadow-inner">
+                    <div className="flex-1 min-h-[420px] rounded-xl overflow-hidden border border-white/[0.08] shadow-inner bg-[#020617]">
                       <Editor
-                        height="620px"
+                        height="100%"
                         language="json"
                         theme="gemini-proxy-dark"
                         beforeMount={defineGeminiProxyTheme}
