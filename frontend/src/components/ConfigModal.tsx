@@ -17,7 +17,8 @@ import {
   Code,
   List,
   Sparkles,
-  Info
+  Info,
+  Github
 } from 'lucide-react';
 import { useTranslation } from '../i18n/LanguageContext';
 
@@ -373,12 +374,23 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
               <p className="text-[10px] sm:text-[11px] text-[var(--text-secondary)] truncate">{t('config.modalSub')}</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-1.5 rounded-xl hover:bg-[var(--bg-surface-hover)] transition-colors shrink-0"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center space-x-1 shrink-0">
+            <a
+              href="https://github.com/Tonyogo/gemini-proxy"
+              target="_blank"
+              rel="noopener noreferrer"
+              title={t('nav.github', 'GitHub Repository')}
+              className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-1.5 rounded-xl hover:bg-[var(--bg-surface-hover)] transition-colors shrink-0 flex items-center"
+            >
+              <Github className="w-4 h-4" />
+            </a>
+            <button
+              onClick={onClose}
+              className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-1.5 rounded-xl hover:bg-[var(--bg-surface-hover)] transition-colors shrink-0"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Linear Styled Tab Pills */}

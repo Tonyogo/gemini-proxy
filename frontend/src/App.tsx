@@ -20,7 +20,9 @@ import {
   Menu,
   X,
   Maximize2,
-  Languages
+  Languages,
+  Github,
+  ExternalLink
 } from 'lucide-react';
 import DashboardView from './components/DashboardView';
 import AccountsView from './components/AccountsView';
@@ -51,6 +53,8 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 const VALID_TABS: TabType[] = ['dashboard', 'accounts', 'logs', 'terminal', 'playground', 'translate'];
+
+const GITHUB_REPO_URL = 'https://github.com/Tonyogo/gemini-proxy';
 
 const isTerminalRoute = (): boolean => {
   return (
@@ -295,7 +299,16 @@ export default function App() {
               </button>
               <ThemeSwitcher variant="login" />
             </div>
-            <span className="text-[11px] text-slate-500 font-mono">Gemini Studio Proxy</span>
+            <a
+              href={GITHUB_REPO_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[11px] text-slate-500 hover:text-indigo-500 dark:hover:text-indigo-400 transition-colors flex items-center space-x-1 font-mono"
+              title={t('nav.github')}
+            >
+              <Github className="w-3.5 h-3.5" />
+              <span>GitHub</span>
+            </a>
           </div>
 
           <p className="text-[11px] text-slate-500 text-center leading-relaxed">
@@ -432,6 +445,25 @@ export default function App() {
             )}
           </div>
 
+          {/* GitHub Repository Link */}
+          <a
+            href={GITHUB_REPO_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={isSidebarCollapsed ? t('nav.github') : undefined}
+            className={`w-full flex items-center rounded-xl text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-black/[0.04] dark:hover:bg-white/[0.04] transition-colors group ${
+              isSidebarCollapsed ? 'justify-center p-2.5' : 'px-3 py-2 space-x-2.5 justify-between'
+            }`}
+          >
+            <div className="flex items-center space-x-2.5 min-w-0">
+              <Github className="w-4 h-4 shrink-0 transition-transform group-hover:scale-110" />
+              {!isSidebarCollapsed && <span className="truncate">{t('nav.github')}</span>}
+            </div>
+            {!isSidebarCollapsed && (
+              <ExternalLink className="w-3 h-3 text-slate-400 opacity-60 group-hover:opacity-100 transition-opacity shrink-0" />
+            )}
+          </a>
+
           {/* Settings Button */}
           <button
             onClick={() => setIsConfigModalOpen(true)}
@@ -526,6 +558,18 @@ export default function App() {
                 <Maximize2 className="w-3.5 h-3.5" />
               </button>
             )}
+
+            {/* GitHub Repository Link */}
+            <a
+              href={GITHUB_REPO_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={t('nav.github')}
+              className="px-2 sm:px-2.5 py-1.5 bg-black/[0.02] dark:bg-white/[0.03] hover:bg-black/[0.06] dark:hover:bg-white/[0.08] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] rounded-lg text-xs text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all flex items-center space-x-1.5 shadow-sm active:scale-95"
+            >
+              <Github className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+              <span className="hidden sm:inline text-[11px] font-medium">GitHub</span>
+            </a>
 
             {/* Refresh Button */}
             <button

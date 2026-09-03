@@ -16,7 +16,8 @@ export const zh: Translations = {
     themeDark: "深色模式",
     themeLight: "浅色模式",
     themeSystem: "跟随系统",
-    themeToggle: "切换主题 (深色 / 浅色 / 系统)"
+    themeToggle: "切换主题 (深色 / 浅色 / 系统)",
+    github: "GitHub 源码"
   },
   accounts: {
     title: "账号管理",

@@ -14,7 +14,8 @@ export const en = {
     themeDark: "Dark Mode",
     themeLight: "Light Mode",
     themeSystem: "System Default",
-    themeToggle: "Toggle Theme (Dark / Light / System)"
+    themeToggle: "Toggle Theme (Dark / Light / System)",
+    github: "GitHub Repository"
   },
   accounts: {
     title: "Account Management",
