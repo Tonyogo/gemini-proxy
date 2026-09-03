@@ -468,7 +468,7 @@ export default function PlaygroundView() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-4 flex flex-col font-sans min-h-[600px] md:h-[calc(100vh-6.5rem)]">
+    <div className="w-full flex-1 space-y-4 flex flex-col font-sans min-h-[600px] md:h-[calc(100dvh-6.5rem)] overflow-hidden">
       {/* Top Controls Header Workbench */}
       <div className="ui-card p-3.5 flex flex-wrap items-center justify-between gap-3 relative z-30">
         {/* Left Side: Brand badge & Key input */}
