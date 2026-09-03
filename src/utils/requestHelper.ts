@@ -82,7 +82,8 @@ export function buildUpstreamHeaders(apiKey: string, customHeaders?: Record<stri
     ...customHeaders
   };
 
-  if (config.adminSecretKey && apiKey === config.adminSecretKey && !headers['Authorization']) {
+  const hasAuth = Object.keys(headers).some(k => k.toLowerCase() === 'authorization');
+  if (config.adminSecretKey && apiKey === config.adminSecretKey && !hasAuth) {
     headers['Authorization'] = `Bearer ${apiKey}`;
   }
 

@@ -34,7 +34,7 @@ export default function ThinkingBlock({ thinking, defaultExpanded = false }: Thi
           {expanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
           <Sparkles className="w-3.5 h-3.5 text-amber-500" />
           <span className="font-semibold text-amber-800 dark:text-amber-300">{t('logs.thinking', 'Thinking Process')}</span>
-          <span className="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/15 dark:bg-amber-500/20 text-amber-800 dark:text-amber-200 border border-amber-500/30">
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 dark:bg-amber-500/20 text-amber-800 dark:text-amber-200 border border-amber-500/30">
             {formattedCount}
           </span>
         </div>

@@ -187,6 +187,18 @@ describe('Security and Request Helpers', () => {
       }
     });
 
+    it('does not inject duplicate Authorization if customHeaders already has lowercased authorization', () => {
+      const originalKey = config.adminSecretKey;
+      config.adminSecretKey = 'admin-secret-123';
+      try {
+        const headers = buildUpstreamHeaders('admin-secret-123', { 'authorization': 'Bearer custom-token' });
+        expect(headers['authorization']).toEqual('Bearer custom-token');
+        expect(headers['Authorization']).toBeUndefined();
+      } finally {
+        config.adminSecretKey = originalKey;
+      }
+    });
+
     it('merges custom headers', () => {
       const headers = buildUpstreamHeaders('my-secret-key', { 'X-Custom': 'val' });
       expect(headers).toEqual({

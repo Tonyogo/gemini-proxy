@@ -81,7 +81,8 @@ export default function ConcurrentTestModal({
           method: targetMethod,
           headers: {
             'content-type': 'application/json',
-            'x-api-key': apiKey
+            'x-api-key': apiKey,
+            'x-admin-key': apiKey
           }
         };
 

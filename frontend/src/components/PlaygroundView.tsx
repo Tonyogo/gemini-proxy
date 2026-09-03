@@ -150,6 +150,15 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
   const [showPresetsDropdown, setShowPresetsDropdown] = useState<boolean>(false);
   const presetsRef = useRef<HTMLDivElement>(null);
 
+  const memoizedParsedPayload = useMemo(() => {
+    if (!requestBody.trim()) return null;
+    try {
+      return JSON.parse(requestBody);
+    } catch {
+      return null;
+    }
+  }, [requestBody]);
+
   // Sync selected model from JSON body on mount or change
   useEffect(() => {
     try {
@@ -935,7 +944,7 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
         onClose={() => setShowConcurrentModal(false)}
         targetUrl={endpointOption === 'count_tokens' ? '/v1/messages/count_tokens' : endpointOption === 'custom' ? (customPath.startsWith('/') ? customPath : `/${customPath}`) : '/v1/messages'}
         targetMethod={endpointOption === 'custom' ? customMethod : 'POST'}
-        parsedPayload={requestBody.trim() ? (() => { try { return JSON.parse(requestBody); } catch { return null; } })() : null}
+        parsedPayload={memoizedParsedPayload}
         apiKey={effectiveApiKey}
       />
     </div>
