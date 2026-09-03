@@ -698,7 +698,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                         })
                       ) : (
                         <path
-                          d={getOverallLatencyPath()}
+                          d={`M ${timeSeries.map((p, i) => `${getX(i)},${getYLatency(p.avgDurationMs)}`).join(' L ')}`}
                           fill="none"
                           stroke="#a855f7"
                           strokeWidth="2"
@@ -708,7 +708,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                       )
                     ) : (
                       allModels.map((model, idx) => {
-                        const mPath = getModelDistributionPath(model);
+                        const mPath = getModelPath(model);
                         if (!mPath) return null;
                         const mColor = getModelColor(model, idx);
                         return (
@@ -728,17 +728,16 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
 
                     {/* Data Node Dots */}
                     {analyticsTab === 'latency' ? (
-                      allModels.length > 0 ? (
+                       allModels.length > 0 ? (
                         allModels.map((model, mIdx) => {
                           const mColor = getModelColor(model, mIdx);
                           return timeSeries.map((p, i) => {
-                            const val = p.modelMetrics?.[model]?.avgDurationMs;
-                            if (val === undefined || val === null) return null;
+                            const dur = p.modelDurations?.[model] || 0;
                             return (
                               <circle
                                 key={`dot-${model}-${i}`}
                                 cx={getX(i)}
-                                cy={getYLatency(val)}
+                                cy={getYLatency(dur)}
                                 r="2.5"
                                 fill={mColor}
                                 stroke="#0F1118"

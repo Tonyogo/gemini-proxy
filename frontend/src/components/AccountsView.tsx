@@ -27,7 +27,8 @@ import {
   ArrowRightLeft,
   X,
   ExternalLink,
-  ArrowDownCircle
+  ArrowDownCircle,
+  Info
 } from 'lucide-react';
 import { useTranslation } from '../i18n/LanguageContext';
 
