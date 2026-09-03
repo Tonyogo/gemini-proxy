@@ -31,7 +31,7 @@
 - Consumes: `activeTab: TabType`
 - Produces: 识别工作台页面并在桌面端应用统一的视口尺寸与 `overflow-hidden` 容器类。
 
-- [ ] **Step 1: 检查当前 App.tsx main 标签实现**
+- [x] **Step 1: 检查当前 App.tsx main 标签实现**
 
 确认 `frontend/src/App.tsx` 中的 `<main>` 渲染逻辑：
 ```tsx
@@ -42,7 +42,7 @@
 }`}>
 ```
 
-- [ ] **Step 2: 修改 App.tsx 实现统一工作台视口容器规则**
+- [x] **Step 2: 修改 App.tsx 实现统一工作台视口容器规则**
 
 在 `frontend/src/App.tsx` 中增加工作台页面判断 `isWorkbenchTab = ['playground', 'logs', 'translate'].includes(activeTab);`，并赋予工作台视图在桌面端 `overflow-hidden md:h-[calc(100dvh-3.5rem)]` 或配合 padding 的纯净弹性容器：
 
@@ -61,12 +61,12 @@ const isWorkbenchTab = ['playground', 'logs', 'translate'].includes(activeTab);
 }`}>
 ```
 
-- [ ] **Step 3: 运行前端编译检查**
+- [x] **Step 3: 运行前端编译检查**
 
 Run: `cd frontend && npm run build`
 Expected: 编译通过，无语法与类型错误。
 
-- [ ] **Step 4: 提交代码**
+- [x] **Step 4: 提交代码**
 
 ```bash
 git add frontend/src/App.tsx
@@ -86,26 +86,26 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 - Consumes: 全局 Design Tokens
 - Produces: 占满宽度的 API 调试工作台界面。
 
-- [ ] **Step 1: 检查 PlaygroundView 根容器样式**
+- [x] **Step 1: 检查 PlaygroundView 根容器样式**
 
 在 `frontend/src/components/PlaygroundView.tsx` 第 471 行：
 ```tsx
 <div className="max-w-7xl mx-auto space-y-4 flex flex-col font-sans min-h-[600px] md:h-[calc(100vh-6.5rem)]">
 ```
 
-- [ ] **Step 2: 修改根容器类名为全宽与 dvh 单位**
+- [x] **Step 2: 修改根容器类名为全宽与 dvh 单位**
 
 修改为：
 ```tsx
 <div className="w-full flex-1 space-y-4 flex flex-col font-sans min-h-[600px] md:h-[calc(100dvh-6.5rem)] overflow-hidden">
 ```
 
-- [ ] **Step 3: 运行前端编译检查**
+- [x] **Step 3: 运行前端编译检查**
 
 Run: `cd frontend && npm run build`
 Expected: 编译通过。
 
-- [ ] **Step 4: 提交代码**
+- [x] **Step 4: 提交代码**
 
 ```bash
 git add frontend/src/components/PlaygroundView.tsx
@@ -126,7 +126,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 - Consumes: 日志数据、Monaco Editor
 - Produces: 充满屏幕且左侧列表随屏宽扩展、右侧 Monaco Editor 弹性 100% 撑满的请求日志审查界面。
 
-- [ ] **Step 1: 检查 LogsView 最外层容器与左侧列表宽度**
+- [x] **Step 1: 检查 LogsView 最外层容器与左侧列表宽度**
 
 在 `frontend/src/components/LogsView.tsx`:
 ```tsx
@@ -135,7 +135,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
     <div className={`w-full md:w-80 lg:w-[340px] shrink-0 ui-card p-3.5 flex flex-col h-[520px] md:h-full transition-all ${
 ```
 
-- [ ] **Step 2: 修改 LogsView 外层容器为全宽充满并优化左侧宽度阶梯**
+- [x] **Step 2: 修改 LogsView 外层容器为全宽充满并优化左侧宽度阶梯**
 
 修改为：
 ```tsx
@@ -144,7 +144,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
     <div className={`w-full md:w-80 lg:w-[360px] xl:w-[380px] shrink-0 ui-card p-3.5 flex flex-col h-[520px] md:h-full transition-all ${
 ```
 
-- [ ] **Step 3: 改造 LogsView 中 Monaco Editor 的固定高度为 100% 弹性撑满**
+- [x] **Step 3: 改造 LogsView 中 Monaco Editor 的固定高度为 100% 弹性撑满**
 
 将 `activeTab === 'payload'` 和 `activeTab === 'response'` 下的 `Editor` 容器及属性：
 原来：
@@ -161,18 +161,18 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 ```
 同时确保两列的外层容器拥有 `flex-1 min-h-0 flex flex-col`。
 
-- [ ] **Step 4: 扩大 ConversationView 的大屏显示宽度**
+- [x] **Step 4: 扩大 ConversationView 的大屏显示宽度**
 
 在 `frontend/src/components/ConversationView.tsx` 中：
 将根容器的 `max-w-4xl mx-auto w-full` 修改为：
 `max-w-5xl mx-auto w-full`。
 
-- [ ] **Step 5: 运行前端编译检查**
+- [x] **Step 5: 运行前端编译检查**
 
 Run: `cd frontend && npm run build`
 Expected: 编译通过，无类型错误。
 
-- [ ] **Step 6: 提交代码**
+- [x] **Step 6: 提交代码**
 
 ```bash
 git add frontend/src/components/LogsView.tsx frontend/src/components/ConversationView.tsx
@@ -192,12 +192,12 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 - Consumes: `SUPPORTED_LANGUAGES`, `STYLE_PRESETS`, `useTranslation`
 - Produces: 顶栏采用独立浮动卡片 (`ui-card`)，左右双栏充满剩余视口并在内部独立平滑滚动的翻译工作台。
 
-- [ ] **Step 1: 检查 TranslateView 原外层结构与顶栏样式**
+- [x] **Step 1: 检查 TranslateView 原外层结构与顶栏样式**
 
 在 `frontend/src/components/TranslateView.tsx` 第 518 行起：
 原有 `h-[calc(100vh-3.5rem)] bg-[#090A0F]` 及内嵌假全屏顶栏 `bg-[#0C0E14]/90 border-b border-white/[0.08] px-4 py-3`，内部包含 `max-w-7xl mx-auto`。
 
-- [ ] **Step 2: 重构最外层容器与顶栏控制面板**
+- [x] **Step 2: 重构最外层容器与顶栏控制面板**
 
 重构外层容器为：
 ```tsx
@@ -213,7 +213,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 - 模式切换按钮：采用 `.ui-tab-container` + `.ui-tab-pill`；
 - 翻译主按钮：采用 `.ui-btn-primary`。
 
-- [ ] **Step 3: 重构主体左右双栏弹性自适应与内部独立滚动**
+- [x] **Step 3: 重构主体左右双栏弹性自适应与内部独立滚动**
 
 将主体工作区由原先的外部单一大滚动容器：
 ```tsx
@@ -232,12 +232,12 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
   - 单模型与多模型对比网格在内部滚动：`className="grid gap-4 flex-1 min-h-0 overflow-y-auto ..."`；
   - 单个结果卡片内部设为 `flex flex-col h-full overflow-hidden ui-card`，其译文渲染区域独立设置 `flex-1 min-h-0 overflow-y-auto`。
 
-- [ ] **Step 4: 运行前端编译检查**
+- [x] **Step 4: 运行前端编译检查**
 
 Run: `cd frontend && npm run build`
 Expected: 编译通过，无任何 TypeScript 报错。
 
-- [ ] **Step 5: 提交代码**
+- [x] **Step 5: 提交代码**
 
 ```bash
 git add frontend/src/components/TranslateView.tsx
@@ -254,17 +254,17 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 - Test: `tests/claudeTranslator.test.ts`
 - Test: `tests/admin.test.ts`
 
-- [ ] **Step 1: 运行后端与前端完整构建**
+- [x] **Step 1: 运行后端与前端完整构建**
 
 Run: `npm run build`
 Expected: 前端 Vite 打包至 `dist/frontend`，后端 TypeScript 编译至 `dist/src`，0 错误。
 
-- [ ] **Step 2: 运行全量单元测试与集成测试**
+- [x] **Step 2: 运行全量单元测试与集成测试**
 
 Run: `npm test`
 Expected: 所有测试全部 PASS。
 
-- [ ] **Step 3: 检查 git status 确认工作区干净**
+- [x] **Step 3: 检查 git status 确认工作区干净**
 
 Run: `git status`
 Expected: working tree clean。
