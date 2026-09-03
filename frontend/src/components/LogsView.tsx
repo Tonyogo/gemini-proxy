@@ -21,7 +21,9 @@ import {
   Sparkles,
   Terminal,
   MessageSquare,
-  ArrowLeft
+  ArrowLeft,
+  ArrowUpRight,
+  ArrowDownLeft
 } from 'lucide-react';
 import JsonTreeView from './JsonTreeView';
 import SseStreamPreview from './SseStreamPreview';
@@ -733,7 +735,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                     : ''
                 }`}
               >
-                <span>📤</span>
+                <ArrowUpRight className="w-3.5 h-3.5 text-indigo-400" />
                 <span className="text-[11px] sm:text-xs">{t('logs.payloadRequest')}</span>
               </button>
               <button
@@ -744,7 +746,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                     : ''
                 }`}
               >
-                <span>📥</span>
+                <ArrowDownLeft className="w-3.5 h-3.5 text-emerald-400" />
                 <span className="text-[11px] sm:text-xs">{t('logs.response')}</span>
               </button>
               <button

@@ -639,7 +639,7 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
                 onClick={() => setShowModelDropdown(!showModelDropdown)}
                 className="flex items-center gap-1.5 ui-btn-secondary px-3 py-2 font-mono"
               >
-                <span className="text-purple-400">⚡</span>
+                <Zap className="w-3.5 h-3.5 text-purple-400" />
                 <span>{selectedSingleModel}</span>
                 <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
               </button>

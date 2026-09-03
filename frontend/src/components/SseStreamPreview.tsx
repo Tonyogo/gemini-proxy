@@ -380,7 +380,7 @@ export default function SseStreamPreview({ streamData }: { streamData: any }) {
         {fullThinking && (
           <details className="bg-purple-50/50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/40 rounded-xl p-3 text-purple-900 dark:text-purple-200 transition-all">
             <summary className="font-bold text-[11px] uppercase cursor-pointer text-purple-700 dark:text-purple-300 flex items-center space-x-1.5 select-none">
-              <span>💭</span>
+              <Sparkles className="w-3.5 h-3.5 text-purple-500 dark:text-purple-400" />
               <span>Thinking Chain ({fullThinking.length} chars)</span>
             </summary>
             <div className="mt-2 font-mono text-[11px] text-purple-950 dark:text-purple-200 leading-relaxed whitespace-pre-wrap max-h-48 overflow-y-auto bg-purple-100/50 dark:bg-purple-950/60 p-2.5 rounded-lg border border-purple-200 dark:border-purple-800/50">
