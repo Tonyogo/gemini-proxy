@@ -1161,16 +1161,16 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                         : ''
                     }`}
                   >
-                    {/* Row 1: Checkbox + Index + Badges & Status */}
+                    {/* Row 1: Checkbox + Index + Badges + Account Name & Status */}
                     <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center space-x-2 min-w-0">
+                      <div className="flex items-center space-x-1.5 min-w-0 flex-1">
                         <input
                           type="checkbox"
                           checked={isChecked}
                           onChange={() => handleSelectOne(acc.index)}
                           className="w-4 h-4 rounded bg-[var(--bg-surface)] border-[var(--border-subtle)] text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer shrink-0"
                         />
-                        <span className="font-mono text-xs font-bold text-slate-800 dark:text-slate-200">
+                        <span className="font-mono text-xs font-bold text-slate-800 dark:text-slate-200 shrink-0">
                           #{acc.index}
                         </span>
 
@@ -1178,6 +1178,37 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                           <span className="px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40 shrink-0">
                             {t('accounts.currentBadge')}
                           </span>
+                        )}
+
+                        {/* Simplified Account Name / Identifier */}
+                        {acc.name && (
+                          <div className="flex items-center space-x-1 min-w-0 truncate ml-0.5">
+                            <span
+                              title={acc.name}
+                              className={`text-[11px] font-mono truncate max-w-[110px] sm:max-w-[180px] ${
+                                isManuallyDisabled
+                                  ? 'text-slate-400 line-through decoration-slate-500'
+                                  : 'text-slate-600 dark:text-slate-300'
+                              }`}
+                            >
+                              {acc.name}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCopyAccountName(acc.index, acc.name);
+                              }}
+                              className="text-slate-400 hover:text-slate-200 p-0.5 shrink-0 transition-colors"
+                              title={t('accounts.copyAccountName', '复制账号名称/邮箱')}
+                            >
+                              {copiedKeyIndex === acc.index ? (
+                                <Check className="w-3 h-3 text-emerald-400" />
+                              ) : (
+                                <Copy className="w-3 h-3" />
+                              )}
+                            </button>
+                          </div>
                         )}
                       </div>
 
