@@ -278,15 +278,6 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
     return getBezierSplinePath(points);
   };
 
-  const getOverallLatencyPath = () => {
-    if (N === 0) return '';
-    const points = timeSeries.map((p, i) => ({
-      x: getX(i),
-      y: getYLatency(p.avgDurationMs)
-    }));
-    return getBezierSplinePath(points);
-  };
-
   // Calculations for APM KPI Cards
   const totalLogsCount = stats?.totalLogs || 0;
   const totalSuccessCount = stats?.successCount || 0;
@@ -808,7 +799,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                         })
                       ) : (
                         <path
-                          d={getOverallLatencyPath()}
+                          d={getBezierSplinePath(timeSeries.map((p, i) => ({ x: getX(i), y: getYLatency(p.avgDurationMs) })))}
                           fill="none"
                           stroke="#a855f7"
                           strokeWidth="2"
