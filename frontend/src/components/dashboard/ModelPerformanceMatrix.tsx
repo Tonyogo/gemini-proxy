@@ -55,10 +55,10 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
       ) : (
         <>
           {/* 1. Desktop Multi-column DataTable (Hidden on mobile) */}
-          <div className="hidden md:block overflow-x-auto w-full no-scrollbar">
+          <div className="hidden md:block overflow-x-auto w-full no-scrollbar rounded-xl">
             <table className="w-full text-left text-xs font-mono border-collapse min-w-[700px]">
               <thead>
-                <tr className="border-b border-[var(--border-subtle)] text-[var(--text-secondary)] text-[11px] uppercase tracking-wider">
+                <tr className="border-b border-black/[0.06] dark:border-white/[0.06] text-[var(--text-secondary)] text-[11px] uppercase tracking-wider">
                   <th className="py-2.5 px-3 font-medium">{t('dashboard.modelName', '模型名称')}</th>
                   <th className="py-2.5 px-3 font-medium text-right">{t('dashboard.standardReqs', '标准请求')}</th>
                   <th className="py-2.5 px-3 font-medium text-right">{t('dashboard.highReqs', 'High 规格')}</th>
@@ -68,7 +68,7 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
                   <th className="py-2.5 px-3 font-medium text-right">{t('dashboard.throughputRate', 'Throughput / 平均吞吐')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[var(--border-subtle)]/50">
+              <tbody>
                 {modelStats.list.map((item, index) => {
                   const color = getModelColor(item.model, index);
                   const latencyColor = item.avgLatency < 1000
@@ -78,7 +78,7 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
                     : 'text-rose-400 bg-rose-500/10 border-rose-500/20';
 
                   return (
-                    <tr key={item.model} className="hover:bg-[var(--bg-surface-hover)] transition-colors">
+                    <tr key={item.model} className="border-b border-black/[0.04] dark:border-white/[0.04] last:border-b-0 hover:bg-[var(--bg-surface-hover)] transition-colors">
                       {/* Model Name */}
                       <td className="py-3 px-3 font-medium text-[var(--text-primary)]">
                         <div className="flex items-center space-x-2">
