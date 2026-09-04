@@ -100,6 +100,7 @@ export default function WebTerminalView({
   const [isSnippetsOpen, setIsSnippetsOpen] = useState<boolean>(false);
   const [isCtrlActive, setIsCtrlActive] = useState<boolean>(false);
   const [isAltActive, setIsAltActive] = useState<boolean>(false);
+  const [isShiftActive, setIsShiftActive] = useState<boolean>(false);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState<boolean>(false);
 
   const isCtrlActiveRef = useRef<boolean>(isCtrlActive);
@@ -107,6 +108,9 @@ export default function WebTerminalView({
 
   const isAltActiveRef = useRef<boolean>(isAltActive);
   isAltActiveRef.current = isAltActive;
+
+  const isShiftActiveRef = useRef<boolean>(isShiftActive);
+  isShiftActiveRef.current = isShiftActive;
 
   const reconnectAttemptRef = useRef<number>(0);
   const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -362,12 +366,13 @@ export default function WebTerminalView({
 
       const isCtrl = isCtrlActiveRef.current;
       const isAlt = isAltActiveRef.current;
+      const isShift = isShiftActiveRef.current;
 
-      if (!isCtrl && !isAlt) {
+      if (!isCtrl && !isAlt && !isShift) {
         return true;
       }
 
-      const encoded = encodeModifierKey(domEvent, isCtrl, isAlt);
+      const encoded = encodeModifierKey(domEvent, isCtrl, isAlt, isShift);
       if (encoded !== null) {
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
           wsRef.current.send(encoded);
@@ -379,8 +384,10 @@ export default function WebTerminalView({
 
         setIsCtrlActive(false);
         setIsAltActive(false);
+        setIsShiftActive(false);
         isCtrlActiveRef.current = false;
         isAltActiveRef.current = false;
+        isShiftActiveRef.current = false;
 
         domEvent.preventDefault();
         domEvent.stopPropagation();
@@ -644,11 +651,13 @@ export default function WebTerminalView({
     }
   }, [resolvedTheme]);
 
-  const handleSendInput = (data: string) => {
+  const handleSendInput = (data: string, shouldFocus = false) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(data);
     }
-    xtermRef.current?.focus();
+    if (shouldFocus) {
+      xtermRef.current?.focus();
+    }
     if (xtermRef.current?.buffer.active.type !== 'alternate') {
       xtermRef.current?.scrollToBottom();
     }
@@ -906,18 +915,22 @@ export default function WebTerminalView({
       {/* Mobile Touch Accessory Bar */}
       <TerminalAccessoryBar
         onSendInput={(data) => {
-          handleSendInput(data);
-          if (isCtrlActiveRef.current || isAltActiveRef.current) {
+          handleSendInput(data, false);
+          if (isCtrlActiveRef.current || isAltActiveRef.current || isShiftActiveRef.current) {
             setIsCtrlActive(false);
             setIsAltActive(false);
+            setIsShiftActive(false);
             isCtrlActiveRef.current = false;
             isAltActiveRef.current = false;
+            isShiftActiveRef.current = false;
           }
         }}
         isCtrlActive={isCtrlActive}
         onToggleCtrl={() => setIsCtrlActive(!isCtrlActive)}
         isAltActive={isAltActive}
         onToggleAlt={() => setIsAltActive(!isAltActive)}
+        isShiftActive={isShiftActive}
+        onToggleShift={() => setIsShiftActive(!isShiftActive)}
         onToggleKeyboard={handleToggleKeyboard}
         onHideKeyboard={handleHideKeyboard}
         isKeyboardOpen={isKeyboardOpen}
@@ -930,11 +943,13 @@ export default function WebTerminalView({
         onClose={() => setIsSnippetsOpen(false)}
         onRunCommand={(cmd, execute) => {
           handleRunCommand(cmd, execute);
-          if (isCtrlActiveRef.current || isAltActiveRef.current) {
+          if (isCtrlActiveRef.current || isAltActiveRef.current || isShiftActiveRef.current) {
             setIsCtrlActive(false);
             setIsAltActive(false);
+            setIsShiftActive(false);
             isCtrlActiveRef.current = false;
             isAltActiveRef.current = false;
+            isShiftActiveRef.current = false;
           }
         }}
       />

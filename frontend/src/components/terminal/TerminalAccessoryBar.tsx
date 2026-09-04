@@ -9,6 +9,7 @@ import {
   Check
 } from 'lucide-react';
 import { useTranslation } from '../../i18n/LanguageContext';
+import { encodeNavigationKey } from '../../utils/terminalKeyEncoder';
 
 interface TerminalAccessoryBarProps {
   onSendInput: (data: string) => void;
@@ -16,6 +17,8 @@ interface TerminalAccessoryBarProps {
   onToggleCtrl: () => void;
   isAltActive: boolean;
   onToggleAlt: () => void;
+  isShiftActive?: boolean;
+  onToggleShift?: () => void;
   onToggleKeyboard: () => void;
   onHideKeyboard?: () => void;
   isKeyboardOpen?: boolean;
@@ -28,6 +31,8 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
   onToggleCtrl,
   isAltActive,
   onToggleAlt,
+  isShiftActive = false,
+  onToggleShift,
   onToggleKeyboard,
   onHideKeyboard,
   isKeyboardOpen,
@@ -55,7 +60,7 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
           type="button"
           onTouchStart={(e) => e.preventDefault()}
           onMouseDown={(e) => e.preventDefault()}
-          onClick={() => onSendInput('\t')}
+          onClick={() => onSendInput(isShiftActive ? '\x1b[Z' : '\t')}
           className="px-2.5 py-1 rounded-lg bg-black/[0.04] dark:bg-white/[0.05] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] active:scale-95 text-[var(--text-primary)] font-mono text-xs font-semibold border border-[var(--border-subtle)] transition-all shadow-sm"
         >
           {t('webTerminal.accessoryKeys.tab')}
@@ -89,6 +94,21 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
           }`}
         >
           {t('webTerminal.accessoryKeys.alt')}
+        </button>
+
+        {/* Sticky Modifier: SHIFT */}
+        <button
+          type="button"
+          onTouchStart={(e) => e.preventDefault()}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={onToggleShift}
+          className={`px-2.5 py-1 rounded-lg font-mono text-xs font-semibold border transition-all shadow-sm active:scale-95 ${
+            isShiftActive
+              ? 'bg-amber-600 text-white border-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.5)]'
+              : 'bg-black/[0.04] dark:bg-white/[0.05] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] text-[var(--text-primary)] border-[var(--border-subtle)]'
+          }`}
+        >
+          {t('webTerminal.accessoryKeys.shift')}
         </button>
 
         <div className="h-4 w-[1px] bg-[var(--border-subtle)] mx-0.5" />
@@ -155,12 +175,36 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
           ↵
         </button>
 
+        {/* Navigation: Page Up */}
+        <button
+          type="button"
+          onTouchStart={(e) => e.preventDefault()}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => onSendInput(encodeNavigationKey('PageUp', isCtrlActive, isAltActive, !!isShiftActive))}
+          className="px-2 py-1 rounded-lg bg-black/[0.04] dark:bg-white/[0.05] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] active:scale-95 text-[var(--text-primary)] font-mono text-xs font-semibold border border-[var(--border-subtle)] transition-all shadow-sm"
+          title="Page Up"
+        >
+          {t('webTerminal.accessoryKeys.pgUp')}
+        </button>
+
+        {/* Navigation: Page Down */}
+        <button
+          type="button"
+          onTouchStart={(e) => e.preventDefault()}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => onSendInput(encodeNavigationKey('PageDown', isCtrlActive, isAltActive, !!isShiftActive))}
+          className="px-2 py-1 rounded-lg bg-black/[0.04] dark:bg-white/[0.05] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] active:scale-95 text-[var(--text-primary)] font-mono text-xs font-semibold border border-[var(--border-subtle)] transition-all shadow-sm"
+          title="Page Down"
+        >
+          {t('webTerminal.accessoryKeys.pgDn')}
+        </button>
+
         {/* Arrow Keys: Up, Down, Left, Right */}
         <button
           type="button"
           onTouchStart={(e) => e.preventDefault()}
           onMouseDown={(e) => e.preventDefault()}
-          onClick={() => onSendInput('\x1b[A')}
+          onClick={() => onSendInput(encodeNavigationKey('ArrowUp', isCtrlActive, isAltActive, !!isShiftActive))}
           className="w-7 h-7 rounded-lg bg-black/[0.04] dark:bg-white/[0.05] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] active:scale-95 text-[var(--text-primary)] flex items-center justify-center border border-[var(--border-subtle)] transition-all"
           title="Up Arrow"
         >
@@ -170,7 +214,7 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
           type="button"
           onTouchStart={(e) => e.preventDefault()}
           onMouseDown={(e) => e.preventDefault()}
-          onClick={() => onSendInput('\x1b[B')}
+          onClick={() => onSendInput(encodeNavigationKey('ArrowDown', isCtrlActive, isAltActive, !!isShiftActive))}
           className="w-7 h-7 rounded-lg bg-black/[0.04] dark:bg-white/[0.05] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] active:scale-95 text-[var(--text-primary)] flex items-center justify-center border border-[var(--border-subtle)] transition-all"
           title="Down Arrow"
         >
@@ -180,7 +224,7 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
           type="button"
           onTouchStart={(e) => e.preventDefault()}
           onMouseDown={(e) => e.preventDefault()}
-          onClick={() => onSendInput('\x1b[D')}
+          onClick={() => onSendInput(encodeNavigationKey('ArrowLeft', isCtrlActive, isAltActive, !!isShiftActive))}
           className="w-7 h-7 rounded-lg bg-black/[0.04] dark:bg-white/[0.05] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] active:scale-95 text-[var(--text-primary)] flex items-center justify-center border border-[var(--border-subtle)] transition-all"
           title="Left Arrow"
         >
@@ -190,7 +234,7 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
           type="button"
           onTouchStart={(e) => e.preventDefault()}
           onMouseDown={(e) => e.preventDefault()}
-          onClick={() => onSendInput('\x1b[C')}
+          onClick={() => onSendInput(encodeNavigationKey('ArrowRight', isCtrlActive, isAltActive, !!isShiftActive))}
           className="w-7 h-7 rounded-lg bg-black/[0.04] dark:bg-white/[0.05] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] active:scale-95 text-[var(--text-primary)] flex items-center justify-center border border-[var(--border-subtle)] transition-all"
           title="Right Arrow"
         >
