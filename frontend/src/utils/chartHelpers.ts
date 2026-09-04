@@ -85,3 +85,49 @@ export function getBezierAreaPath(points: Point[], yBase: number): string {
   const last = points[points.length - 1];
   return `${curvePath} L ${fmt(last.x)},${fmt(yBase)} L ${fmt(first.x)},${fmt(yBase)} Z`;
 }
+
+export interface StackedSegment {
+  model: string;
+  count: number;
+  y: number;
+  height: number;
+}
+
+/**
+ * Calculates stacked bar segment offsets and heights for a single time bucket.
+ * Base line is at y = 140 (bottom of plotting area).
+ * Segments are stacked from bottom (highest y) upwards (decreasing y).
+ */
+export function getStackedBarSegments<T>(
+  point: T,
+  allModels: string[],
+  getModelCount: (point: T, model: string) => number,
+  yMax: number,
+  volumeLimit: number,
+  plottingHeight: number = 105
+): StackedSegment[] {
+  const segments: StackedSegment[] = [];
+  let accumulatedCount = 0;
+  const scale = yMax > 0 ? plottingHeight / yMax : 0;
+  const baseY = 140;
+
+  for (const model of allModels) {
+    const count = getModelCount(point, model);
+    if (count <= 0) continue;
+
+    const segmentHeight = scale > 0 ? Math.max(1, count * scale) : 0;
+    const bottomY = baseY - (accumulatedCount * scale);
+    const topY = bottomY - segmentHeight;
+
+    segments.push({
+      model,
+      count,
+      y: topY,
+      height: segmentHeight
+    });
+
+    accumulatedCount += count;
+  }
+
+  return segments;
+}
