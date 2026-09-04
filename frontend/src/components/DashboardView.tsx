@@ -35,7 +35,6 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState<number | 'today'>('today');
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const [analyticsTab, setAnalyticsTab] = useState<'latency' | 'distribution'>('latency');
   const [volumeChartType, setVolumeChartType] = useState<'bar' | 'area'>('area');
 
   const loadData = (currentRange = range) => {
@@ -198,24 +197,11 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
     return modelColors[index % modelColors.length];
   };
 
-  let maxModelCount = 0;
-  timeSeries.forEach(p => {
-    if (p.models) {
-      Object.values(p.models).forEach(count => {
-        if (count > maxModelCount) {
-          maxModelCount = count;
-        }
-      });
-    }
-  });
-  const modelLimit = maxModelCount === 0 ? 10 : Math.ceil(maxModelCount * 1.15);
-  const getYModel = (v: number) => yMax - (v / modelLimit) * plottingHeight;
-
   const getModelPath = (modelName: string) => {
     if (N === 0) return '';
     const points = timeSeries.map((p, i) => ({
       x: getX(i),
-      y: getYModel(p.models?.[modelName] || 0)
+      y: getYVolume(p.models?.[modelName] || 0)
     }));
     return getBezierSplinePath(points);
   };
@@ -435,580 +421,581 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
         </div>
       </div>
 
-      {/* Tier 3: Golden First-Screen Section (6:4 Split Grid) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Left Core Charts View (60% split) */}
-        <div className="lg:col-span-7 xl:col-span-8 space-y-6">
-          {/* Chart 1: Request Volume Trend */}
-          <div className="ui-card p-5 relative flex flex-col h-[320px] transition-colors group">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-xs font-semibold text-[var(--text-primary)] tracking-wider uppercase flex items-center space-x-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
-                <span>{t('dashboard.volumeChartTitle')}</span>
-              </h3>
-              <div className="flex items-center space-x-2">
-                {/* Chart Type Switcher: Area vs Bar */}
-                <div className="ui-tab-container p-0.5 text-[10px] font-medium">
-                  <button
-                    type="button"
-                    onClick={() => setVolumeChartType('area')}
-                    className={`px-2 py-0.5 rounded flex items-center space-x-1 ${
-                      volumeChartType === 'area' ? 'ui-tab-pill-active font-semibold' : 'text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    <Activity className="w-3 h-3" />
-                    <span>{t('dashboard.areaChart', '面积图')}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setVolumeChartType('bar')}
-                    className={`px-2 py-0.5 rounded flex items-center space-x-1 ${
-                      volumeChartType === 'bar' ? 'ui-tab-pill-active font-semibold' : 'text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    <BarChart3 className="w-3 h-3" />
-                    <span>{t('dashboard.barChart', '柱状图')}</span>
-                  </button>
-                </div>
-
-                {hoveredIndex !== null && timeSeries[hoveredIndex] && (
-                  <span className="text-indigo-400 font-mono text-xs px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20">
-                    {timeSeries[hoveredIndex].total} reqs
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {N === 0 ? (
-              <div className="flex-1 flex items-center justify-center text-slate-500 text-xs italic bg-[var(--bg-surface-sub)] rounded-lg border border-[var(--border-subtle)]">
-                {t('dashboard.noData')}
-              </div>
-            ) : (
-              <div className="relative flex-1 overflow-x-auto overflow-y-hidden">
-                <div className="min-w-[480px] sm:min-w-full h-full relative">
-                    <svg
-                      viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-                      className="w-full h-full overflow-visible touch-none"
-                      onMouseMove={handleMouseMove}
-                      onMouseLeave={handleMouseLeave}
-                      onTouchStart={handleTouchMove}
-                      onTouchMove={handleTouchMove}
-                      onTouchEnd={handleMouseLeave}
-                    >
-                    <defs>
-                      <linearGradient id="volumeBarGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#6366F1" stopOpacity="0.95" />
-                        <stop offset="100%" stopColor="#4F46E5" stopOpacity="0.70" />
-                      </linearGradient>
-                      <linearGradient id="volumeBarHoverGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#818CF8" stopOpacity="1" />
-                        <stop offset="100%" stopColor="#6366F1" stopOpacity="0.85" />
-                      </linearGradient>
-                      <linearGradient id="volumeAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#6366F1" stopOpacity="0.45" />
-                        <stop offset="80%" stopColor="#6366F1" stopOpacity="0.08" />
-                        <stop offset="100%" stopColor="#6366F1" stopOpacity="0.0" />
-                      </linearGradient>
-                    </defs>
-
-                    {/* Gridlines */}
-                    {renderGridLines(volumeLimit)}
-
-                    {/* X-axis baseline */}
-                    <line
-                      x1={paddingLeft}
-                      y1={yMax}
-                      x2={svgWidth - paddingRight}
-                      y2={yMax}
-                      stroke="currentColor"
-                      className="text-black/[0.08] dark:text-white/[0.08]"
-                      strokeWidth="1"
-                    />
-
-                    {/* Chart Visualization: Wave Area or Bar */}
-                    {volumeChartType === 'area' ? (
-                      (() => {
-                        const volumePoints = timeSeries.map((p, i) => ({
-                          x: getX(i),
-                          y: getYVolume(p.total)
-                        }));
-                        return (
-                          <g>
-                            {/* Smooth Bezier Area */}
-                            <path
-                              d={getBezierAreaPath(volumePoints, yMax)}
-                              fill="url(#volumeAreaGrad)"
-                              className="transition-all duration-300"
-                            />
-                            {/* Smooth Bezier Stroke Line */}
-                            <path
-                              d={getBezierSplinePath(volumePoints)}
-                              fill="none"
-                              stroke="#6366F1"
-                              strokeWidth="2.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              className="transition-all duration-300"
-                            />
-                            {/* Data Points */}
-                            {volumePoints.map((pt, i) => (
-                              <circle
-                                key={i}
-                                cx={pt.x}
-                                cy={pt.y}
-                                r={hoveredIndex === i ? 4.5 : 2.5}
-                                fill={hoveredIndex === i ? "#818CF8" : "#6366F1"}
-                                stroke="var(--bg-surface)"
-                                strokeWidth="1.5"
-                                className="transition-all duration-150"
-                              />
-                            ))}
-                          </g>
-                        );
-                      })()
-                    ) : (
-                      /* Bar columns */
-                      timeSeries.map((p, i) => {
-                        const barWidth = Math.min(18, Math.max(6, (plottingWidth / N) * 0.45));
-                        const x = getX(i) - barWidth / 2;
-                        const h = (p.total / volumeLimit) * plottingHeight;
-                        const y = yMax - h;
-                        const isHovered = hoveredIndex === i;
-
-                        return (
-                          <g key={i}>
-                            {/* Column Hover Background Guide */}
-                            {isHovered && (
-                              <rect
-                                x={getX(i) - barWidth * 1.2}
-                                y={yMin}
-                                width={barWidth * 2.4}
-                                height={plottingHeight}
-                                fill="rgba(255, 255, 255, 0.04)"
-                                rx="4"
-                                className="pointer-events-none"
-                              />
-                            )}
-
-                            {/* Top-rounded Bar */}
-                            {h > 0 && (
-                              <path
-                                d={getRoundedTopBarPath(x, y, barWidth, h, 3)}
-                                fill={isHovered ? "url(#volumeBarHoverGrad)" : "url(#volumeBarGrad)"}
-                                className="transition-all duration-150"
-                              />
-                            )}
-                          </g>
-                        );
-                      })
-                    )}
-
-                    {/* X-axis labels */}
-                    {labelIndices.map(idx => {
-                      const rawTime = timeSeries[idx].time;
-                      const displayLabel = rawTime.includes(' ') ? rawTime.split(' ')[1] : rawTime;
-                      return (
-                        <text
-                          key={idx}
-                          x={getX(idx)}
-                          y={yMax + 16}
-                          textAnchor="middle"
-                          className="text-[10px] fill-slate-500 font-mono select-none"
-                        >
-                          {displayLabel}
-                        </text>
-                      );
-                    })}
-
-                    {/* Active Hover Crosshair Line */}
-                    {hoveredIndex !== null && (
-                      <line
-                        x1={getX(hoveredIndex)}
-                        y1={yMin}
-                        x2={getX(hoveredIndex)}
-                        y2={yMax}
-                        stroke="rgba(99, 102, 241, 0.6)"
-                        strokeWidth="1"
-                        strokeDasharray="3 3"
-                      />
-                    )}
-                  </svg>
-
-                  {/* Glassmorphic Hover Tooltip Overlay */}
-                  {hoveredIndex !== null && timeSeries[hoveredIndex] && (
-                    <div
-                      className="absolute z-20 backdrop-blur-xl bg-[var(--bg-surface)]/95 border border-[var(--border-subtle)] shadow-2xl rounded-xl p-3.5 text-xs pointer-events-none space-y-2 min-w-[190px]"
-                      style={{
-                        left: `${((getX(hoveredIndex) - paddingLeft) / plottingWidth) * 85 + 8}%`,
-                        top: '10%',
-                        transform: hoveredIndex > N / 2 ? 'translateX(-105%)' : 'translateX(5%)',
-                      }}
-                    >
-                      <div className="font-semibold text-[var(--text-primary)] font-mono border-b border-[var(--border-subtle)] pb-1.5 mb-1 flex items-center justify-between">
-                        <span>{timeSeries[hoveredIndex].time}</span>
-                        <span className="text-[10px] text-slate-400">{timeSeries[hoveredIndex].total} reqs</span>
-                      </div>
-                      {timeSeries[hoveredIndex].total === 0 ? (
-                        <div className="text-center text-slate-500 italic py-1">
-                          {t('dashboard.noRequestsInPeriod')}
-                        </div>
-                      ) : (
-                        <div className="space-y-1.5 font-mono">
-                          <div className="flex justify-between items-center text-[11px]">
-                            <span className="text-slate-400">Total:</span>
-                            <span className="font-bold text-indigo-400">{timeSeries[hoveredIndex].total}</span>
-                          </div>
-                          <div className="flex justify-between items-center text-[11px]">
-                            <span className="text-slate-400">Success:</span>
-                            <span className="font-bold text-emerald-400">{timeSeries[hoveredIndex].success}</span>
-                          </div>
-                          <div className="flex justify-between items-center text-[11px]">
-                            <span className="text-slate-400">Error:</span>
-                            <span className="font-bold text-rose-400">{timeSeries[hoveredIndex].error}</span>
-                          </div>
-                          {/* Mini Ratio Bar */}
-                          <div className="w-full bg-rose-500/20 h-1.5 rounded-full overflow-hidden flex mt-2">
-                            <div
-                              className="bg-emerald-500 h-full rounded-full transition-all"
-                              style={{
-                                width: `${(timeSeries[hoveredIndex].success / (timeSeries[hoveredIndex].total || 1)) * 100}%`
-                              }}
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Chart 2: Tab-Switchable Model Analytics (Latency vs Distribution) */}
-          <div className="ui-card p-5 relative flex flex-col h-[320px] transition-colors group">
-            <div className="mb-2">
-              <div className="flex items-center justify-between mb-2">
-                {/* Tab Switcher Buttons */}
-                <div className="ui-tab-container p-0.5">
-                  <button
-                    type="button"
-                    onClick={() => setAnalyticsTab('latency')}
-                    className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
-                      analyticsTab === 'latency'
-                        ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30 shadow-sm font-semibold'
-                        : 'text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
-                    <span>{t('dashboard.latencyTab', '响应延迟 (ms)')}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAnalyticsTab('distribution')}
-                    className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-all ${
-                      analyticsTab === 'distribution'
-                        ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shadow-sm font-semibold'
-                        : 'text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-500"></span>
-                    <span>{t('dashboard.distributionTab', '请求分布')}</span>
-                  </button>
-                </div>
-
-                {/* Active Hover Metric Badge */}
-                {hoveredIndex !== null && timeSeries[hoveredIndex] && (
-                  <span className={`font-mono text-xs px-2 py-0.5 rounded border ${
-                    analyticsTab === 'latency'
-                      ? 'text-purple-400 bg-purple-500/10 border-purple-500/20'
-                      : 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20'
-                  }`}>
-                    {analyticsTab === 'latency'
-                      ? (timeSeries[hoveredIndex].total > 0 ? `${timeSeries[hoveredIndex].avgDurationMs} ms` : t('dashboard.noSampling'))
-                      : `${allModels.length} models`
-                    }
-                  </span>
-                )}
+      {/* Tier 2: Full-width Interactive APM Charts */}
+      <div className="space-y-6">
+        {/* Chart 1: Merged Request Volume & Model Distribution */}
+        <div className="ui-card p-5 relative flex flex-col h-[340px] transition-colors group">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 gap-2">
+            <h3 className="text-xs font-semibold text-[var(--text-primary)] tracking-wider uppercase flex items-center space-x-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+              <span>{t('dashboard.mergedVolumeTitle', '请求总量与多模型分布趋势')}</span>
+            </h3>
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Chart Type Switcher: Area vs Bar */}
+              <div className="ui-tab-container p-0.5 text-[10px] font-medium">
+                <button
+                  type="button"
+                  onClick={() => setVolumeChartType('area')}
+                  className={`px-2 py-0.5 rounded flex items-center space-x-1 ${
+                    volumeChartType === 'area' ? 'ui-tab-pill-active font-semibold' : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <Activity className="w-3 h-3" />
+                  <span>{t('dashboard.areaChart', '面积图')}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setVolumeChartType('bar')}
+                  className={`px-2 py-0.5 rounded flex items-center space-x-1 ${
+                    volumeChartType === 'bar' ? 'ui-tab-pill-active font-semibold' : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <BarChart3 className="w-3 h-3" />
+                  <span>{t('dashboard.barChart', '柱状图')}</span>
+                </button>
               </div>
 
-              {/* Model Legend */}
+              {/* Model Legend Pills */}
               {allModels.length > 0 && (
-                <div className="flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-slate-400">
+                <div className="flex flex-wrap items-center gap-2 text-[10px] font-mono text-[var(--text-secondary)] pl-2 border-l border-[var(--border-subtle)]">
                   {allModels.map((model, idx) => (
-                    <div key={model} className="flex items-center space-x-1 font-mono">
+                    <div key={model} className="flex items-center space-x-1">
                       <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: getModelColor(model, idx) }}></span>
                       <span className="truncate max-w-[120px]" title={model}>{model}</span>
                     </div>
                   ))}
                 </div>
               )}
+
+              {hoveredIndex !== null && timeSeries[hoveredIndex] && (
+                <span className="text-indigo-400 font-mono text-xs px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20">
+                  {timeSeries[hoveredIndex].total} reqs
+                </span>
+              )}
             </div>
+          </div>
 
-            {N === 0 ? (
-              <div className="flex-1 flex items-center justify-center text-slate-500 text-xs italic bg-[var(--bg-surface-sub)] rounded-lg border border-[var(--border-subtle)]">
-                {t('dashboard.noData')}
-              </div>
-            ) : (
-              <div className="relative flex-1 overflow-x-auto overflow-y-hidden">
-                <div className="min-w-[480px] sm:min-w-full h-full relative">
-                    <svg
-                      viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-                      className="w-full h-full overflow-visible touch-none"
-                      onMouseMove={handleMouseMove}
-                      onMouseLeave={handleMouseLeave}
-                      onTouchStart={handleTouchMove}
-                      onTouchMove={handleTouchMove}
-                      onTouchEnd={handleMouseLeave}
-                    >
-                    {/* Gridlines */}
-                    {analyticsTab === 'latency'
-                      ? renderGridLines(latencyLimit, v => `${v}ms`)
-                      : renderGridLines(modelLimit)
-                    }
+          {N === 0 ? (
+            <div className="flex-1 flex items-center justify-center text-slate-500 text-xs italic bg-[var(--bg-surface-sub)] rounded-lg border border-[var(--border-subtle)]">
+              {t('dashboard.noData')}
+            </div>
+          ) : (
+            <div className="relative flex-1 overflow-x-auto overflow-y-hidden">
+              <div className="min-w-[480px] sm:min-w-full h-full relative">
+                <svg
+                  viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+                  className="w-full h-full overflow-visible touch-none"
+                  onMouseMove={handleMouseMove}
+                  onMouseLeave={handleMouseLeave}
+                  onTouchStart={handleTouchMove}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleMouseLeave}
+                >
+                  <defs>
+                    <linearGradient id="volumeBarGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#6366F1" stopOpacity="0.95" />
+                      <stop offset="100%" stopColor="#4F46E5" stopOpacity="0.70" />
+                    </linearGradient>
+                    <linearGradient id="volumeBarHoverGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#818CF8" stopOpacity="1" />
+                      <stop offset="100%" stopColor="#6366F1" stopOpacity="0.85" />
+                    </linearGradient>
+                    <linearGradient id="volumeAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#6366F1" stopOpacity="0.45" />
+                      <stop offset="80%" stopColor="#6366F1" stopOpacity="0.08" />
+                      <stop offset="100%" stopColor="#6366F1" stopOpacity="0.0" />
+                    </linearGradient>
+                  </defs>
 
-                    {/* X-axis baseline */}
-                    <line
-                      x1={paddingLeft}
-                      y1={yMax}
-                      x2={svgWidth - paddingRight}
-                      y2={yMax}
-                      stroke="currentColor"
-                      className="text-black/[0.08] dark:text-white/[0.08]"
-                      strokeWidth="1"
-                    />
+                  {/* Gridlines */}
+                  {renderGridLines(volumeLimit)}
 
-                    {/* Polylines for each active model */}
-                    {analyticsTab === 'latency' ? (
-                      allModels.length > 0 ? (
-                        allModels.map((model, idx) => {
-                          const mPath = getModelLatencyPath(model);
-                          if (!mPath) return null;
-                          const mColor = getModelColor(model, idx);
-                          return (
-                            <path
-                              key={`line-${model}`}
-                              d={mPath}
-                              fill="none"
-                              stroke={mColor}
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              className="transition-all duration-300"
-                            />
-                          );
-                        })
-                      ) : (
-                        <path
-                          d={getBezierSplinePath(timeSeries.map((p, i) => ({ x: getX(i), y: getYLatency(p.avgDurationMs) })))}
-                          fill="none"
-                          stroke="#a855f7"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      )
-                    ) : (
-                      allModels.map((model, idx) => {
-                        const mPath = getModelPath(model);
-                        if (!mPath) return null;
-                        const mColor = getModelColor(model, idx);
-                        return (
+                  {/* X-axis baseline */}
+                  <line
+                    x1={paddingLeft}
+                    y1={yMax}
+                    x2={svgWidth - paddingRight}
+                    y2={yMax}
+                    stroke="currentColor"
+                    className="text-black/[0.08] dark:text-white/[0.08]"
+                    strokeWidth="1"
+                  />
+
+                  {/* Chart Visualization: Wave Area or Bar */}
+                  {volumeChartType === 'area' ? (
+                    (() => {
+                      const volumePoints = timeSeries.map((p, i) => ({
+                        x: getX(i),
+                        y: getYVolume(p.total)
+                      }));
+                      return (
+                        <g>
+                          {/* Smooth Bezier Area */}
                           <path
-                            key={`area-${model}`}
-                            d={mPath}
+                            d={getBezierAreaPath(volumePoints, yMax)}
+                            fill="url(#volumeAreaGrad)"
+                            className="transition-all duration-300"
+                          />
+                          {/* Smooth Bezier Stroke Line */}
+                          <path
+                            d={getBezierSplinePath(volumePoints)}
                             fill="none"
-                            stroke={mColor}
-                            strokeWidth="2"
+                            stroke="#6366F1"
+                            strokeWidth="2.5"
                             strokeLinecap="round"
                             strokeLinejoin="round"
                             className="transition-all duration-300"
                           />
-                        );
-                      })
-                    )}
+                          {/* Data Points */}
+                          {volumePoints.map((pt, i) => (
+                            <circle
+                              key={i}
+                              cx={pt.x}
+                              cy={pt.y}
+                              r={hoveredIndex === i ? 4.5 : 2.5}
+                              fill={hoveredIndex === i ? "#818CF8" : "#6366F1"}
+                              stroke="var(--bg-surface)"
+                              strokeWidth="1.5"
+                              className="transition-all duration-150"
+                            />
+                          ))}
+                        </g>
+                      );
+                    })()
+                  ) : (
+                    /* Bar columns */
+                    timeSeries.map((p, i) => {
+                      const barWidth = Math.min(18, Math.max(6, (plottingWidth / N) * 0.45));
+                      const x = getX(i) - barWidth / 2;
+                      const h = (p.total / volumeLimit) * plottingHeight;
+                      const y = yMax - h;
+                      const isHovered = hoveredIndex === i;
 
-                    {/* Data Node Dots */}
-                    {analyticsTab === 'latency' ? (
-                       allModels.length > 0 ? (
-                        allModels.map((model, mIdx) => {
-                          const mColor = getModelColor(model, mIdx);
-                          return timeSeries.map((p, i) => {
-                            const dur = p.modelDurations?.[model] || 0;
-                            return (
-                              <circle
-                                key={`dot-${model}-${i}`}
-                                cx={getX(i)}
-                                cy={getYLatency(dur)}
-                                r="2.5"
-                                fill={mColor}
-                                stroke="#0F1118"
-                                strokeWidth="1"
-                              />
-                            );
-                          });
-                        })
-                      ) : (
-                        timeSeries.map((p, i) => (
-                          <circle
-                            key={`latency-overall-${i}`}
-                            cx={getX(i)}
-                            cy={getYLatency(p.avgDurationMs)}
-                            r="2.5"
-                            fill="#a855f7"
-                            stroke="#0F1118"
-                            strokeWidth="1"
-                          />
-                        ))
-                      )
-                    ) : (
-                      allModels.map((model, mIdx) => {
-                        const mColor = getModelColor(model, mIdx);
-                        return timeSeries.map((p, i) => {
+                      return (
+                        <g key={i}>
+                          {/* Column Hover Background Guide */}
+                          {isHovered && (
+                            <rect
+                              x={getX(i) - barWidth * 1.2}
+                              y={yMin}
+                              width={barWidth * 2.4}
+                              height={plottingHeight}
+                              fill="rgba(255, 255, 255, 0.04)"
+                              rx="4"
+                              className="pointer-events-none"
+                            />
+                          )}
+
+                          {/* Top-rounded Bar */}
+                          {h > 0 && (
+                            <path
+                              d={getRoundedTopBarPath(x, y, barWidth, h, 3)}
+                              fill={isHovered ? "url(#volumeBarHoverGrad)" : "url(#volumeBarGrad)"}
+                              className="transition-all duration-150"
+                            />
+                          )}
+                        </g>
+                      );
+                    })
+                  )}
+
+                  {/* Multi-model Distribution Splines & Node Dots Overlay */}
+                  {allModels.map((model, idx) => {
+                    const mPath = getModelPath(model);
+                    if (!mPath) return null;
+                    const mColor = getModelColor(model, idx);
+                    return (
+                      <g key={`model-curve-${model}`}>
+                        <path
+                          d={mPath}
+                          fill="none"
+                          stroke={mColor}
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="transition-all duration-300 opacity-90 hover:opacity-100"
+                        />
+                        {timeSeries.map((p, i) => {
                           const count = p.models?.[model] || 0;
                           return (
                             <circle
-                              key={`dist-${model}-${i}`}
+                              key={`dot-${model}-${i}`}
                               cx={getX(i)}
-                              cy={getYModel(count)}
-                              r="2.5"
+                              cy={getYVolume(count)}
+                              r="2"
                               fill={mColor}
-                              stroke="#0F1118"
+                              stroke="var(--bg-surface)"
                               strokeWidth="1"
                             />
                           );
-                        });
-                      })
-                    )}
+                        })}
+                      </g>
+                    );
+                  })}
 
-                    {/* X-axis labels */}
-                    {labelIndices.map(idx => {
-                      const rawTime = timeSeries[idx].time;
-                      const displayLabel = rawTime.includes(' ') ? rawTime.split(' ')[1] : rawTime;
+                  {/* X-axis labels */}
+                  {labelIndices.map(idx => {
+                    const rawTime = timeSeries[idx].time;
+                    const displayLabel = rawTime.includes(' ') ? rawTime.split(' ')[1] : rawTime;
+                    return (
+                      <text
+                        key={idx}
+                        x={getX(idx)}
+                        y={yMax + 16}
+                        textAnchor="middle"
+                        className="text-[10px] fill-slate-500 font-mono select-none"
+                      >
+                        {displayLabel}
+                      </text>
+                    );
+                  })}
+
+                  {/* Active Hover Crosshair Line */}
+                  {hoveredIndex !== null && (
+                    <line
+                      x1={getX(hoveredIndex)}
+                      y1={yMin}
+                      x2={getX(hoveredIndex)}
+                      y2={yMax}
+                      stroke="rgba(99, 102, 241, 0.6)"
+                      strokeWidth="1"
+                      strokeDasharray="3 3"
+                    />
+                  )}
+
+                  {/* Highlighted active node dots on hover */}
+                  {hoveredIndex !== null && timeSeries[hoveredIndex] && (
+                    allModels.map((model, mIdx) => {
+                      const count = timeSeries[hoveredIndex].models?.[model] || 0;
+                      const mColor = getModelColor(model, mIdx);
                       return (
-                        <text
-                          key={idx}
-                          x={getX(idx)}
-                          y={yMax + 16}
-                          textAnchor="middle"
-                          className="text-[10px] fill-slate-500 font-mono select-none"
-                        >
-                          {displayLabel}
-                        </text>
+                        <circle
+                          key={`hover-${model}`}
+                          cx={getX(hoveredIndex)}
+                          cy={getYVolume(count)}
+                          r="5"
+                          fill={mColor}
+                          stroke="var(--bg-surface)"
+                          strokeWidth="2"
+                          className="animate-pulse"
+                        />
                       );
-                    })}
+                    })
+                  )}
+                </svg>
 
-                    {/* Active Hover Crosshair Line */}
-                    {hoveredIndex !== null && (
-                      <line
-                        x1={getX(hoveredIndex)}
-                        y1={yMin}
-                        x2={getX(hoveredIndex)}
-                        y2={yMax}
-                        stroke={analyticsTab === 'latency' ? 'rgba(168, 85, 247, 0.6)' : 'rgba(6, 182, 212, 0.6)'}
-                        strokeWidth="1"
-                        strokeDasharray="3 3"
-                      />
+                {/* Glassmorphic Hover Tooltip Overlay */}
+                {hoveredIndex !== null && timeSeries[hoveredIndex] && (
+                  <div
+                    className="absolute z-20 backdrop-blur-xl bg-[var(--bg-surface)]/95 border border-[var(--border-subtle)] shadow-2xl rounded-xl p-3.5 text-xs pointer-events-none space-y-2 min-w-[210px] max-w-[300px]"
+                    style={{
+                      left: `${((getX(hoveredIndex) - paddingLeft) / plottingWidth) * 85 + 8}%`,
+                      top: '10%',
+                      transform: hoveredIndex > N / 2 ? 'translateX(-105%)' : 'translateX(5%)',
+                    }}
+                  >
+                    <div className="font-semibold text-[var(--text-primary)] font-mono border-b border-[var(--border-subtle)] pb-1.5 mb-1 flex items-center justify-between">
+                      <span>{timeSeries[hoveredIndex].time}</span>
+                      <span className="text-[10px] text-[var(--text-secondary)]">{timeSeries[hoveredIndex].total} reqs</span>
+                    </div>
+                    {timeSeries[hoveredIndex].total === 0 ? (
+                      <div className="text-center text-slate-500 italic py-1">
+                        {t('dashboard.noRequestsInPeriod')}
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5 font-mono">
+                        <div className="flex justify-between items-center text-[11px]">
+                          <span className="text-[var(--text-secondary)]">Total:</span>
+                          <span className="font-bold text-indigo-400">{timeSeries[hoveredIndex].total}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-[11px]">
+                          <span className="text-[var(--text-secondary)]">Success / Err:</span>
+                          <span>
+                            <span className="font-bold text-emerald-400">{timeSeries[hoveredIndex].success}</span>
+                            <span className="text-slate-500 mx-1">/</span>
+                            <span className={`font-bold ${timeSeries[hoveredIndex].error > 0 ? 'text-rose-400' : 'text-slate-500'}`}>
+                              {timeSeries[hoveredIndex].error}
+                            </span>
+                          </span>
+                        </div>
+
+                        {/* Model Breakdown */}
+                        {allModels.length > 0 && (
+                          <div className="pt-1.5 border-t border-[var(--border-subtle)] space-y-1">
+                            {allModels.map((model, mIdx) => {
+                              const count = timeSeries[hoveredIndex].models?.[model] || 0;
+                              const mColor = getModelColor(model, mIdx);
+                              const percent = timeSeries[hoveredIndex].total > 0
+                                ? ((count / timeSeries[hoveredIndex].total) * 100).toFixed(0)
+                                : '0';
+                              return (
+                                <div key={model} className="flex items-center justify-between gap-3 text-[11px]" title={model}>
+                                  <div className="flex items-center space-x-1.5 min-w-0 text-[var(--text-secondary)]">
+                                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: mColor }} />
+                                    <span className="truncate max-w-[130px]">{model}:</span>
+                                  </div>
+                                  <div className="flex items-center space-x-1.5 shrink-0">
+                                    <span className="font-bold" style={{ color: mColor }}>{count}</span>
+                                    <span className="text-[10px] text-slate-400">({percent}%)</span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
                     )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
 
-                    {/* Highlighted active node dots on hover for Distribution Tab */}
-                    {analyticsTab === 'distribution' && hoveredIndex !== null && timeSeries[hoveredIndex] && (
+        {/* Chart 2: Model Latency Trend */}
+        <div className="ui-card p-5 relative flex flex-col h-[340px] transition-colors group">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 gap-2">
+            <h3 className="text-xs font-semibold text-[var(--text-primary)] tracking-wider uppercase flex items-center space-x-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+              <span>{t('dashboard.latencyChartTitle', '每小时平均延迟 (ms) 趋势')}</span>
+            </h3>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Model Legend */}
+              {allModels.length > 0 && (
+                <div className="flex flex-wrap items-center gap-2 text-[10px] font-mono text-[var(--text-secondary)]">
+                  {allModels.map((model, idx) => (
+                    <div key={model} className="flex items-center space-x-1">
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: getModelColor(model, idx) }}></span>
+                      <span className="truncate max-w-[120px]" title={model}>{model}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {hoveredIndex !== null && timeSeries[hoveredIndex] && (
+                <span className="font-mono text-xs px-2 py-0.5 rounded border text-purple-400 bg-purple-500/10 border-purple-500/20">
+                  {timeSeries[hoveredIndex].total > 0 ? `${timeSeries[hoveredIndex].avgDurationMs} ms` : t('dashboard.noSampling')}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {N === 0 ? (
+            <div className="flex-1 flex items-center justify-center text-slate-500 text-xs italic bg-[var(--bg-surface-sub)] rounded-lg border border-[var(--border-subtle)]">
+              {t('dashboard.noData')}
+            </div>
+          ) : (
+            <div className="relative flex-1 overflow-x-auto overflow-y-hidden">
+              <div className="min-w-[480px] sm:min-w-full h-full relative">
+                <svg
+                  viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+                  className="w-full h-full overflow-visible touch-none"
+                  onMouseMove={handleMouseMove}
+                  onMouseLeave={handleMouseLeave}
+                  onTouchStart={handleTouchMove}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleMouseLeave}
+                >
+                  {/* Gridlines */}
+                  {renderGridLines(latencyLimit, v => `${v}ms`)}
+
+                  {/* X-axis baseline */}
+                  <line
+                    x1={paddingLeft}
+                    y1={yMax}
+                    x2={svgWidth - paddingRight}
+                    y2={yMax}
+                    stroke="currentColor"
+                    className="text-black/[0.08] dark:text-white/[0.08]"
+                    strokeWidth="1"
+                  />
+
+                  {/* Polylines for each active model */}
+                  {allModels.length > 0 ? (
+                    allModels.map((model, idx) => {
+                      const mPath = getModelLatencyPath(model);
+                      if (!mPath) return null;
+                      const mColor = getModelColor(model, idx);
+                      return (
+                        <path
+                          key={`line-${model}`}
+                          d={mPath}
+                          fill="none"
+                          stroke={mColor}
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="transition-all duration-300"
+                        />
+                      );
+                    })
+                  ) : (
+                    <path
+                      d={getBezierSplinePath(timeSeries.map((p, i) => ({ x: getX(i), y: getYLatency(p.avgDurationMs) })))}
+                      fill="none"
+                      stroke="#a855f7"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  )}
+
+                  {/* Data Node Dots */}
+                  {allModels.length > 0 ? (
+                    allModels.map((model, mIdx) => {
+                      const mColor = getModelColor(model, mIdx);
+                      return timeSeries.map((p, i) => {
+                        const dur = p.modelDurations?.[model] || 0;
+                        return (
+                          <circle
+                            key={`dot-${model}-${i}`}
+                            cx={getX(i)}
+                            cy={getYLatency(dur)}
+                            r="2.5"
+                            fill={mColor}
+                            stroke="var(--bg-surface)"
+                            strokeWidth="1"
+                          />
+                        );
+                      });
+                    })
+                  ) : (
+                    timeSeries.map((p, i) => (
+                      <circle
+                        key={`latency-overall-${i}`}
+                        cx={getX(i)}
+                        cy={getYLatency(p.avgDurationMs)}
+                        r="2.5"
+                        fill="#a855f7"
+                        stroke="var(--bg-surface)"
+                        strokeWidth="1"
+                      />
+                    ))
+                  )}
+
+                  {/* X-axis labels */}
+                  {labelIndices.map(idx => {
+                    const rawTime = timeSeries[idx].time;
+                    const displayLabel = rawTime.includes(' ') ? rawTime.split(' ')[1] : rawTime;
+                    return (
+                      <text
+                        key={idx}
+                        x={getX(idx)}
+                        y={yMax + 16}
+                        textAnchor="middle"
+                        className="text-[10px] fill-slate-500 font-mono select-none"
+                      >
+                        {displayLabel}
+                      </text>
+                    );
+                  })}
+
+                  {/* Active Hover Crosshair Line */}
+                  {hoveredIndex !== null && (
+                    <line
+                      x1={getX(hoveredIndex)}
+                      y1={yMin}
+                      x2={getX(hoveredIndex)}
+                      y2={yMax}
+                      stroke="rgba(168, 85, 247, 0.6)"
+                      strokeWidth="1"
+                      strokeDasharray="3 3"
+                    />
+                  )}
+
+                  {/* Highlighted active node dots on hover for Latency */}
+                  {hoveredIndex !== null && timeSeries[hoveredIndex] && (
+                    allModels.length > 0 ? (
                       allModels.map((model, mIdx) => {
-                        const count = timeSeries[hoveredIndex].models?.[model] || 0;
+                        const dur = timeSeries[hoveredIndex].modelDurations?.[model] || 0;
                         const mColor = getModelColor(model, mIdx);
                         return (
                           <circle
-                            key={`hover-${model}`}
+                            key={`hover-lat-${model}`}
                             cx={getX(hoveredIndex)}
-                            cy={getYModel(count)}
-                            r="5.5"
+                            cy={getYLatency(dur)}
+                            r="5"
                             fill={mColor}
-                            stroke="#0F1118"
+                            stroke="var(--bg-surface)"
                             strokeWidth="2"
                             className="animate-pulse"
                           />
                         );
                       })
-                    )}
-                  </svg>
-
-                  {/* Glassmorphic Hover Tooltip Overlay */}
-                  {hoveredIndex !== null && timeSeries[hoveredIndex] && (
-                    <div
-                      className="absolute z-20 backdrop-blur-xl bg-[var(--bg-surface)]/95 border border-[var(--border-subtle)] shadow-2xl rounded-xl p-3.5 text-xs pointer-events-none space-y-2 min-w-[200px] max-w-[290px]"
-                      style={{
-                        left: `${((getX(hoveredIndex) - paddingLeft) / plottingWidth) * 85 + 8}%`,
-                        top: '10%',
-                        transform: hoveredIndex > N / 2 ? 'translateX(-105%)' : 'translateX(5%)',
-                      }}
-                    >
-                      <div className="font-semibold text-[var(--text-primary)] font-mono border-b border-[var(--border-subtle)] pb-1.5 mb-1 text-center">
-                        {timeSeries[hoveredIndex].time}
-                      </div>
-                      {timeSeries[hoveredIndex].total === 0 ? (
-                        <div className="text-center text-slate-500 italic py-1">
-                          {analyticsTab === 'latency' ? t('dashboard.noSampling') : t('dashboard.noRequestsInPeriod')}
-                        </div>
-                      ) : analyticsTab === 'latency' ? (
-                        <div className="space-y-1.5 font-mono">
-                          <div className="flex justify-between items-center text-[11px] border-b border-white/[0.06] pb-1">
-                            <span className="text-slate-400 font-medium">Overall Avg:</span>
-                            <span className="font-bold text-purple-400">
-                              {timeSeries[hoveredIndex].avgDurationMs} ms
-                            </span>
-                          </div>
-                          {allModels.map((model, mIdx) => {
-                            const mDur = timeSeries[hoveredIndex].modelDurations?.[model] || 0;
-                            const mColor = getModelColor(model, mIdx);
-                            return (
-                              <div key={model} className="flex items-center justify-between gap-3 text-[11px]" title={model}>
-                                <span className="flex items-center space-x-1.5 min-w-0 text-slate-300" style={{ color: mColor }}>
-                                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: mColor }}></span>
-                                  <span className="truncate max-w-[130px]">{model}:</span>
-                                </span>
-                                <span className="font-bold shrink-0" style={{ color: mColor }}>
-                                  {mDur} ms
-                                </span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div className="space-y-1.5 font-mono">
-                          {allModels.map((model, mIdx) => {
-                            const count = timeSeries[hoveredIndex].models?.[model] || 0;
-                            const mColor = getModelColor(model, mIdx);
-                            return (
-                              <div key={model} className="flex items-center justify-between gap-3 text-[11px]" title={model}>
-                                <div className="flex items-center space-x-1.5 min-w-0 text-slate-300">
-                                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: mColor }}></span>
-                                  <span className="truncate max-w-[130px]">{model}:</span>
-                                </div>
-                                <span className="font-bold shrink-0" style={{ color: mColor }}>{count}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
+                    ) : (
+                      <circle
+                        cx={getX(hoveredIndex)}
+                        cy={getYLatency(timeSeries[hoveredIndex].avgDurationMs)}
+                        r="5"
+                        fill="#a855f7"
+                        stroke="var(--bg-surface)"
+                        strokeWidth="2"
+                        className="animate-pulse"
+                      />
+                    )
                   )}
-                </div>
+                </svg>
+
+                {/* Glassmorphic Hover Tooltip Overlay */}
+                {hoveredIndex !== null && timeSeries[hoveredIndex] && (
+                  <div
+                    className="absolute z-20 backdrop-blur-xl bg-[var(--bg-surface)]/95 border border-[var(--border-subtle)] shadow-2xl rounded-xl p-3.5 text-xs pointer-events-none space-y-2 min-w-[200px] max-w-[290px]"
+                    style={{
+                      left: `${((getX(hoveredIndex) - paddingLeft) / plottingWidth) * 85 + 8}%`,
+                      top: '10%',
+                      transform: hoveredIndex > N / 2 ? 'translateX(-105%)' : 'translateX(5%)',
+                    }}
+                  >
+                    <div className="font-semibold text-[var(--text-primary)] font-mono border-b border-[var(--border-subtle)] pb-1.5 mb-1 text-center">
+                      {timeSeries[hoveredIndex].time}
+                    </div>
+                    {timeSeries[hoveredIndex].total === 0 ? (
+                      <div className="text-center text-slate-500 italic py-1">
+                        {t('dashboard.noSampling')}
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5 font-mono">
+                        <div className="flex justify-between items-center text-[11px] border-b border-[var(--border-subtle)] pb-1">
+                          <span className="text-[var(--text-secondary)] font-medium">Overall Avg:</span>
+                          <span className="font-bold text-purple-400">
+                            {timeSeries[hoveredIndex].avgDurationMs} ms
+                          </span>
+                        </div>
+                        {allModels.map((model, mIdx) => {
+                          const mDur = timeSeries[hoveredIndex].modelDurations?.[model] || 0;
+                          const mColor = getModelColor(model, mIdx);
+                          return (
+                            <div key={model} className="flex items-center justify-between gap-3 text-[11px]" title={model}>
+                              <span className="flex items-center space-x-1.5 min-w-0 text-[var(--text-secondary)]" style={{ color: mColor }}>
+                                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: mColor }}></span>
+                                <span className="truncate max-w-[130px]">{model}:</span>
+                              </span>
+                              <span className="font-bold shrink-0" style={{ color: mColor }}>
+                                {mDur} ms
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </div>
-
-        {/* Right Golden Matrix View (40% split) */}
-        <div className="lg:col-span-5 xl:col-span-4 space-y-6">
-          {/* Elevated Top Right: Model Performance Matrix */}
-          <ModelPerformanceMatrix
-            modelStats={modelStatsSummary}
-            getModelColor={getModelColor}
-          />
-
-          {/* System Runtime Configuration Matrix */}
-          <SystemRuntimeMatrix config={cfg} />
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Tier 3: Full-width Model Performance DataTable */}
+      <ModelPerformanceMatrix
+        modelStats={modelStatsSummary}
+        getModelColor={getModelColor}
+        range={range}
+      />
+
+      {/* Tier 4: Full-width System Runtime Matrix (6-col grid) */}
+      <SystemRuntimeMatrix config={cfg} />
     </div>
   );
 }
