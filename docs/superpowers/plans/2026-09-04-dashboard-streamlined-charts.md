@@ -32,7 +32,7 @@
 - Produces:
   - `getStackedBarSegments(point: any, allModels: string[], getModelCount: (p: any, m: string) => number, yMax: number, volumeLimit: number, plottingHeight: number): Array<{ model: string; y: number; height: number }>`
 
-- [ ] **Step 1: 在 `tests/chartHelpers.test.ts` 中编写堆叠柱状分段算法测试**
+- [x] **Step 1: 在 `tests/chartHelpers.test.ts` 中编写堆叠柱状分段算法测试**
 
 ```typescript
 import { getStackedBarSegments } from '../frontend/src/utils/chartHelpers';
@@ -62,12 +62,12 @@ describe('Stacked Bar Chart Helper', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试并确认失败**
+- [x] **Step 2: 运行测试并确认失败**
 
 Run: `npx jest tests/chartHelpers.test.ts`
 Expected: FAIL (getStackedBarSegments is not a function)
 
-- [ ] **Step 3: 在 `frontend/src/utils/chartHelpers.ts` 中实现 `getStackedBarSegments`**
+- [x] **Step 3: 在 `frontend/src/utils/chartHelpers.ts` 中实现 `getStackedBarSegments`**
 
 ```typescript
 export interface StackedSegment {
@@ -108,12 +108,12 @@ export function getStackedBarSegments(
 }
 ```
 
-- [ ] **Step 4: 运行测试验证通过**
+- [x] **Step 4: 运行测试验证通过**
 
 Run: `npx jest tests/chartHelpers.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: 提交 Task 1 改动**
+- [x] **Step 5: 提交 Task 1 改动**
 
 ```bash
 git add frontend/src/utils/chartHelpers.ts tests/chartHelpers.test.ts
@@ -131,7 +131,7 @@ git commit -m "feat(charts): add getStackedBarSegments calculation helper"
 - Consumes: `DashboardView.tsx`
 - Produces: 静态与行为断言，检验 `SystemRuntimeMatrix` 已被移除，图表具备 `chartViewTab` 切换与堆叠柱状渲染逻辑，以及延迟图支持 `focusedModel`。
 
-- [ ] **Step 1: 编写测试文件 `tests/dashboardStreamlinedCharts.test.ts`**
+- [x] **Step 1: 编写测试文件 `tests/dashboardStreamlinedCharts.test.ts`**
 
 ```typescript
 import * as fs from 'fs';
@@ -165,12 +165,12 @@ describe('Dashboard Streamlined Charts & Layout', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试并确认失败**
+- [x] **Step 2: 运行测试并确认失败**
 
 Run: `npx jest tests/dashboardStreamlinedCharts.test.ts`
 Expected: FAIL (因为 `DashboardView.tsx` 仍引用了 `SystemRuntimeMatrix` 且尚未重构为单图表容器)
 
-- [ ] **Step 3: 提交初始测试文件**
+- [x] **Step 3: 提交初始测试文件**
 
 ```bash
 git add tests/dashboardStreamlinedCharts.test.ts
@@ -193,18 +193,18 @@ git commit -m "test(dashboard): add assertions for removing SystemRuntimeMatrix 
   - 流量模式渲染分段堆叠彩色柱状图（或总体波形）
   - 延迟模式渲染全网综合波形 + 悬浮/点击图例独占高亮单模型曲线
 
-- [ ] **Step 1: 移除 `SystemRuntimeMatrix` 的 import 与 JSX 引用**
+- [x] **Step 1: 移除 `SystemRuntimeMatrix` 的 import 与 JSX 引用**
 
 从 `DashboardView.tsx` 中删除 `import SystemRuntimeMatrix from './dashboard/SystemRuntimeMatrix';` 和 `<SystemRuntimeMatrix config={cfg} />`。
 
-- [ ] **Step 2: 声明 `chartViewTab` 与 `focusedModel` 状态**
+- [x] **Step 2: 声明 `chartViewTab` 与 `focusedModel` 状态**
 
 ```typescript
 const [chartViewTab, setChartViewTab] = useState<'volume' | 'latency'>('volume');
 const [focusedModel, setFocusedModel] = useState<string | null>(null);
 ```
 
-- [ ] **Step 3: 实现单图表容器顶栏控件**
+- [x] **Step 3: 实现单图表容器顶栏控件**
 
 ```tsx
 <div className="ui-card p-5 relative flex flex-col transition-colors group">
@@ -309,7 +309,7 @@ const [focusedModel, setFocusedModel] = useState<string | null>(null);
 </div>
 ```
 
-- [ ] **Step 4: 在流量模式下渲染多模型堆叠柱状图 (Stacked Bar Chart)**
+- [x] **Step 4: 在流量模式下渲染多模型堆叠柱状图 (Stacked Bar Chart)**
 
 当 `chartViewTab === 'volume'` 且 `volumeChartType === 'bar'` 时：
 使用 `getStackedBarSegments` 计算每个小时柱子内的分段矩形：
@@ -365,22 +365,22 @@ const [focusedModel, setFocusedModel] = useState<string | null>(null);
 })}
 ```
 
-- [ ] **Step 5: 在延迟模式下渲染全网综合波形与交互式图例高亮**
+- [x] **Step 5: 在延迟模式下渲染全网综合波形与交互式图例高亮**
 
 当 `chartViewTab === 'latency'` 时：
 1. 底层绘制全网平均延迟贝塞尔平滑渐变面积图作为基底；
 2. 上层绘制多模型折线：若 `focusedModel` 为当前模型，线宽加粗至 `3.5px`，`opacity: 1`；若有其他模型被聚焦，本模型降至 `opacity: 0.1`；未聚焦时保持优雅柔和的 `opacity: 0.45`。
 
-- [ ] **Step 6: 优化悬浮 Tooltip 微卡片**
+- [x] **Step 6: 优化悬浮 Tooltip 微卡片**
 
 在流量模式下，展示时间、总请求、成功/错误比，以及各个模型的请求贡献倒序明细；在延迟模式下，展示全网平均耗时及各模型具体耗时。
 
-- [ ] **Step 7: 运行测试验证 Task 3 全部通过**
+- [x] **Step 7: 运行测试验证 Task 3 全部通过**
 
 Run: `npx jest tests/dashboardStreamlinedCharts.test.ts`
 Expected: PASS
 
-- [ ] **Step 8: 提交 Task 3 改动**
+- [x] **Step 8: 提交 Task 3 改动**
 
 ```bash
 git add frontend/src/components/DashboardView.tsx tests/dashboardStreamlinedCharts.test.ts
@@ -399,16 +399,16 @@ git commit -m "feat(dashboard): remove SystemRuntimeMatrix and implement unified
 - Consumes: `DashboardView.tsx`
 - Produces: 确保之前测试中关于 `SystemRuntimeMatrix` 的断言被同步更新或移除，避免破坏 CI/CD。
 
-- [ ] **Step 1: 更新 `tests/dashboardFullwidthLayout.test.ts`**
+- [x] **Step 1: 更新 `tests/dashboardFullwidthLayout.test.ts`**
 
 移除已不适用的 `SystemRuntimeMatrix` 存在断言，更新为断言图表具备 `chartViewTab` 和 `stacked bar`。
 
-- [ ] **Step 2: 运行全量测试套件**
+- [x] **Step 2: 运行全量测试套件**
 
 Run: `npx jest tests/`
 Expected: 所有测试套件通过
 
-- [ ] **Step 3: 提交改动**
+- [x] **Step 3: 提交改动**
 
 ```bash
 git add tests/dashboardFullwidthLayout.test.ts tests/dashboardOptimization.test.ts
@@ -422,22 +422,22 @@ git commit -m "test(dashboard): clean up obsolete SystemRuntimeMatrix assertions
 **Files:**
 - None (执行全面验证与回归测试)
 
-- [ ] **Step 1: 运行全量 Jest 测试套件**
+- [x] **Step 1: 运行全量 Jest 测试套件**
 
 Run: `/Users/yogo/.nvm/versions/node/v22.12.0/bin/npm test`
 Expected: 44 个测试套件全部 PASS
 
-- [ ] **Step 2: 运行前端 Vite 严格构建**
+- [x] **Step 2: 运行前端 Vite 严格构建**
 
 Run: `/Users/yogo/.nvm/versions/node/v22.12.0/bin/npm run build:frontend`
 Expected: 0 错误构建成功
 
-- [ ] **Step 3: 运行后端 TypeScript 严格构建**
+- [x] **Step 3: 运行后端 TypeScript 严格构建**
 
 Run: `/Users/yogo/.nvm/versions/node/v22.12.0/bin/npm run build:backend`
 Expected: 0 错误构建成功
 
-- [ ] **Step 4: 运行全量构建**
+- [x] **Step 4: 运行全量构建**
 
 Run: `/Users/yogo/.nvm/versions/node/v22.12.0/bin/npm run build`
 Expected: SUCCESS
