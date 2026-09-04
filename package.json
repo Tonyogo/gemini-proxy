@@ -5,7 +5,7 @@
   "main": "dist/src/index.js",
   "type": "commonjs",
   "scripts": {
-    "build:frontend": "cd frontend && npm install --include=dev && npm run build",
+    "build:frontend": "cd frontend && npm run build",
     "build:backend": "tsc",
     "build": "npm run build:frontend && npm run build:backend",
     "prestart": "npm run build",
