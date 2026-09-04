@@ -17,6 +17,7 @@ import {
   getBezierSplinePath,
   getBezierAreaPath
 } from '../utils/chartHelpers';
+import { aggregateModelStats, normalizeModelName } from '../utils/modelHelpers';
 
 interface TimeSeriesPoint {
   time: string;
@@ -58,43 +59,9 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
   const timeSeries: TimeSeriesPoint[] = stats?.timeSeries || [];
   const N = timeSeries.length;
 
-  // Cumulative model metrics summary
+  // Cumulative model metrics summary with model normalization
   const modelStatsSummary = useMemo(() => {
-    const summary: Record<string, { requests: number; totalDuration: number; durationCount: number }> = {};
-    let totalReqs = 0;
-
-    timeSeries.forEach(p => {
-      if (p.models) {
-        Object.entries(p.models).forEach(([model, count]) => {
-          if (!summary[model]) {
-            summary[model] = { requests: 0, totalDuration: 0, durationCount: 0 };
-          }
-          summary[model].requests += count;
-          totalReqs += count;
-        });
-      }
-      if (p.modelDurations) {
-        Object.entries(p.modelDurations).forEach(([model, dur]) => {
-          if (!summary[model]) {
-            summary[model] = { requests: 0, totalDuration: 0, durationCount: 0 };
-          }
-          summary[model].totalDuration += dur;
-          summary[model].durationCount += 1;
-        });
-      }
-    });
-
-    return {
-      totalRequests: totalReqs,
-      list: Object.entries(summary)
-        .map(([model, data]) => ({
-          model,
-          requests: data.requests,
-          percentage: totalReqs > 0 ? (data.requests / totalReqs) * 100 : 0,
-          avgLatency: data.durationCount > 0 ? Math.round(data.totalDuration / data.durationCount) : 0,
-        }))
-        .sort((a, b) => b.requests - a.requests)
-    };
+    return aggregateModelStats(timeSeries);
   }, [timeSeries]);
 
   if (loading) {
@@ -190,18 +157,44 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
   const latencyLimit = maxLatency === 0 ? 100 : Math.ceil(maxLatency * 1.15);
   const getYLatency = (v: number) => yMax - (v / latencyLimit) * plottingHeight;
 
-  // Model Distribution Chart calculations
-  const allModels = Array.from(new Set(timeSeries.flatMap(p => Object.keys(p.models || {}))));
+  // Model Distribution Chart calculations (normalized base models)
+  const allModels = Array.from(new Set(timeSeries.flatMap(p => {
+    return Object.keys(p.models || {}).map(m => normalizeModelName(m).baseModel);
+  })));
   const modelColors = ['#6366F1', '#38BDF8', '#10B981', '#F59E0B', '#EC4899', '#A855F7', '#14B8A6'];
   const getModelColor = (modelName: string, index: number) => {
     return modelColors[index % modelColors.length];
+  };
+
+  const getModelHourlyCount = (p: TimeSeriesPoint, baseModel: string): number => {
+    if (!p.models) return 0;
+    let count = 0;
+    for (const [rawModel, num] of Object.entries(p.models)) {
+      if (normalizeModelName(rawModel).baseModel === baseModel) {
+        count += Number(num) || 0;
+      }
+    }
+    return count;
+  };
+
+  const getModelHourlyLatency = (p: TimeSeriesPoint, baseModel: string): number => {
+    if (!p.modelDurations) return 0;
+    let totalDur = 0;
+    let count = 0;
+    for (const [rawModel, dur] of Object.entries(p.modelDurations)) {
+      if (normalizeModelName(rawModel).baseModel === baseModel) {
+        totalDur += Number(dur) || 0;
+        count += 1;
+      }
+    }
+    return count > 0 ? Math.round(totalDur / count) : 0;
   };
 
   const getModelPath = (modelName: string) => {
     if (N === 0) return '';
     const points = timeSeries.map((p, i) => ({
       x: getX(i),
-      y: getYVolume(p.models?.[modelName] || 0)
+      y: getYVolume(getModelHourlyCount(p, modelName))
     }));
     return getBezierSplinePath(points);
   };
@@ -259,7 +252,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
     if (N === 0) return '';
     const points = timeSeries.map((p, i) => ({
       x: getX(i),
-      y: getYLatency(p.modelDurations?.[modelName] || 0)
+      y: getYLatency(getModelHourlyLatency(p, modelName))
     }));
     return getBezierSplinePath(points);
   };
@@ -421,7 +414,17 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
         </div>
       </div>
 
-      {/* Tier 2: Full-width Interactive APM Charts */}
+      {/* Tier 2: Top Priority: Full-width Model Performance DataTable & Matrix */}
+      <ModelPerformanceMatrix
+        modelStats={modelStatsSummary}
+        getModelColor={getModelColor}
+        range={range}
+      />
+
+      {/* Tier 3: Top Priority: Full-width System Runtime Matrix */}
+      <SystemRuntimeMatrix config={cfg} />
+
+      {/* Tier 4: Full-width Interactive APM Charts */}
       <div className="space-y-6">
         {/* Chart 1: Merged Request Volume & Model Distribution */}
         <div className="ui-card p-5 relative flex flex-col h-[340px] transition-colors group">
@@ -616,7 +619,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                           className="transition-all duration-300 opacity-90 hover:opacity-100"
                         />
                         {timeSeries.map((p, i) => {
-                          const count = p.models?.[model] || 0;
+                          const count = getModelHourlyCount(p, model);
                           return (
                             <circle
                               key={`dot-${model}-${i}`}
@@ -666,7 +669,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                   {/* Highlighted active node dots on hover */}
                   {hoveredIndex !== null && timeSeries[hoveredIndex] && (
                     allModels.map((model, mIdx) => {
-                      const count = timeSeries[hoveredIndex].models?.[model] || 0;
+                      const count = getModelHourlyCount(timeSeries[hoveredIndex], model);
                       const mColor = getModelColor(model, mIdx);
                       return (
                         <circle
@@ -723,7 +726,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                         {allModels.length > 0 && (
                           <div className="pt-1.5 border-t border-[var(--border-subtle)] space-y-1">
                             {allModels.map((model, mIdx) => {
-                              const count = timeSeries[hoveredIndex].models?.[model] || 0;
+                              const count = getModelHourlyCount(timeSeries[hoveredIndex], model);
                               const mColor = getModelColor(model, mIdx);
                               const percent = timeSeries[hoveredIndex].total > 0
                                 ? ((count / timeSeries[hoveredIndex].total) * 100).toFixed(0)
@@ -846,7 +849,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                     allModels.map((model, mIdx) => {
                       const mColor = getModelColor(model, mIdx);
                       return timeSeries.map((p, i) => {
-                        const dur = p.modelDurations?.[model] || 0;
+                        const dur = getModelHourlyLatency(p, model);
                         return (
                           <circle
                             key={`dot-${model}-${i}`}
@@ -908,7 +911,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                   {hoveredIndex !== null && timeSeries[hoveredIndex] && (
                     allModels.length > 0 ? (
                       allModels.map((model, mIdx) => {
-                        const dur = timeSeries[hoveredIndex].modelDurations?.[model] || 0;
+                        const dur = getModelHourlyLatency(timeSeries[hoveredIndex], model);
                         const mColor = getModelColor(model, mIdx);
                         return (
                           <circle
@@ -963,7 +966,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                           </span>
                         </div>
                         {allModels.map((model, mIdx) => {
-                          const mDur = timeSeries[hoveredIndex].modelDurations?.[model] || 0;
+                          const mDur = getModelHourlyLatency(timeSeries[hoveredIndex], model);
                           const mColor = getModelColor(model, mIdx);
                           return (
                             <div key={model} className="flex items-center justify-between gap-3 text-[11px]" title={model}>
@@ -986,16 +989,6 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
           )}
         </div>
       </div>
-
-      {/* Tier 3: Full-width Model Performance DataTable */}
-      <ModelPerformanceMatrix
-        modelStats={modelStatsSummary}
-        getModelColor={getModelColor}
-        range={range}
-      />
-
-      {/* Tier 4: Full-width System Runtime Matrix (6-col grid) */}
-      <SystemRuntimeMatrix config={cfg} />
     </div>
   );
 }
