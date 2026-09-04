@@ -164,7 +164,10 @@ export const en = {
     modelName: "Model Name",
     trafficShare: "Traffic Share",
     throughputRate: "Throughput",
-    modelHealth: "Health"
+    modelHealth: "Health",
+    standardReqs: "Standard",
+    highReqs: "High Spec",
+    highBadge: "High"
   },
   logs: {
     title: "Request Logs",

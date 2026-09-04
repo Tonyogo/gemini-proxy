@@ -166,7 +166,10 @@ export const zh: Translations = {
     modelName: "模型名称",
     trafficShare: "流量占比",
     throughputRate: "平均吞吐",
-    modelHealth: "健康状态"
+    modelHealth: "健康状态",
+    standardReqs: "标准请求",
+    highReqs: "High 规格",
+    highBadge: "High"
   },
   logs: {
     title: "请求日志列表",
