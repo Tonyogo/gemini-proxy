@@ -31,7 +31,7 @@
 - Consumes: `DashboardView.tsx`, `ModelPerformanceMatrix.tsx`, `SystemRuntimeMatrix.tsx`
 - Produces: 静态与组件行为断言，检验移除 6:4 栅格、图表 1 具备总量与多模型混合绘制、模型矩阵具备多维列与流光进度条、系统配置为 6 芯片网格。
 
-- [ ] **Step 1: 编写测试文件 `tests/dashboardFullwidthLayout.test.ts`**
+- [x] **Step 1: 编写测试文件 `tests/dashboardFullwidthLayout.test.ts`**
 
 ```typescript
 import * as fs from 'fs';
@@ -79,12 +79,12 @@ describe('Dashboard Full-Width Layout & Merged Charts', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试并确认失败**
+- [x] **Step 2: 运行测试并确认失败**
 
 Run: `npx jest tests/dashboardFullwidthLayout.test.ts`
 Expected: FAIL (因为目前 `DashboardView.tsx` 仍有 `lg:grid-cols-12`，且矩阵尚未重构为全宽 table)
 
-- [ ] **Step 3: 提交初始测试文件**
+- [x] **Step 3: 提交初始测试文件**
 
 ```bash
 git add tests/dashboardFullwidthLayout.test.ts
@@ -108,7 +108,7 @@ git commit -m "test(dashboard): add assertions for full-width tiered layout and 
   - `dashboard.throughputRate`: "平均吞吐" / "Throughput"
   - `dashboard.modelHealth`: "健康状态" / "Health"
 
-- [ ] **Step 1: 在 `frontend/src/i18n/locales/zh.ts` 中补充词条**
+- [x] **Step 1: 在 `frontend/src/i18n/locales/zh.ts` 中补充词条**
 
 在 `dashboard` 对象中增加：
 ```typescript
@@ -119,7 +119,7 @@ git commit -m "test(dashboard): add assertions for full-width tiered layout and 
     modelHealth: "健康状态",
 ```
 
-- [ ] **Step 2: 在 `frontend/src/i18n/locales/en.ts` 中补充词条**
+- [x] **Step 2: 在 `frontend/src/i18n/locales/en.ts` 中补充词条**
 
 在 `dashboard` 对象中增加：
 ```typescript
@@ -130,12 +130,12 @@ git commit -m "test(dashboard): add assertions for full-width tiered layout and 
     modelHealth: "Health",
 ```
 
-- [ ] **Step 3: 运行测试确认 i18n 无语法错误**
+- [x] **Step 3: 运行测试确认 i18n 无语法错误**
 
 Run: `npx jest tests/chartHelpers.test.ts`
 Expected: PASS
 
-- [ ] **Step 4: 提交 i18n 改动**
+- [x] **Step 4: 提交 i18n 改动**
 
 ```bash
 git add frontend/src/i18n/locales/zh.ts frontend/src/i18n/locales/en.ts
@@ -156,7 +156,7 @@ git commit -m "feat(i18n): add merged chart and model datatable column translati
   - 现代化 DataTable（模型标识、请求数、大跨度色彩进度条、平均延迟微晶、平均吞吐速率 QPS、健康状态徽章）
   - 完美适配移动端（支持卡片/表格水平自适应滚动）
 
-- [ ] **Step 1: 在 `ModelPerformanceMatrix.tsx` 中更新 Props 接口与吞吐量计算**
+- [x] **Step 1: 在 `ModelPerformanceMatrix.tsx` 中更新 Props 接口与吞吐量计算**
 
 ```typescript
 export interface ModelPerformanceMatrixProps {
@@ -182,7 +182,7 @@ const getThroughput = (requests: number) => {
 };
 ```
 
-- [ ] **Step 2: 重构 JSX 结构为通栏全宽表格**
+- [x] **Step 2: 重构 JSX 结构为通栏全宽表格**
 
 ```tsx
 <div className="ui-card p-5 flex flex-col w-full overflow-hidden">
@@ -290,12 +290,12 @@ const getThroughput = (requests: number) => {
 </div>
 ```
 
-- [ ] **Step 3: 运行测试检查矩阵部分通过情况**
+- [x] **Step 3: 运行测试检查矩阵部分通过情况**
 
 Run: `npx jest tests/dashboardFullwidthLayout.test.ts`
 Expected: ModelPerformanceMatrix 测试项 PASS
 
-- [ ] **Step 4: 提交模型矩阵改动**
+- [x] **Step 4: 提交模型矩阵改动**
 
 ```bash
 git add frontend/src/components/dashboard/ModelPerformanceMatrix.tsx
@@ -315,7 +315,7 @@ git commit -m "feat(dashboard): convert ModelPerformanceMatrix into a full-width
   - 100% 全宽 `ui-card`
   - 6 列自适应网格 `grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3`
 
-- [ ] **Step 1: 在 `SystemRuntimeMatrix.tsx` 中将网格改为 `lg:grid-cols-6`**
+- [x] **Step 1: 在 `SystemRuntimeMatrix.tsx` 中将网格改为 `lg:grid-cols-6`**
 
 在 `frontend/src/components/dashboard/SystemRuntimeMatrix.tsx` 中：
 ```tsx
@@ -324,12 +324,12 @@ git commit -m "feat(dashboard): convert ModelPerformanceMatrix into a full-width
 </div>
 ```
 
-- [ ] **Step 2: 运行测试验证网格断言通过**
+- [x] **Step 2: 运行测试验证网格断言通过**
 
 Run: `npx jest tests/dashboardFullwidthLayout.test.ts`
 Expected: SystemRuntimeMatrix 测试项 PASS
 
-- [ ] **Step 3: 提交系统配置矩阵改动**
+- [x] **Step 3: 提交系统配置矩阵改动**
 
 ```bash
 git add frontend/src/components/dashboard/SystemRuntimeMatrix.tsx
@@ -357,7 +357,7 @@ git commit -m "feat(dashboard): make SystemRuntimeMatrix a full-width 6-column r
   - **Tier 3 & 4**：
     - 通栏平铺展示 `ModelPerformanceMatrix`（传入 `range`）与 `SystemRuntimeMatrix`
 
-- [ ] **Step 1: 在 `DashboardView.tsx` 中移除 6:4 栅格容器**
+- [x] **Step 1: 在 `DashboardView.tsx` 中移除 6:4 栅格容器**
 
 将：
 ```tsx
@@ -391,7 +391,7 @@ git commit -m "feat(dashboard): make SystemRuntimeMatrix a full-width 6-column r
 <SystemRuntimeMatrix config={cfg} />
 ```
 
-- [ ] **Step 2: 实现图表 1 (请求总量 + 多模型分布复合图表)**
+- [x] **Step 2: 实现图表 1 (请求总量 + 多模型分布复合图表)**
 
 在同一个 `<svg viewBox="0 0 800 240">` 画布中：
 1. **底层绘制总量**：
@@ -405,16 +405,16 @@ git commit -m "feat(dashboard): make SystemRuntimeMatrix a full-width 6-column r
 4. **全景 Tooltip 悬浮卡片**：
    - 悬浮时展示：时刻、总数、成功/失败数、各模型的请求次数与占比（如 `claude-3-5: 820 (58%)`）。
 
-- [ ] **Step 3: 实现图表 2 (通栏全宽响应延迟趋势图)**
+- [x] **Step 3: 实现图表 2 (通栏全宽响应延迟趋势图)**
 
 满宽展示多模型的平均延迟曲线，时间轴宽度提升，彻底消除曲线互相拥挤遮挡的问题。
 
-- [ ] **Step 4: 运行全量测试验证全部通过**
+- [x] **Step 4: 运行全量测试验证全部通过**
 
 Run: `npx jest tests/dashboardFullwidthLayout.test.ts`
 Expected: 4 个测试全部 PASS
 
-- [ ] **Step 5: 提交改动**
+- [x] **Step 5: 提交改动**
 
 ```bash
 git add frontend/src/components/DashboardView.tsx tests/dashboardFullwidthLayout.test.ts
@@ -428,22 +428,22 @@ git commit -m "feat(dashboard): replace 6:4 grid with vertical tiered full-width
 **Files:**
 - None (执行全面验证与回归测试)
 
-- [ ] **Step 1: 运行全量 Jest 测试套件**
+- [x] **Step 1: 运行全量 Jest 测试套件**
 
 Run: `/Users/yogo/.nvm/versions/node/v22.12.0/bin/npm test`
 Expected: 43 个测试套件全部 PASS
 
-- [ ] **Step 2: 运行前端 Vite 严格构建**
+- [x] **Step 2: 运行前端 Vite 严格构建**
 
 Run: `/Users/yogo/.nvm/versions/node/v22.12.0/bin/npm run build:frontend`
 Expected: 0 错误构建成功
 
-- [ ] **Step 3: 运行后端 TypeScript 严格构建**
+- [x] **Step 3: 运行后端 TypeScript 严格构建**
 
 Run: `/Users/yogo/.nvm/versions/node/v22.12.0/bin/npm run build:backend`
 Expected: 0 错误构建成功
 
-- [ ] **Step 4: 运行全量构建**
+- [x] **Step 4: 运行全量构建**
 
 Run: `/Users/yogo/.nvm/versions/node/v22.12.0/bin/npm run build`
 Expected: SUCCESS
