@@ -32,7 +32,7 @@
 - Consumes: `useTranslation`
 - Produces: `dashboard.chartVolumeTab`, `dashboard.chartLatencyTab`
 
-- [ ] **Step 1: 在 `tests/dashboardStreamlinedCharts.test.ts` 中补充防抖与精简词条断言**
+- [x] **Step 1: 在 `tests/dashboardStreamlinedCharts.test.ts` 中补充防抖与精简词条断言**
 
 ```typescript
 import * as fs from 'fs';
@@ -70,12 +70,12 @@ describe('Dashboard Anti-Shift & Dark Border Polish', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试并确认失败**
+- [x] **Step 2: 运行测试并确认失败**
 
 Run: `npx jest tests/dashboardStreamlinedCharts.test.ts`
 Expected: FAIL (因为目前 `DashboardView.tsx` 仍有 `volumeChartType` 与动态徽章)
 
-- [ ] **Step 3: 更新 `frontend/src/i18n/locales/zh.ts` 与 `en.ts`**
+- [x] **Step 3: 更新 `frontend/src/i18n/locales/zh.ts` 与 `en.ts`**
 
 在 `zh.ts` 的 `dashboard` 中：
 ```typescript
@@ -88,7 +88,7 @@ Expected: FAIL (因为目前 `DashboardView.tsx` 仍有 `volumeChartType` 与动
     chartLatencyTab: "Latency",
 ```
 
-- [ ] **Step 4: 提交 Task 1 改动**
+- [x] **Step 4: 提交 Task 1 改动**
 
 ```bash
 git add frontend/src/i18n/locales/zh.ts frontend/src/i18n/locales/en.ts tests/dashboardStreamlinedCharts.test.ts
@@ -106,7 +106,7 @@ git commit -m "feat(i18n): add simplified chart tab labels for volume and latenc
 - Consumes: `ModelPerformanceMatrixProps`
 - Produces: 消除 `divide-[var(--border-subtle)]/50`，采用暗阶 `border-b border-black/[0.05] dark:border-white/[0.04]`，表格圆角防溢出。
 
-- [ ] **Step 1: 重构 `ModelPerformanceMatrix.tsx` 中的表格边框结构**
+- [x] **Step 1: 重构 `ModelPerformanceMatrix.tsx` 中的表格边框结构**
 
 在 `ModelPerformanceMatrix.tsx` 中：
 1. 将 `<thead>` 下的表头分割线改为：
@@ -118,12 +118,12 @@ git commit -m "feat(i18n): add simplified chart tab labels for volume and latenc
 4. 将表格容器增加平滑圆角修饰：
    `<div className="hidden md:block overflow-x-auto w-full no-scrollbar rounded-xl">`
 
-- [ ] **Step 2: 运行测试检查白线相关断言**
+- [x] **Step 2: 运行测试检查白线相关断言**
 
 Run: `npx jest tests/dashboardStreamlinedCharts.test.ts`
 Expected: ModelPerformanceMatrix 相关白线断言全部 PASS
 
-- [ ] **Step 3: 提交 Task 2 改动**
+- [x] **Step 3: 提交 Task 2 改动**
 
 ```bash
 git add frontend/src/components/dashboard/ModelPerformanceMatrix.tsx
@@ -145,11 +145,11 @@ git commit -m "fix(dashboard): eliminate harsh white lines in ModelPerformanceMa
   - 图表固定为分模型堆叠柱状图
   - 顶栏 Tab 使用两字精简标签 `[ 📊 请求量 ]` / `[ ⚡ 响应延迟 ]`
 
-- [ ] **Step 1: 在 `DashboardView.tsx` 中移除 `volumeChartType` 状态**
+- [x] **Step 1: 在 `DashboardView.tsx` 中移除 `volumeChartType` 状态**
 
 移除 `const [volumeChartType, setVolumeChartType] = useState<'bar' | 'area'>('bar');`。
 
-- [ ] **Step 2: 简化顶栏标题与移除动态悬浮指标**
+- [x] **Step 2: 简化顶栏标题与移除动态悬浮指标**
 
 在顶栏区域：
 1. 双 Tab 使用精简文案：
@@ -178,16 +178,16 @@ git commit -m "fix(dashboard): eliminate harsh white lines in ModelPerformanceMa
 2. 彻底删除原先右侧的 `volumeChartType` 切换器与 `{hoveredIndex !== null && timeSeries[hoveredIndex] && (<span>...</span>)}` 标签。
 3. 若在延迟 Tab 下有 `focusedModel`，保留一个极简靠右的 `[ 重置高亮 ]` 按钮。
 
-- [ ] **Step 3: 移除流量模式下的波形渲染逻辑，纯化堆叠柱状图**
+- [x] **Step 3: 移除流量模式下的波形渲染逻辑，纯化堆叠柱状图**
 
 在 `chartViewTab === 'volume'` 分支下，直接渲染 `timeSeries.map(...)` 堆叠柱状图，移除原 `volumeChartType === 'area'` 逻辑，减少无效分支和 DOM 计算。
 
-- [ ] **Step 4: 运行测试检查全部断言**
+- [x] **Step 4: 运行测试检查全部断言**
 
 Run: `npx jest tests/dashboardStreamlinedCharts.test.ts`
 Expected: 4 个测试全部 PASS
 
-- [ ] **Step 5: 提交 Task 3 改动**
+- [x] **Step 5: 提交 Task 3 改动**
 
 ```bash
 git add frontend/src/components/DashboardView.tsx
@@ -201,22 +201,22 @@ git commit -m "feat(dashboard): lock volume chart to stacked bars, simplify tabs
 **Files:**
 - None (执行全面验证与回归测试)
 
-- [ ] **Step 1: 运行全量 Jest 测试套件**
+- [x] **Step 1: 运行全量 Jest 测试套件**
 
 Run: `/Users/yogo/.nvm/versions/node/v22.12.0/bin/npm test`
 Expected: 44 个测试套件全部 PASS
 
-- [ ] **Step 2: 运行前端 Vite 严格构建**
+- [x] **Step 2: 运行前端 Vite 严格构建**
 
 Run: `/Users/yogo/.nvm/versions/node/v22.12.0/bin/npm run build:frontend`
 Expected: 0 错误构建成功
 
-- [ ] **Step 3: 运行后端 TypeScript 严格构建**
+- [x] **Step 3: 运行后端 TypeScript 严格构建**
 
 Run: `/Users/yogo/.nvm/versions/node/v22.12.0/bin/npm run build:backend`
 Expected: 0 错误构建成功
 
-- [ ] **Step 4: 运行全量构建**
+- [x] **Step 4: 运行全量构建**
 
 Run: `/Users/yogo/.nvm/versions/node/v22.12.0/bin/npm run build`
 Expected: SUCCESS
