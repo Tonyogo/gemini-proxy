@@ -34,7 +34,7 @@
   - `aggregateModelStats(timeSeries: any[]): { totalRequests: number; list: ModelStatItem[] }`
   - `aggregateTimeSeriesModels(timeSeries: any[]): any[]`
 
-- [ ] **Step 1: 编写测试文件 `tests/modelHelpers.test.ts`**
+- [x] **Step 1: 编写测试文件 `tests/modelHelpers.test.ts`**
 
 ```typescript
 import {
@@ -88,12 +88,12 @@ describe('Model Normalization & Aggregation Helpers', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试并确认失败**
+- [x] **Step 2: 运行测试并确认失败**
 
 Run: `npx jest tests/modelHelpers.test.ts`
 Expected: FAIL (Cannot find module '../frontend/src/utils/modelHelpers')
 
-- [ ] **Step 3: 实现 `frontend/src/utils/modelHelpers.ts`**
+- [x] **Step 3: 实现 `frontend/src/utils/modelHelpers.ts`**
 
 ```typescript
 export interface NormalizedModelInfo {
@@ -206,12 +206,12 @@ export function aggregateModelStats(timeSeries: any[]): { totalRequests: number;
 }
 ```
 
-- [ ] **Step 4: 运行测试验证通过**
+- [x] **Step 4: 运行测试验证通过**
 
 Run: `npx jest tests/modelHelpers.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: 提交任务 1 改动**
+- [x] **Step 5: 提交任务 1 改动**
 
 ```bash
 git add frontend/src/utils/modelHelpers.ts tests/modelHelpers.test.ts
@@ -230,7 +230,7 @@ git commit -m "feat(models): add normalizeModelName and aggregateModelStats help
 - Consumes: `useTranslation`
 - Produces: `dashboard.standardReqs`, `dashboard.highReqs`, `dashboard.highBadge`
 
-- [ ] **Step 1: 在 `frontend/src/i18n/locales/zh.ts` 中补充词条**
+- [x] **Step 1: 在 `frontend/src/i18n/locales/zh.ts` 中补充词条**
 
 在 `dashboard` 对象中增加：
 ```typescript
@@ -239,7 +239,7 @@ git commit -m "feat(models): add normalizeModelName and aggregateModelStats help
     highBadge: "High",
 ```
 
-- [ ] **Step 2: 在 `frontend/src/i18n/locales/en.ts` 中补充词条**
+- [x] **Step 2: 在 `frontend/src/i18n/locales/en.ts` 中补充词条**
 
 在 `dashboard` 对象中增加：
 ```typescript
@@ -248,12 +248,12 @@ git commit -m "feat(models): add normalizeModelName and aggregateModelStats help
     highBadge: "High",
 ```
 
-- [ ] **Step 3: 运行测试检查无语法报错**
+- [x] **Step 3: 运行测试检查无语法报错**
 
 Run: `npx jest tests/modelHelpers.test.ts`
 Expected: PASS
 
-- [ ] **Step 4: 提交 i18n 改动**
+- [x] **Step 4: 提交 i18n 改动**
 
 ```bash
 git add frontend/src/i18n/locales/zh.ts frontend/src/i18n/locales/en.ts
@@ -274,7 +274,7 @@ git commit -m "feat(i18n): add standard and high spec requests translations"
   - 桌面端 (`hidden md:block`): 表格中包含 `标准请求 (Standard)` 与 `High 规格 (High)` 独立列
   - 移动端 (`md:hidden`): 单行展示模型名+延迟微晶，右侧 `${standard}/${high} High`，下方大通栏圆角流光进度条
 
-- [ ] **Step 1: 编写 `tests/dashboardModelNormalization.test.ts` 静态断言**
+- [x] **Step 1: 编写 `tests/dashboardModelNormalization.test.ts` 静态断言**
 
 ```typescript
 import * as fs from 'fs';
@@ -318,12 +318,12 @@ describe('ModelPerformanceMatrix Normalization & Dual-State View', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试并确认失败**
+- [x] **Step 2: 运行测试并确认失败**
 
 Run: `npx jest tests/dashboardModelNormalization.test.ts`
 Expected: FAIL
 
-- [ ] **Step 3: 重构 `ModelPerformanceMatrix.tsx`**
+- [x] **Step 3: 重构 `ModelPerformanceMatrix.tsx`**
 
 ```tsx
 import React from 'react';
@@ -523,12 +523,12 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
 export default ModelPerformanceMatrix;
 ```
 
-- [ ] **Step 4: 运行测试检查矩阵改动**
+- [x] **Step 4: 运行测试检查矩阵改动**
 
 Run: `npx jest tests/dashboardModelNormalization.test.ts`
 Expected: dual-state 与 desktop columns 测试通过
 
-- [ ] **Step 5: 提交改动**
+- [x] **Step 5: 提交改动**
 
 ```bash
 git add frontend/src/components/dashboard/ModelPerformanceMatrix.tsx
@@ -551,7 +551,7 @@ git commit -m "feat(dashboard): add standard/high columns in desktop table and c
   - Tier 4: 通栏图表 1 (请求总量 + 归一化多模型分布)
   - Tier 5: 通栏图表 2 (归一化多模型延迟趋势)
 
-- [ ] **Step 1: 在 `DashboardView.tsx` 中引入模型归一化工具并重构 `modelStatsSummary`**
+- [x] **Step 1: 在 `DashboardView.tsx` 中引入模型归一化工具并重构 `modelStatsSummary`**
 
 ```typescript
 import { aggregateModelStats, normalizeModelName } from '../utils/modelHelpers';
@@ -562,7 +562,7 @@ const modelStatsSummary = useMemo(() => {
 }, [timeSeries]);
 ```
 
-- [ ] **Step 2: 归一化图表中的 `allModels` 与模型路径生成**
+- [x] **Step 2: 归一化图表中的 `allModels` 与模型路径生成**
 
 在 `DashboardView.tsx` 中：
 ```typescript
@@ -572,7 +572,7 @@ const allModels = Array.from(new Set(timeSeries.flatMap(p => {
 ```
 同时调整 `getModelPath` 与 `getModelLatencyPath`：对同一时间点下归入同一基准模型的 count 进行累加求和，保证图表中每条曲线代表唯一的基准模型。
 
-- [ ] **Step 3: 调整 JSX 中的组件层级顺序**
+- [x] **Step 3: 调整 JSX 中的组件层级顺序**
 
 将：
 ```tsx
@@ -597,12 +597,12 @@ const allModels = Array.from(new Set(timeSeries.flatMap(p => {
 </div>
 ```
 
-- [ ] **Step 4: 运行测试验证顺序与断言全部通过**
+- [x] **Step 4: 运行测试验证顺序与断言全部通过**
 
 Run: `npx jest tests/dashboardModelNormalization.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: 提交改动**
+- [x] **Step 5: 提交改动**
 
 ```bash
 git add frontend/src/components/DashboardView.tsx tests/dashboardModelNormalization.test.ts
@@ -616,22 +616,22 @@ git commit -m "feat(dashboard): prioritize matrices at top and normalize models 
 **Files:**
 - None (执行全面验证与回归测试)
 
-- [ ] **Step 1: 运行全量 Jest 测试套件**
+- [x] **Step 1: 运行全量 Jest 测试套件**
 
 Run: `/Users/yogo/.nvm/versions/node/v22.12.0/bin/npm test`
 Expected: 44 个测试套件全部 PASS
 
-- [ ] **Step 2: 运行前端 Vite 严格构建**
+- [x] **Step 2: 运行前端 Vite 严格构建**
 
 Run: `/Users/yogo/.nvm/versions/node/v22.12.0/bin/npm run build:frontend`
 Expected: 0 错误构建成功
 
-- [ ] **Step 3: 运行后端 TypeScript 严格构建**
+- [x] **Step 3: 运行后端 TypeScript 严格构建**
 
 Run: `/Users/yogo/.nvm/versions/node/v22.12.0/bin/npm run build:backend`
 Expected: 0 错误构建成功
 
-- [ ] **Step 4: 运行全量构建**
+- [x] **Step 4: 运行全量构建**
 
 Run: `/Users/yogo/.nvm/versions/node/v22.12.0/bin/npm run build`
 Expected: SUCCESS
