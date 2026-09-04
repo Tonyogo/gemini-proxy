@@ -148,7 +148,18 @@ export const en = {
     modelsTracked: "Models Tracked",
     modelPerformanceTitle: "Model Performance Matrix",
     systemRuntimeMatrix: "System Runtime Matrix",
-    totalReqs: "reqs"
+    totalReqs: "reqs",
+    serviceAvailability: "Service Availability",
+    avgThroughput: "Avg Throughput",
+    healthy: "HEALTHY",
+    barChart: "Bar Chart",
+    areaChart: "Area Chart",
+    excellent: "EXCELLENT",
+    good: "GOOD",
+    slow: "SLOW",
+    successCountLabel: "Success",
+    errorCountLabel: "Errors",
+    totalReqsLabel: "Total Requests"
   },
   logs: {
     title: "Request Logs",

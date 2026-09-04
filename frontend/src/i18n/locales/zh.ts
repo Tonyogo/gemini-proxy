@@ -150,7 +150,18 @@ export const zh: Translations = {
     modelsTracked: "个已追踪模型",
     modelPerformanceTitle: "模型性能与分布矩阵",
     systemRuntimeMatrix: "系统运行时参数矩阵",
-    totalReqs: "次请求"
+    totalReqs: "次请求",
+    serviceAvailability: "服务可用率",
+    avgThroughput: "平均吞吐量",
+    healthy: "健康",
+    barChart: "柱状图",
+    areaChart: "面积图",
+    excellent: "极佳",
+    good: "良好",
+    slow: "缓慢",
+    successCountLabel: "成功",
+    errorCountLabel: "异常",
+    totalReqsLabel: "总请求数"
   },
   logs: {
     title: "请求日志列表",
