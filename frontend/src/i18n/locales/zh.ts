@@ -161,7 +161,12 @@ export const zh: Translations = {
     slow: "缓慢",
     successCountLabel: "成功",
     errorCountLabel: "异常",
-    totalReqsLabel: "总请求数"
+    totalReqsLabel: "总请求数",
+    mergedVolumeTitle: "请求总量与多模型分布趋势",
+    modelName: "模型名称",
+    trafficShare: "流量占比",
+    throughputRate: "平均吞吐",
+    modelHealth: "健康状态"
   },
   logs: {
     title: "请求日志列表",

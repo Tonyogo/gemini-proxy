@@ -159,7 +159,12 @@ export const en = {
     slow: "SLOW",
     successCountLabel: "Success",
     errorCountLabel: "Errors",
-    totalReqsLabel: "Total Requests"
+    totalReqsLabel: "Total Requests",
+    mergedVolumeTitle: "Request Volume & Model Distribution",
+    modelName: "Model Name",
+    trafficShare: "Traffic Share",
+    throughputRate: "Throughput",
+    modelHealth: "Health"
   },
   logs: {
     title: "Request Logs",
