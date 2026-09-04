@@ -33,7 +33,7 @@ export const SystemRuntimeMatrix: React.FC<SystemRuntimeMatrixProps> = ({ config
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 flex-1 font-mono text-xs">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 flex-1 font-mono text-xs">
           <div className="ui-card-sub p-3 flex flex-col justify-between">
             <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
               LOG_LEVEL
