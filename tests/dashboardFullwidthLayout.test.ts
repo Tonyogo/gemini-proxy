@@ -22,11 +22,10 @@ describe('Dashboard Full-Width Layout & Merged Charts', () => {
     expect(dashboardContent).not.toContain('lg:col-span-5');
   });
 
-  test('merged chart 1 should render both total volume bars/area and multi-model distribution paths', () => {
-    // Chart 1 renders volume (bars/area)
+  test('unified APM chart should support volume and latency tab switching', () => {
+    expect(dashboardContent).toContain('chartViewTab');
+    expect(dashboardContent).toContain('getStackedBarSegments');
     expect(dashboardContent).toContain('volumeBarGrad');
-    // Chart 1 renders multi-model distribution lines or curves
-    expect(dashboardContent).toContain('getModelPath');
     expect(dashboardContent).toContain('allModels');
   });
 

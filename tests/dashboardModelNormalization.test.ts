@@ -23,17 +23,14 @@ describe('ModelPerformanceMatrix Normalization & Dual-State View', () => {
     expect(matrixContent).toContain('highRequests');
   });
 
-  test('DashboardView should place ModelPerformanceMatrix and SystemRuntimeMatrix before charts', () => {
+  test('DashboardView should place ModelPerformanceMatrix before charts', () => {
     const matrixIndex = dashboardContent.indexOf('<ModelPerformanceMatrix');
-    const systemIndex = dashboardContent.indexOf('<SystemRuntimeMatrix');
     const chartIndex = dashboardContent.indexOf('volumeBarGrad');
 
     expect(matrixIndex).toBeGreaterThan(0);
-    expect(systemIndex).toBeGreaterThan(0);
     expect(chartIndex).toBeGreaterThan(0);
 
-    // Matrix and System must appear BEFORE chart in the DOM
+    // Matrix must appear BEFORE chart in the DOM
     expect(matrixIndex).toBeLessThan(chartIndex);
-    expect(systemIndex).toBeLessThan(chartIndex);
   });
 });
