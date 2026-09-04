@@ -10,12 +10,12 @@ import {
 } from 'lucide-react';
 import { useTranslation } from '../i18n/LanguageContext';
 import ModelPerformanceMatrix from './dashboard/ModelPerformanceMatrix';
-import SystemRuntimeMatrix from './dashboard/SystemRuntimeMatrix';
 import {
   formatUptime,
   formatThroughput,
   getBezierSplinePath,
-  getBezierAreaPath
+  getBezierAreaPath,
+  getStackedBarSegments
 } from '../utils/chartHelpers';
 import { aggregateModelStats, normalizeModelName } from '../utils/modelHelpers';
 
@@ -37,6 +37,8 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
   const [range, setRange] = useState<number | 'today'>('today');
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [volumeChartType, setVolumeChartType] = useState<'bar' | 'area'>('area');
+  const [chartViewTab, setChartViewTab] = useState<'volume' | 'latency'>('volume');
+  const [focusedModel, setFocusedModel] = useState<string | null>(null);
 
   const loadData = (currentRange = range) => {
     setLoading(true);
@@ -74,12 +76,12 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
   }
 
   // SVG dimensions & margins
-  const svgWidth = 600;
-  const svgHeight = 220;
+  const svgWidth = 1000;
+  const svgHeight = 170;
   const paddingLeft = 50;
-  const paddingRight = 15;
-  const paddingTop = 20;
-  const paddingBottom = 35;
+  const paddingRight = 30;
+  const paddingTop = 35;
+  const paddingBottom = 30;
   const plottingWidth = svgWidth - paddingLeft - paddingRight;
   const plottingHeight = svgHeight - paddingTop - paddingBottom;
   const yMin = paddingTop;
@@ -219,7 +221,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
 
   // Subtle dashed horizontal grid lines
   const renderGridLines = (limit: number, formatVal?: (v: number) => string) => {
-    const ticks = [0, limit / 2, limit];
+    const ticks = [0, limit / 3, (limit * 2) / 3, limit];
     return ticks.map((tick, i) => {
       const y = yMax - (tick / limit) * plottingHeight;
       const formatted = formatVal ? formatVal(Math.round(tick)) : Math.round(tick);
@@ -421,21 +423,79 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
         range={range}
       />
 
-      {/* Tier 3: Top Priority: Full-width System Runtime Matrix */}
-      <SystemRuntimeMatrix config={cfg} />
+      {/* Tier 3: Unified Full-Width Interactive APM Chart */}
+      <div className="ui-card p-5 sm:p-6 relative flex flex-col h-[380px] transition-colors group">
+        {/* Unified APM Toolbar Header */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-4 gap-3">
+          {/* Left: View Switcher Tabs & Active Metric Preview */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="ui-tab-container p-0.5 text-xs font-medium">
+              <button
+                type="button"
+                onClick={() => setChartViewTab('volume')}
+                className={`px-3 py-1 rounded-md flex items-center space-x-1.5 transition-all ${
+                  chartViewTab === 'volume'
+                    ? 'ui-tab-pill-active font-semibold shadow-sm'
+                    : 'text-slate-400 hover:text-[var(--text-primary)]'
+                }`}
+              >
+                <Activity className="w-3.5 h-3.5" />
+                <span>{t('dashboard.mergedVolumeTitle', '流量请求趋势')}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setChartViewTab('latency')}
+                className={`px-3 py-1 rounded-md flex items-center space-x-1.5 transition-all ${
+                  chartViewTab === 'latency'
+                    ? 'ui-tab-pill-active font-semibold shadow-sm'
+                    : 'text-slate-400 hover:text-[var(--text-primary)]'
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5" />
+                <span>{t('dashboard.latencyChartTitle', '响应延迟走势')}</span>
+              </button>
+            </div>
 
-      {/* Tier 4: Full-width Interactive APM Charts */}
-      <div className="space-y-6">
-        {/* Chart 1: Merged Request Volume & Model Distribution */}
-        <div className="ui-card p-5 relative flex flex-col h-[340px] transition-colors group">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 gap-2">
-            <h3 className="text-xs font-semibold text-[var(--text-primary)] tracking-wider uppercase flex items-center space-x-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
-              <span>{t('dashboard.mergedVolumeTitle', '请求总量与多模型分布趋势')}</span>
-            </h3>
-            <div className="flex flex-wrap items-center gap-2">
-              {/* Chart Type Switcher: Area vs Bar */}
+            {/* Subtitle / Metric Preview */}
+            <div className="text-xs font-mono text-[var(--text-secondary)] pl-2 border-l border-[var(--border-subtle)] flex items-center space-x-2">
+              {chartViewTab === 'volume' ? (
+                <>
+                  <span className="text-slate-500">区间总请求:</span>
+                  <span className="font-bold text-indigo-400">{totalLogsCount.toLocaleString()}</span>
+                  {hoveredIndex !== null && timeSeries[hoveredIndex] && (
+                    <span className="text-indigo-400 font-mono text-[11px] px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20">
+                      {timeSeries[hoveredIndex].time}: {timeSeries[hoveredIndex].total} reqs
+                    </span>
+                  )}
+                </>
+              ) : (
+                <>
+                  <span className="text-slate-500">总体平均延迟:</span>
+                  <span className="font-bold text-purple-400">{avgLatency} ms</span>
+                  {hoveredIndex !== null && timeSeries[hoveredIndex] && (
+                    <span className="font-mono text-[11px] px-2 py-0.5 rounded border text-purple-400 bg-purple-500/10 border-purple-500/20">
+                      {timeSeries[hoveredIndex].time}: {timeSeries[hoveredIndex].total > 0 ? `${timeSeries[hoveredIndex].avgDurationMs} ms` : t('dashboard.noSampling')}
+                    </span>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Right: Sub-controls & Model Legends */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            {chartViewTab === 'volume' && (
               <div className="ui-tab-container p-0.5 text-[10px] font-medium">
+                <button
+                  type="button"
+                  onClick={() => setVolumeChartType('bar')}
+                  className={`px-2 py-0.5 rounded flex items-center space-x-1 ${
+                    volumeChartType === 'bar' ? 'ui-tab-pill-active font-semibold' : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <BarChart3 className="w-3 h-3" />
+                  <span>{t('dashboard.barChart', '堆叠柱状')}</span>
+                </button>
                 <button
                   type="button"
                   onClick={() => setVolumeChartType('area')}
@@ -446,234 +506,374 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                   <Activity className="w-3 h-3" />
                   <span>{t('dashboard.areaChart', '面积图')}</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setVolumeChartType('bar')}
-                  className={`px-2 py-0.5 rounded flex items-center space-x-1 ${
-                    volumeChartType === 'bar' ? 'ui-tab-pill-active font-semibold' : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  <BarChart3 className="w-3 h-3" />
-                  <span>{t('dashboard.barChart', '柱状图')}</span>
-                </button>
               </div>
+            )}
 
-              {/* Model Legend Pills */}
-              {allModels.length > 0 && (
-                <div className="flex flex-wrap items-center gap-2 text-[10px] font-mono text-[var(--text-secondary)] pl-2 border-l border-[var(--border-subtle)]">
-                  {allModels.map((model, idx) => (
-                    <div key={model} className="flex items-center space-x-1">
-                      <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: getModelColor(model, idx) }}></span>
-                      <span className="truncate max-w-[120px]" title={model}>{model}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
+            {chartViewTab === 'latency' && focusedModel && (
+              <button
+                type="button"
+                onClick={() => setFocusedModel(null)}
+                className="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/30 hover:bg-purple-500/25 transition-all"
+              >
+                重置高亮
+              </button>
+            )}
 
-              {hoveredIndex !== null && timeSeries[hoveredIndex] && (
-                <span className="text-indigo-400 font-mono text-xs px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20">
-                  {timeSeries[hoveredIndex].total} reqs
-                </span>
-              )}
-            </div>
+            {/* Model Legend Pills with Interactive Focus */}
+            {allModels.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 pl-2 border-l border-[var(--border-subtle)]">
+                {allModels.map((model, idx) => {
+                  const mColor = getModelColor(model, idx);
+                  const isFocused = focusedModel === model;
+                  const isDimmed = focusedModel !== null && !isFocused;
+                  return (
+                    <button
+                      key={model}
+                      type="button"
+                      onMouseEnter={() => setFocusedModel(model)}
+                      onMouseLeave={() => setFocusedModel(null)}
+                      onClick={() => setFocusedModel(focusedModel === model ? null : model)}
+                      className={`flex items-center space-x-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono transition-all duration-150 border ${
+                        isFocused
+                          ? 'bg-purple-500/20 border-purple-500/40 text-[var(--text-primary)] ring-1 ring-purple-500/50 shadow-sm'
+                          : isDimmed
+                          ? 'opacity-40 border-transparent text-[var(--text-secondary)] hover:opacity-75'
+                          : 'bg-[var(--bg-surface-sub)]/60 border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-purple-500/30'
+                      }`}
+                      title={chartViewTab === 'latency' ? `${model} (点击或悬停高亮)` : model}
+                    >
+                      <span
+                        className="w-2 h-2 rounded-full shrink-0 transition-transform"
+                        style={{
+                          backgroundColor: mColor,
+                          transform: isFocused ? 'scale(1.25)' : 'none'
+                        }}
+                      />
+                      <span className="truncate max-w-[110px] sm:max-w-[150px]">{model}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
+        </div>
 
-          {N === 0 ? (
-            <div className="flex-1 flex items-center justify-center text-slate-500 text-xs italic bg-[var(--bg-surface-sub)] rounded-lg border border-[var(--border-subtle)]">
-              {t('dashboard.noData')}
-            </div>
-          ) : (
-            <div className="relative flex-1 overflow-x-auto overflow-y-hidden">
-              <div className="min-w-[480px] sm:min-w-full h-full relative">
-                <svg
-                  viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-                  className="w-full h-full overflow-visible touch-none"
-                  onMouseMove={handleMouseMove}
-                  onMouseLeave={handleMouseLeave}
-                  onTouchStart={handleTouchMove}
-                  onTouchMove={handleTouchMove}
-                  onTouchEnd={handleMouseLeave}
-                >
-                  <defs>
-                    <linearGradient id="volumeBarGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#6366F1" stopOpacity="0.95" />
-                      <stop offset="100%" stopColor="#4F46E5" stopOpacity="0.70" />
-                    </linearGradient>
-                    <linearGradient id="volumeBarHoverGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#818CF8" stopOpacity="1" />
-                      <stop offset="100%" stopColor="#6366F1" stopOpacity="0.85" />
-                    </linearGradient>
-                    <linearGradient id="volumeAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#6366F1" stopOpacity="0.45" />
-                      <stop offset="80%" stopColor="#6366F1" stopOpacity="0.08" />
-                      <stop offset="100%" stopColor="#6366F1" stopOpacity="0.0" />
-                    </linearGradient>
-                  </defs>
+        {/* Chart Visualization Area */}
+        {N === 0 ? (
+          <div className="flex-1 flex items-center justify-center text-slate-500 text-xs italic bg-[var(--bg-surface-sub)] rounded-lg border border-[var(--border-subtle)]">
+            {t('dashboard.noData')}
+          </div>
+        ) : (
+          <div className="relative flex-1 overflow-x-auto overflow-y-hidden">
+            <div className="min-w-[600px] sm:min-w-full h-full relative">
+              <svg
+                viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+                className="w-full h-full overflow-visible touch-none"
+                onMouseMove={handleMouseMove}
+                onMouseLeave={handleMouseLeave}
+                onTouchStart={handleTouchMove}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleMouseLeave}
+              >
+                <defs>
+                  <linearGradient id="volumeBarGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#6366F1" stopOpacity="0.95" />
+                    <stop offset="100%" stopColor="#4F46E5" stopOpacity="0.70" />
+                  </linearGradient>
+                  <linearGradient id="volumeBarHoverGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#818CF8" stopOpacity="1" />
+                    <stop offset="100%" stopColor="#6366F1" stopOpacity="0.85" />
+                  </linearGradient>
+                  <linearGradient id="volumeAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#6366F1" stopOpacity="0.40" />
+                    <stop offset="80%" stopColor="#6366F1" stopOpacity="0.05" />
+                    <stop offset="100%" stopColor="#6366F1" stopOpacity="0.0" />
+                  </linearGradient>
+                  <linearGradient id="latencyAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#a855f7" stopOpacity="0.25" />
+                    <stop offset="80%" stopColor="#a855f7" stopOpacity="0.04" />
+                    <stop offset="100%" stopColor="#a855f7" stopOpacity="0.0" />
+                  </linearGradient>
+                </defs>
 
-                  {/* Gridlines */}
-                  {renderGridLines(volumeLimit)}
+                {/* Gridlines */}
+                {chartViewTab === 'volume'
+                  ? renderGridLines(volumeLimit)
+                  : renderGridLines(latencyLimit, v => `${v}ms`)}
 
-                  {/* X-axis baseline */}
-                  <line
-                    x1={paddingLeft}
-                    y1={yMax}
-                    x2={svgWidth - paddingRight}
-                    y2={yMax}
-                    stroke="currentColor"
-                    className="text-black/[0.08] dark:text-white/[0.08]"
-                    strokeWidth="1"
-                  />
+                {/* X-axis baseline */}
+                <line
+                  x1={paddingLeft}
+                  y1={yMax}
+                  x2={svgWidth - paddingRight}
+                  y2={yMax}
+                  stroke="currentColor"
+                  className="text-black/[0.08] dark:text-white/[0.08]"
+                  strokeWidth="1"
+                />
 
-                  {/* Chart Visualization: Wave Area or Bar */}
-                  {volumeChartType === 'area' ? (
-                    (() => {
-                      const volumePoints = timeSeries.map((p, i) => ({
+                {/* VIEW 1: Volume Mode */}
+                {chartViewTab === 'volume' && (
+                  <>
+                    {volumeChartType === 'area' ? (
+                      (() => {
+                        const volumePoints = timeSeries.map((p, i) => ({
+                          x: getX(i),
+                          y: getYVolume(p.total)
+                        }));
+                        return (
+                          <g>
+                            {/* Smooth Bezier Area */}
+                            <path
+                              d={getBezierAreaPath(volumePoints, yMax)}
+                              fill="url(#volumeAreaGrad)"
+                              className="transition-all duration-300"
+                            />
+                            {/* Smooth Bezier Stroke Line */}
+                            <path
+                              d={getBezierSplinePath(volumePoints)}
+                              fill="none"
+                              stroke="#6366F1"
+                              strokeWidth="2.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="transition-all duration-300"
+                            />
+                            {/* Multi-model Distribution Splines Overlay in Area mode */}
+                            {allModels.map((model, idx) => {
+                              const mPath = getModelPath(model);
+                              if (!mPath) return null;
+                              const mColor = getModelColor(model, idx);
+                              return (
+                                <path
+                                  key={`model-curve-${model}`}
+                                  d={mPath}
+                                  fill="none"
+                                  stroke={mColor}
+                                  strokeWidth="1.75"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  className="transition-all duration-300 opacity-80"
+                                />
+                              );
+                            })}
+                            {/* Data Points */}
+                            {volumePoints.map((pt, i) => (
+                              <circle
+                                key={i}
+                                cx={pt.x}
+                                cy={pt.y}
+                                r={hoveredIndex === i ? 4.5 : 2.5}
+                                fill={hoveredIndex === i ? '#818CF8' : '#6366F1'}
+                                stroke="var(--bg-surface)"
+                                strokeWidth="1.5"
+                                className="transition-all duration-150"
+                              />
+                            ))}
+                          </g>
+                        );
+                      })()
+                    ) : (
+                      /* Multi-Model Stacked Bars */
+                      timeSeries.map((p, i) => {
+                        const barWidth = Math.min(22, Math.max(6, (plottingWidth / N) * 0.55));
+                        const x = getX(i) - barWidth / 2;
+                        const isHovered = hoveredIndex === i;
+                        const segments = getStackedBarSegments(
+                          p,
+                          allModels,
+                          getModelHourlyCount,
+                          volumeLimit,
+                          volumeLimit,
+                          plottingHeight
+                        );
+
+                        return (
+                          <g key={i}>
+                            {/* Column Hover Background Guide */}
+                            {isHovered && (
+                              <rect
+                                x={getX(i) - barWidth * 1.1}
+                                y={yMin}
+                                width={barWidth * 2.2}
+                                height={plottingHeight}
+                                fill="rgba(99, 102, 241, 0.06)"
+                                rx="4"
+                                className="pointer-events-none"
+                              />
+                            )}
+
+                            {/* Stacked multi-model segments */}
+                            {segments.length > 0 ? (
+                              segments.map((seg, sIdx) => {
+                                const mIdx = allModels.indexOf(seg.model);
+                                const color = getModelColor(seg.model, mIdx >= 0 ? mIdx : 0);
+                                const isTop = sIdx === segments.length - 1;
+                                return isTop ? (
+                                  <path
+                                    key={`seg-${seg.model}-${i}`}
+                                    d={getRoundedTopBarPath(x, seg.y, barWidth, seg.height, 3)}
+                                    fill={color}
+                                    className="transition-all duration-150"
+                                    style={{ opacity: isHovered ? 1 : 0.9 }}
+                                  />
+                                ) : (
+                                  <rect
+                                    key={`seg-${seg.model}-${i}`}
+                                    x={x}
+                                    y={seg.y}
+                                    width={barWidth}
+                                    height={seg.height}
+                                    fill={color}
+                                    className="transition-all duration-150"
+                                    style={{ opacity: isHovered ? 1 : 0.9 }}
+                                  />
+                                );
+                              })
+                            ) : p.total > 0 ? (
+                              (() => {
+                                const h = (p.total / volumeLimit) * plottingHeight;
+                                const y = yMax - h;
+                                return (
+                                  <path
+                                    d={getRoundedTopBarPath(x, y, barWidth, h, 3)}
+                                    fill={isHovered ? 'url(#volumeBarHoverGrad)' : 'url(#volumeBarGrad)'}
+                                    className="transition-all duration-150"
+                                  />
+                                );
+                              })()
+                            ) : null}
+                          </g>
+                        );
+                      })
+                    )}
+                  </>
+                )}
+
+                {/* VIEW 2: Latency Mode */}
+                {chartViewTab === 'latency' && (
+                  <>
+                    {/* Overall Average Latency Smooth Area & Baseline Spline */}
+                    {(() => {
+                      const overallLatencyPoints = timeSeries.map((p, i) => ({
                         x: getX(i),
-                        y: getYVolume(p.total)
+                        y: getYLatency(p.avgDurationMs)
                       }));
                       return (
-                        <g>
-                          {/* Smooth Bezier Area */}
+                        <g className="transition-opacity duration-200" style={{ opacity: focusedModel !== null ? 0.35 : 0.85 }}>
                           <path
-                            d={getBezierAreaPath(volumePoints, yMax)}
-                            fill="url(#volumeAreaGrad)"
-                            className="transition-all duration-300"
+                            d={getBezierAreaPath(overallLatencyPoints, yMax)}
+                            fill="url(#latencyAreaGrad)"
                           />
-                          {/* Smooth Bezier Stroke Line */}
                           <path
-                            d={getBezierSplinePath(volumePoints)}
+                            d={getBezierSplinePath(overallLatencyPoints)}
                             fill="none"
-                            stroke="#6366F1"
-                            strokeWidth="2.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="transition-all duration-300"
+                            stroke="#a855f7"
+                            strokeWidth={focusedModel === null ? 2 : 1.5}
+                            strokeDasharray="4 4"
+                            strokeOpacity="0.7"
                           />
-                          {/* Data Points */}
-                          {volumePoints.map((pt, i) => (
-                            <circle
-                              key={i}
-                              cx={pt.x}
-                              cy={pt.y}
-                              r={hoveredIndex === i ? 4.5 : 2.5}
-                              fill={hoveredIndex === i ? "#818CF8" : "#6366F1"}
-                              stroke="var(--bg-surface)"
-                              strokeWidth="1.5"
-                              className="transition-all duration-150"
-                            />
-                          ))}
                         </g>
                       );
-                    })()
-                  ) : (
-                    /* Bar columns */
-                    timeSeries.map((p, i) => {
-                      const barWidth = Math.min(18, Math.max(6, (plottingWidth / N) * 0.45));
-                      const x = getX(i) - barWidth / 2;
-                      const h = (p.total / volumeLimit) * plottingHeight;
-                      const y = yMax - h;
-                      const isHovered = hoveredIndex === i;
+                    })()}
 
-                      return (
-                        <g key={i}>
-                          {/* Column Hover Background Guide */}
-                          {isHovered && (
-                            <rect
-                              x={getX(i) - barWidth * 1.2}
-                              y={yMin}
-                              width={barWidth * 2.4}
-                              height={plottingHeight}
-                              fill="rgba(255, 255, 255, 0.04)"
-                              rx="4"
-                              className="pointer-events-none"
-                            />
-                          )}
+                    {/* Polylines for each active model with interactive focus */}
+                    {allModels.length > 0 ? (
+                      allModels.map((model, idx) => {
+                        const mPath = getModelLatencyPath(model);
+                        if (!mPath) return null;
+                        const mColor = getModelColor(model, idx);
+                        const isFocused = focusedModel === model;
+                        const isDimmed = focusedModel !== null && !isFocused;
 
-                          {/* Top-rounded Bar */}
-                          {h > 0 && (
+                        return (
+                          <g key={`latency-line-${model}`}>
                             <path
-                              d={getRoundedTopBarPath(x, y, barWidth, h, 3)}
-                              fill={isHovered ? "url(#volumeBarHoverGrad)" : "url(#volumeBarGrad)"}
-                              className="transition-all duration-150"
+                              d={mPath}
+                              fill="none"
+                              stroke={mColor}
+                              strokeWidth={focusedModel === model ? 3 : 1.75}
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="transition-all duration-200"
+                              style={{
+                                opacity: focusedModel === null ? 0.85 : isFocused ? 1 : 0.2,
+                                filter: isFocused ? 'drop-shadow(0 0 6px rgba(168, 85, 247, 0.4))' : 'none'
+                              }}
                             />
-                          )}
-                        </g>
-                      );
-                    })
-                  )}
+                            {timeSeries.map((p, i) => {
+                              const dur = getModelHourlyLatency(p, model);
+                              return (
+                                <circle
+                                  key={`dot-${model}-${i}`}
+                                  cx={getX(i)}
+                                  cy={getYLatency(dur)}
+                                  r={isFocused ? 3.5 : 2}
+                                  fill={mColor}
+                                  stroke="var(--bg-surface)"
+                                  strokeWidth="1"
+                                  className="transition-all duration-200"
+                                  style={{
+                                    opacity: focusedModel === null ? 0.85 : isFocused ? 1 : 0.2
+                                  }}
+                                />
+                              );
+                            })}
+                          </g>
+                        );
+                      })
+                    ) : (
+                      <path
+                        d={getBezierSplinePath(timeSeries.map((p, i) => ({ x: getX(i), y: getYLatency(p.avgDurationMs) })))}
+                        fill="none"
+                        stroke="#a855f7"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    )}
+                  </>
+                )}
 
-                  {/* Multi-model Distribution Splines & Node Dots Overlay */}
-                  {allModels.map((model, idx) => {
-                    const mPath = getModelPath(model);
-                    if (!mPath) return null;
-                    const mColor = getModelColor(model, idx);
-                    return (
-                      <g key={`model-curve-${model}`}>
-                        <path
-                          d={mPath}
-                          fill="none"
-                          stroke={mColor}
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="transition-all duration-300 opacity-90 hover:opacity-100"
-                        />
-                        {timeSeries.map((p, i) => {
-                          const count = getModelHourlyCount(p, model);
-                          return (
-                            <circle
-                              key={`dot-${model}-${i}`}
-                              cx={getX(i)}
-                              cy={getYVolume(count)}
-                              r="2"
-                              fill={mColor}
-                              stroke="var(--bg-surface)"
-                              strokeWidth="1"
-                            />
-                          );
-                        })}
-                      </g>
-                    );
-                  })}
+                {/* Common X-axis labels */}
+                {labelIndices.map(idx => {
+                  const rawTime = timeSeries[idx].time;
+                  const displayLabel = rawTime.includes(' ') ? rawTime.split(' ')[1] : rawTime;
+                  return (
+                    <text
+                      key={idx}
+                      x={getX(idx)}
+                      y={yMax + 16}
+                      textAnchor="middle"
+                      className="text-[10px] fill-slate-500 font-mono select-none"
+                    >
+                      {displayLabel}
+                    </text>
+                  );
+                })}
 
-                  {/* X-axis labels */}
-                  {labelIndices.map(idx => {
-                    const rawTime = timeSeries[idx].time;
-                    const displayLabel = rawTime.includes(' ') ? rawTime.split(' ')[1] : rawTime;
-                    return (
-                      <text
-                        key={idx}
-                        x={getX(idx)}
-                        y={yMax + 16}
-                        textAnchor="middle"
-                        className="text-[10px] fill-slate-500 font-mono select-none"
-                      >
-                        {displayLabel}
-                      </text>
-                    );
-                  })}
+                {/* Common Active Hover Crosshair Line */}
+                {hoveredIndex !== null && (
+                  <line
+                    x1={getX(hoveredIndex)}
+                    y1={yMin}
+                    x2={getX(hoveredIndex)}
+                    y2={yMax}
+                    stroke={chartViewTab === 'volume' ? 'rgba(99, 102, 241, 0.6)' : 'rgba(168, 85, 247, 0.6)'}
+                    strokeWidth="1"
+                    strokeDasharray="3 3"
+                  />
+                )}
 
-                  {/* Active Hover Crosshair Line */}
-                  {hoveredIndex !== null && (
-                    <line
-                      x1={getX(hoveredIndex)}
-                      y1={yMin}
-                      x2={getX(hoveredIndex)}
-                      y2={yMax}
-                      stroke="rgba(99, 102, 241, 0.6)"
-                      strokeWidth="1"
-                      strokeDasharray="3 3"
-                    />
-                  )}
-
-                  {/* Highlighted active node dots on hover */}
-                  {hoveredIndex !== null && timeSeries[hoveredIndex] && (
+                {/* Highlighted active node dots on hover */}
+                {hoveredIndex !== null && timeSeries[hoveredIndex] && (
+                  chartViewTab === 'volume' ? (
                     allModels.map((model, mIdx) => {
                       const count = getModelHourlyCount(timeSeries[hoveredIndex], model);
                       const mColor = getModelColor(model, mIdx);
                       return (
                         <circle
-                          key={`hover-${model}`}
+                          key={`hover-vol-${model}`}
                           cx={getX(hoveredIndex)}
                           cy={getYVolume(count)}
                           r="5"
@@ -684,245 +884,25 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                         />
                       );
                     })
-                  )}
-                </svg>
-
-                {/* Glassmorphic Hover Tooltip Overlay */}
-                {hoveredIndex !== null && timeSeries[hoveredIndex] && (
-                  <div
-                    className="absolute z-20 backdrop-blur-xl bg-[var(--bg-surface)]/95 border border-[var(--border-subtle)] shadow-2xl rounded-xl p-3.5 text-xs pointer-events-none space-y-2 min-w-[210px] max-w-[300px]"
-                    style={{
-                      left: `${((getX(hoveredIndex) - paddingLeft) / plottingWidth) * 85 + 8}%`,
-                      top: '10%',
-                      transform: hoveredIndex > N / 2 ? 'translateX(-105%)' : 'translateX(5%)',
-                    }}
-                  >
-                    <div className="font-semibold text-[var(--text-primary)] font-mono border-b border-[var(--border-subtle)] pb-1.5 mb-1 flex items-center justify-between">
-                      <span>{timeSeries[hoveredIndex].time}</span>
-                      <span className="text-[10px] text-[var(--text-secondary)]">{timeSeries[hoveredIndex].total} reqs</span>
-                    </div>
-                    {timeSeries[hoveredIndex].total === 0 ? (
-                      <div className="text-center text-slate-500 italic py-1">
-                        {t('dashboard.noRequestsInPeriod')}
-                      </div>
-                    ) : (
-                      <div className="space-y-1.5 font-mono">
-                        <div className="flex justify-between items-center text-[11px]">
-                          <span className="text-[var(--text-secondary)]">Total:</span>
-                          <span className="font-bold text-indigo-400">{timeSeries[hoveredIndex].total}</span>
-                        </div>
-                        <div className="flex justify-between items-center text-[11px]">
-                          <span className="text-[var(--text-secondary)]">Success / Err:</span>
-                          <span>
-                            <span className="font-bold text-emerald-400">{timeSeries[hoveredIndex].success}</span>
-                            <span className="text-slate-500 mx-1">/</span>
-                            <span className={`font-bold ${timeSeries[hoveredIndex].error > 0 ? 'text-rose-400' : 'text-slate-500'}`}>
-                              {timeSeries[hoveredIndex].error}
-                            </span>
-                          </span>
-                        </div>
-
-                        {/* Model Breakdown */}
-                        {allModels.length > 0 && (
-                          <div className="pt-1.5 border-t border-[var(--border-subtle)] space-y-1">
-                            {allModels.map((model, mIdx) => {
-                              const count = getModelHourlyCount(timeSeries[hoveredIndex], model);
-                              const mColor = getModelColor(model, mIdx);
-                              const percent = timeSeries[hoveredIndex].total > 0
-                                ? ((count / timeSeries[hoveredIndex].total) * 100).toFixed(0)
-                                : '0';
-                              return (
-                                <div key={model} className="flex items-center justify-between gap-3 text-[11px]" title={model}>
-                                  <div className="flex items-center space-x-1.5 min-w-0 text-[var(--text-secondary)]">
-                                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: mColor }} />
-                                    <span className="truncate max-w-[130px]">{model}:</span>
-                                  </div>
-                                  <div className="flex items-center space-x-1.5 shrink-0">
-                                    <span className="font-bold" style={{ color: mColor }}>{count}</span>
-                                    <span className="text-[10px] text-slate-400">({percent}%)</span>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Chart 2: Model Latency Trend */}
-        <div className="ui-card p-5 relative flex flex-col h-[340px] transition-colors group">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-3 gap-2">
-            <h3 className="text-xs font-semibold text-[var(--text-primary)] tracking-wider uppercase flex items-center space-x-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
-              <span>{t('dashboard.latencyChartTitle', '每小时平均延迟 (ms) 趋势')}</span>
-            </h3>
-
-            <div className="flex flex-wrap items-center gap-2">
-              {/* Model Legend */}
-              {allModels.length > 0 && (
-                <div className="flex flex-wrap items-center gap-2 text-[10px] font-mono text-[var(--text-secondary)]">
-                  {allModels.map((model, idx) => (
-                    <div key={model} className="flex items-center space-x-1">
-                      <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: getModelColor(model, idx) }}></span>
-                      <span className="truncate max-w-[120px]" title={model}>{model}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {hoveredIndex !== null && timeSeries[hoveredIndex] && (
-                <span className="font-mono text-xs px-2 py-0.5 rounded border text-purple-400 bg-purple-500/10 border-purple-500/20">
-                  {timeSeries[hoveredIndex].total > 0 ? `${timeSeries[hoveredIndex].avgDurationMs} ms` : t('dashboard.noSampling')}
-                </span>
-              )}
-            </div>
-          </div>
-
-          {N === 0 ? (
-            <div className="flex-1 flex items-center justify-center text-slate-500 text-xs italic bg-[var(--bg-surface-sub)] rounded-lg border border-[var(--border-subtle)]">
-              {t('dashboard.noData')}
-            </div>
-          ) : (
-            <div className="relative flex-1 overflow-x-auto overflow-y-hidden">
-              <div className="min-w-[480px] sm:min-w-full h-full relative">
-                <svg
-                  viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-                  className="w-full h-full overflow-visible touch-none"
-                  onMouseMove={handleMouseMove}
-                  onMouseLeave={handleMouseLeave}
-                  onTouchStart={handleTouchMove}
-                  onTouchMove={handleTouchMove}
-                  onTouchEnd={handleMouseLeave}
-                >
-                  {/* Gridlines */}
-                  {renderGridLines(latencyLimit, v => `${v}ms`)}
-
-                  {/* X-axis baseline */}
-                  <line
-                    x1={paddingLeft}
-                    y1={yMax}
-                    x2={svgWidth - paddingRight}
-                    y2={yMax}
-                    stroke="currentColor"
-                    className="text-black/[0.08] dark:text-white/[0.08]"
-                    strokeWidth="1"
-                  />
-
-                  {/* Polylines for each active model */}
-                  {allModels.length > 0 ? (
-                    allModels.map((model, idx) => {
-                      const mPath = getModelLatencyPath(model);
-                      if (!mPath) return null;
-                      const mColor = getModelColor(model, idx);
-                      return (
-                        <path
-                          key={`line-${model}`}
-                          d={mPath}
-                          fill="none"
-                          stroke={mColor}
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="transition-all duration-300"
-                        />
-                      );
-                    })
                   ) : (
-                    <path
-                      d={getBezierSplinePath(timeSeries.map((p, i) => ({ x: getX(i), y: getYLatency(p.avgDurationMs) })))}
-                      fill="none"
-                      stroke="#a855f7"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  )}
-
-                  {/* Data Node Dots */}
-                  {allModels.length > 0 ? (
-                    allModels.map((model, mIdx) => {
-                      const mColor = getModelColor(model, mIdx);
-                      return timeSeries.map((p, i) => {
-                        const dur = getModelHourlyLatency(p, model);
-                        return (
-                          <circle
-                            key={`dot-${model}-${i}`}
-                            cx={getX(i)}
-                            cy={getYLatency(dur)}
-                            r="2.5"
-                            fill={mColor}
-                            stroke="var(--bg-surface)"
-                            strokeWidth="1"
-                          />
-                        );
-                      });
-                    })
-                  ) : (
-                    timeSeries.map((p, i) => (
-                      <circle
-                        key={`latency-overall-${i}`}
-                        cx={getX(i)}
-                        cy={getYLatency(p.avgDurationMs)}
-                        r="2.5"
-                        fill="#a855f7"
-                        stroke="var(--bg-surface)"
-                        strokeWidth="1"
-                      />
-                    ))
-                  )}
-
-                  {/* X-axis labels */}
-                  {labelIndices.map(idx => {
-                    const rawTime = timeSeries[idx].time;
-                    const displayLabel = rawTime.includes(' ') ? rawTime.split(' ')[1] : rawTime;
-                    return (
-                      <text
-                        key={idx}
-                        x={getX(idx)}
-                        y={yMax + 16}
-                        textAnchor="middle"
-                        className="text-[10px] fill-slate-500 font-mono select-none"
-                      >
-                        {displayLabel}
-                      </text>
-                    );
-                  })}
-
-                  {/* Active Hover Crosshair Line */}
-                  {hoveredIndex !== null && (
-                    <line
-                      x1={getX(hoveredIndex)}
-                      y1={yMin}
-                      x2={getX(hoveredIndex)}
-                      y2={yMax}
-                      stroke="rgba(168, 85, 247, 0.6)"
-                      strokeWidth="1"
-                      strokeDasharray="3 3"
-                    />
-                  )}
-
-                  {/* Highlighted active node dots on hover for Latency */}
-                  {hoveredIndex !== null && timeSeries[hoveredIndex] && (
                     allModels.length > 0 ? (
                       allModels.map((model, mIdx) => {
                         const dur = getModelHourlyLatency(timeSeries[hoveredIndex], model);
                         const mColor = getModelColor(model, mIdx);
+                        const isFocused = focusedModel === model;
                         return (
                           <circle
                             key={`hover-lat-${model}`}
                             cx={getX(hoveredIndex)}
                             cy={getYLatency(dur)}
-                            r="5"
+                            r={isFocused ? 6 : 4.5}
                             fill={mColor}
                             stroke="var(--bg-surface)"
                             strokeWidth="2"
                             className="animate-pulse"
+                            style={{
+                              opacity: focusedModel === null || isFocused ? 1 : 0.25
+                            }}
                           />
                         );
                       })
@@ -937,57 +917,113 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                         className="animate-pulse"
                       />
                     )
-                  )}
-                </svg>
-
-                {/* Glassmorphic Hover Tooltip Overlay */}
-                {hoveredIndex !== null && timeSeries[hoveredIndex] && (
-                  <div
-                    className="absolute z-20 backdrop-blur-xl bg-[var(--bg-surface)]/95 border border-[var(--border-subtle)] shadow-2xl rounded-xl p-3.5 text-xs pointer-events-none space-y-2 min-w-[200px] max-w-[290px]"
-                    style={{
-                      left: `${((getX(hoveredIndex) - paddingLeft) / plottingWidth) * 85 + 8}%`,
-                      top: '10%',
-                      transform: hoveredIndex > N / 2 ? 'translateX(-105%)' : 'translateX(5%)',
-                    }}
-                  >
-                    <div className="font-semibold text-[var(--text-primary)] font-mono border-b border-[var(--border-subtle)] pb-1.5 mb-1 text-center">
-                      {timeSeries[hoveredIndex].time}
-                    </div>
-                    {timeSeries[hoveredIndex].total === 0 ? (
-                      <div className="text-center text-slate-500 italic py-1">
-                        {t('dashboard.noSampling')}
-                      </div>
-                    ) : (
-                      <div className="space-y-1.5 font-mono">
-                        <div className="flex justify-between items-center text-[11px] border-b border-[var(--border-subtle)] pb-1">
-                          <span className="text-[var(--text-secondary)] font-medium">Overall Avg:</span>
-                          <span className="font-bold text-purple-400">
-                            {timeSeries[hoveredIndex].avgDurationMs} ms
-                          </span>
-                        </div>
-                        {allModels.map((model, mIdx) => {
-                          const mDur = getModelHourlyLatency(timeSeries[hoveredIndex], model);
-                          const mColor = getModelColor(model, mIdx);
-                          return (
-                            <div key={model} className="flex items-center justify-between gap-3 text-[11px]" title={model}>
-                              <span className="flex items-center space-x-1.5 min-w-0 text-[var(--text-secondary)]" style={{ color: mColor }}>
-                                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: mColor }}></span>
-                                <span className="truncate max-w-[130px]">{model}:</span>
-                              </span>
-                              <span className="font-bold shrink-0" style={{ color: mColor }}>
-                                {mDur} ms
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
+                  )
                 )}
-              </div>
+              </svg>
+
+              {/* Glassmorphic Hover Tooltip Overlay */}
+              {hoveredIndex !== null && timeSeries[hoveredIndex] && (
+                <div
+                  className="absolute z-20 backdrop-blur-xl bg-[var(--bg-surface)]/95 border border-[var(--border-subtle)] shadow-2xl rounded-xl p-3.5 text-xs pointer-events-none space-y-2 min-w-[210px] max-w-[300px]"
+                  style={{
+                    left: `${((getX(hoveredIndex) - paddingLeft) / plottingWidth) * 85 + 8}%`,
+                    top: '8%',
+                    transform: hoveredIndex > N / 2 ? 'translateX(-105%)' : 'translateX(5%)',
+                  }}
+                >
+                  <div className="font-semibold text-[var(--text-primary)] font-mono border-b border-[var(--border-subtle)] pb-1.5 mb-1 flex items-center justify-between">
+                    <span>{timeSeries[hoveredIndex].time}</span>
+                    <span className="text-[10px] text-[var(--text-secondary)]">
+                      {chartViewTab === 'volume'
+                        ? `${timeSeries[hoveredIndex].total} reqs`
+                        : `${timeSeries[hoveredIndex].avgDurationMs} ms avg`}
+                    </span>
+                  </div>
+
+                  {timeSeries[hoveredIndex].total === 0 ? (
+                    <div className="text-center text-slate-500 italic py-1">
+                      {chartViewTab === 'volume' ? t('dashboard.noRequestsInPeriod') : t('dashboard.noSampling')}
+                    </div>
+                  ) : chartViewTab === 'volume' ? (
+                    <div className="space-y-1.5 font-mono">
+                      <div className="flex justify-between items-center text-[11px]">
+                        <span className="text-[var(--text-secondary)]">Total:</span>
+                        <span className="font-bold text-indigo-400">{timeSeries[hoveredIndex].total}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-[11px]">
+                        <span className="text-[var(--text-secondary)]">Success / Err:</span>
+                        <span>
+                          <span className="font-bold text-emerald-400">{timeSeries[hoveredIndex].success}</span>
+                          <span className="text-slate-500 mx-1">/</span>
+                          <span className={`font-bold ${timeSeries[hoveredIndex].error > 0 ? 'text-rose-400' : 'text-slate-500'}`}>
+                            {timeSeries[hoveredIndex].error}
+                          </span>
+                        </span>
+                      </div>
+
+                      {/* Model Breakdown in Volume Mode */}
+                      {allModels.length > 0 && (
+                        <div className="pt-1.5 border-t border-[var(--border-subtle)] space-y-1">
+                          {allModels.map((model, mIdx) => {
+                            const count = getModelHourlyCount(timeSeries[hoveredIndex], model);
+                            const mColor = getModelColor(model, mIdx);
+                            const percent = timeSeries[hoveredIndex].total > 0
+                              ? ((count / timeSeries[hoveredIndex].total) * 100).toFixed(0)
+                              : '0';
+                            return (
+                              <div key={model} className="flex items-center justify-between gap-3 text-[11px]" title={model}>
+                                <div className="flex items-center space-x-1.5 min-w-0 text-[var(--text-secondary)]">
+                                  <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: mColor }} />
+                                  <span className="truncate max-w-[130px]">{model}:</span>
+                                </div>
+                                <div className="flex items-center space-x-1.5 shrink-0">
+                                  <span className="font-bold" style={{ color: mColor }}>{count}</span>
+                                  <span className="text-[10px] text-slate-400">({percent}%)</span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    /* Model Breakdown in Latency Mode */
+                    <div className="space-y-1.5 font-mono">
+                      <div className="flex justify-between items-center text-[11px] border-b border-[var(--border-subtle)] pb-1">
+                        <span className="text-[var(--text-secondary)] font-medium">Overall Avg:</span>
+                        <span className="font-bold text-purple-400">
+                          {timeSeries[hoveredIndex].avgDurationMs} ms
+                        </span>
+                      </div>
+                      {allModels.map((model, mIdx) => {
+                        const mDur = getModelHourlyLatency(timeSeries[hoveredIndex], model);
+                        const mColor = getModelColor(model, mIdx);
+                        const isFocused = focusedModel === model;
+                        return (
+                          <div
+                            key={model}
+                            className={`flex items-center justify-between gap-3 text-[11px] transition-colors ${
+                              isFocused ? 'bg-purple-500/10 px-1 py-0.5 rounded font-semibold' : ''
+                            }`}
+                            title={model}
+                          >
+                            <span className="flex items-center space-x-1.5 min-w-0 text-[var(--text-secondary)]" style={{ color: mColor }}>
+                              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: mColor }} />
+                              <span className="truncate max-w-[130px]">{model}:</span>
+                            </span>
+                            <span className="font-bold shrink-0" style={{ color: mColor }}>
+                              {mDur} ms
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
