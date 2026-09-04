@@ -36,7 +36,6 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState<number | 'today'>('today');
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const [volumeChartType, setVolumeChartType] = useState<'bar' | 'area'>('area');
   const [chartViewTab, setChartViewTab] = useState<'volume' | 'latency'>('volume');
   const [focusedModel, setFocusedModel] = useState<string | null>(null);
 
@@ -432,15 +431,15 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
             <div className="ui-tab-container p-0.5 text-xs font-medium">
               <button
                 type="button"
-                onClick={() => setChartViewTab('volume')}
+                onClick={() => { setChartViewTab('volume'); setFocusedModel(null); }}
                 className={`px-3 py-1 rounded-md flex items-center space-x-1.5 transition-all ${
                   chartViewTab === 'volume'
                     ? 'ui-tab-pill-active font-semibold shadow-sm'
                     : 'text-slate-400 hover:text-[var(--text-primary)]'
                 }`}
               >
-                <Activity className="w-3.5 h-3.5" />
-                <span>{t('dashboard.mergedVolumeTitle', '流量请求趋势')}</span>
+                <BarChart3 className="w-3.5 h-3.5" />
+                <span>{t('dashboard.chartVolumeTab', '请求量')}</span>
               </button>
               <button
                 type="button"
@@ -452,31 +451,21 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                 }`}
               >
                 <Clock className="w-3.5 h-3.5" />
-                <span>{t('dashboard.latencyChartTitle', '响应延迟走势')}</span>
+                <span>{t('dashboard.chartLatencyTab', '响应延迟')}</span>
               </button>
             </div>
 
-            {/* Subtitle / Metric Preview */}
+            {/* Subtitle / Metric Preview (Static Anti-Shift) */}
             <div className="text-xs font-mono text-[var(--text-secondary)] pl-2 border-l border-[var(--border-subtle)] flex items-center space-x-2">
               {chartViewTab === 'volume' ? (
                 <>
-                  <span className="text-slate-500">区间总请求:</span>
+                  <span className="text-slate-500">{t('dashboard.totalReqsLabel', '区间总请求')}:</span>
                   <span className="font-bold text-indigo-400">{totalLogsCount.toLocaleString()}</span>
-                  {hoveredIndex !== null && timeSeries[hoveredIndex] && (
-                    <span className="text-indigo-400 font-mono text-[11px] px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20">
-                      {timeSeries[hoveredIndex].time}: {timeSeries[hoveredIndex].total} reqs
-                    </span>
-                  )}
                 </>
               ) : (
                 <>
-                  <span className="text-slate-500">总体平均延迟:</span>
+                  <span className="text-slate-500">{t('dashboard.averageLatency', '总体平均延迟')}:</span>
                   <span className="font-bold text-purple-400">{avgLatency} ms</span>
-                  {hoveredIndex !== null && timeSeries[hoveredIndex] && (
-                    <span className="font-mono text-[11px] px-2 py-0.5 rounded border text-purple-400 bg-purple-500/10 border-purple-500/20">
-                      {timeSeries[hoveredIndex].time}: {timeSeries[hoveredIndex].total > 0 ? `${timeSeries[hoveredIndex].avgDurationMs} ms` : t('dashboard.noSampling')}
-                    </span>
-                  )}
                 </>
               )}
             </div>
@@ -484,31 +473,6 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
 
           {/* Right: Sub-controls & Model Legends */}
           <div className="flex flex-wrap items-center gap-2.5">
-            {chartViewTab === 'volume' && (
-              <div className="ui-tab-container p-0.5 text-[10px] font-medium">
-                <button
-                  type="button"
-                  onClick={() => setVolumeChartType('bar')}
-                  className={`px-2 py-0.5 rounded flex items-center space-x-1 ${
-                    volumeChartType === 'bar' ? 'ui-tab-pill-active font-semibold' : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  <BarChart3 className="w-3 h-3" />
-                  <span>{t('dashboard.barChart', '堆叠柱状')}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setVolumeChartType('area')}
-                  className={`px-2 py-0.5 rounded flex items-center space-x-1 ${
-                    volumeChartType === 'area' ? 'ui-tab-pill-active font-semibold' : 'text-slate-400 hover:text-slate-200'
-                  }`}
-                >
-                  <Activity className="w-3 h-3" />
-                  <span>{t('dashboard.areaChart', '面积图')}</span>
-                </button>
-              </div>
-            )}
-
             {chartViewTab === 'latency' && focusedModel && (
               <button
                 type="button"
@@ -612,142 +576,79 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                   strokeWidth="1"
                 />
 
-                {/* VIEW 1: Volume Mode */}
+                {/* VIEW 1: Volume Mode - Multi-Model Stacked Bars */}
                 {chartViewTab === 'volume' && (
-                  <>
-                    {volumeChartType === 'area' ? (
-                      (() => {
-                        const volumePoints = timeSeries.map((p, i) => ({
-                          x: getX(i),
-                          y: getYVolume(p.total)
-                        }));
-                        return (
-                          <g>
-                            {/* Smooth Bezier Area */}
-                            <path
-                              d={getBezierAreaPath(volumePoints, yMax)}
-                              fill="url(#volumeAreaGrad)"
-                              className="transition-all duration-300"
-                            />
-                            {/* Smooth Bezier Stroke Line */}
-                            <path
-                              d={getBezierSplinePath(volumePoints)}
-                              fill="none"
-                              stroke="#6366F1"
-                              strokeWidth="2.5"
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              className="transition-all duration-300"
-                            />
-                            {/* Multi-model Distribution Splines Overlay in Area mode */}
-                            {allModels.map((model, idx) => {
-                              const mPath = getModelPath(model);
-                              if (!mPath) return null;
-                              const mColor = getModelColor(model, idx);
-                              return (
-                                <path
-                                  key={`model-curve-${model}`}
-                                  d={mPath}
-                                  fill="none"
-                                  stroke={mColor}
-                                  strokeWidth="1.75"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  className="transition-all duration-300 opacity-80"
-                                />
-                              );
-                            })}
-                            {/* Data Points */}
-                            {volumePoints.map((pt, i) => (
-                              <circle
-                                key={i}
-                                cx={pt.x}
-                                cy={pt.y}
-                                r={hoveredIndex === i ? 4.5 : 2.5}
-                                fill={hoveredIndex === i ? '#818CF8' : '#6366F1'}
-                                stroke="var(--bg-surface)"
-                                strokeWidth="1.5"
+                  timeSeries.map((p, i) => {
+                    const barWidth = Math.min(22, Math.max(6, (plottingWidth / N) * 0.55));
+                    const x = getX(i) - barWidth / 2;
+                    const isHovered = hoveredIndex === i;
+                    const segments = getStackedBarSegments(
+                      p,
+                      allModels,
+                      getModelHourlyCount,
+                      volumeLimit,
+                      volumeLimit,
+                      plottingHeight
+                    );
+
+                    return (
+                      <g key={i}>
+                        {/* Column Hover Background Guide */}
+                        {isHovered && (
+                          <rect
+                            x={getX(i) - barWidth * 1.1}
+                            y={yMin}
+                            width={barWidth * 2.2}
+                            height={plottingHeight}
+                            fill="rgba(99, 102, 241, 0.06)"
+                            rx="4"
+                            className="pointer-events-none"
+                          />
+                        )}
+
+                        {/* Stacked multi-model segments */}
+                        {segments.length > 0 ? (
+                          segments.map((seg, sIdx) => {
+                            const mIdx = allModels.indexOf(seg.model);
+                            const color = getModelColor(seg.model, mIdx >= 0 ? mIdx : 0);
+                            const isTop = sIdx === segments.length - 1;
+                            return isTop ? (
+                              <path
+                                key={`seg-${seg.model}-${i}`}
+                                d={getRoundedTopBarPath(x, seg.y, barWidth, seg.height, 3)}
+                                fill={color}
+                                className="transition-all duration-150"
+                                style={{ opacity: isHovered ? 1 : 0.9 }}
+                              />
+                            ) : (
+                              <rect
+                                key={`seg-${seg.model}-${i}`}
+                                x={x}
+                                y={seg.y}
+                                width={barWidth}
+                                height={seg.height}
+                                fill={color}
+                                className="transition-all duration-150"
+                                style={{ opacity: isHovered ? 1 : 0.9 }}
+                              />
+                            );
+                          })
+                        ) : p.total > 0 ? (
+                          (() => {
+                            const h = (p.total / volumeLimit) * plottingHeight;
+                            const y = yMax - h;
+                            return (
+                              <path
+                                d={getRoundedTopBarPath(x, y, barWidth, h, 3)}
+                                fill={isHovered ? 'url(#volumeBarHoverGrad)' : 'url(#volumeBarGrad)'}
                                 className="transition-all duration-150"
                               />
-                            ))}
-                          </g>
-                        );
-                      })()
-                    ) : (
-                      /* Multi-Model Stacked Bars */
-                      timeSeries.map((p, i) => {
-                        const barWidth = Math.min(22, Math.max(6, (plottingWidth / N) * 0.55));
-                        const x = getX(i) - barWidth / 2;
-                        const isHovered = hoveredIndex === i;
-                        const segments = getStackedBarSegments(
-                          p,
-                          allModels,
-                          getModelHourlyCount,
-                          volumeLimit,
-                          volumeLimit,
-                          plottingHeight
-                        );
-
-                        return (
-                          <g key={i}>
-                            {/* Column Hover Background Guide */}
-                            {isHovered && (
-                              <rect
-                                x={getX(i) - barWidth * 1.1}
-                                y={yMin}
-                                width={barWidth * 2.2}
-                                height={plottingHeight}
-                                fill="rgba(99, 102, 241, 0.06)"
-                                rx="4"
-                                className="pointer-events-none"
-                              />
-                            )}
-
-                            {/* Stacked multi-model segments */}
-                            {segments.length > 0 ? (
-                              segments.map((seg, sIdx) => {
-                                const mIdx = allModels.indexOf(seg.model);
-                                const color = getModelColor(seg.model, mIdx >= 0 ? mIdx : 0);
-                                const isTop = sIdx === segments.length - 1;
-                                return isTop ? (
-                                  <path
-                                    key={`seg-${seg.model}-${i}`}
-                                    d={getRoundedTopBarPath(x, seg.y, barWidth, seg.height, 3)}
-                                    fill={color}
-                                    className="transition-all duration-150"
-                                    style={{ opacity: isHovered ? 1 : 0.9 }}
-                                  />
-                                ) : (
-                                  <rect
-                                    key={`seg-${seg.model}-${i}`}
-                                    x={x}
-                                    y={seg.y}
-                                    width={barWidth}
-                                    height={seg.height}
-                                    fill={color}
-                                    className="transition-all duration-150"
-                                    style={{ opacity: isHovered ? 1 : 0.9 }}
-                                  />
-                                );
-                              })
-                            ) : p.total > 0 ? (
-                              (() => {
-                                const h = (p.total / volumeLimit) * plottingHeight;
-                                const y = yMax - h;
-                                return (
-                                  <path
-                                    d={getRoundedTopBarPath(x, y, barWidth, h, 3)}
-                                    fill={isHovered ? 'url(#volumeBarHoverGrad)' : 'url(#volumeBarGrad)'}
-                                    className="transition-all duration-150"
-                                  />
-                                );
-                              })()
-                            ) : null}
-                          </g>
-                        );
-                      })
-                    )}
-                  </>
+                            );
+                          })()
+                        ) : null}
+                      </g>
+                    );
+                  })
                 )}
 
                 {/* VIEW 2: Latency Mode */}

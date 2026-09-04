@@ -18,9 +18,9 @@ describe('Dashboard APM & Visual Optimization', () => {
     expect(content).not.toContain('text-slate-100');
   });
 
-  test('should support volume chart type switching (bar vs area)', () => {
-    expect(content).toContain('volumeChartType');
-    expect(content).toContain('setVolumeChartType');
+  test('should support chart tab switching (volume vs latency)', () => {
+    expect(content).toContain('chartViewTab');
+    expect(content).toContain('setChartViewTab');
   });
 
   test('should use smooth bezier area chart path generator', () => {
