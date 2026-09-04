@@ -30,7 +30,7 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-2">
           <Layers className="w-4 h-4 text-indigo-400" />
-          <h3 className="text-xs font-semibold text-slate-200 tracking-wider uppercase">
+          <h3 className="text-xs font-semibold text-[var(--text-primary)] tracking-wider uppercase">
             {t('dashboard.modelPerformanceTitle')}
           </h3>
         </div>
@@ -56,7 +56,7 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
                       style={{ backgroundColor: color }}
                     />
                     <span
-                      className="font-mono font-medium text-slate-200 truncate max-w-[150px] xs:max-w-[180px] sm:max-w-[220px]"
+                      className="font-mono font-medium text-[var(--text-primary)] truncate max-w-[150px] xs:max-w-[180px] sm:max-w-[220px]"
                       title={item.model}
                     >
                       {item.model}
@@ -67,12 +67,12 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
                   </div>
                   <div className="flex items-center justify-between sm:justify-end space-x-2 shrink-0 font-mono text-[11px] sm:text-xs pl-4 sm:pl-0 text-slate-400">
                     <span>{item.requests} reqs</span>
-                    <span className="text-slate-200 font-semibold w-9 text-right">
+                    <span className="text-[var(--text-primary)] font-semibold w-9 text-right">
                       {item.percentage.toFixed(0)}%
                     </span>
                   </div>
                 </div>
-                <div className="w-full bg-white/[0.04] h-1.5 rounded-full overflow-hidden">
+                <div className="w-full bg-[var(--border-subtle)]/40 h-1.5 rounded-full overflow-hidden">
                   <div
                     className="h-full transition-all duration-300 rounded-full"
                     style={{

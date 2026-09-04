@@ -23,7 +23,7 @@ export const SystemRuntimeMatrix: React.FC<SystemRuntimeMatrixProps> = ({ config
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-2">
             <Cpu className="w-4 h-4 text-emerald-400" />
-            <h3 className="text-xs font-semibold text-slate-200 tracking-wider uppercase">
+            <h3 className="text-xs font-semibold text-[var(--text-primary)] tracking-wider uppercase">
               {t('dashboard.systemRuntimeMatrix')}
             </h3>
           </div>
@@ -74,7 +74,7 @@ export const SystemRuntimeMatrix: React.FC<SystemRuntimeMatrixProps> = ({ config
             <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
               TIME_ZONE
             </span>
-            <span className="text-slate-300 font-bold text-xs mt-1 truncate" title={timeZone}>
+            <span className="text-[var(--text-primary)] font-bold text-xs mt-1 truncate" title={timeZone}>
               {timeZone}
             </span>
           </div>

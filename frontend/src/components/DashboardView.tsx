@@ -4,11 +4,19 @@ import {
   Clock,
   CheckCircle2,
   AlertCircle,
-  Server
+  Server,
+  Activity,
+  BarChart3
 } from 'lucide-react';
 import { useTranslation } from '../i18n/LanguageContext';
 import ModelPerformanceMatrix from './dashboard/ModelPerformanceMatrix';
 import SystemRuntimeMatrix from './dashboard/SystemRuntimeMatrix';
+import {
+  formatUptime,
+  formatThroughput,
+  getBezierSplinePath,
+  getBezierAreaPath
+} from '../utils/chartHelpers';
 
 interface TimeSeriesPoint {
   time: string;
@@ -28,6 +36,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
   const [range, setRange] = useState<number | 'today'>('today');
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [analyticsTab, setAnalyticsTab] = useState<'latency' | 'distribution'>('latency');
+  const [volumeChartType, setVolumeChartType] = useState<'bar' | 'area'>('area');
 
   const loadData = (currentRange = range) => {
     setLoading(true);
@@ -204,11 +213,11 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
 
   const getModelPath = (modelName: string) => {
     if (N === 0) return '';
-    const points = timeSeries.map((p, i) => {
-      const count = p.models?.[modelName] || 0;
-      return `${getX(i)},${getYModel(count)}`;
-    });
-    return `M ${points.join(' L ')}`;
+    const points = timeSeries.map((p, i) => ({
+      x: getX(i),
+      y: getYModel(p.models?.[modelName] || 0)
+    }));
+    return getBezierSplinePath(points);
   };
 
   // Stacked/Bar top-rounded path generator
@@ -262,25 +271,41 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
 
   const getModelLatencyPath = (modelName: string) => {
     if (N === 0) return '';
-    const points = timeSeries.map((p, i) => {
-      const dur = p.modelDurations?.[modelName] || 0;
-      return `${getX(i)},${getYLatency(dur)}`;
-    });
-    return `M ${points.join(' L ')}`;
+    const points = timeSeries.map((p, i) => ({
+      x: getX(i),
+      y: getYLatency(p.modelDurations?.[modelName] || 0)
+    }));
+    return getBezierSplinePath(points);
   };
 
-  // Calculations for KPI Cards
+  const getOverallLatencyPath = () => {
+    if (N === 0) return '';
+    const points = timeSeries.map((p, i) => ({
+      x: getX(i),
+      y: getYLatency(p.avgDurationMs)
+    }));
+    return getBezierSplinePath(points);
+  };
+
+  // Calculations for APM KPI Cards
   const totalLogsCount = stats?.totalLogs || 0;
   const totalSuccessCount = stats?.successCount || 0;
   const totalErrorCount = stats?.errorCount || 0;
-  const errorRatePercent = totalLogsCount > 0 ? ((totalErrorCount / totalLogsCount) * 100).toFixed(1) : '0.0';
+  const availabilityRate = totalLogsCount > 0 ? ((totalSuccessCount / totalLogsCount) * 100).toFixed(2) : '100.00';
+  const avgLatency = stats ? stats.avgDurationMs : 0;
+  const latencyQuality = avgLatency < 1000 ? 'EXCELLENT' : avgLatency < 3000 ? 'GOOD' : 'SLOW';
+  const latencyQualityColor = avgLatency < 1000
+    ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+    : avgLatency < 3000
+    ? 'text-amber-400 bg-amber-500/10 border-amber-500/20'
+    : 'text-rose-400 bg-rose-500/10 border-rose-500/20';
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto font-sans pb-8">
       {/* Tier 1: Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-100 tracking-tight flex items-center space-x-2">
+          <h2 className="text-xl font-bold text-[var(--text-primary)] tracking-tight flex items-center space-x-2">
             <span>{t('dashboard.title')}</span>
             <span className="text-[11px] font-mono font-medium px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
               v1.0.0
@@ -308,9 +333,9 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
         </div>
       </div>
 
-      {/* Tier 2: 4 KPI Summary Cards */}
+      {/* Tier 2: 4 APM KPI Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Server Status */}
+        {/* Card 1: Server Status & Uptime */}
         <div className="ui-card p-5 hover:border-indigo-500/30 transition-all group relative overflow-hidden">
           <div className="flex items-center justify-between mb-3">
             <span className="text-slate-400 text-xs font-medium uppercase tracking-wider">
@@ -325,20 +350,20 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
             </span>
-            <span className="text-2xl font-mono font-bold tracking-tight text-slate-100">
+            <span className="text-2xl font-mono font-bold tracking-tight text-[var(--text-primary)]">
               {t('dashboard.online')}
             </span>
             <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
-              HEALTHY
+              {t('dashboard.healthy', 'HEALTHY')}
             </span>
           </div>
           <div className="text-[11px] text-slate-500 font-mono mt-3 flex items-center space-x-1.5">
             <span>{t('dashboard.uptime')}:</span>
-            <span className="text-slate-300 font-semibold">{status ? `${Math.floor(status.uptime)}s` : 'N/A'}</span>
+            <span className="text-[var(--text-primary)] font-semibold">{status ? formatUptime(status.uptime) : 'N/A'}</span>
           </div>
         </div>
 
-        {/* Card 2: Total Requests */}
+        {/* Card 2: Total Requests & Throughput */}
         <div className="ui-card p-5 hover:border-indigo-500/30 transition-all group relative overflow-hidden">
           <div className="flex items-center justify-between mb-3">
             <span className="text-slate-400 text-xs font-medium uppercase tracking-wider">
@@ -349,15 +374,16 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
             </div>
           </div>
           <div className="flex items-baseline justify-between">
-            <div className="text-2xl font-mono font-bold tracking-tight text-slate-100">
+            <div className="text-2xl font-mono font-bold tracking-tight text-[var(--text-primary)]">
               {totalLogsCount.toLocaleString()}
             </div>
             <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-medium">
               {range === 'today' ? 'TODAY TOTAL' : `${range}H TOTAL`}
             </span>
           </div>
-          <div className="text-[11px] text-slate-500 mt-3 truncate">
-            {t('dashboard.sampledRequests')}
+          <div className="text-[11px] text-slate-500 font-mono mt-3 flex items-center space-x-1.5">
+            <span>{t('dashboard.avgThroughput')}:</span>
+            <span className="text-indigo-400 font-semibold">{formatThroughput(totalLogsCount, range)}</span>
           </div>
         </div>
 
@@ -371,39 +397,49 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
               <Clock className="w-4 h-4" />
             </div>
           </div>
-          <div className="flex items-baseline space-x-1.5">
-            <div className="text-2xl font-mono font-bold tracking-tight text-slate-100">
-              {stats ? stats.avgDurationMs : 0}
+          <div className="flex items-baseline justify-between">
+            <div className="flex items-baseline space-x-1.5">
+              <div className="text-2xl font-mono font-bold tracking-tight text-[var(--text-primary)]">
+                {avgLatency}
+              </div>
+              <span className="text-xs font-mono text-purple-400 font-medium">ms</span>
             </div>
-            <span className="text-xs font-mono text-purple-400 font-medium">ms</span>
+            <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded font-medium border ${latencyQualityColor}`}>
+              {latencyQuality}
+            </span>
           </div>
           <div className="text-[11px] text-slate-500 mt-3 truncate font-mono">
             {t('dashboard.upstreamTimeoutLimit').replace('{limit}', String(cfg.upstreamTimeoutMs || 180000))}
           </div>
         </div>
 
-        {/* Card 4: Success vs Errors */}
+        {/* Card 4: Service Availability */}
         <div className="ui-card p-5 hover:border-indigo-500/30 transition-all group relative overflow-hidden">
           <div className="flex items-center justify-between mb-3">
             <span className="text-slate-400 text-xs font-medium uppercase tracking-wider">
-              {t('dashboard.successVsErrors')}
+              {t('dashboard.serviceAvailability')}
             </span>
-            <div className={`w-8 h-8 rounded-lg ${totalErrorCount > 0 ? 'bg-rose-500/10 border border-rose-500/20 text-rose-400' : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'} flex items-center justify-center group-hover:scale-105 transition-transform`}>
+            <div className={`w-8 h-8 rounded-lg ${totalErrorCount > 0 ? 'bg-amber-500/10 border border-amber-500/20 text-amber-400' : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'} flex items-center justify-center group-hover:scale-105 transition-transform`}>
               {totalErrorCount > 0 ? <AlertCircle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
             </div>
           </div>
           <div className="flex items-center justify-between">
-            <div className="flex items-baseline space-x-2 font-mono">
-              <span className="text-xl font-bold text-emerald-400">{totalSuccessCount}</span>
-              <span className="text-slate-600 font-bold">/</span>
-              <span className="text-xl font-bold text-rose-400">{totalErrorCount}</span>
+            <div className="text-2xl font-mono font-bold tracking-tight text-[var(--text-primary)]">
+              {availabilityRate}%
             </div>
-            <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded font-medium ${totalErrorCount > 0 ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'}`}>
-              {errorRatePercent}% ERR
+            <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded font-medium ${totalErrorCount > 0 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'}`}>
+              {totalSuccessCount}/{totalLogsCount}
             </span>
           </div>
-          <div className="text-[11px] text-slate-500 mt-3 truncate">
-            {t('dashboard.recentRatio')}
+          <div className="w-full bg-rose-500/20 h-1.5 rounded-full overflow-hidden flex mt-2.5">
+            <div
+              className="bg-emerald-500 h-full rounded-full transition-all"
+              style={{ width: `${availabilityRate}%` }}
+            />
+          </div>
+          <div className="flex justify-between items-center text-[10px] font-mono text-slate-500 mt-1.5">
+            <span>{t('dashboard.successCountLabel')}: {totalSuccessCount}</span>
+            <span className={totalErrorCount > 0 ? 'text-rose-400' : ''}>{t('dashboard.errorCountLabel')}: {totalErrorCount}</span>
           </div>
         </div>
       </div>
@@ -415,19 +451,45 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
           {/* Chart 1: Request Volume Trend */}
           <div className="ui-card p-5 relative flex flex-col h-[320px] transition-colors group">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-xs font-semibold text-slate-200 tracking-wider uppercase flex items-center space-x-2">
+              <h3 className="text-xs font-semibold text-[var(--text-primary)] tracking-wider uppercase flex items-center space-x-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
                 <span>{t('dashboard.volumeChartTitle')}</span>
               </h3>
-              {hoveredIndex !== null && timeSeries[hoveredIndex] && (
-                <span className="text-indigo-400 font-mono text-xs px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20">
-                  {timeSeries[hoveredIndex].total} reqs
-                </span>
-              )}
+              <div className="flex items-center space-x-2">
+                {/* Chart Type Switcher: Area vs Bar */}
+                <div className="ui-tab-container p-0.5 text-[10px] font-medium">
+                  <button
+                    type="button"
+                    onClick={() => setVolumeChartType('area')}
+                    className={`px-2 py-0.5 rounded flex items-center space-x-1 ${
+                      volumeChartType === 'area' ? 'ui-tab-pill-active font-semibold' : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <Activity className="w-3 h-3" />
+                    <span>{t('dashboard.areaChart', '面积图')}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setVolumeChartType('bar')}
+                    className={`px-2 py-0.5 rounded flex items-center space-x-1 ${
+                      volumeChartType === 'bar' ? 'ui-tab-pill-active font-semibold' : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <BarChart3 className="w-3 h-3" />
+                    <span>{t('dashboard.barChart', '柱状图')}</span>
+                  </button>
+                </div>
+
+                {hoveredIndex !== null && timeSeries[hoveredIndex] && (
+                  <span className="text-indigo-400 font-mono text-xs px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20">
+                    {timeSeries[hoveredIndex].total} reqs
+                  </span>
+                )}
+              </div>
             </div>
 
             {N === 0 ? (
-              <div className="flex-1 flex items-center justify-center text-slate-500 text-xs italic bg-black/20 rounded-lg border border-white/[0.04]">
+              <div className="flex-1 flex items-center justify-center text-slate-500 text-xs italic bg-[var(--bg-surface-sub)] rounded-lg border border-[var(--border-subtle)]">
                 {t('dashboard.noData')}
               </div>
             ) : (
@@ -451,6 +513,11 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                         <stop offset="0%" stopColor="#818CF8" stopOpacity="1" />
                         <stop offset="100%" stopColor="#6366F1" stopOpacity="0.85" />
                       </linearGradient>
+                      <linearGradient id="volumeAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#6366F1" stopOpacity="0.45" />
+                        <stop offset="80%" stopColor="#6366F1" stopOpacity="0.08" />
+                        <stop offset="100%" stopColor="#6366F1" stopOpacity="0.0" />
+                      </linearGradient>
                     </defs>
 
                     {/* Gridlines */}
@@ -467,40 +534,83 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                       strokeWidth="1"
                     />
 
-                    {/* Bar columns */}
-                    {timeSeries.map((p, i) => {
-                      const barWidth = Math.min(18, Math.max(6, (plottingWidth / N) * 0.45));
-                      const x = getX(i) - barWidth / 2;
-                      const h = (p.total / volumeLimit) * plottingHeight;
-                      const y = yMax - h;
-                      const isHovered = hoveredIndex === i;
-
-                      return (
-                        <g key={i}>
-                          {/* Column Hover Background Guide */}
-                          {isHovered && (
-                            <rect
-                              x={getX(i) - barWidth * 1.2}
-                              y={yMin}
-                              width={barWidth * 2.4}
-                              height={plottingHeight}
-                              fill="rgba(255, 255, 255, 0.04)"
-                              rx="4"
-                              className="pointer-events-none"
-                            />
-                          )}
-
-                          {/* Top-rounded Bar */}
-                          {h > 0 && (
+                    {/* Chart Visualization: Wave Area or Bar */}
+                    {volumeChartType === 'area' ? (
+                      (() => {
+                        const volumePoints = timeSeries.map((p, i) => ({
+                          x: getX(i),
+                          y: getYVolume(p.total)
+                        }));
+                        return (
+                          <g>
+                            {/* Smooth Bezier Area */}
                             <path
-                              d={getRoundedTopBarPath(x, y, barWidth, h, 3)}
-                              fill={isHovered ? "url(#volumeBarHoverGrad)" : "url(#volumeBarGrad)"}
-                              className="transition-all duration-150"
+                              d={getBezierAreaPath(volumePoints, yMax)}
+                              fill="url(#volumeAreaGrad)"
+                              className="transition-all duration-300"
                             />
-                          )}
-                        </g>
-                      );
-                    })}
+                            {/* Smooth Bezier Stroke Line */}
+                            <path
+                              d={getBezierSplinePath(volumePoints)}
+                              fill="none"
+                              stroke="#6366F1"
+                              strokeWidth="2.5"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              className="transition-all duration-300"
+                            />
+                            {/* Data Points */}
+                            {volumePoints.map((pt, i) => (
+                              <circle
+                                key={i}
+                                cx={pt.x}
+                                cy={pt.y}
+                                r={hoveredIndex === i ? 4.5 : 2.5}
+                                fill={hoveredIndex === i ? "#818CF8" : "#6366F1"}
+                                stroke="var(--bg-surface)"
+                                strokeWidth="1.5"
+                                className="transition-all duration-150"
+                              />
+                            ))}
+                          </g>
+                        );
+                      })()
+                    ) : (
+                      /* Bar columns */
+                      timeSeries.map((p, i) => {
+                        const barWidth = Math.min(18, Math.max(6, (plottingWidth / N) * 0.45));
+                        const x = getX(i) - barWidth / 2;
+                        const h = (p.total / volumeLimit) * plottingHeight;
+                        const y = yMax - h;
+                        const isHovered = hoveredIndex === i;
+
+                        return (
+                          <g key={i}>
+                            {/* Column Hover Background Guide */}
+                            {isHovered && (
+                              <rect
+                                x={getX(i) - barWidth * 1.2}
+                                y={yMin}
+                                width={barWidth * 2.4}
+                                height={plottingHeight}
+                                fill="rgba(255, 255, 255, 0.04)"
+                                rx="4"
+                                className="pointer-events-none"
+                              />
+                            )}
+
+                            {/* Top-rounded Bar */}
+                            {h > 0 && (
+                              <path
+                                d={getRoundedTopBarPath(x, y, barWidth, h, 3)}
+                                fill={isHovered ? "url(#volumeBarHoverGrad)" : "url(#volumeBarGrad)"}
+                                className="transition-all duration-150"
+                              />
+                            )}
+                          </g>
+                        );
+                      })
+                    )}
 
                     {/* X-axis labels */}
                     {labelIndices.map(idx => {
@@ -644,7 +754,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
             </div>
 
             {N === 0 ? (
-              <div className="flex-1 flex items-center justify-center text-slate-500 text-xs italic bg-black/20 rounded-lg border border-white/[0.04]">
+              <div className="flex-1 flex items-center justify-center text-slate-500 text-xs italic bg-[var(--bg-surface-sub)] rounded-lg border border-[var(--border-subtle)]">
                 {t('dashboard.noData')}
               </div>
             ) : (
@@ -698,7 +808,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                         })
                       ) : (
                         <path
-                          d={`M ${timeSeries.map((p, i) => `${getX(i)},${getYLatency(p.avgDurationMs)}`).join(' L ')}`}
+                          d={getOverallLatencyPath()}
                           fill="none"
                           stroke="#a855f7"
                           strokeWidth="2"
