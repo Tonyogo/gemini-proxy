@@ -74,7 +74,7 @@ describe('LogsView & Preview Modes Theme Cleanliness Test', () => {
   it('verifies LogsView detail inspector sections have shrink-0 and tab-appropriate overflow', () => {
     const code = read('LogsView.tsx');
     expect(code).toContain('gap-2.5 shrink-0');
-    expect(code).toContain('text-xs font-mono shrink-0');
+    expect(code).toContain('font-mono shrink-0');
     expect(code).toContain("activeTab === 'chat' ? 'overflow-y-auto space-y-4' : 'overflow-hidden'");
   });
 });

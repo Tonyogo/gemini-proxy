@@ -51,7 +51,8 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
   const [searchFilter, setSearchFilter] = useState<string>('');
 
   const [activeTab, setActiveTab] = useState<'payload' | 'response' | 'chat'>('payload');
-  const [viewMode, setViewMode] = useState<'preview' | 'raw'>('preview');
+  const [clientViewMode, setClientViewMode] = useState<'preview' | 'raw'>('preview');
+  const [upstreamViewMode, setUpstreamViewMode] = useState<'preview' | 'raw'>('preview');
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
   const [mobileDetailOpen, setMobileDetailOpen] = useState<boolean>(false);
   const [hourCount, setHourCount] = useState<number>(0);
@@ -696,7 +697,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
         !mobileDetailOpen ? 'hidden md:flex' : 'flex'
       }`}>
         {/* Top Header & Navigation Bar */}
-        <div className="flex flex-wrap items-center justify-between pb-3 mb-3.5 border-b border-white/[0.08] gap-2.5 shrink-0">
+        <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/[0.08] gap-2.5 shrink-0">
           <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
             {/* Mobile back to list button */}
             <button
@@ -730,9 +731,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
               <button
                 onClick={() => setActiveTab('payload')}
                 className={`ui-tab-pill flex items-center space-x-1.5 whitespace-nowrap ${
-                  activeTab === 'payload'
-                    ? 'ui-tab-pill-active font-semibold'
-                    : ''
+                  activeTab === 'payload' ? 'ui-tab-pill-active font-semibold' : ''
                 }`}
               >
                 <ArrowUpRight className="w-3.5 h-3.5 text-indigo-400" />
@@ -741,9 +740,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
               <button
                 onClick={() => setActiveTab('response')}
                 className={`ui-tab-pill flex items-center space-x-1.5 whitespace-nowrap ${
-                  activeTab === 'response'
-                    ? 'ui-tab-pill-active font-semibold'
-                    : ''
+                  activeTab === 'response' ? 'ui-tab-pill-active font-semibold' : ''
                 }`}
               >
                 <ArrowDownLeft className="w-3.5 h-3.5 text-emerald-400" />
@@ -752,9 +749,7 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
               <button
                 onClick={() => setActiveTab('chat')}
                 className={`ui-tab-pill flex items-center space-x-1.5 whitespace-nowrap ${
-                  activeTab === 'chat'
-                    ? 'ui-tab-pill-active font-semibold'
-                    : ''
+                  activeTab === 'chat' ? 'ui-tab-pill-active font-semibold' : ''
                 }`}
               >
                 <MessageSquare className="w-3.5 h-3.5" />
@@ -763,116 +758,56 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
             </div>
           </div>
 
-          <div className="flex items-center space-x-2 flex-wrap gap-y-2">
-            {/* Preview vs Raw JSON mode toggle */}
-            <div className="ui-tab-container text-xs font-medium">
+          {/* Global Action: Full Transaction JSON */}
+          {selectedLog && (
+            <div className="flex items-center space-x-1.5 shrink-0">
               <button
-                onClick={() => setViewMode('preview')}
-                className={`ui-tab-pill flex items-center space-x-1 ${
-                  viewMode === 'preview'
-                    ? 'ui-tab-pill-active font-semibold'
-                    : ''
-                }`}
+                onClick={handleCopyJson}
+                className="px-2.5 py-1.5 ui-btn-secondary text-[11px] sm:text-xs font-mono flex items-center space-x-1"
+                title="Copy full transaction JSON"
               >
-                <Eye className="w-3.5 h-3.5" />
-                <span className="text-[11px] sm:text-xs">{t('logs.previewMode', 'Preview')}</span>
-              </button>
-              <button
-                onClick={() => setViewMode('raw')}
-                className={`ui-tab-pill flex items-center space-x-1 ${
-                  viewMode === 'raw'
-                    ? 'ui-tab-pill-active font-semibold'
-                    : ''
-                }`}
-              >
-                <Code className="w-3.5 h-3.5" />
-                <span className="text-[11px] sm:text-xs">{t('logs.rawJsonTab', 'Raw JSON')}</span>
+                {copiedJson ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="text-emerald-400 font-semibold">{t('logs.copied', '已复制')}</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>JSON</span>
+                  </>
+                )}
               </button>
             </div>
-
-            {/* Quick Copy Action Buttons */}
-            {selectedLog && (
-              <div className="flex items-center space-x-1.5 flex-wrap gap-y-1">
-                <button
-                  onClick={handleCopyClaudeCurl}
-                  className="px-2 sm:px-2.5 py-1.5 ui-btn-secondary text-[11px] sm:text-xs font-mono flex items-center space-x-1"
-                  title="Copy Claude proxy cURL command"
-                >
-                  {copiedClaudeCurl ? (
-                    <>
-                      <Check className="w-3 h-3 text-emerald-400" />
-                      <span className="text-emerald-400">{t('logs.claudeCurlCopied', '已复制')}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Terminal className="w-3 h-3 text-indigo-400" />
-                      <span>Claude cURL</span>
-                    </>
-                  )}
-                </button>
-
-                <button
-                  onClick={handleCopyGeminiCurl}
-                  className="px-2 sm:px-2.5 py-1.5 ui-btn-secondary text-[11px] sm:text-xs font-mono flex items-center space-x-1"
-                  title="Copy upstream Gemini cURL command"
-                >
-                  {copiedGeminiCurl ? (
-                    <>
-                      <Check className="w-3 h-3 text-emerald-400" />
-                      <span className="text-emerald-400">{t('logs.geminiCurlCopied', '已复制')}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Terminal className="w-3 h-3 text-emerald-400" />
-                      <span>Gemini cURL</span>
-                    </>
-                  )}
-                </button>
-
-                <button
-                  onClick={handleCopyJson}
-                  className="px-2 sm:px-2.5 py-1.5 ui-btn-secondary text-[11px] sm:text-xs font-mono flex items-center space-x-1"
-                  title="Copy full transaction JSON"
-                >
-                  {copiedJson ? (
-                    <>
-                      <Check className="w-3 h-3 text-emerald-400" />
-                      <span className="text-emerald-400">JSON ✓</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3 h-3" />
-                      <span>JSON</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
-          </div>
+          )}
         </div>
 
-        {/* Metadata Summary Header Ribbon */}
+        {/* Metadata Summary Header Ribbon (Single-line Compact) */}
         {selectedLog && (
-          <div className="ui-card-sub p-2.5 mb-3.5 flex flex-wrap items-center justify-between gap-2 text-xs font-mono shrink-0">
-            <div className="flex items-center space-x-2 flex-wrap">
+          <div className="ui-card-sub px-3 py-1.5 mb-3 flex items-center justify-between gap-2 text-[11px] font-mono shrink-0 overflow-x-auto no-scrollbar whitespace-nowrap">
+            <div className="flex items-center space-x-2 shrink-0">
+              {/* 1. Status Code */}
               {selectedLog.status !== null && selectedLog.status !== undefined && (
-                <span className={`px-2 py-0.5 rounded-md font-bold border ${
-                  selectedLog.status >= 200 && selectedLog.status < 300 ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' :
-                  selectedLog.status >= 400 && selectedLog.status < 500 ? 'bg-amber-500/15 text-amber-300 border-amber-500/30' :
-                  'bg-rose-500/15 text-rose-300 border-rose-500/30'
+                <span className={`px-2 py-0.5 rounded font-bold border text-[10px] ${
+                  selectedLog.status >= 200 && selectedLog.status < 300 ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border-emerald-500/30' :
+                  selectedLog.status >= 400 && selectedLog.status < 500 ? 'bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/30' :
+                  'bg-rose-500/15 text-rose-600 dark:text-rose-300 border-rose-500/30'
                 }`}>
                   {selectedLog.status} {selectedLog.status === 200 ? 'OK' : ''}
                 </span>
               )}
 
+              {/* 2. File Name Chip */}
               {selectedLog.filename && (
                 <div
                   onClick={handleCopyDetailFilename}
-                  className="flex items-center space-x-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700/80 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded-md text-slate-700 dark:text-slate-300 cursor-pointer transition-colors"
-                  title={t('logs.copyFilename', 'Copy filename')}
+                  className="flex items-center space-x-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700/80 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded text-slate-700 dark:text-slate-300 cursor-pointer transition-colors"
+                  title={`${t('logs.copyFilename', 'Copy filename')}: ${selectedLog.filename}`}
                 >
-                  <span className="text-slate-400 dark:text-slate-500 font-semibold">{t('logs.fileLabel', 'File')}:</span>
-                  <span>{selectedLog.filename}</span>
+                  <FileText className="w-3 h-3 text-slate-400 dark:text-slate-500 shrink-0" />
+                  <span className="max-w-[130px] truncate">
+                    {selectedLog.filename.replace(/^transaction_/, '').replace(/\.json$/, '')}
+                  </span>
                   {copiedDetailFile ? (
                     <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
                   ) : (
@@ -881,35 +816,52 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                 </div>
               )}
 
+              {/* 3. Path */}
               {selectedLog.path && (
-                <span className="bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20 px-2 py-0.5 rounded-md font-medium">
+                <span className="bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20 px-2 py-0.5 rounded font-medium">
                   {selectedLog.path}
                 </span>
               )}
 
+              {/* 4. Stream Badge */}
               {selectedLog.isStream && (
-                <span className="bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20 px-2 py-0.5 rounded-md font-bold">
+                <span className="bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20 px-2 py-0.5 rounded font-bold text-[10px]">
                   STREAM
                 </span>
               )}
             </div>
 
-            <div className="flex items-center space-x-2 text-slate-500 dark:text-slate-400">
+            <div className="flex items-center space-x-2 text-slate-500 dark:text-slate-400 shrink-0">
+              {/* 5. Model */}
               {selectedLog.model && (
-                <span className="bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 px-2 py-0.5 rounded-md font-medium">
-                  Model: {selectedLog.model}
+                <span
+                  className="bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20 px-2 py-0.5 rounded font-medium max-w-[180px] truncate"
+                  title={selectedLog.model}
+                >
+                  {selectedLog.model}
                 </span>
               )}
 
+              {/* 6. Latency */}
               {selectedLog.duration !== undefined && selectedLog.duration !== null && (
-                <span className="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded-md text-slate-700 dark:text-slate-300">
-                  Latency: {selectedLog.duration}ms
+                <span className={`border px-2 py-0.5 rounded font-medium ${
+                  selectedLog.duration < 1000
+                    ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-500/20'
+                    : selectedLog.duration < 5000
+                    ? 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-500/20'
+                    : 'bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-200 dark:border-rose-500/20'
+                }`}>
+                  {selectedLog.duration < 1000 ? `${selectedLog.duration}ms` : `${(selectedLog.duration / 1000).toFixed(2)}s`}
                 </span>
               )}
 
+              {/* 7. Timestamp */}
               {selectedLog.timestamp && (
-                <span className="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded-md text-slate-600 dark:text-slate-400">
-                  {new Date(selectedLog.timestamp).toLocaleString()}
+                <span
+                  className="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded text-slate-600 dark:text-slate-400"
+                  title={new Date(selectedLog.timestamp).toLocaleString()}
+                >
+                  {new Date(selectedLog.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
                 </span>
               )}
             </div>
@@ -928,16 +880,65 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
           }`}>
             {activeTab === 'payload' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 min-h-0 h-full overflow-hidden">
-                {/* Claude Client Request */}
-                <div className="flex-1 min-h-0 h-full flex flex-col overflow-hidden">
-                  <div className="text-[11px] font-semibold text-indigo-400 mb-1.5 flex items-center space-x-1.5 shrink-0">
-                    <span className="w-2 h-2 rounded-full bg-indigo-400" />
-                    <span>{t('logs.claudeClientReq')}</span>
+                {/* Left Column: Claude Client Request */}
+                <div className="flex-1 min-h-0 h-full flex flex-col overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-sub)]">
+                  {/* VS Code Style Header Bar */}
+                  <div className="flex items-center justify-between px-3 py-1.5 bg-[var(--bg-surface)] border-b border-[var(--border-subtle)] shrink-0 select-none">
+                    <div className="flex items-center space-x-2 text-[11px] font-semibold text-indigo-400">
+                      <span className="w-2 h-2 rounded-full bg-indigo-400" />
+                      <span>{t('logs.claudeClientReq')}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      {/* View Mode Pill */}
+                      <div className="ui-tab-container text-[10px] font-medium p-0.5">
+                        <button
+                          onClick={() => setClientViewMode('preview')}
+                          className={`px-1.5 py-0.5 rounded-md flex items-center space-x-1 ${
+                            clientViewMode === 'preview' ? 'ui-tab-pill-active font-semibold' : 'text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          <Eye className="w-3 h-3" />
+                          <span>{t('logs.previewMode', 'Preview')}</span>
+                        </button>
+                        <button
+                          onClick={() => setClientViewMode('raw')}
+                          className={`px-1.5 py-0.5 rounded-md flex items-center space-x-1 ${
+                            clientViewMode === 'raw' ? 'ui-tab-pill-active font-semibold' : 'text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          <Code className="w-3 h-3" />
+                          <span>{t('logs.rawJsonTab', 'Raw JSON')}</span>
+                        </button>
+                      </div>
+
+                      <div className="w-[1px] h-3 bg-[var(--border-subtle)]" />
+
+                      {/* Action: Claude cURL */}
+                      <button
+                        onClick={handleCopyClaudeCurl}
+                        className="px-2 py-0.5 ui-btn-secondary text-[10px] font-mono flex items-center space-x-1"
+                        title="Copy Claude proxy cURL command"
+                      >
+                        {copiedClaudeCurl ? (
+                          <>
+                            <Check className="w-3 h-3 text-emerald-400" />
+                            <span className="text-emerald-400">{t('logs.claudeCurlCopied', '已复制')}</span>
+                          </>
+                        ) : (
+                          <>
+                            <Terminal className="w-3 h-3 text-indigo-400" />
+                            <span>Claude cURL</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
-                  {viewMode === 'preview' ? (
-                    <JsonTreeView data={selectedLog.client_req} />
-                  ) : (
-                    <div className="flex-1 min-h-0 h-full rounded-xl overflow-hidden border border-[var(--border-subtle)] shadow-inner bg-[var(--code-bg)]">
+
+                  {/* Body Viewport */}
+                  <div className="flex-1 min-h-0 overflow-hidden">
+                    {clientViewMode === 'preview' ? (
+                      <JsonTreeView data={selectedLog.client_req} />
+                    ) : (
                       <Editor
                         height="100%"
                         language="json"
@@ -954,20 +955,69 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                           automaticLayout: true
                         }}
                       />
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
 
-                {/* Gemini Upstream Request */}
-                <div className="flex-1 min-h-0 h-full flex flex-col overflow-hidden">
-                  <div className="text-[11px] font-semibold text-emerald-400 mb-1.5 flex items-center space-x-1.5 shrink-0">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                    <span>{t('logs.geminiUpstreamReq')}</span>
+                {/* Right Column: Gemini Upstream Request */}
+                <div className="flex-1 min-h-0 h-full flex flex-col overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-sub)]">
+                  {/* VS Code Style Header Bar */}
+                  <div className="flex items-center justify-between px-3 py-1.5 bg-[var(--bg-surface)] border-b border-[var(--border-subtle)] shrink-0 select-none">
+                    <div className="flex items-center space-x-2 text-[11px] font-semibold text-emerald-400">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                      <span>{t('logs.geminiUpstreamReq')}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      {/* View Mode Pill */}
+                      <div className="ui-tab-container text-[10px] font-medium p-0.5">
+                        <button
+                          onClick={() => setUpstreamViewMode('preview')}
+                          className={`px-1.5 py-0.5 rounded-md flex items-center space-x-1 ${
+                            upstreamViewMode === 'preview' ? 'ui-tab-pill-active font-semibold' : 'text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          <Eye className="w-3 h-3" />
+                          <span>{t('logs.previewMode', 'Preview')}</span>
+                        </button>
+                        <button
+                          onClick={() => setUpstreamViewMode('raw')}
+                          className={`px-1.5 py-0.5 rounded-md flex items-center space-x-1 ${
+                            upstreamViewMode === 'raw' ? 'ui-tab-pill-active font-semibold' : 'text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          <Code className="w-3 h-3" />
+                          <span>{t('logs.rawJsonTab', 'Raw JSON')}</span>
+                        </button>
+                      </div>
+
+                      <div className="w-[1px] h-3 bg-[var(--border-subtle)]" />
+
+                      {/* Action: Gemini cURL */}
+                      <button
+                        onClick={handleCopyGeminiCurl}
+                        className="px-2 py-0.5 ui-btn-secondary text-[10px] font-mono flex items-center space-x-1"
+                        title="Copy upstream Gemini cURL command"
+                      >
+                        {copiedGeminiCurl ? (
+                          <>
+                            <Check className="w-3 h-3 text-emerald-400" />
+                            <span className="text-emerald-400">{t('logs.geminiCurlCopied', '已复制')}</span>
+                          </>
+                        ) : (
+                          <>
+                            <Terminal className="w-3 h-3 text-emerald-400" />
+                            <span>Gemini cURL</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
-                  {viewMode === 'preview' ? (
-                    <JsonTreeView data={selectedLog.gem_req} />
-                  ) : (
-                    <div className="flex-1 min-h-0 h-full rounded-xl overflow-hidden border border-[var(--border-subtle)] shadow-inner bg-[var(--code-bg)]">
+
+                  {/* Body Viewport */}
+                  <div className="flex-1 min-h-0 overflow-hidden">
+                    {upstreamViewMode === 'preview' ? (
+                      <JsonTreeView data={selectedLog.gem_req} />
+                    ) : (
                       <Editor
                         height="100%"
                         language="json"
@@ -984,37 +1034,62 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                           automaticLayout: true
                         }}
                       />
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
             )}
 
             {activeTab === 'response' && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 min-h-0 h-full overflow-hidden">
-                {/* Claude Final Response */}
-                <div className="flex-1 min-h-0 h-full flex flex-col overflow-hidden">
-                  <div className="text-[11px] font-semibold text-amber-400 mb-1.5 flex items-center justify-between shrink-0">
-                    <div className="flex items-center space-x-1.5">
+                {/* Left Column: Claude Final Response */}
+                <div className="flex-1 min-h-0 h-full flex flex-col overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-sub)]">
+                  {/* VS Code Header */}
+                  <div className="flex items-center justify-between px-3 py-1.5 bg-[var(--bg-surface)] border-b border-[var(--border-subtle)] shrink-0 select-none">
+                    <div className="flex items-center space-x-2 text-[11px] font-semibold text-amber-400">
                       <span className="w-2 h-2 rounded-full bg-amber-400" />
                       <span>{t('logs.claudeFinalRes')}</span>
                     </div>
-                    {isStreamPayload(selectedLog.claude_res) && (
-                      <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/30">
-                        SSE Stream
-                      </span>
-                    )}
-                  </div>
-                  {viewMode === 'preview' ? (
-                    isStreamPayload(selectedLog.claude_res) ? (
-                      <div className="flex-1 min-h-0 overflow-y-auto pr-1">
-                        <SseStreamPreview streamData={selectedLog.claude_res} />
+                    <div className="flex items-center space-x-2">
+                      {isStreamPayload(selectedLog.claude_res) && (
+                        <span className="text-[9px] bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-500/30 font-semibold">
+                          SSE Stream
+                        </span>
+                      )}
+                      <div className="ui-tab-container text-[10px] font-medium p-0.5">
+                        <button
+                          onClick={() => setClientViewMode('preview')}
+                          className={`px-1.5 py-0.5 rounded-md flex items-center space-x-1 ${
+                            clientViewMode === 'preview' ? 'ui-tab-pill-active font-semibold' : 'text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          <Eye className="w-3 h-3" />
+                          <span>{t('logs.previewMode', 'Preview')}</span>
+                        </button>
+                        <button
+                          onClick={() => setClientViewMode('raw')}
+                          className={`px-1.5 py-0.5 rounded-md flex items-center space-x-1 ${
+                            clientViewMode === 'raw' ? 'ui-tab-pill-active font-semibold' : 'text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          <Code className="w-3 h-3" />
+                          <span>{t('logs.rawJsonTab', 'Raw JSON')}</span>
+                        </button>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Body Viewport */}
+                  <div className="flex-1 min-h-0 overflow-hidden">
+                    {clientViewMode === 'preview' ? (
+                      isStreamPayload(selectedLog.claude_res) ? (
+                        <div className="flex-1 min-h-0 h-full overflow-y-auto pr-1">
+                          <SseStreamPreview streamData={selectedLog.claude_res} />
+                        </div>
+                      ) : (
+                        <JsonTreeView data={selectedLog.claude_res} />
+                      )
                     ) : (
-                      <JsonTreeView data={selectedLog.claude_res} />
-                    )
-                  ) : (
-                    <div className="flex-1 min-h-0 h-full rounded-xl overflow-hidden border border-[var(--border-subtle)] shadow-inner bg-[var(--code-bg)]">
                       <Editor
                         height="100%"
                         language="json"
@@ -1031,33 +1106,58 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                           automaticLayout: true
                         }}
                       />
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
 
-                {/* Gemini Upstream Response */}
-                <div className="flex-1 min-h-0 h-full flex flex-col overflow-hidden">
-                  <div className="text-[11px] font-semibold text-purple-400 mb-1.5 flex items-center justify-between shrink-0">
-                    <div className="flex items-center space-x-1.5">
+                {/* Right Column: Gemini Upstream Response */}
+                <div className="flex-1 min-h-0 h-full flex flex-col overflow-hidden rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface-sub)]">
+                  {/* VS Code Header */}
+                  <div className="flex items-center justify-between px-3 py-1.5 bg-[var(--bg-surface)] border-b border-[var(--border-subtle)] shrink-0 select-none">
+                    <div className="flex items-center space-x-2 text-[11px] font-semibold text-purple-400">
                       <span className="w-2 h-2 rounded-full bg-purple-400" />
                       <span>{t('logs.geminiUpstreamRes')}</span>
                     </div>
-                    {isStreamPayload(selectedLog.gem_res) && (
-                      <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/30">
-                        SSE Stream
-                      </span>
-                    )}
-                  </div>
-                  {viewMode === 'preview' ? (
-                    isStreamPayload(selectedLog.gem_res) ? (
-                      <div className="flex-1 min-h-0 overflow-y-auto pr-1">
-                        <SseStreamPreview streamData={selectedLog.gem_res} />
+                    <div className="flex items-center space-x-2">
+                      {isStreamPayload(selectedLog.gem_res) && (
+                        <span className="text-[9px] bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-500/30 font-semibold">
+                          SSE Stream
+                        </span>
+                      )}
+                      <div className="ui-tab-container text-[10px] font-medium p-0.5">
+                        <button
+                          onClick={() => setUpstreamViewMode('preview')}
+                          className={`px-1.5 py-0.5 rounded-md flex items-center space-x-1 ${
+                            upstreamViewMode === 'preview' ? 'ui-tab-pill-active font-semibold' : 'text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          <Eye className="w-3 h-3" />
+                          <span>{t('logs.previewMode', 'Preview')}</span>
+                        </button>
+                        <button
+                          onClick={() => setUpstreamViewMode('raw')}
+                          className={`px-1.5 py-0.5 rounded-md flex items-center space-x-1 ${
+                            upstreamViewMode === 'raw' ? 'ui-tab-pill-active font-semibold' : 'text-slate-400 hover:text-slate-200'
+                          }`}
+                        >
+                          <Code className="w-3 h-3" />
+                          <span>{t('logs.rawJsonTab', 'Raw JSON')}</span>
+                        </button>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Body Viewport */}
+                  <div className="flex-1 min-h-0 overflow-hidden">
+                    {upstreamViewMode === 'preview' ? (
+                      isStreamPayload(selectedLog.gem_res) ? (
+                        <div className="flex-1 min-h-0 h-full overflow-y-auto pr-1">
+                          <SseStreamPreview streamData={selectedLog.gem_res} />
+                        </div>
+                      ) : (
+                        <JsonTreeView data={selectedLog.gem_res} />
+                      )
                     ) : (
-                      <JsonTreeView data={selectedLog.gem_res} />
-                    )
-                  ) : (
-                    <div className="flex-1 min-h-0 h-full rounded-xl overflow-hidden border border-[var(--border-subtle)] shadow-inner bg-[var(--code-bg)]">
                       <Editor
                         height="100%"
                         language="json"
@@ -1074,8 +1174,8 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                           automaticLayout: true
                         }}
                       />
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
             )}

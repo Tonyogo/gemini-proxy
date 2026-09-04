@@ -25,12 +25,17 @@ describe('LogsView Header & Metadata Optimization', () => {
 
   test('columns should have VS Code style headers with independent toggles and actions', () => {
     // Claude column header should have clientViewMode toggle and Claude cURL
-    expect(content).toContain('setClientViewMode');
+    expect(content).toContain("setClientViewMode('preview')");
+    expect(content).toContain("setClientViewMode('raw')");
     expect(content).toContain('handleCopyClaudeCurl');
 
     // Gemini column header should have upstreamViewMode toggle and Gemini cURL
-    expect(content).toContain('setUpstreamViewMode');
+    expect(content).toContain("setUpstreamViewMode('preview')");
+    expect(content).toContain("setUpstreamViewMode('raw')");
     expect(content).toContain('handleCopyGeminiCurl');
+
+    // No legacy viewMode check should remain in payload/response columns
+    expect(content).not.toContain('viewMode ===');
   });
 
   test('metadata ribbon should be single-line compact and eliminate redundant labels', () => {
