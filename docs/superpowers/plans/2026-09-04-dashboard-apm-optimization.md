@@ -33,7 +33,7 @@
   - `getBezierSplinePath(points: Array<{x: number, y: number}>): string`
   - `getBezierAreaPath(points: Array<{x: number, y: number}>, yBase: number): string`
 
-- [ ] **Step 1: 编写测试文件 `tests/chartHelpers.test.ts`**
+- [x] **Step 1: 编写测试文件 `tests/chartHelpers.test.ts`**
 
 ```typescript
 import {
@@ -82,12 +82,12 @@ describe('Chart Helpers & APM Formatters', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试并确认失败**
+- [x] **Step 2: 运行测试并确认失败**
 
 Run: `npx jest tests/chartHelpers.test.ts`
 Expected: FAIL (Cannot find module '../frontend/src/utils/chartHelpers')
 
-- [ ] **Step 3: 实现 `frontend/src/utils/chartHelpers.ts`**
+- [x] **Step 3: 实现 `frontend/src/utils/chartHelpers.ts`**
 
 ```typescript
 /**
@@ -177,12 +177,12 @@ export function getBezierAreaPath(points: Point[], yBase: number): string {
 }
 ```
 
-- [ ] **Step 4: 运行测试确认全部通过**
+- [x] **Step 4: 运行测试确认全部通过**
 
 Run: `npx jest tests/chartHelpers.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: 提交任务 1 代码**
+- [x] **Step 5: 提交任务 1 代码**
 
 ```bash
 git add frontend/src/utils/chartHelpers.ts tests/chartHelpers.test.ts
@@ -201,7 +201,7 @@ git commit -m "feat(charts): add bezier spline path generator and apm metric for
 - Consumes: `useTranslation`
 - Produces: `dashboard.uptimeHuman`, `dashboard.avgThroughput`, `dashboard.serviceAvailability`, `dashboard.barChart`, `dashboard.areaChart`, `dashboard.healthy`, `dashboard.successRate`
 
-- [ ] **Step 1: 在 `frontend/src/i18n/locales/zh.ts` 中补充 APM 词条**
+- [x] **Step 1: 在 `frontend/src/i18n/locales/zh.ts` 中补充 APM 词条**
 
 在 `dashboard` 对象中增加：
 ```typescript
@@ -218,7 +218,7 @@ git commit -m "feat(charts): add bezier spline path generator and apm metric for
     totalReqsLabel: "总请求数",
 ```
 
-- [ ] **Step 2: 在 `frontend/src/i18n/locales/en.ts` 中补充对应英文词条**
+- [x] **Step 2: 在 `frontend/src/i18n/locales/en.ts` 中补充对应英文词条**
 
 在 `dashboard` 对象中增加：
 ```typescript
@@ -235,12 +235,12 @@ git commit -m "feat(charts): add bezier spline path generator and apm metric for
     totalReqsLabel: "Total Requests",
 ```
 
-- [ ] **Step 3: 运行全量测试验证无类型报错**
+- [x] **Step 3: 运行全量测试验证无类型报错**
 
 Run: `npx jest tests/chartHelpers.test.ts`
 Expected: PASS
 
-- [ ] **Step 4: 提交任务 2 词条**
+- [x] **Step 4: 提交任务 2 词条**
 
 ```bash
 git add frontend/src/i18n/locales/zh.ts frontend/src/i18n/locales/en.ts
@@ -263,7 +263,7 @@ git commit -m "feat(i18n): add apm metrics and chart control translations"
   - 卡片 3: 平均响应延迟 + 品质徽章 (EXCELLENT/GOOD/SLOW) + 超时提示
   - 卡片 4: 可用度成功率百分比 + 迷你进度条 + 成功/异常明细
 
-- [ ] **Step 1: 编写 `tests/dashboardOptimization.test.ts` 静态断言**
+- [x] **Step 1: 编写 `tests/dashboardOptimization.test.ts` 静态断言**
 
 ```typescript
 import * as fs from 'fs';
@@ -298,12 +298,12 @@ describe('Dashboard APM & Visual Optimization', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试并确认失败**
+- [x] **Step 2: 运行测试并确认失败**
 
 Run: `npx jest tests/dashboardOptimization.test.ts`
 Expected: FAIL
 
-- [ ] **Step 3: 在 `DashboardView.tsx` 中重构 4 张指标卡**
+- [x] **Step 3: 在 `DashboardView.tsx` 中重构 4 张指标卡**
 
 导入 `formatUptime`, `formatThroughput`, `getBezierSplinePath`, `getBezierAreaPath`，增加 `volumeChartType` 状态，替换顶部 4 张卡片代码：
 ```tsx
@@ -320,7 +320,7 @@ Expected: FAIL
 ```
 在 JSX 中彻底使用 `text-[var(--text-primary)]`, `text-[var(--text-secondary)]` 渲染。
 
-- [ ] **Step 4: 运行测试验证指标卡部分通过**
+- [x] **Step 4: 运行测试验证指标卡部分通过**
 
 Run: `npx jest tests/dashboardOptimization.test.ts`
 
@@ -338,7 +338,7 @@ Run: `npx jest tests/dashboardOptimization.test.ts`
   - 响应延迟与分布图表升级为三次贝塞尔平滑曲线与面积渐变
   - 悬浮 Tooltip 采用玻璃拟态与主题变量
 
-- [ ] **Step 1: 在请求量图表标题栏加入形态切换按钮**
+- [x] **Step 1: 在请求量图表标题栏加入形态切换按钮**
 
 ```tsx
 <div className="ui-tab-container p-0.5 text-[10px] font-medium">
@@ -365,19 +365,19 @@ Run: `npx jest tests/dashboardOptimization.test.ts`
 </div>
 ```
 
-- [ ] **Step 2: 渲染面积渐变与贝塞尔曲线**
+- [x] **Step 2: 渲染面积渐变与贝塞尔曲线**
 
 当 `volumeChartType === 'area'` 时，使用 `getBezierAreaPath` 与 `getBezierSplinePath` 渲染波形面积图；当为 `'bar'` 时渲染圆角柱状图。
 
-- [ ] **Step 3: 优化 Chart 2 模型延迟与分布平滑曲线**
+- [x] **Step 3: 优化 Chart 2 模型延迟与分布平滑曲线**
 
 利用 `getBezierSplinePath` 替换原先直角折线渲染，曲线自然柔美。
 
-- [ ] **Step 4: 升级玻璃拟态悬浮 Tooltip**
+- [x] **Step 4: 升级玻璃拟态悬浮 Tooltip**
 
 全面采用 `backdrop-blur-xl bg-[var(--bg-surface)]/95 border border-[var(--border-subtle)] text-[var(--text-primary)]`。
 
-- [ ] **Step 5: 运行测试检查通过情况**
+- [x] **Step 5: 运行测试检查通过情况**
 
 Run: `npx jest tests/dashboardOptimization.test.ts`
 Expected: PASS
@@ -397,15 +397,15 @@ Expected: PASS
   - 进度条轨道采用 `bg-[var(--border-subtle)]/40`
   - 系统配置微晶卡片增强毫秒与时分双重可读性
 
-- [ ] **Step 1: 重构 `ModelPerformanceMatrix.tsx`**
+- [x] **Step 1: 重构 `ModelPerformanceMatrix.tsx`**
 
 将条目标题与数值类名更新为主题变量，轨道背景设为 `bg-[var(--border-subtle)]/40`，文字设为 `text-[var(--text-primary)]`。
 
-- [ ] **Step 2: 重构 `SystemRuntimeMatrix.tsx`**
+- [x] **Step 2: 重构 `SystemRuntimeMatrix.tsx`**
 
 系统配置卡片统一采用 `ui-card-sub`，消除所有黑色底色，强化配置参数对比度。
 
-- [ ] **Step 3: 运行全量测试并提交**
+- [x] **Step 3: 运行全量测试并提交**
 
 ```bash
 git add frontend/src/components/DashboardView.tsx frontend/src/components/dashboard/ModelPerformanceMatrix.tsx frontend/src/components/dashboard/SystemRuntimeMatrix.tsx tests/dashboardOptimization.test.ts
@@ -419,22 +419,22 @@ git commit -m "feat(dashboard): implement apm metric cards, bezier area charts, 
 **Files:**
 - None (执行全面验证与回归测试)
 
-- [ ] **Step 1: 运行全量 Jest 测试套件**
+- [x] **Step 1: 运行全量 Jest 测试套件**
 
 Run: `/Users/yogo/.nvm/versions/node/v22.12.0/bin/npm test`
 Expected: 42 个测试套件全部 PASS
 
-- [ ] **Step 2: 运行前端 Vite 严格构建**
+- [x] **Step 2: 运行前端 Vite 严格构建**
 
 Run: `/Users/yogo/.nvm/versions/node/v22.12.0/bin/npm run build:frontend`
 Expected: 0 错误构建成功
 
-- [ ] **Step 3: 运行后端 TypeScript 严格构建**
+- [x] **Step 3: 运行后端 TypeScript 严格构建**
 
 Run: `/Users/yogo/.nvm/versions/node/v22.12.0/bin/npm run build:backend`
 Expected: 0 错误构建成功
 
-- [ ] **Step 4: 运行全量构建**
+- [x] **Step 4: 运行全量构建**
 
 Run: `/Users/yogo/.nvm/versions/node/v22.12.0/bin/npm run build`
 Expected: SUCCESS
