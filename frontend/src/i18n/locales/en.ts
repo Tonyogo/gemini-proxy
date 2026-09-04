@@ -139,6 +139,8 @@ export const en = {
     volumeChartTitle: "Hourly Request Volume Trend",
     modelChartTitle: "Model Distribution Trend",
     latencyChartTitle: "Hourly Average Latency (ms) Trend",
+    chartVolumeTab: "Volume",
+    chartLatencyTab: "Latency",
     latencyTab: "Latency (ms)",
     distributionTab: "Distribution",
     successErrorChartTitle: "Hourly Success vs Error Distribution",

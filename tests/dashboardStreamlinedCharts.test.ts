@@ -42,3 +42,34 @@ describe('Dashboard Streamlined APM Charts & SystemRuntimeMatrix Removal', () =>
     expect(content).not.toContain('getModelDistributionPath');
   });
 });
+
+describe('Dashboard Anti-Shift & Dark Border Polish', () => {
+  const dashboardPath = path.resolve(__dirname, '../frontend/src/components/DashboardView.tsx');
+  const matrixPath = path.resolve(__dirname, '../frontend/src/components/dashboard/ModelPerformanceMatrix.tsx');
+
+  let dashboardContent: string;
+  let matrixContent: string;
+
+  beforeAll(() => {
+    dashboardContent = fs.readFileSync(dashboardPath, 'utf-8');
+    matrixContent = fs.readFileSync(matrixPath, 'utf-8');
+  });
+
+  test('should eliminate volumeChartType switcher and state from DashboardView', () => {
+    expect(dashboardContent).not.toContain('volumeChartType');
+    expect(dashboardContent).not.toContain('setVolumeChartType');
+  });
+
+  test('should eliminate dynamic hoveredIndex metric badge from chart header toolbar', () => {
+    // Header toolbar should not dynamically insert hoveredIndex badge
+    expect(dashboardContent).not.toMatch(/hoveredIndex\s*!==\s*null\s*&&\s*timeSeries\[hoveredIndex\]\s*&&\s*\(\s*<span[^>]*font-mono/);
+  });
+
+  test('ModelPerformanceMatrix should eliminate divide-y divide-[var(--border-subtle)]/50', () => {
+    expect(matrixContent).not.toContain('divide-[var(--border-subtle)]/50');
+  });
+
+  test('ModelPerformanceMatrix should use dark-subtle border classes', () => {
+    expect(matrixContent).toContain('dark:border-white/[0.04]');
+  });
+});
