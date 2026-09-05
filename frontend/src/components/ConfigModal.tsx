@@ -716,11 +716,11 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                     </div>
 
                                     {/* Compact Action Buttons */}
-                                    <div className="flex items-center justify-between sm:justify-end gap-1 pt-1.5 sm:pt-0 border-t border-white/[0.04] sm:border-0 shrink-0">
+                                    <div className="flex items-center justify-between sm:justify-end gap-1.5 sm:gap-1 pt-1.5 sm:pt-0 border-t border-white/[0.04] sm:border-0 shrink-0">
                                       <select
                                         value={entry.strategy || ''}
                                         onChange={(e) => handleEntryChange(entry.id, 'strategy', e.target.value)}
-                                        className="w-24 sm:w-[94px] ui-input p-1.5 sm:p-2 text-[10px] sm:text-[11px] shrink-0 appearance-none cursor-pointer"
+                                        className="w-28 sm:w-[94px] h-8 ui-input p-1.5 sm:p-2 text-[10px] sm:text-[11px] shrink-0 appearance-none cursor-pointer"
                                         title={t('config.strategy')}
                                       >
                                         <option value="">{t('config.strategyDefault')}</option>
@@ -731,7 +731,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                       <button
                                         type="button"
                                         onClick={() => handleToggleHigh(entry.id, entry.target)}
-                                        className={`px-1.5 py-1 sm:py-1.5 text-[9px] sm:text-[10px] font-bold rounded-lg transition-all border shrink-0 flex items-center space-x-0.5 ${
+                                        className={`h-8 px-2 sm:px-1.5 py-1 sm:py-1.5 text-[9px] sm:text-[10px] font-bold rounded-lg transition-all border shrink-0 flex items-center space-x-0.5 active:scale-95 ${
                                           entry.target.trim().endsWith('-high')
                                             ? 'bg-amber-500/15 border-amber-500/40 text-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.15)]'
                                             : 'ui-btn-secondary'
@@ -744,10 +744,10 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                       <button
                                         type="button"
                                         onClick={() => handleRemoveMapping(entry.id)}
-                                        className="p-1 sm:p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition-colors text-xs shrink-0"
+                                        className="h-8 w-8 flex items-center justify-center text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition-colors text-xs shrink-0 active:scale-95"
                                         title="Remove mapping"
                                       >
-                                        <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                                        <Trash2 className="w-3.5 h-3.5" />
                                       </button>
                                     </div>
                                   </div>
@@ -814,7 +814,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
             </div>
 
             {/* Modal Sticky Footer */}
-            <div className="sticky bottom-0 bg-[var(--bg-surface-sub)]/95 backdrop-blur-xl border-t border-[var(--border-subtle)] p-3.5 sm:p-4 flex flex-col-reverse sm:flex-row items-center justify-between gap-3 shrink-0">
+            <div className="sticky bottom-0 bg-[var(--bg-surface-sub)]/95 backdrop-blur-xl border-t border-[var(--border-subtle)] p-3.5 sm:p-4 pb-[max(0.875rem,env(safe-area-inset-bottom))] flex flex-col-reverse sm:flex-row items-center justify-between gap-3 shrink-0">
               <span className="text-[10px] sm:text-[11px] text-slate-500 font-mono text-center sm:text-left">
                 {t('config.footerNote')}
               </span>
