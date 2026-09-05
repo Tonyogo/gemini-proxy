@@ -357,11 +357,11 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
   };
 
   const TABS = [
-    { id: 'general', label: t('config.tabGeneral'), icon: Sliders },
-    { id: 'upstream', label: t('config.tabUpstream'), icon: Globe },
-    { id: 'instructions', label: t('config.tabInstructions'), icon: FileCode },
-    { id: 'mappings', label: t('config.tabMappings'), icon: ArrowRightLeft },
-    { id: 'security', label: t('config.tabSecurity'), icon: ShieldCheck }
+    { id: 'general', label: t('config.tabGeneral'), shortLabel: t('config.tabGeneralShort', '通用'), icon: Sliders },
+    { id: 'upstream', label: t('config.tabUpstream'), shortLabel: t('config.tabUpstreamShort', '上游'), icon: Globe },
+    { id: 'instructions', label: t('config.tabInstructions'), shortLabel: t('config.tabInstructionsShort', '指令'), icon: FileCode },
+    { id: 'mappings', label: t('config.tabMappings'), shortLabel: t('config.tabMappingsShort', '映射'), icon: ArrowRightLeft },
+    { id: 'security', label: t('config.tabSecurity'), shortLabel: t('config.tabSecurityShort', '安全'), icon: ShieldCheck }
   ];
 
   return (
@@ -380,7 +380,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
               <h2 className="text-sm font-bold text-[var(--text-primary)] flex items-center space-x-2 truncate">
                 <span>{t('config.modalTitle')}</span>
               </h2>
-              <p className="text-[10px] sm:text-[11px] text-[var(--text-secondary)] truncate">{t('config.modalSub')}</p>
+              <p className="hidden sm:block text-[11px] text-[var(--text-secondary)] truncate">{t('config.modalSub')}</p>
             </div>
           </div>
           <div className="flex items-center space-x-1.5 sm:space-x-1 shrink-0">
@@ -418,7 +418,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
         </div>
 
         {/* Linear Styled Tab Pills */}
-        <div className="flex items-center space-x-1 px-3 sm:px-6 py-2 border-b border-[var(--border-subtle)] bg-[var(--bg-surface-sub)]/80 overflow-x-auto scrollbar-none shrink-0">
+        <div className="flex items-center space-x-1 px-2.5 sm:px-6 py-1.5 sm:py-2 border-b border-[var(--border-subtle)] bg-[var(--bg-surface-sub)]/80 overflow-x-auto scrollbar-none shrink-0">
           {TABS.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -427,14 +427,15 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                 key={tab.id}
                 type="button"
                 onClick={() => handleTabChange(tab.id as TabType)}
-                className={`ui-tab-pill flex items-center space-x-1.5 sm:space-x-2 whitespace-nowrap ${
+                className={`ui-tab-pill px-2 sm:px-3 py-1 sm:py-1.5 flex items-center space-x-1 sm:space-x-2 whitespace-nowrap ${
                   isActive
                     ? 'ui-tab-pill-active font-semibold'
                     : ''
                 }`}
               >
                 <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                <span>{tab.label}</span>
+                <span className="sm:hidden text-xs">{tab.shortLabel}</span>
+                <span className="hidden sm:inline text-xs">{tab.label}</span>
               </button>
             );
           })}
@@ -458,14 +459,14 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
 
               {/* TAB 1: General & Logs */}
               {activeTab === 'general' && (
-                <div className="space-y-4 animate-in fade-in duration-150">
-                  <div className="ui-card-sub p-4 sm:p-5 space-y-4">
-                    <div className="flex items-center space-x-2 text-xs font-bold text-indigo-400 uppercase tracking-wider">
+                <div className="space-y-3.5 sm:space-y-4 animate-in fade-in duration-150">
+                  <div className="ui-card-sub p-3.5 sm:p-5 space-y-3.5 sm:space-y-4">
+                    <div className="hidden sm:flex items-center space-x-2 text-xs font-bold text-indigo-400 uppercase tracking-wider">
                       <Sliders className="w-3.5 h-3.5 text-indigo-400" />
                       <span>{t('config.generalGroup')}</span>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
                       <div className="space-y-1.5">
                         <label className="text-xs font-semibold text-slate-200 block">LOG_LEVEL</label>
                         <select
@@ -478,7 +479,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                           <option value="info">{t('config.logLevelInfo')}</option>
                           <option value="debug">{t('config.logLevelDebug')}</option>
                         </select>
-                        <p className="text-[10px] text-slate-400">{t('config.logLevelDesc')}</p>
+                        <p className="hidden sm:block text-[10px] text-slate-400">{t('config.logLevelDesc')}</p>
                       </div>
 
                       <div className="space-y-1.5">
@@ -489,7 +490,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                           onChange={(e) => setLogRetentionDays(parseInt(e.target.value, 10) || 0)}
                           className="w-full ui-input p-2.5 text-xs"
                         />
-                        <p className="text-[10px] text-slate-400">{t('config.logRetentionDesc')}</p>
+                        <p className="hidden sm:block text-[10px] text-slate-400">{t('config.logRetentionDesc')}</p>
                       </div>
                     </div>
                   </div>
@@ -498,14 +499,14 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
 
               {/* TAB 2: Proxy & Upstream */}
               {activeTab === 'upstream' && (
-                <div className="space-y-4 animate-in fade-in duration-150">
-                  <div className="ui-card-sub p-4 sm:p-5 space-y-4">
-                    <div className="flex items-center space-x-2 text-xs font-bold text-blue-400 uppercase tracking-wider">
+                <div className="space-y-3.5 sm:space-y-4 animate-in fade-in duration-150">
+                  <div className="ui-card-sub p-3.5 sm:p-5 space-y-3.5 sm:space-y-4">
+                    <div className="hidden sm:flex items-center space-x-2 text-xs font-bold text-blue-400 uppercase tracking-wider">
                       <Globe className="w-3.5 h-3.5 text-blue-400" />
                       <span>{t('config.upstreamGroup')}</span>
                     </div>
 
-                    <div className="space-y-4">
+                    <div className="space-y-3.5 sm:space-y-4">
                       <div className="space-y-1.5">
                         <label className="text-xs font-semibold text-slate-200 block">UPSTREAM_TIMEOUT_MS</label>
                         <div className="relative">
@@ -517,7 +518,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                           />
                           <span className="absolute right-3 top-2.5 text-xs text-slate-500 font-mono">ms</span>
                         </div>
-                        <p className="text-[10px] text-slate-400">{t('config.upstreamTimeoutDesc')}</p>
+                        <p className="hidden sm:block text-[10px] text-slate-400">{t('config.upstreamTimeoutDesc')}</p>
                       </div>
 
                       <div className="space-y-1.5">
@@ -529,7 +530,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                           placeholder="e.g. gemini-2.5-flash (Leave blank to use request model)"
                           className="w-full ui-input p-2.5 text-xs"
                         />
-                        <p className="text-[10px] text-slate-400">{t('config.countTokensDesc')}</p>
+                        <p className="hidden sm:block text-[10px] text-slate-400">{t('config.countTokensDesc')}</p>
                       </div>
                     </div>
                   </div>
@@ -538,18 +539,18 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
 
               {/* TAB 3: System Instruction & Ephemeral Rules */}
               {activeTab === 'instructions' && (
-                <div className="space-y-4 animate-in fade-in duration-150">
-                  <div className="ui-card-sub p-4 sm:p-5 space-y-4">
-                    <div className="flex items-center space-x-2 text-xs font-bold text-emerald-400 uppercase tracking-wider">
+                <div className="space-y-3.5 sm:space-y-4 animate-in fade-in duration-150">
+                  <div className="ui-card-sub p-3.5 sm:p-5 space-y-3.5 sm:space-y-4">
+                    <div className="hidden sm:flex items-center space-x-2 text-xs font-bold text-emerald-400 uppercase tracking-wider">
                       <FileCode className="w-3.5 h-3.5 text-emerald-400" />
                       <span>{t('config.translationGroup')}</span>
                     </div>
 
                     {/* Refined Toggle Switch */}
-                    <div className="ui-card-sub p-3.5 sm:p-4 flex items-center justify-between gap-3">
+                    <div className="ui-card-sub p-3 sm:p-4 flex items-center justify-between gap-3">
                       <div>
                         <span className="text-xs font-semibold text-slate-200 block">SYSTEM_ROLE_TO_INSTRUCTION</span>
-                        <p className="text-[10px] text-slate-400 mt-0.5">{t('config.systemRoleDesc')}</p>
+                        <p className="hidden sm:block text-[10px] text-slate-400 mt-0.5">{t('config.systemRoleDesc')}</p>
                       </div>
 
                       <button
@@ -587,7 +588,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                         placeholder={t('config.ephemeralUserMessagesPlaceholder')}
                         className="w-full ui-input p-2.5 text-xs leading-relaxed"
                       />
-                      <p className="text-[10px] text-slate-400">{t('config.ephemeralUserMessagesDesc')}</p>
+                      <p className="hidden sm:block text-[10px] text-slate-400">{t('config.ephemeralUserMessagesDesc')}</p>
                     </div>
 
                     <div className="space-y-1.5">
@@ -599,7 +600,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                         placeholder={t('config.ephemeralSystemMessagesPlaceholder')}
                         className="w-full ui-input p-2.5 text-xs leading-relaxed"
                       />
-                      <p className="text-[10px] text-slate-400">{t('config.ephemeralSystemMessagesDesc')}</p>
+                      <p className="hidden sm:block text-[10px] text-slate-400">{t('config.ephemeralSystemMessagesDesc')}</p>
                     </div>
                   </div>
                 </div>
@@ -607,12 +608,13 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
 
               {/* TAB 4: Model Mapping */}
               {activeTab === 'mappings' && (
-                <div className="space-y-4 animate-in fade-in duration-150">
-                  <div className="ui-card-sub p-4 sm:p-5 space-y-4">
+                <div className="space-y-3.5 sm:space-y-4 animate-in fade-in duration-150">
+                  <div className="ui-card-sub p-3.5 sm:p-5 space-y-3.5 sm:space-y-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2 text-xs font-bold text-amber-400 uppercase tracking-wider">
                         <ArrowRightLeft className="w-3.5 h-3.5 text-amber-400" />
-                        <span>{t('config.modelMappingsGroup')}</span>
+                        <span className="hidden sm:inline">{t('config.modelMappingsGroup')}</span>
+                        <span className="sm:hidden text-xs">模型映射规则</span>
                         <span className="text-[11px] font-mono text-amber-400/80 lowercase">({mappingEntries.length})</span>
                       </div>
 
@@ -773,36 +775,36 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
 
               {/* TAB 5: Security & Reset */}
               {activeTab === 'security' && (
-                <div className="space-y-4 animate-in fade-in duration-150">
-                  <div className="ui-card-sub p-4 sm:p-5 space-y-4">
-                    <div className="flex items-center space-x-2 text-xs font-bold text-purple-400 uppercase tracking-wider">
+                <div className="space-y-3.5 sm:space-y-4 animate-in fade-in duration-150">
+                  <div className="ui-card-sub p-3.5 sm:p-5 space-y-3.5 sm:space-y-4">
+                    <div className="hidden sm:flex items-center space-x-2 text-xs font-bold text-purple-400 uppercase tracking-wider">
                       <ShieldCheck className="w-3.5 h-3.5 text-purple-400" />
                       <span>{t('config.securityGroup')}</span>
                     </div>
 
-                    <div className="ui-card-sub p-3.5 sm:p-4 space-y-2">
+                    <div className="ui-card-sub p-3 sm:p-4 space-y-1 sm:space-y-2">
                       <div className="flex items-center space-x-2 text-xs font-semibold text-slate-200">
                         <Info className="w-4 h-4 text-indigo-400" />
                         <span>{t('config.adminSecretTitle')}</span>
                       </div>
-                      <p className="text-[11px] text-slate-400 leading-relaxed">
+                      <p className="hidden sm:block text-[11px] text-slate-400 leading-relaxed">
                         {t('config.adminSecretDesc')}
                       </p>
                     </div>
 
-                    <div className="bg-rose-950/20 border border-rose-800/30 p-3.5 sm:p-4 rounded-xl space-y-3">
+                    <div className="bg-rose-950/20 border border-rose-800/30 p-3 sm:p-4 rounded-xl space-y-2 sm:space-y-3">
                       <div className="flex items-center space-x-2 text-xs font-bold text-rose-300">
                         <AlertCircle className="w-4 h-4 text-rose-400" />
                         <span>{t('config.factoryResetTitle')}</span>
                       </div>
-                      <p className="text-[11px] text-slate-400">
+                      <p className="hidden sm:block text-[11px] text-slate-400">
                         {t('config.factoryResetDesc')}
                       </p>
                       <button
                         type="button"
                         onClick={handleResetToEnv}
                         disabled={saving}
-                        className="px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 rounded-xl font-semibold text-xs transition-colors flex items-center space-x-1.5"
+                        className="px-3.5 sm:px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 rounded-xl font-semibold text-xs transition-colors flex items-center space-x-1.5 active:scale-95"
                       >
                         <RotateCcw className="w-3.5 h-3.5" />
                         <span>{t('config.resetDefault')}</span>
@@ -814,8 +816,8 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
             </div>
 
             {/* Modal Sticky Footer */}
-            <div className="sticky bottom-0 bg-[var(--bg-surface-sub)]/95 backdrop-blur-xl border-t border-[var(--border-subtle)] p-3.5 sm:p-4 pb-[max(0.875rem,env(safe-area-inset-bottom))] flex flex-col-reverse sm:flex-row items-center justify-between gap-3 shrink-0">
-              <span className="text-[10px] sm:text-[11px] text-slate-500 font-mono text-center sm:text-left">
+            <div className="sticky bottom-0 bg-[var(--bg-surface-sub)]/95 backdrop-blur-xl border-t border-[var(--border-subtle)] p-3 sm:p-4 pb-[max(0.875rem,env(safe-area-inset-bottom))] flex items-center justify-between gap-3 shrink-0">
+              <span className="hidden sm:inline text-[11px] text-slate-500 font-mono text-left">
                 {t('config.footerNote')}
               </span>
 
