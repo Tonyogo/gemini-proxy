@@ -418,7 +418,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
         </div>
 
         {/* Linear Styled Tab Pills */}
-        <div className="flex items-center space-x-1 px-2.5 sm:px-6 py-1.5 sm:py-2 border-b border-[var(--border-subtle)] bg-[var(--bg-surface-sub)]/80 overflow-x-auto scrollbar-none shrink-0">
+        <div className="flex items-center space-x-1 px-2 sm:px-6 py-1.5 sm:py-2 border-b border-[var(--border-subtle)] bg-[var(--bg-surface-sub)]/80 overflow-x-auto scrollbar-none shrink-0 w-full">
           {TABS.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -427,13 +427,13 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                 key={tab.id}
                 type="button"
                 onClick={() => handleTabChange(tab.id as TabType)}
-                className={`ui-tab-pill px-2 sm:px-3 py-1 sm:py-1.5 flex items-center space-x-1 sm:space-x-2 whitespace-nowrap ${
+                className={`ui-tab-pill flex-1 sm:flex-none justify-center px-1.5 sm:px-3 py-1 sm:py-1.5 flex items-center space-x-1 sm:space-x-2 whitespace-nowrap text-center ${
                   isActive
                     ? 'ui-tab-pill-active font-semibold'
                     : ''
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
                 <span className="sm:hidden text-xs">{tab.shortLabel}</span>
                 <span className="hidden sm:inline text-xs">{tab.label}</span>
               </button>
@@ -626,12 +626,14 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                         {showAdvancedJson ? (
                           <>
                             <List className="w-3 h-3 text-amber-400" />
-                            <span>{t('config.toggleKv')}</span>
+                            <span className="hidden sm:inline">{t('config.toggleKv')}</span>
+                            <span className="sm:hidden">可视化</span>
                           </>
                         ) : (
                           <>
                             <Code className="w-3 h-3 text-amber-400" />
-                            <span>{t('config.toggleJson')}</span>
+                            <span className="hidden sm:inline">{t('config.toggleJson')}</span>
+                            <span className="sm:hidden">JSON</span>
                           </>
                         )}
                       </button>
@@ -679,18 +681,22 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                     {/* Source -> Target Input Fields */}
                                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5 flex-1 min-w-0">
                                       <div className="flex-[2] min-w-0">
-                                        <label className="text-[10px] text-slate-400 block sm:hidden mb-0.5 font-semibold">{t('config.sourceModel')}</label>
+                                        <label className="text-[10px] text-slate-400 block sm:hidden mb-0.5 font-semibold">
+                                          {t('config.sourceModelShort', '源模型')}
+                                        </label>
                                         <input
                                           type="text"
                                           value={entry.source}
                                           onChange={(e) => handleEntryChange(entry.id, 'source', e.target.value)}
-                                          placeholder={t('config.sourceModel')}
+                                          placeholder={t('config.sourceModelPlaceholder', '如 claude-3-5-sonnet')}
                                           className="w-full ui-input p-1.5 sm:p-2 text-xs"
                                         />
                                       </div>
                                       <span className="hidden sm:inline text-slate-500 font-bold text-xs shrink-0">→</span>
                                       <div className="flex-[3] min-w-0">
-                                        <label className="text-[10px] text-slate-400 block sm:hidden mb-0.5 font-semibold">{t('config.targetModel')}</label>
+                                        <label className="text-[10px] text-slate-400 block sm:hidden mb-0.5 font-semibold">
+                                          {t('config.targetModelShort', '重定向至')}
+                                        </label>
                                         <div className="relative flex items-center">
                                           <input
                                             type="text"
@@ -698,7 +704,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                             onChange={(e) => handleEntryChange(entry.id, 'target', e.target.value)}
                                             onFocus={() => setFocusedTargetId(entry.id)}
                                             onBlur={() => setFocusedTargetId(null)}
-                                            placeholder={t('config.targetModel')}
+                                            placeholder={t('config.targetModelPlaceholder', '如 gemini-2.5-pro')}
                                             className={`w-full ui-input p-1.5 sm:p-2 text-xs text-amber-500 dark:text-amber-300 ${
                                               isMultiTarget && focusedTargetId !== entry.id ? 'pr-6' : ''
                                             }`}
