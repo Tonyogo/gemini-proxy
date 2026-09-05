@@ -43,5 +43,13 @@ describe('Dashboard APM & Visual Optimization', () => {
     expect(runtimeMatrix).not.toContain('text-slate-200');
     expect(runtimeMatrix).not.toContain('text-slate-300');
   });
+
+  test('should use 2-column compact grid for KPI cards on mobile', () => {
+    expect(content).toContain('grid-cols-2 lg:grid-cols-4');
+  });
+
+  test('should use responsive height for interactive APM chart', () => {
+    expect(content).toContain('h-[300px] sm:h-[380px]');
+  });
 });
 
