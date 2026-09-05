@@ -37,6 +37,7 @@ import {
   formatTranslationUserPrompt,
   StylePresetOption
 } from '../utils/translateHelper';
+import { STANDARD_MODELS } from '../utils/modelHelpers';
 
 export interface ModelTranslationResult {
   modelId: string;
@@ -49,13 +50,6 @@ export interface ModelTranslationResult {
   renderMarkdown: boolean;
   stopReason?: string;
 }
-
-const DEFAULT_MODELS = [
-  'gemini-3.1-flash-lite',
-  'gemini-pro-latest',
-  'gemini-flash-latest',
-  'gemini-flash-lite-latest'
-];
 
 export default function TranslateView({ adminKey }: { adminKey: string }) {
   const { lang, t } = useTranslation();
@@ -77,7 +71,7 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
   });
   const [selectedSingleModel, setSelectedSingleModel] = useState<string>(() => {
     const saved = localStorage.getItem('translate_single_model');
-    if (saved && (DEFAULT_MODELS.includes(saved) || saved.startsWith('gemini-'))) {
+    if (saved && (STANDARD_MODELS as readonly string[]).includes(saved)) {
       return saved;
     }
     return 'gemini-flash-latest';
@@ -87,7 +81,10 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const valid = parsed.filter(m => (STANDARD_MODELS as readonly string[]).includes(m));
+          if (valid.length > 0) return valid;
+        }
       } catch (e) {
         // fallback
       }
@@ -95,7 +92,7 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
     return ['gemini-flash-latest', 'gemini-pro-latest'];
   });
 
-  const [availableModels, setAvailableModels] = useState<string[]>(DEFAULT_MODELS);
+  const [availableModels, setAvailableModels] = useState<string[]>([...STANDARD_MODELS]);
   const [sourceText, setSourceText] = useState<string>('');
   const [detectedLang, setDetectedLang] = useState<string>('en');
 
@@ -147,7 +144,7 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
           const mappingValues = Object.values(data.mappings).map((v: any) =>
             typeof v === 'string' ? v : v?.target
           ).filter(Boolean);
-          const merged = Array.from(new Set([...DEFAULT_MODELS, ...mappingKeys, ...mappingValues]));
+          const merged = Array.from(new Set([...STANDARD_MODELS, ...mappingKeys, ...mappingValues]));
           setAvailableModels(merged);
         }
       })

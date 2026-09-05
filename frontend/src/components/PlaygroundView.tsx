@@ -31,6 +31,7 @@ import ConcurrentTestModal from './ConcurrentTestModal';
 import { defineGeminiProxyTheme } from '../utils/monacoTheme';
 import { useTranslation } from '../i18n/LanguageContext';
 import { useTheme } from '../theme/ThemeContext';
+import { STANDARD_MODELS } from '../utils/modelHelpers';
 
 type EndpointOption = 'messages' | 'count_tokens' | 'custom';
 type ViewMode = 'preview' | 'raw';
@@ -38,7 +39,7 @@ type PresetKey = 'basicChat' | 'toolUse' | 'vision' | 'thinkingMode';
 
 const PRESETS: Record<PresetKey, any> = {
   basicChat: {
-    model: "gemini-3.1-flash-lite",
+    model: "gemini-flash-latest",
     max_tokens: 1024,
     messages: [
       { role: "user", content: "Hello! Explain quantum computing in simple terms." }
@@ -108,13 +109,13 @@ const PRESETS: Record<PresetKey, any> = {
 const DEFAULT_PRESETS: Record<EndpointOption, any> = {
   messages: PRESETS.basicChat,
   count_tokens: {
-    model: "gemini-3.1-flash-lite",
+    model: "gemini-flash-latest",
     messages: [
       { role: "user", content: "Hello! Count the tokens in this message." }
     ]
   },
   custom: {
-    model: "gemini-3.1-flash-lite",
+    model: "gemini-flash-latest",
     messages: [
       { role: "user", content: "Test custom endpoint payload" }
     ]
@@ -129,7 +130,7 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
   const [endpointOption, setEndpointOption] = useState<EndpointOption>('messages');
   const [customMethod, setCustomMethod] = useState<string>('POST');
   const [customPath, setCustomPath] = useState<string>('/v1/models');
-  const [selectedModel, setSelectedModel] = useState<string>('gemini-3.1-flash-lite');
+  const [selectedModel, setSelectedModel] = useState<string>('gemini-flash-latest');
 
   const [requestBody, setRequestBody] = useState<string>(JSON.stringify(DEFAULT_PRESETS.messages, null, 2));
   const [responseRaw, setResponseRaw] = useState<string>(() => t('playground.initialResponse'));
@@ -223,7 +224,7 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
   const handleSelectPreset = (key: PresetKey) => {
     const preset = PRESETS[key];
     setRequestBody(JSON.stringify(preset, null, 2));
-    setSelectedModel(preset.model || 'gemini-3.1-flash-lite');
+    setSelectedModel(preset.model || 'gemini-flash-latest');
     setEndpointOption('messages');
     setShowPresetsDropdown(false);
   };
@@ -515,10 +516,9 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
               onChange={(e) => handleModelChange(e.target.value)}
               className="w-full bg-transparent text-xs text-[var(--text-primary)] focus:outline-none font-mono cursor-pointer"
             >
-              <option value="gemini-3.1-flash-lite">gemini-3.1-flash-lite</option>
-              <option value="gemini-pro-latest">gemini-pro-latest</option>
-              <option value="gemini-flash-latest">gemini-flash-latest</option>
-              <option value="gemini-flash-lite-latest">gemini-flash-lite-latest</option>
+              {STANDARD_MODELS.map((model) => (
+                <option key={model} value={model}>{model}</option>
+              ))}
             </select>
           </div>
 

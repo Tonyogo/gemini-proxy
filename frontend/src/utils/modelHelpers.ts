@@ -3,6 +3,14 @@ export interface NormalizedModelInfo {
   isHigh: boolean;
 }
 
+export const STANDARD_MODELS = [
+  'gemini-pro-latest',
+  'gemini-flash-latest',
+  'gemini-flash-lite-latest'
+] as const;
+
+export type StandardModel = (typeof STANDARD_MODELS)[number];
+
 export interface ModelStatItem {
   model: string;
   requests: number;

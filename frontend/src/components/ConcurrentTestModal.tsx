@@ -17,6 +17,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { useTranslation } from '../i18n/LanguageContext';
+import { STANDARD_MODELS } from '../utils/modelHelpers';
 
 interface ConcurrentTestModalProps {
   isOpen: boolean;
@@ -46,7 +47,7 @@ export default function ConcurrentTestModal({
   const { t } = useTranslation();
   const [concurrency, setConcurrency] = useState<number>(5);
   const [totalRequests, setTotalRequests] = useState<number>(10);
-  const [targetModel, setTargetModel] = useState<string>(parsedPayload?.model || 'gemini-3.1-flash-lite');
+  const [targetModel, setTargetModel] = useState<string>(parsedPayload?.model || 'gemini-flash-latest');
 
   const [testing, setTesting] = useState(false);
   const [completedCount, setCompletedCount] = useState<number>(0);
@@ -233,10 +234,9 @@ export default function ConcurrentTestModal({
                   onChange={(e) => setTargetModel(e.target.value)}
                   className="w-full ui-input p-2 text-xs font-mono cursor-pointer"
                 >
-                  <option value="gemini-3.1-flash-lite">gemini-3.1-flash-lite</option>
-                  <option value="gemini-2.5-flash">gemini-2.5-flash</option>
-                  <option value="gemini-2.5-pro">gemini-2.5-pro</option>
-                  <option value="gemini-2.5-flash-thinking">gemini-2.5-flash-thinking</option>
+                  {STANDARD_MODELS.map((model) => (
+                    <option key={model} value={model}>{model}</option>
+                  ))}
                 </select>
               </div>
             </div>
