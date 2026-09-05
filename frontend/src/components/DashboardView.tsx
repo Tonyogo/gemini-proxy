@@ -528,8 +528,8 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
             {t('dashboard.noData')}
           </div>
         ) : (
-          <div className="relative flex-1 overflow-x-auto overflow-y-hidden">
-            <div className="min-w-[600px] sm:min-w-full h-full relative">
+          <div className="relative flex-1 w-full min-w-0">
+            <div className="w-full h-full relative">
               <svg
                 viewBox={`0 0 ${svgWidth} ${svgHeight}`}
                 className="w-full h-full overflow-visible touch-none"
@@ -823,105 +823,120 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
               </svg>
 
               {/* Glassmorphic Hover Tooltip Overlay */}
-              {hoveredIndex !== null && timeSeries[hoveredIndex] && (
-                <div
-                  className="absolute z-20 backdrop-blur-xl bg-[var(--bg-surface)]/95 border border-[var(--border-subtle)] shadow-2xl rounded-xl p-3.5 text-xs pointer-events-none space-y-2 min-w-[210px] max-w-[300px]"
-                  style={{
-                    left: `${((getX(hoveredIndex) - paddingLeft) / plottingWidth) * 85 + 8}%`,
-                    top: '8%',
-                    transform: hoveredIndex > N / 2 ? 'translateX(-105%)' : 'translateX(5%)',
-                  }}
-                >
-                  <div className="font-semibold text-[var(--text-primary)] font-mono border-b border-[var(--border-subtle)] pb-1.5 mb-1 flex items-center justify-between">
-                    <span>{timeSeries[hoveredIndex].time}</span>
-                    <span className="text-[10px] text-[var(--text-secondary)]">
-                      {chartViewTab === 'volume'
-                        ? `${timeSeries[hoveredIndex].total} reqs`
-                        : `${timeSeries[hoveredIndex].avgDurationMs} ms avg`}
-                    </span>
-                  </div>
+              {hoveredIndex !== null && timeSeries[hoveredIndex] && (() => {
+                const ratio = N > 1 ? hoveredIndex / (N - 1) : 0.5;
+                const isRightHalf = ratio > 0.5;
+                const percentX = Math.round(((getX(hoveredIndex) - paddingLeft) / plottingWidth) * 100);
 
-                  {timeSeries[hoveredIndex].total === 0 ? (
-                    <div className="text-center text-slate-500 italic py-1">
-                      {chartViewTab === 'volume' ? t('dashboard.noRequestsInPeriod') : t('dashboard.noSampling')}
+                return (
+                  <div
+                    className={`absolute z-30 backdrop-blur-xl bg-[var(--bg-surface)]/95 border border-[var(--border-subtle)] shadow-2xl rounded-xl p-3.5 text-xs pointer-events-none space-y-2 w-[calc(100%-2rem)] max-w-[280px] sm:max-w-[300px] transition-all duration-75 ${
+                      isRightHalf
+                        ? 'right-2 sm:right-auto'
+                        : 'left-2 sm:left-auto'
+                    }`}
+                    style={{
+                      top: '6%',
+                      ...(typeof window !== 'undefined' && window.innerWidth >= 640 ? {
+                        left: `${percentX}%`,
+                        right: 'auto',
+                        transform: isRightHalf ? 'translateX(-105%)' : 'translateX(5%)'
+                      } : {})
+                    }}
+                  >
+                    <div className="font-semibold text-[var(--text-primary)] font-mono border-b border-[var(--border-subtle)] pb-1.5 mb-1 flex items-center justify-between">
+                      <span>{timeSeries[hoveredIndex].time}</span>
+                      <span className="text-[10px] text-[var(--text-secondary)]">
+                        {chartViewTab === 'volume'
+                          ? `${timeSeries[hoveredIndex].total} reqs`
+                          : `${timeSeries[hoveredIndex].avgDurationMs} ms avg`}
+                      </span>
                     </div>
-                  ) : chartViewTab === 'volume' ? (
-                    <div className="space-y-1.5 font-mono">
-                      <div className="flex justify-between items-center text-[11px]">
-                        <span className="text-[var(--text-secondary)]">Total:</span>
-                        <span className="font-bold text-indigo-400">{timeSeries[hoveredIndex].total}</span>
-                      </div>
-                      <div className="flex justify-between items-center text-[11px]">
-                        <span className="text-[var(--text-secondary)]">Success / Err:</span>
-                        <span>
-                          <span className="font-bold text-emerald-400">{timeSeries[hoveredIndex].success}</span>
-                          <span className="text-slate-500 mx-1">/</span>
-                          <span className={`font-bold ${timeSeries[hoveredIndex].error > 0 ? 'text-rose-400' : 'text-slate-500'}`}>
-                            {timeSeries[hoveredIndex].error}
-                          </span>
-                        </span>
-                      </div>
 
-                      {/* Model Breakdown in Volume Mode */}
-                      {allModels.length > 0 && (
-                        <div className="pt-1.5 border-t border-[var(--border-subtle)] space-y-1">
+                    {timeSeries[hoveredIndex].total === 0 ? (
+                      <div className="text-center text-slate-500 italic py-1">
+                        {chartViewTab === 'volume' ? t('dashboard.noRequestsInPeriod') : t('dashboard.noSampling')}
+                      </div>
+                    ) : chartViewTab === 'volume' ? (
+                      <div className="space-y-1.5 font-mono">
+                        <div className="flex justify-between items-center text-[11px]">
+                          <span className="text-[var(--text-secondary)]">Total:</span>
+                          <span className="font-bold text-indigo-400">{timeSeries[hoveredIndex].total}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-[11px]">
+                          <span className="text-[var(--text-secondary)]">Success / Err:</span>
+                          <span>
+                            <span className="font-bold text-emerald-400">{timeSeries[hoveredIndex].success}</span>
+                            <span className="text-slate-500 mx-1">/</span>
+                            <span className={`font-bold ${timeSeries[hoveredIndex].error > 0 ? 'text-rose-400' : 'text-slate-500'}`}>
+                              {timeSeries[hoveredIndex].error}
+                            </span>
+                          </span>
+                        </div>
+
+                        {/* Model Breakdown in Volume Mode */}
+                        {allModels.length > 0 && (
+                          <div className="pt-1.5 border-t border-[var(--border-subtle)] space-y-1 max-h-36 overflow-y-auto no-scrollbar">
+                            {allModels.map((model, mIdx) => {
+                              const count = getModelHourlyCount(timeSeries[hoveredIndex], model);
+                              const mColor = getModelColor(model, mIdx);
+                              const percent = timeSeries[hoveredIndex].total > 0
+                                ? ((count / timeSeries[hoveredIndex].total) * 100).toFixed(0)
+                                : '0';
+                              return (
+                                <div key={model} className="flex items-center justify-between gap-3 text-[11px]" title={model}>
+                                  <div className="flex items-center space-x-1.5 min-w-0 text-[var(--text-secondary)]">
+                                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: mColor }} />
+                                    <span className="truncate max-w-[130px]">{model}:</span>
+                                  </div>
+                                  <div className="flex items-center space-x-1.5 shrink-0">
+                                    <span className="font-bold" style={{ color: mColor }}>{count}</span>
+                                    <span className="text-[10px] text-slate-400">({percent}%)</span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      /* Model Breakdown in Latency Mode */
+                      <div className="space-y-1.5 font-mono">
+                        <div className="flex justify-between items-center text-[11px] border-b border-[var(--border-subtle)] pb-1">
+                          <span className="text-[var(--text-secondary)] font-medium">Overall Avg:</span>
+                          <span className="font-bold text-purple-400">
+                            {timeSeries[hoveredIndex].avgDurationMs} ms
+                          </span>
+                        </div>
+                        <div className="space-y-1 max-h-36 overflow-y-auto no-scrollbar">
                           {allModels.map((model, mIdx) => {
-                            const count = getModelHourlyCount(timeSeries[hoveredIndex], model);
+                            const mDur = getModelHourlyLatency(timeSeries[hoveredIndex], model);
                             const mColor = getModelColor(model, mIdx);
-                            const percent = timeSeries[hoveredIndex].total > 0
-                              ? ((count / timeSeries[hoveredIndex].total) * 100).toFixed(0)
-                              : '0';
+                            const isFocused = focusedModel === model;
                             return (
-                              <div key={model} className="flex items-center justify-between gap-3 text-[11px]" title={model}>
-                                <div className="flex items-center space-x-1.5 min-w-0 text-[var(--text-secondary)]">
+                              <div
+                                key={model}
+                                className={`flex items-center justify-between gap-3 text-[11px] transition-colors ${
+                                  isFocused ? 'bg-purple-500/10 px-1 py-0.5 rounded font-semibold' : ''
+                                }`}
+                                title={model}
+                              >
+                                <span className="flex items-center space-x-1.5 min-w-0 text-[var(--text-secondary)]" style={{ color: mColor }}>
                                   <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: mColor }} />
                                   <span className="truncate max-w-[130px]">{model}:</span>
-                                </div>
-                                <div className="flex items-center space-x-1.5 shrink-0">
-                                  <span className="font-bold" style={{ color: mColor }}>{count}</span>
-                                  <span className="text-[10px] text-slate-400">({percent}%)</span>
-                                </div>
+                                </span>
+                                <span className="font-bold shrink-0" style={{ color: mColor }}>
+                                  {mDur} ms
+                                </span>
                               </div>
                             );
                           })}
                         </div>
-                      )}
-                    </div>
-                  ) : (
-                    /* Model Breakdown in Latency Mode */
-                    <div className="space-y-1.5 font-mono">
-                      <div className="flex justify-between items-center text-[11px] border-b border-[var(--border-subtle)] pb-1">
-                        <span className="text-[var(--text-secondary)] font-medium">Overall Avg:</span>
-                        <span className="font-bold text-purple-400">
-                          {timeSeries[hoveredIndex].avgDurationMs} ms
-                        </span>
                       </div>
-                      {allModels.map((model, mIdx) => {
-                        const mDur = getModelHourlyLatency(timeSeries[hoveredIndex], model);
-                        const mColor = getModelColor(model, mIdx);
-                        const isFocused = focusedModel === model;
-                        return (
-                          <div
-                            key={model}
-                            className={`flex items-center justify-between gap-3 text-[11px] transition-colors ${
-                              isFocused ? 'bg-purple-500/10 px-1 py-0.5 rounded font-semibold' : ''
-                            }`}
-                            title={model}
-                          >
-                            <span className="flex items-center space-x-1.5 min-w-0 text-[var(--text-secondary)]" style={{ color: mColor }}>
-                              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: mColor }} />
-                              <span className="truncate max-w-[130px]">{model}:</span>
-                            </span>
-                            <span className="font-bold shrink-0" style={{ color: mColor }}>
-                              {mDur} ms
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           </div>
         )}
