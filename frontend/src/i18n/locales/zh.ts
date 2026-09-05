@@ -313,8 +313,8 @@ export const zh: Translations = {
     characters: "字符数",
     words: "词数",
     comparisonMode: "对比模式",
-    singleModel: "单模",
-    compareModels: "对比",
+    singleModel: "单模型",
+    compareModels: "多模型对比",
     selectModelsPlaceholder: "选择要对比的模型...",
     renderRaw: "纯文本",
     renderMarkdown: "Markdown",
@@ -325,9 +325,7 @@ export const zh: Translations = {
     requestFailed: "翻译请求失败",
     retry: "重试",
     noModelsSelected: "请至少选择一个模型进行翻译。",
-    done: "完成",
-    sourceTab: "原文",
-    targetTab: "译文"
+    done: "完成"
   },
   config: {
     modalTitle: "代理运行时动态配置",

@@ -311,8 +311,8 @@ export const en = {
     characters: "Characters",
     words: "Words",
     comparisonMode: "Comparison Mode",
-    singleModel: "Single",
-    compareModels: "Compare",
+    singleModel: "Single Model",
+    compareModels: "Compare Models",
     selectModelsPlaceholder: "Select models to compare...",
     renderRaw: "Raw Text",
     renderMarkdown: "Markdown",
@@ -323,9 +323,7 @@ export const en = {
     requestFailed: "Translation failed",
     retry: "Retry",
     noModelsSelected: "Please select at least one model to translate.",
-    done: "Done",
-    sourceTab: "Source",
-    targetTab: "Translation"
+    done: "Done"
   },
   config: {
     modalTitle: "Proxy Runtime Configuration",
