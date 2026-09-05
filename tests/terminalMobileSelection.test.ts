@@ -33,6 +33,12 @@ describe('Terminal Mobile Selection and Copy/Paste Integration', () => {
     expect(content).toContain('getCellCoordsFromTouch');
     expect(content).toContain('term.select(');
 
+    // Touch selection engine and buffer row mapping
+    expect(content).toContain('bufferRow');
+    expect(content).toContain('viewportY + viewportRow');
+    expect(content).toContain('applySelection');
+    expect(content).toContain('touchAction');
+
     // Auto-exit selection mode and clear selection upon copying
     expect(content).toContain('setIsSelectMode(false)');
     expect(content).toContain('isSelectModeRef.current = false');

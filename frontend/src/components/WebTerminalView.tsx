@@ -451,12 +451,12 @@ export default function WebTerminalView({
     let touchStartTime = 0;
     let isDragging = false;
     let accumulatedDeltaY = 0;
-    let selectionStartPos: { col: number; row: number } | null = null;
+    let selectionStartPos: { col: number; viewportRow: number; bufferRow: number } | null = null;
     const container = terminalContainerRef.current;
 
     // Helper: convert screen touch coordinates to terminal cell coordinates (0-based)
     const getCellCoordsFromTouch = (clientX: number, clientY: number) => {
-      const screenEl = container?.querySelector('.xterm-screen') || container;
+      const screenEl = (container?.querySelector('.xterm-screen') as HTMLElement) || container;
       if (!screenEl) return null;
       const rect = screenEl.getBoundingClientRect();
       const relativeX = clientX - rect.left;
@@ -468,10 +468,48 @@ export default function WebTerminalView({
       const cellHeight = renderService?.dimensions?.css?.cell?.height || (rect.height / term.rows);
 
       const col = Math.max(0, Math.min(term.cols - 1, Math.floor(relativeX / cellWidth)));
-      const row = Math.max(0, Math.min(term.rows - 1, Math.floor(relativeY / cellHeight)));
+      const viewportRow = Math.max(0, Math.min(term.rows - 1, Math.floor(relativeY / cellHeight)));
+      const bufferRow = term.buffer.active.viewportY + viewportRow;
 
-      // row is viewport-relative (0 to term.rows - 1)
-      return { col, row };
+      return { col, viewportRow, bufferRow };
+    };
+
+    // Helper: apply terminal selection range supporting multi-line and reverse drag
+    const applySelection = (
+      start: { col: number; bufferRow: number },
+      current: { col: number; bufferRow: number }
+    ) => {
+      const selectionService = (term as any)._core?._selectionService;
+      if (selectionService && selectionService._model) {
+        const startCol = start.col;
+        const startRow = start.bufferRow;
+        const endCol = current.col;
+        const endRow = current.bufferRow;
+
+        const isReversed = startRow > endRow || (startRow === endRow && startCol > endCol);
+        if (isReversed) {
+          selectionService._model.selectionStart = [startCol + 1, startRow];
+          selectionService._model.selectionEnd = [endCol, endRow];
+        } else {
+          selectionService._model.selectionStart = [startCol, startRow];
+          selectionService._model.selectionEnd = [endCol + 1, endRow];
+        }
+
+        selectionService._model.selectionStartLength = 0;
+        selectionService.refresh();
+        selectionService._fireEventIfSelectionChanged();
+        return;
+      }
+
+      // Public API fallback with buffer coordinates
+      const startIdx = start.bufferRow * term.cols + start.col;
+      const endIdx = current.bufferRow * term.cols + current.col;
+      const minIdx = Math.min(startIdx, endIdx);
+      const maxIdx = Math.max(startIdx, endIdx);
+      const fromCol = minIdx % term.cols;
+      const fromRow = Math.floor(minIdx / term.cols);
+      const length = Math.max(1, maxIdx - minIdx + 1);
+      term.select(fromCol, fromRow, length);
     };
 
     const handleTouchStart = (e: TouchEvent) => {
@@ -486,11 +524,12 @@ export default function WebTerminalView({
           if (e.cancelable) {
             e.preventDefault();
           }
-          // In Selection Mode: record initial selection touch origin
+          e.stopPropagation();
+          // In Selection Mode: record initial selection touch origin and highlight initial cell
           const cell = getCellCoordsFromTouch(touchStartX, touchStartY);
           if (cell) {
             selectionStartPos = cell;
-            term.select(cell.col, cell.row, 1);
+            applySelection(cell, cell);
           }
         }
       }
@@ -514,22 +553,7 @@ export default function WebTerminalView({
         }
         const currentCell = getCellCoordsFromTouch(currentX, currentY);
         if (selectionStartPos && currentCell) {
-          const startCol = selectionStartPos.col;
-          const startRow = selectionStartPos.row;
-          const endCol = currentCell.col;
-          const endRow = currentCell.row;
-
-          const startIdx = startRow * term.cols + startCol;
-          const endIdx = endRow * term.cols + endCol;
-
-          const minIdx = Math.min(startIdx, endIdx);
-          const maxIdx = Math.max(startIdx, endIdx);
-          const length = Math.max(1, maxIdx - minIdx + 1);
-
-          const fromCol = minIdx % term.cols;
-          const fromRow = Math.floor(minIdx / term.cols);
-
-          term.select(fromCol, fromRow, length);
+          applySelection(selectionStartPos, currentCell);
         }
         return;
       }
@@ -580,6 +604,10 @@ export default function WebTerminalView({
       const elapsed = Date.now() - touchStartTime;
 
       if (isSelectModeRef.current) {
+        if (e.cancelable) {
+          e.preventDefault();
+        }
+        e.stopPropagation();
         selectionStartPos = null;
         return;
       }
@@ -747,6 +775,39 @@ export default function WebTerminalView({
     }
   }, [resolvedTheme]);
 
+  // Sync touch-action & user-select styling during selection mode to prevent browser gesture cancellation
+  useEffect(() => {
+    const container = terminalContainerRef.current;
+    if (!container) return;
+    const xtermScreen = container.querySelector('.xterm-screen') as HTMLElement | null;
+    const xtermEl = container.querySelector('.xterm') as HTMLElement | null;
+    if (isSelectMode) {
+      container.style.touchAction = 'none';
+      if (xtermScreen) {
+        xtermScreen.style.touchAction = 'none';
+        xtermScreen.style.userSelect = 'none';
+        xtermScreen.style.webkitUserSelect = 'none';
+      }
+      if (xtermEl) {
+        xtermEl.style.touchAction = 'none';
+        xtermEl.style.userSelect = 'none';
+        xtermEl.style.webkitUserSelect = 'none';
+      }
+    } else {
+      container.style.touchAction = '';
+      if (xtermScreen) {
+        xtermScreen.style.touchAction = '';
+        xtermScreen.style.userSelect = '';
+        xtermScreen.style.webkitUserSelect = '';
+      }
+      if (xtermEl) {
+        xtermEl.style.touchAction = '';
+        xtermEl.style.userSelect = '';
+        xtermEl.style.webkitUserSelect = '';
+      }
+    }
+  }, [isSelectMode]);
+
   const handleSendInput = (data: string, shouldFocus = false) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(data);
@@ -873,7 +934,19 @@ export default function WebTerminalView({
 
   const handleSelectAll = useCallback(() => {
     if (xtermRef.current) {
-      xtermRef.current.selectAll();
+      const term = xtermRef.current;
+      const viewportY = term.buffer.active.viewportY;
+      const endRow = Math.min(term.buffer.active.length - 1, viewportY + term.rows - 1);
+      const selectionService = (term as any)._core?._selectionService;
+      if (selectionService && selectionService._model) {
+        selectionService._model.selectionStart = [0, viewportY];
+        selectionService._model.selectionEnd = [term.cols, endRow];
+        selectionService._model.selectionStartLength = 0;
+        selectionService.refresh();
+        selectionService._fireEventIfSelectionChanged();
+      } else {
+        term.selectAll();
+      }
       setHasSelection(true);
     }
   }, []);
@@ -1085,8 +1158,19 @@ export default function WebTerminalView({
 
       {/* xterm.js Canvas Container */}
       <div
-        onClick={() => xtermRef.current?.focus()}
-        className="flex-1 p-2 bg-[var(--bg-canvas)] overflow-hidden min-h-0 relative cursor-text"
+        onClick={() => {
+          if (!isSelectModeRef.current) {
+            xtermRef.current?.focus();
+          }
+        }}
+        className={`flex-1 p-2 bg-[var(--bg-canvas)] overflow-hidden min-h-0 relative ${
+          isSelectMode ? 'cursor-crosshair select-none' : 'cursor-text'
+        }`}
+        style={{
+          touchAction: isSelectMode ? 'none' : 'pan-y',
+          userSelect: isSelectMode ? 'none' : undefined,
+          WebkitUserSelect: isSelectMode ? 'none' : undefined,
+        }}
       >
         {/* Floating Disconnect & Auto-Reconnect Toast */}
         {!isConnected && !isConnecting && reconnectCountdown > 0 && (
@@ -1176,7 +1260,15 @@ export default function WebTerminalView({
           </div>
         )}
 
-        <div ref={terminalContainerRef} className="h-full w-full" />
+        <div
+          ref={terminalContainerRef}
+          className={`h-full w-full ${isSelectMode ? 'select-none' : ''}`}
+          style={{
+            touchAction: isSelectMode ? 'none' : undefined,
+            userSelect: isSelectMode ? 'none' : undefined,
+            WebkitUserSelect: isSelectMode ? 'none' : undefined,
+          }}
+        />
       </div>
 
       {/* Mobile Touch Accessory Bar */}
