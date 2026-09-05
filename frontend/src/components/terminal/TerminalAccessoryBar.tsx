@@ -6,7 +6,10 @@ import {
   ArrowRight,
   Keyboard,
   Sparkles,
-  Check
+  Check,
+  Copy,
+  ClipboardPaste,
+  TextSelect
 } from 'lucide-react';
 import { useTranslation } from '../../i18n/LanguageContext';
 import { encodeNavigationKey } from '../../utils/terminalKeyEncoder';
@@ -23,6 +26,11 @@ interface TerminalAccessoryBarProps {
   onHideKeyboard?: () => void;
   isKeyboardOpen?: boolean;
   onOpenSnippets: () => void;
+  hasSelection?: boolean;
+  isSelectMode?: boolean;
+  onCopy?: () => void;
+  onPaste?: () => void;
+  onToggleSelectMode?: () => void;
 }
 
 export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
@@ -37,6 +45,11 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
   onHideKeyboard,
   isKeyboardOpen,
   onOpenSnippets,
+  hasSelection = false,
+  isSelectMode = false,
+  onCopy,
+  onPaste,
+  onToggleSelectMode,
 }) => {
   const { t } = useTranslation();
 
@@ -240,6 +253,54 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
         >
           <ArrowRight className="w-3.5 h-3.5" />
         </button>
+
+        <div className="h-4 w-[1px] bg-[var(--border-subtle)] mx-0.5" />
+
+        {/* Action: Paste */}
+        <button
+          type="button"
+          onTouchStart={(e) => e.preventDefault()}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={onPaste}
+          className="px-2 py-1 rounded-lg bg-black/[0.04] dark:bg-white/[0.05] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] active:scale-95 text-[var(--text-primary)] flex items-center space-x-1 font-mono text-xs font-semibold border border-[var(--border-subtle)] transition-all shadow-sm"
+          title={t('webTerminal.paste')}
+        >
+          <ClipboardPaste className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
+          <span className="text-[11px]">{t('webTerminal.paste')}</span>
+        </button>
+
+        {/* Action: Copy (if has selection) OR Toggle Selection Mode */}
+        {hasSelection ? (
+          <button
+            type="button"
+            onTouchStart={(e) => e.preventDefault()}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={onCopy}
+            className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-mono text-xs font-semibold border border-indigo-400 shadow-[0_0_12px_rgba(99,102,241,0.5)] active:scale-95 flex items-center space-x-1 transition-all animate-in fade-in"
+            title={t('webTerminal.copy')}
+          >
+            <Copy className="w-3.5 h-3.5" />
+            <span className="text-[11px]">{t('webTerminal.copy')}</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            onTouchStart={(e) => e.preventDefault()}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={onToggleSelectMode}
+            className={`px-2 py-1 rounded-lg font-mono text-xs font-semibold border transition-all active:scale-95 flex items-center space-x-1 ${
+              isSelectMode
+                ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/40 shadow-sm'
+                : 'bg-black/[0.04] dark:bg-white/[0.05] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] text-[var(--text-primary)] border-[var(--border-subtle)] shadow-sm'
+            }`}
+            title={isSelectMode ? t('webTerminal.exitSelectMode') : t('webTerminal.selectMode')}
+          >
+            <TextSelect className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
+            <span className="text-[11px]">
+              {isSelectMode ? t('webTerminal.selectModeActive') : t('webTerminal.selectMode')}
+            </span>
+          </button>
+        )}
       </div>
 
       {/* Right Fixed Controls: Snippets, Keyboard Toggle & Done/Checkmark Dismiss */}
