@@ -325,7 +325,9 @@ export const zh: Translations = {
     requestFailed: "翻译请求失败",
     retry: "重试",
     noModelsSelected: "请至少选择一个模型进行翻译。",
-    done: "完成"
+    done: "完成",
+    sourceTab: "原文",
+    targetTab: "译文"
   },
   config: {
     modalTitle: "代理运行时动态配置",

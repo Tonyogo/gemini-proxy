@@ -50,12 +50,11 @@ export interface ModelTranslationResult {
   stopReason?: string;
 }
 
-const DEFAULT_MODELS = [
-  'gemini-2.5-flash',
-  'gemini-2.5-pro',
+export const TRANSLATE_MODELS = [
   'gemini-3.1-flash-lite',
+  'gemini-pro-latest',
   'gemini-flash-latest',
-  'gemini-pro-latest'
+  'gemini-flash-lite-latest'
 ];
 
 export default function TranslateView({ adminKey }: { adminKey: string }) {
@@ -77,22 +76,30 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
     return localStorage.getItem('translate_compare_mode') === 'true';
   });
   const [selectedSingleModel, setSelectedSingleModel] = useState<string>(() => {
-    return localStorage.getItem('translate_single_model') || 'gemini-2.5-flash';
+    const saved = localStorage.getItem('translate_single_model');
+    if (saved && TRANSLATE_MODELS.includes(saved)) {
+      return saved;
+    }
+    return 'gemini-3.1-flash-lite';
   });
   const [selectedCompareModels, setSelectedCompareModels] = useState<string[]>(() => {
     const saved = localStorage.getItem('translate_compare_models');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) {
+          const valid = parsed.filter(m => TRANSLATE_MODELS.includes(m));
+          if (valid.length > 0) return valid;
+        }
       } catch (e) {
         // fallback
       }
     }
-    return ['gemini-2.5-flash', 'gemini-2.5-pro'];
+    return ['gemini-3.1-flash-lite', 'gemini-flash-latest'];
   });
 
-  const [availableModels, setAvailableModels] = useState<string[]>(DEFAULT_MODELS);
+  const [availableModels] = useState<string[]>(TRANSLATE_MODELS);
+  const [mobileActiveTab, setMobileActiveTab] = useState<'source' | 'target'>('source');
   const [sourceText, setSourceText] = useState<string>('');
   const [detectedLang, setDetectedLang] = useState<string>('en');
 
@@ -132,26 +139,6 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
   useEffect(() => {
     localStorage.setItem('translate_compare_models', JSON.stringify(selectedCompareModels));
   }, [selectedCompareModels]);
-
-  // Fetch models list from API if available
-  useEffect(() => {
-    const headers: Record<string, string> = adminKey ? { 'x-admin-key': adminKey } : {};
-    fetch('/api/admin/models', { headers })
-      .then(r => r.json())
-      .then(data => {
-        if (data && data.mappings) {
-          const mappingKeys = Object.keys(data.mappings);
-          const mappingValues = Object.values(data.mappings).map((v: any) =>
-            typeof v === 'string' ? v : v?.target
-          ).filter(Boolean);
-          const merged = Array.from(new Set([...DEFAULT_MODELS, ...mappingKeys, ...mappingValues]));
-          setAvailableModels(merged);
-        }
-      })
-      .catch(() => {
-        // Keep default models
-      });
-  }, [adminKey]);
 
   // Detect language whenever sourceText changes
   useEffect(() => {
@@ -426,6 +413,9 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
     const targets = activeModelIds;
     if (targets.length === 0) return;
 
+    // Automatically switch to target tab on mobile so user sees output
+    setMobileActiveTab('target');
+
     const systemPrompt = buildTranslationSystemPrompt(sourceLang, targetLang, style);
     const userPrompt = formatTranslationUserPrompt(sourceText);
 
@@ -517,210 +507,298 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
     }
   };
 
-  return (
-    <div className="w-full flex-1 space-y-4 flex flex-col font-sans h-full min-h-[600px] md:h-[calc(100dvh-6.5rem)] overflow-hidden">
-      {/* Top Controls Header Workbench */}
-      <div className="ui-card p-3.5 flex flex-wrap items-center justify-between gap-3 relative z-30 shrink-0">
-        {/* Left Controls: Language Selectors & Swap */}
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Source Language Select */}
-          <div className="relative">
-            <select
-              value={sourceLang}
-              onChange={e => setSourceLang(e.target.value)}
-              className="appearance-none ui-input pr-8 py-2 cursor-pointer font-sans"
-            >
-              {SUPPORTED_LANGUAGES.map(langOpt => (
-                <option key={langOpt.code} value={langOpt.code}>
-                  {isZh ? langOpt.name : langOpt.enName}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-          </div>
+  // Render Action Button
+  const renderActionButton = (isMobile = false) => {
+    if (isAnyStreaming) {
+      return (
+        <button
+          onClick={handleStopAll}
+          className="flex items-center gap-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40 text-xs font-semibold px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl transition shadow-lg shadow-red-500/10 active:scale-95 shrink-0"
+        >
+          <Square className="w-3.5 h-3.5 fill-current" />
+          <span>{t('translate.stopAll')}</span>
+        </button>
+      );
+    }
+    return (
+      <button
+        onClick={handleTranslate}
+        disabled={!sourceText.trim()}
+        className={`flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 text-xs font-semibold rounded-xl transition shrink-0 ${
+          sourceText.trim()
+            ? 'ui-btn-primary cursor-pointer'
+            : 'bg-white/5 text-slate-500 border border-white/5 cursor-not-allowed'
+        }`}
+      >
+        <Play className="w-3.5 h-3.5 fill-current" />
+        <span>{t('translate.translateBtn')}</span>
+        {!isMobile && (
+          <span className="text-[10px] opacity-70 bg-black/20 px-1 rounded ml-1 font-mono hidden sm:inline">⌘↵</span>
+        )}
+      </button>
+    );
+  };
 
-          {/* Swap Button */}
-          <button
-            onClick={handleSwapLanguages}
-            title={t('translate.swapLanguage')}
-            className="p-2 ui-btn-secondary flex items-center justify-center"
+  // Render Style Preset Selector
+  const renderStyleSelector = () => (
+    <div className="relative">
+      <button
+        onClick={() => setShowStyleDropdown(!showStyleDropdown)}
+        className="flex items-center gap-1.5 ui-btn-secondary px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs"
+      >
+        <span className="text-indigo-400">{renderStyleIcon(currentStyleObj.iconName)}</span>
+        <span>{isZh ? currentStyleObj.name : currentStyleObj.enName}</span>
+        <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+      </button>
+
+      {showStyleDropdown && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setShowStyleDropdown(false)} />
+          <div
+            className="absolute left-0 mt-1.5 w-60 sm:w-64 ui-card p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 shadow-xl"
+            onClick={() => setShowStyleDropdown(false)}
           >
-            <ArrowLeftRight className="w-3.5 h-3.5" />
-          </button>
-
-          {/* Target Language Select */}
-          <div className="relative">
-            <select
-              value={targetLang}
-              onChange={e => setTargetLang(e.target.value)}
-              className="appearance-none ui-input pr-8 py-2 cursor-pointer font-sans"
-            >
-              {SUPPORTED_LANGUAGES.filter(l => l.code !== 'auto').map(langOpt => (
-                <option key={langOpt.code} value={langOpt.code}>
-                  {isZh ? langOpt.name : langOpt.enName}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            {STYLE_PRESETS.map(p => (
+              <button
+                key={p.id}
+                onClick={() => setStyle(p.id)}
+                className={`w-full text-left px-3 py-2 rounded-xl text-xs flex items-start gap-2.5 transition ${
+                  style === p.id
+                    ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30'
+                    : 'text-slate-300 hover:bg-white/5 border border-transparent'
+                }`}
+              >
+                <span className="mt-0.5 text-indigo-400">{renderStyleIcon(p.iconName)}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium">{isZh ? p.name : p.enName}</div>
+                  <div className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">
+                    {isZh ? p.desc : p.enDesc}
+                  </div>
+                </div>
+              </button>
+            ))}
           </div>
+        </>
+      )}
+    </div>
+  );
 
-          <div className="h-4 w-[1px] bg-white/10 mx-1 hidden sm:block" />
+  return (
+    <div className="w-full flex-1 space-y-3 sm:space-y-4 flex flex-col font-sans h-full min-h-0 md:h-[calc(100dvh-6.5rem)] overflow-hidden">
+      {/* Top Controls Header Workbench */}
+      <div className="ui-card p-2.5 sm:p-3.5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2.5 sm:gap-3 relative z-30 shrink-0">
+        {/* Row 1 on mobile, Left controls on desktop */}
+        <div className="flex items-center justify-between lg:justify-start gap-2 w-full lg:w-auto">
+          {/* Language Pair Selectors & Swap */}
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* Source Language Select */}
+            <div className="relative">
+              <select
+                value={sourceLang}
+                onChange={e => setSourceLang(e.target.value)}
+                className="appearance-none ui-input pr-7 sm:pr-8 py-1.5 sm:py-2 text-xs sm:text-sm cursor-pointer font-sans"
+              >
+                {SUPPORTED_LANGUAGES.map(langOpt => (
+                  <option key={langOpt.code} value={langOpt.code}>
+                    {isZh ? langOpt.name : langOpt.enName}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2 sm:right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
 
-          {/* Style Preset Selector Dropdown */}
-          <div className="relative">
+            {/* Swap Button */}
             <button
-              onClick={() => setShowStyleDropdown(!showStyleDropdown)}
-              className="flex items-center gap-1.5 ui-btn-secondary px-3 py-2"
+              onClick={handleSwapLanguages}
+              title={t('translate.swapLanguage')}
+              className="p-1.5 sm:p-2 ui-btn-secondary flex items-center justify-center shrink-0"
             >
-              <span className="text-indigo-400">{renderStyleIcon(currentStyleObj.iconName)}</span>
-              <span>{isZh ? currentStyleObj.name : currentStyleObj.enName}</span>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+              <ArrowLeftRight className="w-3.5 h-3.5" />
             </button>
 
-            {showStyleDropdown && (
-              <div
-                className="absolute left-0 mt-1.5 w-64 ui-card p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100"
-                onClick={() => setShowStyleDropdown(false)}
+            {/* Target Language Select */}
+            <div className="relative">
+              <select
+                value={targetLang}
+                onChange={e => setTargetLang(e.target.value)}
+                className="appearance-none ui-input pr-7 sm:pr-8 py-1.5 sm:py-2 text-xs sm:text-sm cursor-pointer font-sans"
               >
-                {STYLE_PRESETS.map(p => (
-                  <button
-                    key={p.id}
-                    onClick={() => setStyle(p.id)}
-                    className={`w-full text-left px-3 py-2 rounded-xl text-xs flex items-start gap-2.5 transition ${
-                      style === p.id
-                        ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30'
-                        : 'text-slate-300 hover:bg-white/5 border border-transparent'
-                    }`}
-                  >
-                    <span className="mt-0.5 text-indigo-400">{renderStyleIcon(p.iconName)}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium">{isZh ? p.name : p.enName}</div>
-                      <div className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">
-                        {isZh ? p.desc : p.enDesc}
-                      </div>
-                    </div>
-                  </button>
+                {SUPPORTED_LANGUAGES.filter(l => l.code !== 'auto').map(langOpt => (
+                  <option key={langOpt.code} value={langOpt.code}>
+                    {isZh ? langOpt.name : langOpt.enName}
+                  </option>
                 ))}
-              </div>
-            )}
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2 sm:right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+          </div>
+
+          {/* Desktop divider & Style selector */}
+          <div className="h-4 w-[1px] bg-white/10 mx-1 hidden lg:block" />
+          <div className="hidden lg:block">
+            {renderStyleSelector()}
+          </div>
+
+          {/* Mobile Action Button */}
+          <div className="lg:hidden shrink-0">
+            {renderActionButton(true)}
           </div>
         </div>
 
-        {/* Right Controls: Mode Toggle, Model Selector & Translate Action */}
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Mode Switcher: Single vs Compare */}
-          <div className="ui-tab-container text-xs">
-            <button
-              onClick={() => setCompareMode(false)}
-              className={`ui-tab-pill ${
-                !compareMode
-                  ? 'ui-tab-pill-active font-semibold'
-                  : ''
-              }`}
-            >
-              {t('translate.singleModel')}
-            </button>
-            <button
-              onClick={() => setCompareMode(true)}
-              className={`ui-tab-pill flex items-center gap-1 ${
-                compareMode
-                  ? 'ui-tab-pill-active font-semibold'
-                  : ''
-              }`}
-            >
-              <Layers className="w-3 h-3" />
-              {t('translate.compareModels')}
-            </button>
+        {/* Row 2 on mobile, Right controls on desktop */}
+        <div className="flex items-center justify-between lg:justify-end gap-2 w-full lg:w-auto">
+          {/* Mobile Style selector */}
+          <div className="lg:hidden">
+            {renderStyleSelector()}
           </div>
 
-          {/* Model Selector based on mode */}
-          {!compareMode ? (
-            /* Single Model Dropdown */
-            <div className="relative">
+          {/* Mode Switcher & Model Selector */}
+          <div className="flex items-center gap-2">
+            {/* Mode Switcher: Single vs Compare */}
+            <div className="ui-tab-container text-xs">
               <button
-                onClick={() => setShowModelDropdown(!showModelDropdown)}
-                className="flex items-center gap-1.5 ui-btn-secondary px-3 py-2 font-mono"
+                onClick={() => setCompareMode(false)}
+                className={`ui-tab-pill text-xs py-1 sm:py-1.5 px-2.5 sm:px-3 ${
+                  !compareMode
+                    ? 'ui-tab-pill-active font-semibold'
+                    : ''
+                }`}
               >
-                <Zap className="w-3.5 h-3.5 text-purple-400" />
-                <span>{selectedSingleModel}</span>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                {t('translate.singleModel')}
               </button>
+              <button
+                onClick={() => setCompareMode(true)}
+                className={`ui-tab-pill flex items-center gap-1 text-xs py-1 sm:py-1.5 px-2.5 sm:px-3 ${
+                  compareMode
+                    ? 'ui-tab-pill-active font-semibold'
+                    : ''
+                }`}
+              >
+                <Layers className="w-3 h-3" />
+                {t('translate.compareModels')}
+              </button>
+            </div>
 
-              {showModelDropdown && (
-                <div
-                  className="absolute right-0 mt-1.5 w-56 ui-card p-1.5 z-50 max-h-60 overflow-y-auto"
-                  onClick={() => setShowModelDropdown(false)}
+            {/* Model Selector based on mode */}
+            {!compareMode ? (
+              /* Single Model Dropdown */
+              <div className="relative">
+                <button
+                  onClick={() => setShowModelDropdown(!showModelDropdown)}
+                  className="flex items-center gap-1.5 ui-btn-secondary px-2.5 sm:px-3 py-1.5 sm:py-2 font-mono text-xs"
                 >
-                  {availableModels.map(m => (
+                  <Zap className="w-3.5 h-3.5 text-purple-400" />
+                  <span className="max-w-[110px] sm:max-w-none truncate">{selectedSingleModel}</span>
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                </button>
+
+                {showModelDropdown && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowModelDropdown(false)} />
+                    <div
+                      className="absolute right-0 mt-1.5 w-56 ui-card p-1.5 z-50 max-h-60 overflow-y-auto shadow-xl"
+                      onClick={() => setShowModelDropdown(false)}
+                    >
+                      {availableModels.map(m => (
+                        <button
+                          key={m}
+                          onClick={() => handleSelectSingleModel(m)}
+                          className={`w-full text-left px-3 py-2 rounded-xl text-xs font-mono transition flex items-center justify-between ${
+                            selectedSingleModel === m
+                              ? 'bg-purple-500/15 text-purple-300 border border-purple-500/30'
+                              : 'text-slate-300 hover:bg-white/5 border border-transparent'
+                          }`}
+                        >
+                          <span className="truncate">{m}</span>
+                          {selectedSingleModel === m && <Check className="w-3.5 h-3.5 text-purple-400" />}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : (
+              /* Multi Model Comparison Pills */
+              <div className="flex items-center gap-1 ui-tab-container max-w-[150px] sm:max-w-xs overflow-x-auto p-1">
+                {availableModels.map(m => {
+                  const isSelected = selectedCompareModels.includes(m);
+                  return (
                     <button
                       key={m}
-                      onClick={() => handleSelectSingleModel(m)}
-                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-mono transition flex items-center justify-between ${
-                        selectedSingleModel === m
-                          ? 'bg-purple-500/15 text-purple-300 border border-purple-500/30'
-                          : 'text-slate-300 hover:bg-white/5 border border-transparent'
+                      onClick={() => handleToggleCompareModel(m)}
+                      className={`px-2 py-1 rounded-lg text-[11px] font-mono transition whitespace-nowrap ${
+                        isSelected
+                          ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 font-semibold'
+                          : 'text-slate-400 hover:text-slate-200 hover:bg-white/5 border border-transparent'
                       }`}
                     >
-                      <span className="truncate">{m}</span>
-                      {selectedSingleModel === m && <Check className="w-3.5 h-3.5 text-purple-400" />}
+                      {m.replace('gemini-', '')}
                     </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          ) : (
-            /* Multi Model Comparison Pills */
-            <div className="flex items-center gap-1 ui-tab-container max-w-xs overflow-x-auto p-1">
-              {availableModels.slice(0, 5).map(m => {
-                const isSelected = selectedCompareModels.includes(m);
-                return (
-                  <button
-                    key={m}
-                    onClick={() => handleToggleCompareModel(m)}
-                    className={`px-2 py-1 rounded-lg text-[11px] font-mono transition whitespace-nowrap ${
-                      isSelected
-                        ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 font-semibold'
-                        : 'text-slate-400 hover:text-slate-200 hover:bg-white/5 border border-transparent'
-                    }`}
-                  >
-                    {m.replace('gemini-', '')}
-                  </button>
-                );
-              })}
-            </div>
-          )}
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
-          {/* Main Action Button: Translate vs Stop All */}
-          {isAnyStreaming ? (
-            <button
-              onClick={handleStopAll}
-              className="flex items-center gap-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40 text-xs font-semibold px-4 py-2 rounded-xl transition shadow-lg shadow-red-500/10 active:scale-95"
-            >
-              <Square className="w-3.5 h-3.5 fill-current" />
-              <span>{t('translate.stopAll')}</span>
-            </button>
-          ) : (
-            <button
-              onClick={handleTranslate}
-              disabled={!sourceText.trim()}
-              className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl transition ${
-                sourceText.trim()
-                  ? 'ui-btn-primary cursor-pointer'
-                  : 'bg-white/5 text-slate-500 border border-white/5 cursor-not-allowed'
-              }`}
-            >
-              <Play className="w-3.5 h-3.5 fill-current" />
-              <span>{t('translate.translateBtn')}</span>
-              <span className="text-[10px] opacity-70 bg-black/20 px-1 rounded ml-1 font-mono">⌘↵</span>
-            </button>
-          )}
+          {/* Desktop Main Action Button */}
+          <div className="hidden lg:block shrink-0">
+            {renderActionButton(false)}
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Workspace Tabs (< lg) */}
+      <div className="flex lg:hidden items-center justify-between p-1 bg-white/[0.04] border border-white/[0.08] rounded-xl text-xs shrink-0">
+        <div className="grid grid-cols-2 gap-1 w-full">
+          <button
+            type="button"
+            onClick={() => setMobileActiveTab('source')}
+            className={`py-2 px-3 rounded-lg font-medium transition flex items-center justify-center gap-2 ${
+              mobileActiveTab === 'source'
+                ? 'bg-indigo-600 text-white shadow-sm font-semibold'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+            }`}
+          >
+            <Languages className="w-3.5 h-3.5" />
+            <span>{t('translate.sourceTab')}</span>
+            {charCount > 0 && (
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${
+                mobileActiveTab === 'source' ? 'bg-indigo-700/80 text-indigo-100' : 'bg-white/10 text-slate-400'
+              }`}>
+                {charCount}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setMobileActiveTab('target')}
+            className={`py-2 px-3 rounded-lg font-medium transition flex items-center justify-center gap-2 ${
+              mobileActiveTab === 'target'
+                ? 'bg-indigo-600 text-white shadow-sm font-semibold'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-white/5'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>{t('translate.targetTab')}</span>
+            {isAnyStreaming ? (
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+            ) : Object.values(results).some(r => r.status === 'success') ? (
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+            ) : null}
+          </button>
         </div>
       </div>
 
       {/* Main Grid Workspace */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 min-h-0 overflow-hidden">
         {/* Left Panel: Source Text Area */}
-        <div className="ui-card flex flex-col h-full overflow-hidden">
+        <div className={`ui-card flex-col h-full overflow-hidden ${
+          mobileActiveTab === 'source' ? 'flex' : 'hidden lg:flex'
+        }`}>
           {/* Panel Header */}
           <div className="flex items-center justify-between px-4 py-2.5 bg-white/[0.02] border-b border-white/[0.06] text-xs font-medium text-slate-400 shrink-0">
             <div className="flex items-center gap-2">
@@ -792,7 +870,9 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
         </div>
 
         {/* Right Panel: Target Results (Single or Compare Cards) */}
-        <div className="flex flex-col h-full min-h-0 overflow-hidden">
+        <div className={`flex-col h-full min-h-0 overflow-hidden ${
+          mobileActiveTab === 'target' ? 'flex' : 'hidden lg:flex'
+        }`}>
           <div
             className={`grid gap-4 flex-1 min-h-0 overflow-y-auto ${
               compareMode && activeModelIds.length > 1

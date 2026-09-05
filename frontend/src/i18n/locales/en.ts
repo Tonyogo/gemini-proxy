@@ -323,7 +323,9 @@ export const en = {
     requestFailed: "Translation failed",
     retry: "Retry",
     noModelsSelected: "Please select at least one model to translate.",
-    done: "Done"
+    done: "Done",
+    sourceTab: "Source",
+    targetTab: "Translation"
   },
   config: {
     modalTitle: "Proxy Runtime Configuration",
