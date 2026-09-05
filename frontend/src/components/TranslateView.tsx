@@ -523,137 +523,145 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
   return (
     <div className="w-full flex-1 space-y-3 sm:space-y-4 flex flex-col font-sans h-auto lg:h-[calc(100dvh-6.5rem)] overflow-y-auto lg:overflow-hidden">
       {/* Top Controls Header Workbench */}
-      <div className="ui-card p-2.5 sm:p-3.5 flex flex-col md:flex-row md:items-center justify-between gap-2.5 sm:gap-3 relative z-30 shrink-0">
-        {/* Left Controls: Language Selectors & Swap & Style */}
-        <div className="flex items-center gap-1.5 sm:gap-2 w-full md:w-auto">
-          {/* Source Language Select */}
-          <div className="relative flex-1 sm:flex-none">
-            <select
-              value={sourceLang}
-              onChange={e => setSourceLang(e.target.value)}
-              className="appearance-none ui-input pr-7 sm:pr-8 py-1.5 sm:py-2 cursor-pointer font-sans w-full text-xs"
-            >
-              {SUPPORTED_LANGUAGES.map(langOpt => (
-                <option key={langOpt.code} value={langOpt.code}>
-                  {isZh ? langOpt.name : langOpt.enName}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
-          </div>
+      <div className="ui-card p-2.5 sm:p-3.5 flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 sm:gap-3 relative z-30 shrink-0">
+        {/* Mobile Row 1 & 2 / Desktop Left Group */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5 w-full lg:w-auto">
+          {/* Row 1 (Mobile): Language Pair Selectors & Swap */}
+          <div className="flex items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
+            {/* Source Language Select */}
+            <div className="relative flex-1 sm:flex-none">
+              <select
+                value={sourceLang}
+                onChange={e => setSourceLang(e.target.value)}
+                className="appearance-none ui-input pr-7 sm:pr-8 py-1.5 sm:py-2 cursor-pointer font-sans w-full text-xs"
+              >
+                {SUPPORTED_LANGUAGES.map(langOpt => (
+                  <option key={langOpt.code} value={langOpt.code}>
+                    {isZh ? langOpt.name : langOpt.enName}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
 
-          {/* Swap Button */}
-          <button
-            onClick={handleSwapLanguages}
-            title={t('translate.swapLanguage')}
-            className="p-1.5 sm:p-2 ui-btn-secondary flex items-center justify-center shrink-0 active:scale-95"
-          >
-            <ArrowLeftRight className="w-3.5 h-3.5" />
-          </button>
-
-          {/* Target Language Select */}
-          <div className="relative flex-1 sm:flex-none">
-            <select
-              value={targetLang}
-              onChange={e => setTargetLang(e.target.value)}
-              className="appearance-none ui-input pr-7 sm:pr-8 py-1.5 sm:py-2 cursor-pointer font-sans w-full text-xs"
+            {/* Swap Button */}
+            <button
+              onClick={handleSwapLanguages}
+              title={t('translate.swapLanguage')}
+              className="p-1.5 sm:p-2 ui-btn-secondary flex items-center justify-center shrink-0 active:scale-95"
             >
-              {SUPPORTED_LANGUAGES.filter(l => l.code !== 'auto').map(langOpt => (
-                <option key={langOpt.code} value={langOpt.code}>
-                  {isZh ? langOpt.name : langOpt.enName}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <ArrowLeftRight className="w-3.5 h-3.5" />
+            </button>
+
+            {/* Target Language Select */}
+            <div className="relative flex-1 sm:flex-none">
+              <select
+                value={targetLang}
+                onChange={e => setTargetLang(e.target.value)}
+                className="appearance-none ui-input pr-7 sm:pr-8 py-1.5 sm:py-2 cursor-pointer font-sans w-full text-xs"
+              >
+                {SUPPORTED_LANGUAGES.filter(l => l.code !== 'auto').map(langOpt => (
+                  <option key={langOpt.code} value={langOpt.code}>
+                    {isZh ? langOpt.name : langOpt.enName}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
           </div>
 
           <div className="h-4 w-[1px] bg-white/10 mx-0.5 hidden sm:block" />
 
-          {/* Style Preset Selector Dropdown */}
-          <div className="relative shrink-0 sm:flex-none">
-            <button
-              onClick={() => setShowStyleDropdown(!showStyleDropdown)}
-              className="flex items-center gap-1 sm:gap-1.5 ui-btn-secondary px-2 sm:px-3 py-1.5 sm:py-2 text-xs"
-            >
-              <span className="text-indigo-400">{renderStyleIcon(currentStyleObj.iconName)}</span>
-              <span className="hidden xs:inline">{isZh ? currentStyleObj.name : currentStyleObj.enName}</span>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-            </button>
-
-            {showStyleDropdown && (
-              <div
-                className="absolute left-0 sm:left-auto right-auto sm:right-0 mt-1.5 w-64 ui-card p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100"
-                onClick={() => setShowStyleDropdown(false)}
+          {/* Row 2 (Mobile): Translation Style & Single/Compare Mode Toggle in ONE ROW */}
+          <div className="flex items-center justify-between gap-2 w-full sm:w-auto">
+            {/* Style Preset Selector Dropdown */}
+            <div className="relative flex-1 sm:flex-none">
+              <button
+                onClick={() => setShowStyleDropdown(!showStyleDropdown)}
+                className="w-full sm:w-auto flex items-center justify-between sm:justify-start gap-1.5 ui-btn-secondary px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs"
               >
-                {STYLE_PRESETS.map(p => (
-                  <button
-                    key={p.id}
-                    onClick={() => setStyle(p.id)}
-                    className={`w-full text-left px-3 py-2 rounded-xl text-xs flex items-start gap-2.5 transition ${
-                      style === p.id
-                        ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30'
-                        : 'text-slate-300 hover:bg-white/5 border border-transparent'
-                    }`}
-                  >
-                    <span className="mt-0.5 text-indigo-400">{renderStyleIcon(p.iconName)}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium">{isZh ? p.name : p.enName}</div>
-                      <div className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">
-                        {isZh ? p.desc : p.enDesc}
+                <div className="flex items-center gap-1.5">
+                  <span className="text-indigo-400">{renderStyleIcon(currentStyleObj.iconName)}</span>
+                  <span>{isZh ? currentStyleObj.name : currentStyleObj.enName}</span>
+                </div>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+              </button>
+
+              {showStyleDropdown && (
+                <div
+                  className="absolute left-0 mt-1.5 w-64 ui-card p-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 shadow-xl"
+                  onClick={() => setShowStyleDropdown(false)}
+                >
+                  {STYLE_PRESETS.map(p => (
+                    <button
+                      key={p.id}
+                      onClick={() => setStyle(p.id)}
+                      className={`w-full text-left px-3 py-2 rounded-xl text-xs flex items-start gap-2.5 transition ${
+                        style === p.id
+                          ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30'
+                          : 'text-slate-300 hover:bg-white/5 border border-transparent'
+                      }`}
+                    >
+                      <span className="mt-0.5 text-indigo-400">{renderStyleIcon(p.iconName)}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium">{isZh ? p.name : p.enName}</div>
+                        <div className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">
+                          {isZh ? p.desc : p.enDesc}
+                        </div>
                       </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Mode Switcher: Single vs Compare */}
+            <div className="ui-tab-container text-xs shrink-0">
+              <button
+                onClick={() => setCompareMode(false)}
+                className={`ui-tab-pill px-2.5 sm:px-3 py-1 sm:py-1.5 ${
+                  !compareMode
+                    ? 'ui-tab-pill-active font-semibold'
+                    : ''
+                }`}
+              >
+                {t('translate.singleModel')}
+              </button>
+              <button
+                onClick={() => setCompareMode(true)}
+                className={`ui-tab-pill px-2.5 sm:px-3 py-1 sm:py-1.5 flex items-center gap-1 ${
+                  compareMode
+                    ? 'ui-tab-pill-active font-semibold'
+                    : ''
+                }`}
+              >
+                <Layers className="w-3 h-3" />
+                {t('translate.compareModels')}
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Right Controls: Mode Toggle, Model Selector & Translate Action */}
-        <div className="flex items-center justify-between md:justify-end gap-2 w-full md:w-auto flex-wrap sm:flex-nowrap">
-          {/* Mode Switcher: Single vs Compare */}
-          <div className="ui-tab-container text-xs shrink-0">
-            <button
-              onClick={() => setCompareMode(false)}
-              className={`ui-tab-pill px-2.5 sm:px-3 py-1 sm:py-1.5 ${
-                !compareMode
-                  ? 'ui-tab-pill-active font-semibold'
-                  : ''
-              }`}
-            >
-              {t('translate.singleModel')}
-            </button>
-            <button
-              onClick={() => setCompareMode(true)}
-              className={`ui-tab-pill px-2.5 sm:px-3 py-1 sm:py-1.5 flex items-center gap-1 ${
-                compareMode
-                  ? 'ui-tab-pill-active font-semibold'
-                  : ''
-              }`}
-            >
-              <Layers className="w-3 h-3" />
-              {t('translate.compareModels')}
-            </button>
-          </div>
-
+        {/* Mobile Row 3 / Desktop Right Group: Model Selector & Action Button */}
+        <div className="flex items-center justify-between lg:justify-end gap-2 w-full lg:w-auto">
           {/* Model Selector based on mode */}
           {!compareMode ? (
             /* Single Model Dropdown */
-            <div className="relative flex-1 sm:flex-none">
+            <div className="relative flex-1 lg:flex-none">
               <button
                 onClick={() => setShowModelDropdown(!showModelDropdown)}
                 className="w-full flex items-center justify-between sm:justify-start gap-1.5 ui-btn-secondary px-2.5 sm:px-3 py-1.5 sm:py-2 font-mono text-xs"
               >
                 <div className="flex items-center gap-1.5 min-w-0">
                   <Zap className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-                  <span className="truncate max-w-[120px] sm:max-w-[160px]">{selectedSingleModel}</span>
+                  <span className="truncate max-w-[140px] sm:max-w-[160px]">{selectedSingleModel}</span>
                 </div>
                 <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
               </button>
 
               {showModelDropdown && (
                 <div
-                  className="absolute right-0 mt-1.5 w-60 ui-card p-1.5 z-50 max-h-60 overflow-y-auto"
+                  className="absolute right-0 mt-1.5 w-60 ui-card p-1.5 z-50 max-h-60 overflow-y-auto shadow-xl"
                   onClick={() => setShowModelDropdown(false)}
                 >
                   {availableModels.map(m => (
@@ -675,14 +683,14 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
             </div>
           ) : (
             /* Multi Model Comparison Pills */
-            <div className="flex items-center gap-1 ui-tab-container max-w-xs overflow-x-auto p-0.5 sm:p-1 shrink-0">
+            <div className="flex items-center gap-1 ui-tab-container flex-1 lg:flex-none max-w-none lg:max-w-xs overflow-x-auto p-0.5 sm:p-1 shrink-0">
               {availableModels.slice(0, 4).map(m => {
                 const isSelected = selectedCompareModels.includes(m);
                 return (
                   <button
                     key={m}
                     onClick={() => handleToggleCompareModel(m)}
-                    className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg text-[10px] sm:text-[11px] font-mono transition whitespace-nowrap ${
+                    className={`flex-1 sm:flex-none px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg text-[10px] sm:text-[11px] font-mono transition whitespace-nowrap text-center ${
                       isSelected
                         ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 font-semibold'
                         : 'text-slate-400 hover:text-slate-200 hover:bg-white/5 border border-transparent'
@@ -699,7 +707,7 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
           {isAnyStreaming ? (
             <button
               onClick={handleStopAll}
-              className="flex items-center justify-center gap-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40 text-xs font-semibold px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-xl transition shadow-lg shadow-red-500/10 active:scale-95 shrink-0"
+              className="flex items-center justify-center gap-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40 text-xs font-semibold px-4 py-1.5 sm:py-2 rounded-xl transition shadow-lg shadow-red-500/10 active:scale-95 shrink-0"
             >
               <Square className="w-3.5 h-3.5 fill-current" />
               <span>{t('translate.stopAll')}</span>
@@ -708,7 +716,7 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
             <button
               onClick={handleTranslate}
               disabled={!sourceText.trim()}
-              className={`flex items-center justify-center gap-1.5 px-3.5 sm:px-4 py-1.5 sm:py-2 text-xs font-semibold rounded-xl transition shrink-0 active:scale-95 ${
+              className={`flex items-center justify-center gap-1.5 px-4 py-1.5 sm:py-2 text-xs font-semibold rounded-xl transition shrink-0 active:scale-95 ${
                 sourceText.trim()
                   ? 'ui-btn-primary cursor-pointer'
                   : 'bg-white/5 text-slate-500 border border-white/5 cursor-not-allowed'
