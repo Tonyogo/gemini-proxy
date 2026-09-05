@@ -34,9 +34,9 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
   };
 
   return (
-    <div className="ui-card p-4 sm:p-5 flex flex-col w-full overflow-hidden">
+    <div className="ui-card p-3 sm:p-5 flex flex-col w-full overflow-hidden">
       {/* Card Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-2.5 sm:mb-4">
         <div className="flex items-center space-x-2">
           <Layers className="w-4 h-4 text-indigo-400" />
           <h3 className="text-xs font-semibold text-[var(--text-primary)] tracking-wider uppercase">
@@ -148,11 +148,11 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
           </div>
 
           {/* 2. Mobile Classic Compact Card List (Hidden on desktop) */}
-          <div className="md:hidden space-y-3">
+          <div className="md:hidden space-y-2">
             {modelStats.list.map((item, index) => {
               const color = getModelColor(item.model, index);
               return (
-                <div key={item.model} className="space-y-1.5 p-2.5 rounded-lg bg-[var(--bg-surface-sub)] border border-[var(--border-subtle)]/60">
+                <div key={item.model} className="space-y-1 p-2 sm:p-2.5 rounded-lg bg-[var(--bg-surface-sub)] border border-[var(--border-subtle)]/60">
                   <div className="flex items-center justify-between text-xs">
                     <div className="flex items-center space-x-1.5 min-w-0">
                       <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
