@@ -70,6 +70,6 @@ describe('Dashboard Anti-Shift & Dark Border Polish', () => {
   });
 
   test('ModelPerformanceMatrix should use dark-subtle border classes', () => {
-    expect(matrixContent).toContain('dark:border-white/[0.04]');
+    expect(matrixContent).toContain('border-[var(--border-subtle)]');
   });
 });

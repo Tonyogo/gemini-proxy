@@ -34,9 +34,9 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
   };
 
   return (
-    <div className="ui-card p-3 sm:p-5 flex flex-col w-full overflow-hidden">
+    <div className="ui-card p-2.5 sm:p-5 flex flex-col w-full overflow-hidden">
       {/* Card Header */}
-      <div className="flex items-center justify-between mb-2.5 sm:mb-4">
+      <div className="flex items-center justify-between mb-2 sm:mb-4">
         <div className="flex items-center space-x-2">
           <Layers className="w-4 h-4 text-indigo-400" />
           <h3 className="text-xs font-semibold text-[var(--text-primary)] tracking-wider uppercase">
@@ -58,7 +58,7 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
           <div className="hidden md:block overflow-x-auto w-full no-scrollbar rounded-xl">
             <table className="w-full text-left text-xs font-mono border-collapse min-w-[700px]">
               <thead>
-                <tr className="border-b border-black/[0.06] dark:border-white/[0.06] text-[var(--text-secondary)] text-[11px] uppercase tracking-wider">
+                <tr className="border-b border-[var(--border-subtle)] text-[var(--text-secondary)] text-[11px] uppercase tracking-wider">
                   <th className="py-2.5 px-3 font-medium">{t('dashboard.modelName', '模型名称')}</th>
                   <th className="py-2.5 px-3 font-medium text-right">{t('dashboard.standardReqs', '标准请求')}</th>
                   <th className="py-2.5 px-3 font-medium text-right">{t('dashboard.highReqs', 'High 规格')}</th>
@@ -78,7 +78,7 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
                     : 'text-rose-400 bg-rose-500/10 border-rose-500/20';
 
                   return (
-                    <tr key={item.model} className="border-b border-black/[0.04] dark:border-white/[0.04] last:border-b-0 hover:bg-[var(--bg-surface-hover)] transition-colors">
+                    <tr key={item.model} className="border-b border-[var(--border-subtle)] last:border-b-0 hover:bg-[var(--bg-surface-hover)] transition-colors">
                       {/* Model Name */}
                       <td className="py-3 px-3 font-medium text-[var(--text-primary)]">
                         <div className="flex items-center space-x-2">
@@ -117,7 +117,7 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
                           <span className="text-[var(--text-primary)] font-semibold w-11 text-right shrink-0">
                             {item.percentage.toFixed(1)}%
                           </span>
-                          <div className="flex-1 bg-[var(--border-subtle)]/40 h-2 rounded-full overflow-hidden">
+                          <div className="flex-1 bg-black/5 dark:bg-white/5 h-2 rounded-full overflow-hidden">
                             <div
                               className="h-full transition-all duration-500 rounded-full"
                               style={{
@@ -148,11 +148,11 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
           </div>
 
           {/* 2. Mobile Classic Compact Card List (Hidden on desktop) */}
-          <div className="md:hidden space-y-2">
+          <div className="md:hidden space-y-1.5">
             {modelStats.list.map((item, index) => {
               const color = getModelColor(item.model, index);
               return (
-                <div key={item.model} className="space-y-1 p-2 sm:p-2.5 rounded-lg bg-[var(--bg-surface-sub)] border border-[var(--border-subtle)]/60">
+                <div key={item.model} className="space-y-1 p-2 sm:p-2.5 rounded-lg bg-[var(--bg-surface-sub)] border border-[var(--border-subtle)]">
                   <div className="flex items-center justify-between text-xs">
                     <div className="flex items-center space-x-1.5 min-w-0">
                       <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
@@ -175,7 +175,7 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
                       </span>
                     </div>
                   </div>
-                  <div className="w-full bg-[var(--border-subtle)]/40 h-1.5 rounded-full overflow-hidden">
+                  <div className="w-full bg-black/5 dark:bg-white/5 h-1.5 rounded-full overflow-hidden">
                     <div
                       className="h-full transition-all duration-300 rounded-full"
                       style={{

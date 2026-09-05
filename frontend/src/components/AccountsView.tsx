@@ -727,89 +727,89 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
         </div>
 
         {/* Stats Chips */}
-        <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-2.5">
+        <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-6 gap-1.5 sm:gap-2.5">
           {/* Total Accounts */}
-          <div className="ui-card-sub p-2.5 sm:px-4 sm:py-3 flex items-center space-x-3">
-            <div className="p-1.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] text-slate-500 dark:text-slate-400 shrink-0">
+          <div className="ui-card-sub p-1.5 sm:px-4 sm:py-3 flex items-center space-x-2 sm:space-x-3">
+            <div className="p-1 sm:p-1.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] text-slate-500 dark:text-slate-400 shrink-0">
               <Users className="w-3.5 h-3.5" />
             </div>
             <div className="min-w-0">
-              <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">
+              <div className="text-[9px] sm:text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">
                 {t('accounts.totalAccounts')}
               </div>
-              <div className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 font-mono">{totalCount}</div>
+              <div className="text-sm sm:text-lg font-bold text-slate-900 dark:text-slate-100 font-mono">{totalCount}</div>
             </div>
           </div>
 
           {/* Activated */}
-          <div className="ui-card-sub p-2.5 sm:px-4 sm:py-3 flex items-center space-x-3">
-            <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
+          <div className="ui-card-sub p-1.5 sm:px-4 sm:py-3 flex items-center space-x-2 sm:space-x-3">
+            <div className="p-1 sm:p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
               <CheckCircle2 className="w-3.5 h-3.5" />
             </div>
             <div className="min-w-0">
-              <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">
+              <div className="text-[9px] sm:text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">
                 {t('accounts.activeAccounts')}
               </div>
-              <div className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 font-mono">{activatedCount}</div>
+              <div className="text-sm sm:text-lg font-bold text-slate-900 dark:text-slate-100 font-mono">{activatedCount}</div>
             </div>
           </div>
 
           {/* Activating */}
-          <div className="ui-card-sub p-2.5 sm:px-4 sm:py-3 flex items-center space-x-3">
-            <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
+          <div className="ui-card-sub p-1.5 sm:px-4 sm:py-3 flex items-center space-x-2 sm:space-x-3">
+            <div className="p-1 sm:p-1.5 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
               <Sparkles className="w-3.5 h-3.5" />
             </div>
             <div className="min-w-0">
-              <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">
+              <div className="text-[9px] sm:text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">
                 {t('accounts.activatingAccounts')}
               </div>
-              <div className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 font-mono">{activatingCount}</div>
+              <div className="text-sm sm:text-lg font-bold text-slate-900 dark:text-slate-100 font-mono">{activatingCount}</div>
             </div>
           </div>
 
           {/* Retired */}
-          <div className="ui-card-sub p-2.5 sm:px-4 sm:py-3 flex items-center space-x-3">
-            <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
+          <div className="ui-card-sub p-1.5 sm:px-4 sm:py-3 flex items-center space-x-2 sm:space-x-3">
+            <div className="p-1 sm:p-1.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
               <Clock className="w-3.5 h-3.5" />
             </div>
             <div className="min-w-0">
-              <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">
+              <div className="text-[9px] sm:text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">
                 {t('accounts.retiredAccounts', '已下线')}
               </div>
-              <div className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 font-mono">{retiredCount}</div>
+              <div className="text-sm sm:text-lg font-bold text-slate-900 dark:text-slate-100 font-mono">{retiredCount}</div>
             </div>
           </div>
 
           {/* Inactive */}
-          <div className="ui-card-sub p-2.5 sm:px-4 sm:py-3 flex items-center space-x-3">
-            <div className="p-1.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] text-slate-500 dark:text-slate-400 shrink-0">
+          <div className="ui-card-sub p-1.5 sm:px-4 sm:py-3 flex items-center space-x-2 sm:space-x-3">
+            <div className="p-1 sm:p-1.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] text-slate-500 dark:text-slate-400 shrink-0">
               <Power className="w-3.5 h-3.5" />
             </div>
             <div className="min-w-0">
-              <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">
+              <div className="text-[9px] sm:text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">
                 {t('accounts.inactiveAccounts', '未激活')}
               </div>
-              <div className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 font-mono">{inactiveCount}</div>
+              <div className="text-sm sm:text-lg font-bold text-slate-900 dark:text-slate-100 font-mono">{inactiveCount}</div>
             </div>
           </div>
 
           {/* Disabled */}
-          <div className="ui-card-sub p-2.5 sm:px-4 sm:py-3 flex items-center space-x-3">
-            <div className="p-1.5 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 shrink-0">
+          <div className="ui-card-sub p-1.5 sm:px-4 sm:py-3 flex items-center space-x-2 sm:space-x-3">
+            <div className="p-1 sm:p-1.5 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 shrink-0">
               <AlertCircle className="w-3.5 h-3.5" />
             </div>
             <div className="min-w-0">
-              <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">
+              <div className="text-[9px] sm:text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">
                 {t('accounts.disabledAccounts')}
               </div>
-              <div className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 font-mono">{disabledCount}</div>
+              <div className="text-sm sm:text-lg font-bold text-slate-900 dark:text-slate-100 font-mono">{disabledCount}</div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Action Toolbar */}
-      <div className="ui-card p-3 sm:p-3.5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+      <div className="ui-card p-2.5 sm:p-3.5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         {/* Left: Search & Filter */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1 min-w-0">
           {/* Search Input */}
@@ -1151,7 +1151,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                 return (
                   <div
                     key={acc.index}
-                    className={`p-3 transition-colors space-y-2 ${
+                    className={`p-2.5 transition-colors space-y-1.5 ${
                       isCurrent
                         ? 'bg-emerald-50/50 dark:bg-emerald-950/30 border-l-2 border-emerald-500'
                         : isChecked
@@ -1231,7 +1231,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                       <button
                         type="button"
                         onClick={() => toggleMobileUsage(acc.index)}
-                        className="px-2 py-1 rounded-lg text-xs font-mono ui-card-sub hover:bg-[var(--bg-surface-hover)] text-[var(--text-secondary)] border border-[var(--border-subtle)] flex items-center space-x-1.5 transition-colors"
+                        className="px-2 py-0.5 rounded-lg text-xs font-mono ui-card-sub hover:bg-[var(--bg-surface-hover)] text-[var(--text-secondary)] border border-[var(--border-subtle)] flex items-center space-x-1.5 transition-colors"
                       >
                         <Clock className="w-3 h-3 text-indigo-500 dark:text-indigo-400 shrink-0" />
                         <span className="font-bold text-slate-800 dark:text-slate-200">{totalUsage}</span>
@@ -1247,7 +1247,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                         <button
                           onClick={() => handleSetCurrent(acc.index)}
                           disabled={actionLoading || isCurrent || isManuallyDisabled}
-                          className={`p-1.5 rounded-lg border text-xs flex items-center justify-center transition-all ${
+                          className={`p-1 sm:p-1.5 rounded-lg border text-xs flex items-center justify-center transition-all ${
                             isCurrent
                               ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 cursor-default'
                               : 'ui-btn-secondary text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 disabled:opacity-20'
@@ -1261,7 +1261,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                         <button
                           onClick={() => handleToggleDisabled(acc.index, isManuallyDisabled)}
                           disabled={actionLoading}
-                          className={`p-1.5 rounded-lg border text-xs flex items-center justify-center transition-all ${
+                          className={`p-1 sm:p-1.5 rounded-lg border text-xs flex items-center justify-center transition-all ${
                             isManuallyDisabled
                               ? 'ui-btn-secondary text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 hover:border-emerald-500/30'
                               : 'ui-btn-secondary text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 hover:border-rose-500/30'
@@ -1275,7 +1275,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                         <button
                           onClick={() => setCloseContextConfirm({ index: acc.index, email: acc.name || '', isCurrent })}
                           disabled={actionLoading || !acc.hasContext}
-                          className={`p-1.5 rounded-lg border text-xs flex items-center justify-center transition-all ${
+                          className={`p-1 sm:p-1.5 rounded-lg border text-xs flex items-center justify-center transition-all ${
                             acc.hasContext
                               ? 'ui-btn-secondary text-slate-500 hover:text-amber-600 dark:text-slate-400 dark:hover:text-amber-400 hover:border-amber-500/30'
                               : 'ui-btn-secondary cursor-not-allowed opacity-30 text-slate-400'
@@ -1289,7 +1289,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                         <button
                           onClick={() => handleDownloadSingle(acc.index)}
                           disabled={actionLoading}
-                          className="p-1.5 ui-btn-secondary text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 rounded-lg text-xs"
+                          className="p-1 sm:p-1.5 ui-btn-secondary text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 rounded-lg text-xs"
                           title={t('accounts.downloadCredential')}
                         >
                           <Download className="w-3.5 h-3.5" />
@@ -1305,7 +1305,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                             }
                           }}
                           disabled={actionLoading}
-                          className="p-1.5 ui-btn-secondary text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 hover:border-rose-500/30 rounded-lg text-xs"
+                          className="p-1 sm:p-1.5 ui-btn-secondary text-slate-500 hover:text-rose-600 hover:border-rose-500/30 dark:text-slate-400 dark:hover:text-rose-400 rounded-lg text-xs transition-all"
                           title={t('accounts.deleteAccount')}
                         >
                           <Trash2 className="w-3.5 h-3.5" />

@@ -34,7 +34,7 @@ describe('Dashboard APM & Visual Optimization', () => {
       'utf-8'
     );
     expect(modelMatrix).not.toContain('text-slate-200');
-    expect(modelMatrix).toContain('bg-[var(--border-subtle)]/40');
+    expect(modelMatrix).toContain('bg-black/5 dark:bg-white/5');
 
     const runtimeMatrix = fs.readFileSync(
       path.resolve(__dirname, '../frontend/src/components/dashboard/SystemRuntimeMatrix.tsx'),

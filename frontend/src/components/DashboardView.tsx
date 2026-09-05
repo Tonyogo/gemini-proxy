@@ -272,9 +272,9 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
     : 'text-rose-400 bg-rose-500/10 border-rose-500/20';
 
   return (
-    <div className="space-y-3.5 sm:space-y-6 max-w-7xl mx-auto font-sans pb-8">
+    <div className="space-y-2.5 sm:space-y-6 max-w-7xl mx-auto font-sans pb-8">
       {/* Tier 1: Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
         <div>
           <h2 className="text-lg sm:text-xl font-bold text-[var(--text-primary)] tracking-tight flex items-center space-x-2">
             <span>{t('dashboard.title')}</span>
@@ -286,7 +286,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
 
         {/* Time Range Selector */}
         <div className="ui-tab-container">
-          <span className="text-[10px] text-slate-500 uppercase font-semibold px-2 tracking-wider select-none">
+          <span className="text-[10px] text-slate-500 uppercase font-semibold px-1.5 sm:px-2 tracking-wider select-none">
             {t('dashboard.timeRange')}
           </span>
           {(['today', 6, 12, 24, 48] as const).map((r) => (
@@ -294,7 +294,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
               key={r}
               type="button"
               onClick={() => setRange(r)}
-              className={`ui-tab-pill font-mono px-2 sm:px-3 py-1 sm:py-1.5 text-[11px] sm:text-xs ${
+              className={`ui-tab-pill font-mono px-1.5 sm:px-3 py-0.5 sm:py-1.5 text-[11px] sm:text-xs ${
                 range === r ? 'ui-tab-pill-active' : ''
               }`}
             >
@@ -305,39 +305,39 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
       </div>
 
       {/* Tier 2: 4 APM KPI Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
         {/* Card 1: Server Status & Uptime */}
-        <div className="ui-card p-3 sm:p-5 hover:border-indigo-500/30 transition-all group relative overflow-hidden">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-slate-400 text-xs font-medium uppercase tracking-wider">
+        <div className="ui-card p-2.5 sm:p-5 hover:border-indigo-500/30 transition-all group relative overflow-hidden">
+          <div className="flex items-center justify-between mb-1.5 sm:mb-3">
+            <span className="text-slate-400 text-[11px] sm:text-xs font-medium uppercase tracking-wider">
               {t('dashboard.statusCard')}
             </span>
             <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center group-hover:scale-105 transition-transform">
               <Server className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </div>
           </div>
-          <div className="flex items-baseline space-x-2.5">
-            <span className="relative flex h-2.5 w-2.5 self-center">
+          <div className="flex items-baseline space-x-2">
+            <span className="relative flex h-2 w-2 sm:h-2.5 sm:w-2.5 self-center">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 sm:h-2.5 sm:w-2.5 bg-emerald-500"></span>
             </span>
-            <span className="text-lg sm:text-2xl font-mono font-bold tracking-tight text-[var(--text-primary)]">
+            <span className="text-base sm:text-2xl font-mono font-bold tracking-tight text-[var(--text-primary)]">
               {t('dashboard.online')}
             </span>
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
+            <span className="text-[9px] sm:text-[10px] font-mono px-1 sm:px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
               {t('dashboard.healthy', 'HEALTHY')}
             </span>
           </div>
-          <div className="text-[10px] sm:text-[11px] text-slate-500 font-mono mt-1.5 sm:mt-3 flex items-center space-x-1.5">
+          <div className="text-[10px] sm:text-[11px] text-slate-500 font-mono mt-1 sm:mt-3 flex items-center space-x-1.5">
             <span>{t('dashboard.uptime')}:</span>
             <span className="text-[var(--text-primary)] font-semibold">{status ? formatUptime(status.uptime) : 'N/A'}</span>
           </div>
         </div>
 
         {/* Card 2: Total Requests & Throughput */}
-        <div className="ui-card p-3 sm:p-5 hover:border-indigo-500/30 transition-all group relative overflow-hidden">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-slate-400 text-xs font-medium uppercase tracking-wider">
+        <div className="ui-card p-2.5 sm:p-5 hover:border-indigo-500/30 transition-all group relative overflow-hidden">
+          <div className="flex items-center justify-between mb-1.5 sm:mb-3">
+            <span className="text-slate-400 text-[11px] sm:text-xs font-medium uppercase tracking-wider">
               {t('dashboard.totalTransactions')}
             </span>
             <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center group-hover:scale-105 transition-transform">
@@ -345,23 +345,23 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
             </div>
           </div>
           <div className="flex items-baseline justify-between">
-            <div className="text-lg sm:text-2xl font-mono font-bold tracking-tight text-[var(--text-primary)]">
+            <div className="text-base sm:text-2xl font-mono font-bold tracking-tight text-[var(--text-primary)]">
               {totalLogsCount.toLocaleString()}
             </div>
-            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-medium">
-              {range === 'today' ? 'TODAY TOTAL' : `${range}H TOTAL`}
+            <span className="text-[9px] sm:text-[10px] font-mono px-1 sm:px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-medium">
+              {range === 'today' ? 'TODAY' : `${range}H`}
             </span>
           </div>
-          <div className="text-[10px] sm:text-[11px] text-slate-500 font-mono mt-1.5 sm:mt-3 flex items-center space-x-1.5">
+          <div className="text-[10px] sm:text-[11px] text-slate-500 font-mono mt-1 sm:mt-3 flex items-center space-x-1.5">
             <span>{t('dashboard.avgThroughput')}:</span>
             <span className="text-indigo-400 font-semibold">{formatThroughput(totalLogsCount, range)}</span>
           </div>
         </div>
 
         {/* Card 3: Average Latency */}
-        <div className="ui-card p-3 sm:p-5 hover:border-indigo-500/30 transition-all group relative overflow-hidden">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-slate-400 text-xs font-medium uppercase tracking-wider">
+        <div className="ui-card p-2.5 sm:p-5 hover:border-indigo-500/30 transition-all group relative overflow-hidden">
+          <div className="flex items-center justify-between mb-1.5 sm:mb-3">
+            <span className="text-slate-400 text-[11px] sm:text-xs font-medium uppercase tracking-wider">
               {t('dashboard.averageLatency')}
             </span>
             <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-400 flex items-center justify-center group-hover:scale-105 transition-transform">
@@ -369,25 +369,25 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
             </div>
           </div>
           <div className="flex items-baseline justify-between">
-            <div className="flex items-baseline space-x-1.5">
-              <div className="text-lg sm:text-2xl font-mono font-bold tracking-tight text-[var(--text-primary)]">
+            <div className="flex items-baseline space-x-1 sm:space-x-1.5">
+              <div className="text-base sm:text-2xl font-mono font-bold tracking-tight text-[var(--text-primary)]">
                 {avgLatency}
               </div>
-              <span className="text-xs font-mono text-purple-400 font-medium">ms</span>
+              <span className="text-[11px] sm:text-xs font-mono text-purple-400 font-medium">ms</span>
             </div>
-            <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded font-medium border ${latencyQualityColor}`}>
+            <span className={`text-[9px] sm:text-[10px] font-mono px-1 sm:px-1.5 py-0.5 rounded font-medium border ${latencyQualityColor}`}>
               {latencyQuality}
             </span>
           </div>
-          <div className="text-[10px] sm:text-[11px] text-slate-500 mt-1.5 sm:mt-3 truncate font-mono">
+          <div className="text-[10px] sm:text-[11px] text-slate-500 mt-1 sm:mt-3 truncate font-mono">
             {t('dashboard.upstreamTimeoutLimit').replace('{limit}', String(cfg.upstreamTimeoutMs || 180000))}
           </div>
         </div>
 
         {/* Card 4: Service Availability */}
-        <div className="ui-card p-3 sm:p-5 hover:border-indigo-500/30 transition-all group relative overflow-hidden">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-slate-400 text-xs font-medium uppercase tracking-wider">
+        <div className="ui-card p-2.5 sm:p-5 hover:border-indigo-500/30 transition-all group relative overflow-hidden">
+          <div className="flex items-center justify-between mb-1.5 sm:mb-3">
+            <span className="text-slate-400 text-[11px] sm:text-xs font-medium uppercase tracking-wider">
               {t('dashboard.serviceAvailability')}
             </span>
             <div className={`w-6 h-6 sm:w-8 sm:h-8 rounded-lg ${totalErrorCount > 0 ? 'bg-amber-500/10 border border-amber-500/20 text-amber-400' : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'} flex items-center justify-center group-hover:scale-105 transition-transform`}>
@@ -395,20 +395,20 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
             </div>
           </div>
           <div className="flex items-center justify-between">
-            <div className="text-lg sm:text-2xl font-mono font-bold tracking-tight text-[var(--text-primary)]">
+            <div className="text-base sm:text-2xl font-mono font-bold tracking-tight text-[var(--text-primary)]">
               {availabilityRate}%
             </div>
-            <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded font-medium ${totalErrorCount > 0 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'}`}>
+            <span className={`text-[9px] sm:text-[10px] font-mono px-1 sm:px-1.5 py-0.5 rounded font-medium ${totalErrorCount > 0 ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'}`}>
               {totalSuccessCount}/{totalLogsCount}
             </span>
           </div>
-          <div className="w-full bg-rose-500/20 h-1.5 rounded-full overflow-hidden flex mt-2.5">
+          <div className="w-full bg-rose-500/20 h-1 sm:h-1.5 rounded-full overflow-hidden flex mt-1.5 sm:mt-2.5">
             <div
               className="bg-emerald-500 h-full rounded-full transition-all"
               style={{ width: `${availabilityRate}%` }}
             />
           </div>
-          <div className="flex justify-between items-center text-[10px] font-mono text-slate-500 mt-1.5">
+          <div className="flex justify-between items-center text-[9px] sm:text-[10px] font-mono text-slate-500 mt-1 sm:mt-1.5">
             <span>{t('dashboard.successCountLabel')}: {totalSuccessCount}</span>
             <span className={totalErrorCount > 0 ? 'text-rose-400' : ''}>{t('dashboard.errorCountLabel')}: {totalErrorCount}</span>
           </div>
