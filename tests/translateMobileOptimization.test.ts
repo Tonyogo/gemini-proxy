@@ -79,4 +79,18 @@ describe('Translate View Mobile Optimization & Model Harmonization', () => {
     expect((en.translate as any).sourceTab).toBe('Source');
     expect((en.translate as any).targetTab).toBe('Translation');
   });
+
+  test('simplifies singleModel, compareModels, and style selector button text', () => {
+    // Mode toggle text is ultra-compact
+    expect((zh.translate as any).singleModel).toBe('单模');
+    expect((zh.translate as any).compareModels).toBe('对比');
+    expect((en.translate as any).singleModel).toBe('Single');
+    expect((en.translate as any).compareModels).toBe('Compare');
+
+    // Style selector button uses shortName
+    expect(translateViewContent).toContain('currentStyleObj.shortName || currentStyleObj.name');
+
+    // Single model trigger strips gemini- on small screens
+    expect(translateViewContent).toContain("selectedSingleModel.replace('gemini-', '')");
+  });
 });

@@ -547,7 +547,7 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
         className="flex items-center gap-1.5 ui-btn-secondary px-2.5 sm:px-3 py-1.5 sm:py-2 text-xs"
       >
         <span className="text-indigo-400">{renderStyleIcon(currentStyleObj.iconName)}</span>
-        <span>{isZh ? currentStyleObj.name : currentStyleObj.enName}</span>
+        <span>{isZh ? (currentStyleObj.shortName || currentStyleObj.name) : (currentStyleObj.enShortName || currentStyleObj.enName)}</span>
         <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
       </button>
 
@@ -658,7 +658,7 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
             <div className="ui-tab-container text-xs">
               <button
                 onClick={() => setCompareMode(false)}
-                className={`ui-tab-pill text-xs py-1 sm:py-1.5 px-2.5 sm:px-3 ${
+                className={`ui-tab-pill text-xs py-1 sm:py-1.5 px-2 sm:px-2.5 ${
                   !compareMode
                     ? 'ui-tab-pill-active font-semibold'
                     : ''
@@ -668,7 +668,7 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
               </button>
               <button
                 onClick={() => setCompareMode(true)}
-                className={`ui-tab-pill flex items-center gap-1 text-xs py-1 sm:py-1.5 px-2.5 sm:px-3 ${
+                className={`ui-tab-pill flex items-center gap-1 text-xs py-1 sm:py-1.5 px-2 sm:px-2.5 ${
                   compareMode
                     ? 'ui-tab-pill-active font-semibold'
                     : ''
@@ -685,11 +685,14 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
               <div className="relative">
                 <button
                   onClick={() => setShowModelDropdown(!showModelDropdown)}
-                  className="flex items-center gap-1.5 ui-btn-secondary px-2.5 sm:px-3 py-1.5 sm:py-2 font-mono text-xs"
+                  className="flex items-center gap-1.5 ui-btn-secondary px-2 sm:px-3 py-1.5 sm:py-2 font-mono text-xs"
                 >
-                  <Zap className="w-3.5 h-3.5 text-purple-400" />
-                  <span className="max-w-[110px] sm:max-w-none truncate">{selectedSingleModel}</span>
-                  <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                  <Zap className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                  <span className="max-w-[105px] sm:max-w-none truncate">
+                    <span className="sm:hidden">{selectedSingleModel.replace('gemini-', '')}</span>
+                    <span className="hidden sm:inline">{selectedSingleModel}</span>
+                  </span>
+                  <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                 </button>
 
                 {showModelDropdown && (

@@ -8,6 +8,8 @@ export interface StylePresetOption {
   id: 'standard' | 'technical' | 'academic' | 'polished';
   name: string;
   enName: string;
+  shortName: string;
+  enShortName: string;
   iconName: string;
   desc: string;
   enDesc: string;
@@ -32,7 +34,9 @@ export const STYLE_PRESETS: StylePresetOption[] = [
   {
     id: 'standard',
     name: '通用直译',
+    shortName: '通用',
     enName: 'Standard',
+    enShortName: 'General',
     iconName: 'Zap',
     desc: '忠实原文，自然通顺，适合日常沟通与通用文章。',
     enDesc: 'Faithful, natural, balanced for general communication.'
@@ -40,7 +44,9 @@ export const STYLE_PRESETS: StylePresetOption[] = [
   {
     id: 'technical',
     name: '专业技术',
+    shortName: '技术',
     enName: 'Technical',
+    enShortName: 'Tech',
     iconName: 'Code',
     desc: '严格保护代码、Markdown格式、API路径与工程术语。',
     enDesc: 'Strictly preserves code, Markdown, API keys and tech terms.'
@@ -48,7 +54,9 @@ export const STYLE_PRESETS: StylePresetOption[] = [
   {
     id: 'academic',
     name: '学术商务',
+    shortName: '学术',
     enName: 'Academic',
+    enShortName: 'Academic',
     iconName: 'BookOpen',
     desc: '严谨书面用词，适合论文、白皮书与正式商务文档。',
     enDesc: 'Scholarly, formal vocabulary for whitepapers and contracts.'
@@ -56,7 +64,9 @@ export const STYLE_PRESETS: StylePresetOption[] = [
   {
     id: 'polished',
     name: '地道润色',
+    shortName: '润色',
     enName: 'Polished',
+    enShortName: 'Polished',
     iconName: 'Sparkles',
     desc: '融入母语读者表达习惯，优美流畅，适合文学与社媒。',
     enDesc: 'Native localization, idiomatic tone for creative writing.'
