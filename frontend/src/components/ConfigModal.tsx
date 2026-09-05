@@ -143,6 +143,15 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
     fetchConfig();
   }, [isOpen, adminKey]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const updateRawFromEntries = (entries: MappingEntry[]) => {
@@ -357,7 +366,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
 
   return (
     <div className="backdrop-blur-xl bg-black/60 fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 animate-in fade-in duration-200 font-sans">
-      <div className="ui-card rounded-t-2xl sm:rounded-2xl w-full max-w-3xl overflow-hidden flex flex-col h-[92vh] sm:h-auto sm:max-h-[90vh]">
+      <div className="ui-card rounded-t-2xl sm:rounded-2xl w-full max-w-3xl overflow-hidden flex flex-col h-[92dvh] sm:h-auto sm:max-h-[90vh]">
         {/* Mobile Drag Handle Pill */}
         <div className="w-10 h-1 bg-black/20 dark:bg-white/20 rounded-full mx-auto my-1.5 block sm:hidden shrink-0" />
 
@@ -374,7 +383,22 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
               <p className="text-[10px] sm:text-[11px] text-[var(--text-secondary)] truncate">{t('config.modalSub')}</p>
             </div>
           </div>
-          <div className="flex items-center space-x-1 shrink-0">
+          <div className="flex items-center space-x-1.5 sm:space-x-1 shrink-0">
+            {/* Mobile-only Quick Save Button */}
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving}
+              className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white rounded-lg text-xs font-semibold flex items-center space-x-1 sm:hidden shadow-sm active:scale-95 disabled:opacity-50 transition-all"
+            >
+              {saving ? (
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Check className="w-3.5 h-3.5" />
+              )}
+              <span>{saving ? t('config.applying') : t('config.save')}</span>
+            </button>
+
             <a
               href="https://github.com/Tonyogo/gemini-proxy"
               target="_blank"
