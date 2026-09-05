@@ -34,6 +34,7 @@ import {
   detectLanguageClient,
   getLanguageName,
   buildTranslationSystemPrompt,
+  formatTranslationUserPrompt,
   StylePresetOption
 } from '../utils/translateHelper';
 
@@ -426,9 +427,10 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
     if (targets.length === 0) return;
 
     const systemPrompt = buildTranslationSystemPrompt(sourceLang, targetLang, style);
+    const userPrompt = formatTranslationUserPrompt(sourceText);
 
     targets.forEach(modelId => {
-      translateSingleModel(modelId, systemPrompt, sourceText);
+      translateSingleModel(modelId, systemPrompt, userPrompt);
     });
   };
 
@@ -895,7 +897,8 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
                         <button
                           onClick={() => {
                             const systemPrompt = buildTranslationSystemPrompt(sourceLang, targetLang, style);
-                            translateSingleModel(modelId, systemPrompt, sourceText);
+                            const userPrompt = formatTranslationUserPrompt(sourceText);
+                            translateSingleModel(modelId, systemPrompt, userPrompt);
                           }}
                           className="mt-1 self-start flex items-center gap-1 bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 px-3 py-1 rounded-lg text-xs transition"
                         >
