@@ -268,43 +268,32 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
           <ClipboardPaste className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
           <span className="text-[11px]">{t('webTerminal.paste')}</span>
         </button>
-
-        {/* Action: Copy (if has selection) OR Toggle Selection Mode */}
-        {hasSelection ? (
-          <button
-            type="button"
-            onTouchStart={(e) => e.preventDefault()}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={onCopy}
-            className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-mono text-xs font-semibold border border-indigo-400 shadow-[0_0_12px_rgba(99,102,241,0.5)] active:scale-95 flex items-center space-x-1 transition-all animate-in fade-in"
-            title={t('webTerminal.copy')}
-          >
-            <Copy className="w-3.5 h-3.5" />
-            <span className="text-[11px]">{t('webTerminal.copy')}</span>
-          </button>
-        ) : (
-          <button
-            type="button"
-            onTouchStart={(e) => e.preventDefault()}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={onToggleSelectMode}
-            className={`px-2 py-1 rounded-lg font-mono text-xs font-semibold border transition-all active:scale-95 flex items-center space-x-1 ${
-              isSelectMode
-                ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/40 shadow-sm'
-                : 'bg-black/[0.04] dark:bg-white/[0.05] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] text-[var(--text-primary)] border-[var(--border-subtle)] shadow-sm'
-            }`}
-            title={isSelectMode ? t('webTerminal.exitSelectMode') : t('webTerminal.selectMode')}
-          >
-            <TextSelect className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
-            <span className="text-[11px]">
-              {isSelectMode ? t('webTerminal.selectModeActive') : t('webTerminal.selectMode')}
-            </span>
-          </button>
-        )}
       </div>
 
-      {/* Right Fixed Controls: Snippets, Keyboard Toggle & Done/Checkmark Dismiss */}
+      {/* Right Fixed Controls: Selection/Copy, Snippets, Keyboard Toggle & Done/Checkmark Dismiss */}
       <div className="flex items-center space-x-1 pl-1 border-l border-[var(--border-subtle)] shrink-0">
+        {/* Select Mode / Copy Button (Always visible in mobile right thumb zone) */}
+        <button
+          type="button"
+          onTouchStart={(e) => e.preventDefault()}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={hasSelection ? onCopy : onToggleSelectMode}
+          className={`p-1.5 rounded-lg border transition-all active:scale-95 flex items-center justify-center ${
+            isSelectMode
+              ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/40 shadow-sm ring-1 ring-amber-500/30'
+              : hasSelection
+              ? 'bg-indigo-600 text-white border-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.5)]'
+              : 'bg-black/[0.04] dark:bg-white/[0.05] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] text-[var(--text-primary)] border-[var(--border-subtle)]'
+          }`}
+          title={hasSelection ? t('webTerminal.copySelection') : isSelectMode ? t('webTerminal.exitSelectMode') : t('webTerminal.selectMode')}
+        >
+          {hasSelection ? (
+            <Copy className="w-3.5 h-3.5" />
+          ) : (
+            <TextSelect className="w-3.5 h-3.5" />
+          )}
+        </button>
+
         <button
           type="button"
           onTouchStart={(e) => e.preventDefault()}

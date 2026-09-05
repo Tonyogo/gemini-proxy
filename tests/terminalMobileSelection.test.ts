@@ -7,7 +7,7 @@ describe('Terminal Mobile Selection and Copy/Paste Integration', () => {
   const zhLocalePath = path.resolve(__dirname, '../frontend/src/i18n/locales/zh.ts');
   const enLocalePath = path.resolve(__dirname, '../frontend/src/i18n/locales/en.ts');
 
-  it('verifies TerminalAccessoryBar provides paste, copy, and select mode buttons', () => {
+  it('verifies TerminalAccessoryBar provides paste, copy, and select mode buttons in right fixed controls', () => {
     const content = fs.readFileSync(accessoryBarPath, 'utf8');
     expect(content).toContain('onPaste');
     expect(content).toContain('onCopy');
@@ -16,9 +16,13 @@ describe('Terminal Mobile Selection and Copy/Paste Integration', () => {
     expect(content).toContain('TextSelect');
     expect(content).toContain('hasSelection');
     expect(content).toContain('isSelectMode');
+
+    // Button should be in right fixed controls (shrink-0) and use smart onClick
+    expect(content).toContain('onClick={hasSelection ? onCopy : onToggleSelectMode}');
+    expect(content).toContain('Right Fixed Controls: Selection/Copy, Snippets');
   });
 
-  it('verifies WebTerminalView implements selection and clipboard operations', () => {
+  it('verifies WebTerminalView implements selection, clipboard copy, and auto-reset', () => {
     const content = fs.readFileSync(webTerminalPath, 'utf8');
     expect(content).toContain('handleCopySelection');
     expect(content).toContain('handlePasteClipboard');
@@ -28,6 +32,18 @@ describe('Terminal Mobile Selection and Copy/Paste Integration', () => {
     expect(content).toContain('onSelectionChange');
     expect(content).toContain('getCellCoordsFromTouch');
     expect(content).toContain('term.select(');
+
+    // Auto-exit selection mode and clear selection upon copying
+    expect(content).toContain('setIsSelectMode(false)');
+    expect(content).toContain('isSelectModeRef.current = false');
+    expect(content).toContain('xtermRef.current?.clearSelection()');
+    expect(content).toContain('setHasSelection(false)');
+
+    // Floating selection toolbar components
+    expect(content).toContain('webTerminal.selectAllVisible');
+    expect(content).toContain('webTerminal.clearSelection');
+    expect(content).toContain('webTerminal.copy');
+    expect(content).toContain('webTerminal.done');
   });
 
   it('verifies localization strings are present in both zh.ts and en.ts', () => {
@@ -37,10 +53,14 @@ describe('Terminal Mobile Selection and Copy/Paste Integration', () => {
     const keys = [
       'copy',
       'paste',
+      'copySelection',
       'copiedToast',
+      'copiedToClipboard',
       'selectMode',
       'selectModeActive',
+      'selectModeTip',
       'selectAll',
+      'selectAllVisible',
       'clearSelection',
       'exitSelectMode'
     ];

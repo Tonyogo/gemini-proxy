@@ -483,6 +483,9 @@ export default function WebTerminalView({
         accumulatedDeltaY = 0;
 
         if (isSelectModeRef.current) {
+          if (e.cancelable) {
+            e.preventDefault();
+          }
           // In Selection Mode: record initial selection touch origin
           const cell = getCellCoordsFromTouch(touchStartX, touchStartY);
           if (cell) {
@@ -498,22 +501,14 @@ export default function WebTerminalView({
 
       const currentY = e.touches[0].clientY;
       const currentX = e.touches[0].clientX;
-      const deltaY = touchStartY - currentY;
-      const deltaX = touchStartX - currentX;
 
-      if (!isDragging && (Math.abs(deltaY) > 8 || Math.abs(deltaX) > 8)) {
-        isDragging = true;
-      }
-
-      if (!isDragging) return;
-
-      if (e.cancelable) {
-        e.preventDefault();
-      }
-      e.stopPropagation();
-
-      // IF IN SELECTION MODE: update selection range dynamically as finger drags
+      // IF IN SELECTION MODE: update selection range dynamically as finger drags immediately
       if (isSelectModeRef.current) {
+        if (e.cancelable) {
+          e.preventDefault();
+        }
+        e.stopPropagation();
+
         if (!selectionStartPos) {
           selectionStartPos = getCellCoordsFromTouch(touchStartX, touchStartY);
         }
@@ -538,6 +533,20 @@ export default function WebTerminalView({
         }
         return;
       }
+
+      const deltaY = touchStartY - currentY;
+      const deltaX = touchStartX - currentX;
+
+      if (!isDragging && (Math.abs(deltaY) > 8 || Math.abs(deltaX) > 8)) {
+        isDragging = true;
+      }
+
+      if (!isDragging) return;
+
+      if (e.cancelable) {
+        e.preventDefault();
+      }
+      e.stopPropagation();
 
       // STANDARD MODE: terminal scrolling
       touchStartY = currentY;
@@ -782,14 +791,48 @@ export default function WebTerminalView({
   const handleCopySelection = useCallback(() => {
     const text = xtermRef.current?.getSelection();
     if (text) {
-      navigator.clipboard.writeText(text).then(() => {
-        showToast(
-          t('webTerminal.copiedToast', { count: text.length.toString() }).replace('{count}', text.length.toString())
-        );
-      }).catch(() => {
-        // Fallback or permission blocked
-        showToast(t('webTerminal.copiedEmptyToast'));
-      });
+      const doCopy = () => {
+        showToast(t('webTerminal.copiedToClipboard'));
+        setIsSelectMode(false);
+        isSelectModeRef.current = false;
+        xtermRef.current?.clearSelection();
+        setHasSelection(false);
+      };
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(doCopy).catch(() => {
+          // Fallback if permission blocked or insecure context
+          try {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+          } catch {
+            // Ignore
+          }
+          doCopy();
+        });
+      } else {
+        try {
+          const textarea = document.createElement('textarea');
+          textarea.value = text;
+          textarea.style.position = 'fixed';
+          textarea.style.opacity = '0';
+          document.body.appendChild(textarea);
+          textarea.focus();
+          textarea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textarea);
+        } catch {
+          // Ignore
+        }
+        doCopy();
+      }
     }
   }, [showToast, t]);
 
@@ -1068,7 +1111,7 @@ export default function WebTerminalView({
 
         {/* Floating Selection Mode Bar */}
         {isSelectMode && (
-          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 flex items-center space-x-1.5 px-3 py-1.5 rounded-2xl bg-[var(--bg-surface)]/90 border border-amber-500/35 text-[var(--text-primary)] text-xs backdrop-blur-xl shadow-2xl animate-in fade-in slide-in-from-top-2 select-none">
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 flex items-center space-x-1.5 px-3 py-1.5 rounded-2xl bg-[var(--bg-surface)]/95 border border-amber-500/40 text-[var(--text-primary)] text-xs backdrop-blur-xl shadow-2xl animate-in fade-in slide-in-from-top-2 select-none">
             <div className="flex items-center space-x-1 text-amber-500 dark:text-amber-400 font-semibold px-1">
               <TextSelect className="w-3.5 h-3.5" />
               <span className="text-[11px]">{t('webTerminal.selectModeActive')}</span>
@@ -1076,13 +1119,13 @@ export default function WebTerminalView({
 
             <div className="h-3.5 w-[1px] bg-[var(--border-subtle)] mx-0.5" />
 
-            {/* Select All */}
+            {/* Select Screen / All */}
             <button
               type="button"
               onClick={handleSelectAll}
               className="px-2 py-0.5 rounded-lg bg-black/[0.05] dark:bg-white/[0.08] hover:bg-black/[0.1] dark:hover:bg-white/[0.15] active:scale-95 text-[var(--text-primary)] text-[11px] font-medium transition-all"
             >
-              {t('webTerminal.selectAll')}
+              {t('webTerminal.selectAllVisible')}
             </button>
 
             {/* Clear Selection */}
@@ -1096,29 +1139,31 @@ export default function WebTerminalView({
               </button>
             )}
 
-            {/* Copy Button (if has selection) */}
-            {hasSelection && (
-              <button
-                type="button"
-                onClick={() => {
-                  handleCopySelection();
-                  handleExitSelectMode();
-                }}
-                className="px-2.5 py-0.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-[11px] font-semibold flex items-center space-x-1 shadow-sm transition-all"
-              >
-                <Copy className="w-3 h-3" />
-                <span>{t('webTerminal.copy')}</span>
-              </button>
-            )}
+            {/* Copy Button (always visible, enabled when has selection) */}
+            <button
+              type="button"
+              disabled={!hasSelection}
+              onClick={handleCopySelection}
+              className={`px-2.5 py-0.5 rounded-lg text-[11px] font-semibold flex items-center space-x-1 transition-all ${
+                hasSelection
+                  ? 'bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white shadow-sm ring-1 ring-indigo-400/50 cursor-pointer'
+                  : 'bg-black/[0.04] dark:bg-white/[0.05] text-slate-400 opacity-40 cursor-not-allowed'
+              }`}
+              title={t('webTerminal.copy')}
+            >
+              <Copy className="w-3 h-3" />
+              <span>{t('webTerminal.copy')}</span>
+            </button>
 
-            {/* Exit Select Mode */}
+            {/* Exit / Done Select Mode */}
             <button
               type="button"
               onClick={handleExitSelectMode}
-              className="p-1 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-black/[0.08] dark:hover:bg-white/[0.1] active:scale-95 transition-all ml-1"
-              title={t('webTerminal.exitSelectMode')}
+              className="px-2 py-0.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 active:scale-95 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center space-x-1 text-[11px] font-semibold transition-all ml-0.5 cursor-pointer"
+              title={t('webTerminal.done')}
             >
-              <X className="w-3.5 h-3.5" />
+              <Check className="w-3 h-3 stroke-[2.5]" />
+              <span>{t('webTerminal.done')}</span>
             </button>
           </div>
         )}
