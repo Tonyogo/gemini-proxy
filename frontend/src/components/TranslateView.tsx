@@ -92,7 +92,7 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
     return ['gemini-flash-latest', 'gemini-pro-latest'];
   });
 
-  const [availableModels, setAvailableModels] = useState<string[]>([...STANDARD_MODELS]);
+  const [availableModels] = useState<readonly string[]>(STANDARD_MODELS);
   const [sourceText, setSourceText] = useState<string>('');
   const [detectedLang, setDetectedLang] = useState<string>('en');
 
@@ -132,26 +132,6 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
   useEffect(() => {
     localStorage.setItem('translate_compare_models', JSON.stringify(selectedCompareModels));
   }, [selectedCompareModels]);
-
-  // Fetch models list from API if available
-  useEffect(() => {
-    const headers: Record<string, string> = adminKey ? { 'x-admin-key': adminKey } : {};
-    fetch('/api/admin/models', { headers })
-      .then(r => r.json())
-      .then(data => {
-        if (data && data.mappings) {
-          const mappingKeys = Object.keys(data.mappings);
-          const mappingValues = Object.values(data.mappings).map((v: any) =>
-            typeof v === 'string' ? v : v?.target
-          ).filter(Boolean);
-          const merged = Array.from(new Set([...STANDARD_MODELS, ...mappingKeys, ...mappingValues]));
-          setAvailableModels(merged);
-        }
-      })
-      .catch(() => {
-        // Keep default models
-      });
-  }, [adminKey]);
 
   // Detect language whenever sourceText changes
   useEffect(() => {
@@ -681,7 +661,7 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
           ) : (
             /* Multi Model Comparison Pills */
             <div className="flex items-center gap-1 ui-tab-container flex-1 lg:flex-none max-w-none lg:max-w-xs overflow-x-auto p-0.5 sm:p-1 shrink-0">
-              {availableModels.slice(0, 4).map(m => {
+              {availableModels.map(m => {
                 const isSelected = selectedCompareModels.includes(m);
                 return (
                   <button

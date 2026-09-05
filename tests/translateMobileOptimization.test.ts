@@ -31,7 +31,7 @@ describe('Translate View Mobile Optimization & Model Harmonization', () => {
 
   test('TranslateView uses STANDARD_MODELS from modelHelpers', () => {
     expect(translateViewContent).toContain("import { STANDARD_MODELS } from '../utils/modelHelpers';");
-    expect(translateViewContent).toContain("const [availableModels, setAvailableModels] = useState<string[]>([...STANDARD_MODELS]);");
+    expect(translateViewContent).toContain("const [availableModels] = useState<readonly string[]>(STANDARD_MODELS);");
   });
 
   test('PlaygroundView uses STANDARD_MODELS from modelHelpers', () => {
