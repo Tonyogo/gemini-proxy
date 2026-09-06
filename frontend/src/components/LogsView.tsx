@@ -927,8 +927,8 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                         <div className="ui-tab-container text-[10px] font-medium p-0.5">
                           <button
                             onClick={() => setClientViewMode('preview')}
-                            className={`px-1.5 py-0.5 rounded-md flex items-center space-x-1 ${
-                              clientViewMode === 'preview' ? 'ui-tab-pill-active font-semibold' : 'text-slate-400 hover:text-slate-200'
+                            className={`ui-tab-pill px-1.5 py-0.5 rounded-md flex items-center space-x-1 ${
+                              clientViewMode === 'preview' ? 'ui-tab-pill-active font-semibold' : ''
                             }`}
                           >
                             <Eye className="w-3 h-3" />
@@ -936,8 +936,8 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                           </button>
                           <button
                             onClick={() => setClientViewMode('raw')}
-                            className={`px-1.5 py-0.5 rounded-md flex items-center space-x-1 ${
-                              clientViewMode === 'raw' ? 'ui-tab-pill-active font-semibold' : 'text-slate-400 hover:text-slate-200'
+                            className={`ui-tab-pill px-1.5 py-0.5 rounded-md flex items-center space-x-1 ${
+                              clientViewMode === 'raw' ? 'ui-tab-pill-active font-semibold' : ''
                             }`}
                           >
                             <Code className="w-3 h-3" />
@@ -1008,8 +1008,8 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                         <div className="ui-tab-container text-[10px] font-medium p-0.5">
                           <button
                             onClick={() => setUpstreamViewMode('preview')}
-                            className={`px-1.5 py-0.5 rounded-md flex items-center space-x-1 ${
-                              upstreamViewMode === 'preview' ? 'ui-tab-pill-active font-semibold' : 'text-slate-400 hover:text-slate-200'
+                            className={`ui-tab-pill px-1.5 py-0.5 rounded-md flex items-center space-x-1 ${
+                              upstreamViewMode === 'preview' ? 'ui-tab-pill-active font-semibold' : ''
                             }`}
                           >
                             <Eye className="w-3 h-3" />
@@ -1017,8 +1017,8 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                           </button>
                           <button
                             onClick={() => setUpstreamViewMode('raw')}
-                            className={`px-1.5 py-0.5 rounded-md flex items-center space-x-1 ${
-                              upstreamViewMode === 'raw' ? 'ui-tab-pill-active font-semibold' : 'text-slate-400 hover:text-slate-200'
+                            className={`ui-tab-pill px-1.5 py-0.5 rounded-md flex items-center space-x-1 ${
+                              upstreamViewMode === 'raw' ? 'ui-tab-pill-active font-semibold' : ''
                             }`}
                           >
                             <Code className="w-3 h-3" />
@@ -1127,8 +1127,8 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                         <div className="ui-tab-container text-[10px] font-medium p-0.5">
                           <button
                             onClick={() => setClientViewMode('preview')}
-                            className={`px-1.5 py-0.5 rounded-md flex items-center space-x-1 ${
-                              clientViewMode === 'preview' ? 'ui-tab-pill-active font-semibold' : 'text-slate-400 hover:text-slate-200'
+                            className={`ui-tab-pill px-1.5 py-0.5 rounded-md flex items-center space-x-1 ${
+                              clientViewMode === 'preview' ? 'ui-tab-pill-active font-semibold' : ''
                             }`}
                           >
                             <Eye className="w-3 h-3" />
@@ -1136,8 +1136,8 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                           </button>
                           <button
                             onClick={() => setClientViewMode('raw')}
-                            className={`px-1.5 py-0.5 rounded-md flex items-center space-x-1 ${
-                              clientViewMode === 'raw' ? 'ui-tab-pill-active font-semibold' : 'text-slate-400 hover:text-slate-200'
+                            className={`ui-tab-pill px-1.5 py-0.5 rounded-md flex items-center space-x-1 ${
+                              clientViewMode === 'raw' ? 'ui-tab-pill-active font-semibold' : ''
                             }`}
                           >
                             <Code className="w-3 h-3" />
@@ -1197,8 +1197,8 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                         <div className="ui-tab-container text-[10px] font-medium p-0.5">
                           <button
                             onClick={() => setUpstreamViewMode('preview')}
-                            className={`px-1.5 py-0.5 rounded-md flex items-center space-x-1 ${
-                              upstreamViewMode === 'preview' ? 'ui-tab-pill-active font-semibold' : 'text-slate-400 hover:text-slate-200'
+                            className={`ui-tab-pill px-1.5 py-0.5 rounded-md flex items-center space-x-1 ${
+                              upstreamViewMode === 'preview' ? 'ui-tab-pill-active font-semibold' : ''
                             }`}
                           >
                             <Eye className="w-3 h-3" />
@@ -1206,8 +1206,8 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
                           </button>
                           <button
                             onClick={() => setUpstreamViewMode('raw')}
-                            className={`px-1.5 py-0.5 rounded-md flex items-center space-x-1 ${
-                              upstreamViewMode === 'raw' ? 'ui-tab-pill-active font-semibold' : 'text-slate-400 hover:text-slate-200'
+                            className={`ui-tab-pill px-1.5 py-0.5 rounded-md flex items-center space-x-1 ${
+                              upstreamViewMode === 'raw' ? 'ui-tab-pill-active font-semibold' : ''
                             }`}
                           >
                             <Code className="w-3 h-3" />
