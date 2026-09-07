@@ -15,6 +15,8 @@ import {
   ShieldCheck,
   KeyRound,
   ChevronRight,
+  ChevronLeft,
+  Compass,
   Sparkles,
   Zap,
   Menu,
@@ -31,11 +33,13 @@ import PlaygroundView from './components/PlaygroundView';
 import UnifiedTerminalView from './components/UnifiedTerminalView';
 import WebTerminalView from './components/WebTerminalView';
 import TranslateView from './components/TranslateView';
+import DiscoverHubView, { DiscoverToolId } from './components/DiscoverHubView';
 import ConfigModal from './components/ConfigModal';
 import { useTranslation } from './i18n/LanguageContext';
 import { ThemeSwitcher } from './components/ThemeSwitcher';
 
-type TabType = 'dashboard' | 'accounts' | 'logs' | 'terminal' | 'playground' | 'translate';
+type TabType = 'dashboard' | 'accounts' | 'logs' | 'discover';
+export type DiscoverSubView = 'hub' | 'terminal' | 'playground' | 'translate';
 
 interface NavItem {
   id: TabType;
@@ -47,12 +51,10 @@ const NAV_ITEMS: NavItem[] = [
   { id: 'dashboard', icon: LayoutDashboard, shortcut: '⌘1' },
   { id: 'accounts', icon: Users, shortcut: '⌘2' },
   { id: 'logs', icon: FileText, shortcut: '⌘3' },
-  { id: 'terminal', icon: Terminal, shortcut: '⌘4' },
-  { id: 'playground', icon: Play, shortcut: '⌘5' },
-  { id: 'translate', icon: Languages, shortcut: '⌘6' },
+  { id: 'discover', icon: Compass, shortcut: '⌘4' },
 ];
 
-const VALID_TABS: TabType[] = ['dashboard', 'accounts', 'logs', 'terminal', 'playground', 'translate'];
+const VALID_TABS: TabType[] = ['dashboard', 'accounts', 'logs', 'discover'];
 
 const GITHUB_REPO_URL = 'https://github.com/Tonyogo/gemini-proxy';
 
@@ -69,8 +71,18 @@ export default function App() {
   const { t, lang, setLang } = useTranslation();
   const [activeTab, setActiveTab] = useState<TabType>(() => {
     const rawSaved = localStorage.getItem('admin_active_tab');
-    const saved = rawSaved === 'webTerminal' ? 'terminal' : (rawSaved as TabType);
+    if (rawSaved === 'terminal' || rawSaved === 'playground' || rawSaved === 'translate') {
+      return 'discover';
+    }
+    const saved = rawSaved === 'webTerminal' ? 'discover' : (rawSaved as TabType);
     return VALID_TABS.includes(saved) ? saved : 'dashboard';
+  });
+  const [discoverSubView, setDiscoverSubView] = useState<DiscoverSubView>(() => {
+    const rawSaved = localStorage.getItem('admin_active_tab');
+    if (rawSaved === 'terminal' || rawSaved === 'playground' || rawSaved === 'translate') {
+      return rawSaved as DiscoverSubView;
+    }
+    return 'hub';
   });
   const [isStandaloneTerminal, setIsStandaloneTerminal] = useState<boolean>(() => isTerminalRoute());
   const [adminKey, setAdminKey] = useState(localStorage.getItem('adminKey') || '');
@@ -113,8 +125,15 @@ export default function App() {
 
   // Switch tab and persist to localStorage
   const handleTabChange = (tabId: TabType) => {
+    if (tabId === 'discover' && activeTab === 'discover') {
+      setDiscoverSubView('hub');
+    }
     setActiveTab(tabId);
     localStorage.setItem('admin_active_tab', tabId);
+  };
+
+  const handleSelectDiscoverTool = (tool: DiscoverToolId) => {
+    setDiscoverSubView(tool);
   };
 
   // Modal State
@@ -346,7 +365,7 @@ export default function App() {
     return t(`nav.${activeTab}`);
   };
 
-  const isWorkbenchTab = ['playground', 'logs', 'translate', 'terminal'].includes(activeTab);
+  const isWorkbenchTab = activeTab === 'logs' || (activeTab === 'discover' && discoverSubView !== 'hub');
 
   return (
     <div className={`flex bg-[var(--bg-canvas)] text-[var(--text-primary)] font-sans selection:bg-indigo-500 selection:text-white antialiased ${
@@ -519,12 +538,23 @@ export default function App() {
         <header className="h-12 sm:h-14 backdrop-blur-md bg-[var(--bg-surface)]/80 border-b border-[var(--border-subtle)] px-3 sm:px-6 flex items-center justify-between sticky top-0 z-30 shrink-0">
           {/* Left Breadcrumbs & Brand / Sidebar Toggle */}
           <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
-            {/* Mobile Brand Logo Icon */}
-            <img
-              src="/favicon.svg"
-              alt="Gemini Proxy Logo"
-              className="w-7 h-7 shrink-0 md:hidden drop-shadow-[0_0_10px_rgba(99,102,241,0.4)] select-none"
-            />
+            {/* Mobile Brand Logo Icon or Discover Subview Back Button */}
+            {activeTab === 'discover' && discoverSubView !== 'hub' ? (
+              <button
+                type="button"
+                onClick={() => setDiscoverSubView('hub')}
+                className="flex items-center space-x-1 py-1 px-2 -ml-1.5 rounded-lg text-indigo-600 dark:text-indigo-400 font-medium text-xs hover:bg-indigo-500/10 active:scale-95 transition-all md:hidden"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                <span>{t('discover.back')}</span>
+              </button>
+            ) : (
+              <img
+                src="/favicon.svg"
+                alt="Gemini Proxy Logo"
+                className="w-7 h-7 shrink-0 md:hidden drop-shadow-[0_0_10px_rgba(99,102,241,0.4)] select-none"
+              />
+            )}
 
             {/* Desktop Sidebar Toggle */}
             <button
@@ -544,14 +574,32 @@ export default function App() {
             <div className="flex items-center space-x-1.5 sm:space-x-2 text-xs font-medium min-w-0">
               <span className="hidden sm:inline text-slate-500 shrink-0">Gemini Proxy</span>
               <ChevronRight className="hidden sm:inline w-3.5 h-3.5 text-slate-600 shrink-0" />
-              <span className="text-[var(--text-primary)] font-semibold truncate max-w-[130px] sm:max-w-none">{getActiveTabTitle()}</span>
+              {activeTab === 'discover' && discoverSubView !== 'hub' ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setDiscoverSubView('hub')}
+                    className="text-slate-400 hover:text-indigo-400 transition-colors hidden sm:inline"
+                  >
+                    {t('nav.discover')}
+                  </button>
+                  <ChevronRight className="hidden sm:inline w-3.5 h-3.5 text-slate-600 shrink-0" />
+                  <span className="text-[var(--text-primary)] font-semibold truncate max-w-[130px] sm:max-w-none">
+                    {discoverSubView === 'terminal' && t('discover.terminalTitle')}
+                    {discoverSubView === 'playground' && t('discover.playgroundTitle')}
+                    {discoverSubView === 'translate' && t('discover.translateTitle')}
+                  </span>
+                </>
+              ) : (
+                <span className="text-[var(--text-primary)] font-semibold truncate max-w-[130px] sm:max-w-none">{getActiveTabTitle()}</span>
+              )}
             </div>
           </div>
 
           {/* Right Action Controls */}
           <div className="flex items-center space-x-1 sm:space-x-2 shrink-0">
             {/* Mobile Terminal Fullscreen Trigger */}
-            {activeTab === 'terminal' && (
+            {activeTab === 'discover' && discoverSubView === 'terminal' && (
               <button
                 onClick={handleEnterStandalone}
                 title={t('webTerminal.fullscreen')}
@@ -625,7 +673,7 @@ export default function App() {
 
         {/* Main View Workspace */}
         <main className={`flex-1 overflow-x-hidden ${
-          activeTab === 'terminal'
+          activeTab === 'discover' && discoverSubView === 'terminal'
             ? 'p-0 md:p-6 pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))] md:pb-6 flex flex-col min-h-0 h-full max-h-full overflow-hidden'
             : isWorkbenchTab
               ? 'p-2 sm:p-4 md:p-6 pb-[calc(3.75rem+env(safe-area-inset-bottom,0px))] md:pb-6 flex flex-col min-h-0 h-full overflow-hidden'
@@ -649,24 +697,34 @@ export default function App() {
               adminKey={adminKey}
             />
           )}
-          {activeTab === 'terminal' && (
-            <UnifiedTerminalView
-              key={refreshTrigger}
-              adminKey={adminKey}
-              onEnterStandalone={handleEnterStandalone}
-            />
-          )}
-          {activeTab === 'playground' && (
-            <PlaygroundView
-              key={refreshTrigger}
-              adminKey={adminKey}
-            />
-          )}
-          {activeTab === 'translate' && (
-            <TranslateView
-              key={refreshTrigger}
-              adminKey={adminKey}
-            />
+          {activeTab === 'discover' && (
+            <>
+              {discoverSubView === 'hub' && (
+                <DiscoverHubView
+                  adminKey={adminKey}
+                  onSelectTool={handleSelectDiscoverTool}
+                />
+              )}
+              {discoverSubView === 'terminal' && (
+                <UnifiedTerminalView
+                  key={refreshTrigger}
+                  adminKey={adminKey}
+                  onEnterStandalone={handleEnterStandalone}
+                />
+              )}
+              {discoverSubView === 'playground' && (
+                <PlaygroundView
+                  key={refreshTrigger}
+                  adminKey={adminKey}
+                />
+              )}
+              {discoverSubView === 'translate' && (
+                <TranslateView
+                  key={refreshTrigger}
+                  adminKey={adminKey}
+                />
+              )}
+            </>
           )}
         </main>
 
