@@ -34,8 +34,8 @@ describe('PlaygroundView Header Controls Decoupling', () => {
   });
 
   test('stream toggle is positioned in row 2 after presets selector', () => {
-    const presetIndex = content.indexOf('handleApplyPreset');
-    const streamIndex = content.indexOf('handleToggleStreamInBody');
+    const presetIndex = content.lastIndexOf('handleApplyPreset');
+    const streamIndex = content.lastIndexOf('handleToggleStreamInBody');
     expect(streamIndex).toBeGreaterThan(presetIndex);
   });
 });

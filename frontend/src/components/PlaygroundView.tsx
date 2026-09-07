@@ -489,11 +489,11 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
   return (
     <div className="w-full flex-1 space-y-4 flex flex-col font-sans h-auto min-h-0 md:h-[calc(100dvh-6.5rem)] overflow-hidden">
       {/* Top Controls Header Workbench (Clean Control Bar with Strict 2-Row Mobile Grid) */}
-      <div className="ui-card p-2 sm:p-3 flex flex-col lg:flex-row lg:items-center justify-between gap-2 relative z-30 shrink-0">
-        {/* Row 1 (Mobile) / Left Group (Desktop): Model & Endpoint & Stream */}
+      <div className="ui-card p-2 sm:p-2.5 flex flex-col lg:flex-row lg:items-center justify-between gap-2 relative z-30 shrink-0">
+        {/* Row 1 (Mobile) / Left Group (Desktop): Model & Endpoint (Clean 50%/50% split) */}
         <div className="flex items-center gap-1.5 sm:gap-2 w-full lg:w-auto flex-1">
-          {/* Model Selector (Flexible compact pill) */}
-          <div className="flex items-center space-x-1.5 ui-card-sub px-2 py-1 flex-1 sm:flex-none min-w-0">
+          {/* 1. Model Selector (50% width on mobile) */}
+          <div className="flex items-center space-x-1.5 ui-card-sub px-2.5 py-1.5 flex-1 sm:flex-none min-w-0">
             <Sparkles className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
             <select
               value={selectedModel}
@@ -506,13 +506,13 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
             </select>
           </div>
 
-          {/* Endpoint selector & Stream Toggle combined pill */}
-          <div className="flex items-center space-x-1 ui-card-sub px-2 py-1 flex-[1.2] sm:flex-none min-w-0">
+          {/* 2. Endpoint Selector (50% width on mobile, without embedded buttons) */}
+          <div className="flex items-center space-x-1.5 ui-card-sub px-2.5 py-1.5 flex-1 sm:flex-none min-w-0">
             <Globe className="w-3.5 h-3.5 text-blue-400 shrink-0" />
             <select
               value={endpointOption}
               onChange={(e) => handleEndpointOptionChange(e.target.value as EndpointOption)}
-              className="bg-transparent text-xs text-[var(--text-primary)] focus:outline-none font-mono cursor-pointer truncate flex-1 min-w-0"
+              className="bg-transparent text-xs text-[var(--text-primary)] focus:outline-none font-mono cursor-pointer truncate w-full"
             >
               <option value="messages">POST /v1/messages</option>
               <option value="count_tokens">POST /v1/messages/count_tokens</option>
@@ -520,7 +520,7 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
             </select>
 
             {endpointOption === 'custom' && (
-              <div className="flex items-center space-x-1 pl-1 border-l border-[var(--border-subtle)]">
+              <div className="flex items-center space-x-1 pl-1 border-l border-[var(--border-subtle)] shrink-0">
                 <select
                   value={customMethod}
                   onChange={(e) => setCustomMethod(e.target.value)}
@@ -540,33 +540,16 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
                 />
               </div>
             )}
-
-            {/* Stream Toggle Pill embedded */}
-            {endpointOption !== 'custom' && (
-              <button
-                type="button"
-                onClick={handleToggleStreamInBody}
-                className={`p-1 rounded-md text-[10px] font-semibold flex items-center space-x-0.5 transition-all border shrink-0 ${
-                  isStreamChecked
-                    ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
-                    : 'bg-black/[0.04] dark:bg-white/[0.04] border-transparent text-slate-400 hover:text-slate-200'
-                }`}
-                title="Toggle stream: true/false in payload"
-              >
-                <Zap className={`w-3 h-3 ${isStreamChecked ? 'text-emerald-400' : 'text-slate-500'}`} />
-                <span className="hidden sm:inline">Stream</span>
-              </button>
-            )}
           </div>
 
           <div className="h-4 w-[1px] bg-white/10 mx-0.5 hidden sm:block" />
         </div>
 
-        {/* Row 2 (Mobile) / Right Group (Desktop): Presets, Tools, Status & Run Test Button */}
+        {/* Row 2 (Mobile) / Right Group (Desktop): Presets, Independent Stream Toggle, Tools, Status & Run Test Button */}
         <div className="flex items-center justify-between sm:justify-end gap-1.5 sm:gap-2 w-full lg:w-auto shrink-0">
-          <div className="flex items-center gap-1.5 shrink-0">
-            {/* Preset templates selector */}
-            <div className="relative">
+          <div className="flex items-center gap-1.5 shrink-0 overflow-x-auto no-scrollbar">
+            {/* 3. Presets Selector */}
+            <div className="relative shrink-0">
               <select
                 value={activePreset || ''}
                 onChange={(e) => {
@@ -585,7 +568,24 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
               <ChevronDown className="w-3 h-3 text-slate-400 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
 
-            {/* Copy cURL Button */}
+            {/* 4. Independent Stream Toggle Pill */}
+            {endpointOption !== 'custom' && (
+              <button
+                type="button"
+                onClick={handleToggleStreamInBody}
+                className={`px-2 py-1 rounded-xl text-xs font-semibold flex items-center space-x-1 transition-all border shrink-0 ${
+                  isStreamChecked
+                    ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.2)]'
+                    : 'ui-btn-secondary text-slate-400 hover:text-slate-200'
+                }`}
+                title="Toggle stream mode in payload"
+              >
+                <Zap className={`w-3 h-3 ${isStreamChecked ? 'text-emerald-400' : 'text-slate-500'}`} />
+                <span className="text-[11px]">Stream</span>
+              </button>
+            )}
+
+            {/* 5. Copy cURL Button */}
             <button
               onClick={handleCopyCurl}
               className="p-1 px-2 ui-btn-secondary flex items-center space-x-1 text-xs shrink-0 active:scale-95"
@@ -604,7 +604,7 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
               )}
             </button>
 
-            {/* Concurrent Stress Test Modal Trigger */}
+            {/* 6. Concurrent Stress Test Trigger */}
             <button
               onClick={handleOpenConcurrentModal}
               className="p-1 px-2 ui-btn-secondary flex items-center space-x-1 text-xs shrink-0 active:scale-95 hover:border-amber-500/30 hover:text-amber-300"
@@ -614,7 +614,7 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
               <span className="hidden sm:inline">{t('playground.stressTest')}</span>
             </button>
 
-            {/* System Key Status Indicator (Desktop only) */}
+            {/* 7. System Key Status Indicator (Desktop only) */}
             <div
               className="hidden lg:flex items-center space-x-1.5 px-2 py-1 rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-mono select-none shrink-0"
               title={t('playground.systemKeyDesc')}
@@ -624,11 +624,11 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
             </div>
           </div>
 
-          {/* Send Action Button */}
+          {/* 8. Send / Run Test Button */}
           <button
             onClick={handleSend}
             disabled={loading}
-            className="px-3 sm:px-4 py-1 ui-btn-primary flex items-center space-x-1.5 text-xs font-semibold disabled:opacity-50 shrink-0 shadow-md active:scale-95"
+            className="px-3 sm:px-4 py-1.5 ui-btn-primary flex items-center space-x-1.5 text-xs font-semibold disabled:opacity-50 shrink-0 shadow-md active:scale-95"
           >
             {loading ? (
               <>
