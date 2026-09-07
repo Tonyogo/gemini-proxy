@@ -9,6 +9,7 @@ export const zh: Translations = {
     webTerminal: "网页终端",
     playground: "API 调试器",
     translate: "翻译工作台",
+    discover: "发现",
     adminKeyPlaceholder: "管理员密钥",
     login: "登录",
     logout: "退出登录",
@@ -473,5 +474,20 @@ export const zh: Translations = {
       ctrlB: "^B",
       ctrlZ: "^Z"
     }
+  },
+  discover: {
+    title: "发现中心",
+    subtitle: "探索系统运行、接口调试与语言模型协同工具",
+    terminalTitle: "在线终端",
+    terminalDesc: "宿主环境诊断与实时指令交互终端",
+    playgroundTitle: "API 调试器",
+    playgroundDesc: "Claude 与 Gemini 原始报文及流式响应调试器",
+    translateTitle: "翻译工作台",
+    translateDesc: "AI 辅助智能翻译与多语言对比工作台",
+    back: "发现",
+    launch: "立即启动",
+    openWorkbench: "打开工作台",
+    systemCategory: "系统工具",
+    devCategory: "开发与测试"
   }
 };

@@ -7,6 +7,7 @@ export const en = {
     webTerminal: "Web Terminal",
     playground: "Playground",
     translate: "Translate Studio",
+    discover: "Discover",
     adminKeyPlaceholder: "Admin Secret Key",
     login: "Login",
     logout: "Logout",
@@ -471,6 +472,21 @@ export const en = {
       ctrlB: "^B",
       ctrlZ: "^Z"
     }
+  },
+  discover: {
+    title: "Discover Hub",
+    subtitle: "Explore system diagnostics, API debugging, and translation workbenches",
+    terminalTitle: "Web Terminal",
+    terminalDesc: "Host environment diagnostics & interactive shell terminal",
+    playgroundTitle: "API Playground",
+    playgroundDesc: "Raw Claude & Gemini JSON payload & SSE stream debugger",
+    translateTitle: "Translate Studio",
+    translateDesc: "AI-assisted translation & multi-model prompt workbench",
+    back: "Discover",
+    launch: "Launch",
+    openWorkbench: "Open Workbench",
+    systemCategory: "System Tools",
+    devCategory: "Developer Tools"
   }
 };
 
