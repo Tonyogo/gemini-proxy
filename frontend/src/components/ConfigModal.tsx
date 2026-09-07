@@ -54,6 +54,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
 
   const [systemRoleToInstruction, setSystemRoleToInstruction] = useState<boolean>(false);
   const [customSystemInstruction, setCustomSystemInstruction] = useState<string>('');
+  const [geminiBaseUrl, setGeminiBaseUrl] = useState<string>('https://generativelanguage.googleapis.com');
   const [upstreamTimeoutMs, setUpstreamTimeoutMs] = useState<number>(180000);
   const [logLevel, setLogLevel] = useState<string>('info');
   const [logRetentionDays, setLogRetentionDays] = useState<number>(3);
@@ -80,6 +81,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
         if (data?.config) {
           setSystemRoleToInstruction(Boolean(data.config.systemRoleToInstruction));
           setCustomSystemInstruction(data.config.customSystemInstruction || '');
+          setGeminiBaseUrl(data.config.geminiBaseUrl || 'https://generativelanguage.googleapis.com');
           setUpstreamTimeoutMs(data.config.upstreamTimeoutMs || 180000);
           setLogLevel(data.config.logLevel || 'info');
           setLogRetentionDays(data.config.logRetentionDays || 3);
@@ -298,6 +300,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
         body: JSON.stringify({
           systemRoleToInstruction,
           customSystemInstruction,
+          geminiBaseUrl: geminiBaseUrl.trim().replace(/\/+$/, ''),
           upstreamTimeoutMs,
           logLevel,
           logRetentionDays,
@@ -507,6 +510,34 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                     </div>
 
                     <div className="space-y-3.5 sm:space-y-4">
+                      {/* GEMINI_BASE_URL */}
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-semibold text-slate-200 block">
+                            {t('config.geminiBaseUrlTitle', 'GEMINI_BASE_URL')}
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => setGeminiBaseUrl('https://generativelanguage.googleapis.com')}
+                            className="text-[10px] font-mono text-blue-400 hover:text-blue-300 transition-colors flex items-center space-x-1"
+                          >
+                            <Zap className="w-2.5 h-2.5" />
+                            <span>{t('config.useOfficialDefault', '填入官方默认')}</span>
+                          </button>
+                        </div>
+                        <input
+                          type="text"
+                          value={geminiBaseUrl}
+                          onChange={(e) => setGeminiBaseUrl(e.target.value)}
+                          onBlur={() => setGeminiBaseUrl(prev => prev.trim().replace(/\/+$/, ''))}
+                          placeholder="https://generativelanguage.googleapis.com"
+                          className="w-full ui-input p-2.5 text-xs font-mono"
+                        />
+                        <p className="hidden sm:block text-[10px] text-slate-400">
+                          {t('config.geminiBaseUrlDesc', 'Gemini 官方 API 地址或反向代理网关。保存后所有请求实时生效。')}
+                        </p>
+                      </div>
+
                       <div className="space-y-1.5">
                         <label className="text-xs font-semibold text-slate-200 block">UPSTREAM_TIMEOUT_MS</label>
                         <div className="relative">
