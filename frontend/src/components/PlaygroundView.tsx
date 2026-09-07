@@ -488,17 +488,17 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
 
   return (
     <div className="w-full flex-1 space-y-4 flex flex-col font-sans h-auto min-h-0 md:h-[calc(100dvh-6.5rem)] overflow-hidden">
-      {/* Top Controls Header Workbench (Clean Control Bar aligned with TranslateView) */}
-      <div className="ui-card p-2.5 sm:p-3 flex flex-col lg:flex-row lg:items-center justify-between gap-2 sm:gap-2.5 relative z-30 shrink-0">
-        {/* Left Core Configuration Group (Model & Endpoint) */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto flex-1">
-          {/* Model Selector */}
-          <div className="flex items-center space-x-1.5 ui-card-sub px-2.5 py-1 flex-1 sm:flex-none">
+      {/* Top Controls Header Workbench (Clean Control Bar with Strict 2-Row Mobile Grid) */}
+      <div className="ui-card p-2 sm:p-3 flex flex-col lg:flex-row lg:items-center justify-between gap-2 relative z-30 shrink-0">
+        {/* Row 1 (Mobile) / Left Group (Desktop): Model & Endpoint & Stream */}
+        <div className="flex items-center gap-1.5 sm:gap-2 w-full lg:w-auto flex-1">
+          {/* Model Selector (Flexible compact pill) */}
+          <div className="flex items-center space-x-1.5 ui-card-sub px-2 py-1 flex-1 sm:flex-none min-w-0">
             <Sparkles className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
             <select
               value={selectedModel}
               onChange={(e) => handleModelChange(e.target.value)}
-              className="bg-transparent text-xs text-[var(--text-primary)] focus:outline-none font-mono cursor-pointer w-full sm:w-auto"
+              className="bg-transparent text-xs text-[var(--text-primary)] focus:outline-none font-mono cursor-pointer w-full truncate"
             >
               {STANDARD_MODELS.map((model) => (
                 <option key={model} value={model}>{model}</option>
@@ -506,13 +506,13 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
             </select>
           </div>
 
-          {/* Endpoint selector */}
-          <div className="flex items-center space-x-1.5 ui-card-sub px-2.5 py-1 flex-1 sm:flex-none">
+          {/* Endpoint selector & Stream Toggle combined pill */}
+          <div className="flex items-center space-x-1 ui-card-sub px-2 py-1 flex-[1.2] sm:flex-none min-w-0">
             <Globe className="w-3.5 h-3.5 text-blue-400 shrink-0" />
             <select
               value={endpointOption}
               onChange={(e) => handleEndpointOptionChange(e.target.value as EndpointOption)}
-              className="bg-transparent text-xs text-[var(--text-primary)] focus:outline-none font-mono cursor-pointer"
+              className="bg-transparent text-xs text-[var(--text-primary)] focus:outline-none font-mono cursor-pointer truncate flex-1 min-w-0"
             >
               <option value="messages">POST /v1/messages</option>
               <option value="count_tokens">POST /v1/messages/count_tokens</option>
@@ -520,11 +520,11 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
             </select>
 
             {endpointOption === 'custom' && (
-              <div className="flex items-center space-x-1 pl-1.5 border-l border-[var(--border-subtle)]">
+              <div className="flex items-center space-x-1 pl-1 border-l border-[var(--border-subtle)]">
                 <select
                   value={customMethod}
                   onChange={(e) => setCustomMethod(e.target.value)}
-                  className="bg-transparent text-xs text-indigo-500 dark:text-indigo-400 font-bold focus:outline-none cursor-pointer"
+                  className="bg-transparent text-[11px] text-indigo-500 dark:text-indigo-400 font-bold focus:outline-none cursor-pointer"
                 >
                   <option value="POST">POST</option>
                   <option value="GET">GET</option>
@@ -536,98 +536,99 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
                   value={customPath}
                   onChange={(e) => setCustomPath(e.target.value)}
                   placeholder="/v1/..."
-                  className="ui-input py-0.5 px-2 text-xs font-mono w-20 sm:w-36"
+                  className="ui-input py-0 px-1 text-[11px] font-mono w-16 sm:w-28"
                 />
               </div>
             )}
-          </div>
 
-          {/* Stream Toggle Pill */}
-          {endpointOption !== 'custom' && (
-            <div className="flex items-center gap-2 shrink-0">
-              <div className="h-4 w-[1px] bg-white/10 mx-0.5 hidden sm:block" />
+            {/* Stream Toggle Pill embedded */}
+            {endpointOption !== 'custom' && (
               <button
                 type="button"
                 onClick={handleToggleStreamInBody}
-                className={`px-2.5 py-1 rounded-xl text-xs font-semibold flex items-center justify-center space-x-1.5 transition-all border shrink-0 ${
+                className={`p-1 rounded-md text-[10px] font-semibold flex items-center space-x-0.5 transition-all border shrink-0 ${
                   isStreamChecked
-                    ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.15)]'
-                    : 'ui-btn-secondary text-slate-400 hover:text-slate-200'
+                    ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+                    : 'bg-black/[0.04] dark:bg-white/[0.04] border-transparent text-slate-400 hover:text-slate-200'
                 }`}
                 title="Toggle stream: true/false in payload"
               >
                 <Zap className={`w-3 h-3 ${isStreamChecked ? 'text-emerald-400' : 'text-slate-500'}`} />
-                <span>Stream</span>
+                <span className="hidden sm:inline">Stream</span>
               </button>
-            </div>
-          )}
-        </div>
-
-        {/* Right Auxiliary & Execution Action Group */}
-        <div className="flex items-center justify-between sm:justify-end gap-1.5 sm:gap-2 shrink-0">
-          {/* Preset templates selector */}
-          <div className="relative">
-            <select
-              value={activePreset || ''}
-              onChange={(e) => {
-                if (e.target.value) {
-                  handleApplyPreset(e.target.value as PresetKey);
-                }
-              }}
-              className="appearance-none ui-input pr-7 py-1 px-2.5 text-xs font-medium cursor-pointer"
-            >
-              <option value="" disabled>{t('playground.presets')}</option>
-              <option value="basicChat">{t('playground.presetBasicChat')}</option>
-              <option value="toolUse">{t('playground.presetToolUse')}</option>
-              <option value="vision">{t('playground.presetVision')}</option>
-              <option value="thinkingMode">{t('playground.presetThinkingMode')}</option>
-            </select>
-            <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+            )}
           </div>
 
-          {/* Copy cURL Button */}
-          <button
-            onClick={handleCopyCurl}
-            className="p-1.5 sm:px-2.5 sm:py-1 ui-btn-secondary flex items-center space-x-1.5 text-xs shrink-0 active:scale-95"
-            title={t('playground.copyCurl')}
-          >
-            {copiedCurl ? (
-              <>
-                <Check className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-emerald-400 hidden sm:inline">{t('playground.copied')}</span>
-              </>
-            ) : (
-              <>
-                <Code className="w-3.5 h-3.5 text-slate-400" />
-                <span className="hidden sm:inline">cURL</span>
-              </>
-            )}
-          </button>
+          <div className="h-4 w-[1px] bg-white/10 mx-0.5 hidden sm:block" />
+        </div>
 
-          {/* Concurrent Stress Test Modal Trigger */}
-          <button
-            onClick={handleOpenConcurrentModal}
-            className="p-1.5 sm:px-2.5 sm:py-1 ui-btn-secondary flex items-center space-x-1.5 text-xs shrink-0 active:scale-95 hover:border-amber-500/30 hover:text-amber-300"
-            title={t('playground.concurrentTest')}
-          >
-            <Flame className="w-3.5 h-3.5 text-amber-400" />
-            <span className="hidden sm:inline">{t('playground.stressTest')}</span>
-          </button>
+        {/* Row 2 (Mobile) / Right Group (Desktop): Presets, Tools, Status & Run Test Button */}
+        <div className="flex items-center justify-between sm:justify-end gap-1.5 sm:gap-2 w-full lg:w-auto shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* Preset templates selector */}
+            <div className="relative">
+              <select
+                value={activePreset || ''}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    handleApplyPreset(e.target.value as PresetKey);
+                  }
+                }}
+                className="appearance-none ui-input pr-6 py-1 px-2 text-xs font-medium cursor-pointer"
+              >
+                <option value="" disabled>{t('playground.presets')}</option>
+                <option value="basicChat">{t('playground.presetBasicChat')}</option>
+                <option value="toolUse">{t('playground.presetToolUse')}</option>
+                <option value="vision">{t('playground.presetVision')}</option>
+                <option value="thinkingMode">{t('playground.presetThinkingMode')}</option>
+              </select>
+              <ChevronDown className="w-3 h-3 text-slate-400 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
 
-          {/* System Key Status Indicator */}
-          <div
-            className="hidden sm:flex items-center space-x-1.5 px-2 py-1 rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-mono select-none shrink-0"
-            title={t('playground.systemKeyDesc')}
-          >
-            <Key className="w-3.5 h-3.5 shrink-0 text-emerald-500" />
-            <span className="font-medium whitespace-nowrap">{t('playground.systemKeyActive')}</span>
+            {/* Copy cURL Button */}
+            <button
+              onClick={handleCopyCurl}
+              className="p-1 px-2 ui-btn-secondary flex items-center space-x-1 text-xs shrink-0 active:scale-95"
+              title={t('playground.copyCurl')}
+            >
+              {copiedCurl ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="text-emerald-400 hidden sm:inline">{t('playground.copied')}</span>
+                </>
+              ) : (
+                <>
+                  <Code className="w-3.5 h-3.5 text-slate-400" />
+                  <span className="hidden sm:inline">cURL</span>
+                </>
+              )}
+            </button>
+
+            {/* Concurrent Stress Test Modal Trigger */}
+            <button
+              onClick={handleOpenConcurrentModal}
+              className="p-1 px-2 ui-btn-secondary flex items-center space-x-1 text-xs shrink-0 active:scale-95 hover:border-amber-500/30 hover:text-amber-300"
+              title={t('playground.concurrentTest')}
+            >
+              <Flame className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline">{t('playground.stressTest')}</span>
+            </button>
+
+            {/* System Key Status Indicator (Desktop only) */}
+            <div
+              className="hidden lg:flex items-center space-x-1.5 px-2 py-1 rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-mono select-none shrink-0"
+              title={t('playground.systemKeyDesc')}
+            >
+              <Key className="w-3.5 h-3.5 shrink-0 text-emerald-500" />
+              <span className="font-medium whitespace-nowrap">{t('playground.systemKeyActive')}</span>
+            </div>
           </div>
 
           {/* Send Action Button */}
           <button
             onClick={handleSend}
             disabled={loading}
-            className="px-3 sm:px-4 py-1.5 ui-btn-primary flex items-center space-x-1.5 text-xs font-semibold disabled:opacity-50 shrink-0 shadow-md active:scale-95"
+            className="px-3 sm:px-4 py-1 ui-btn-primary flex items-center space-x-1.5 text-xs font-semibold disabled:opacity-50 shrink-0 shadow-md active:scale-95"
           >
             {loading ? (
               <>
