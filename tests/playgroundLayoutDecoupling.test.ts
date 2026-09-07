@@ -38,4 +38,18 @@ describe('PlaygroundView Header Controls Decoupling', () => {
     const streamIndex = content.lastIndexOf('handleToggleStreamInBody');
     expect(streamIndex).toBeGreaterThan(presetIndex);
   });
+
+  test('stream toggle renders icon-only on mobile and preserves label on desktop', () => {
+    // Label should be hidden on mobile screens
+    expect(content).toMatch(/<span\s+className="hidden\s+sm:inline[^"]*">\s*Stream\s*<\/span>/);
+  });
+
+  test('presets dropdown has compact width constraint on mobile', () => {
+    // Presets select should have compact mobile width and truncation to prevent pushing row controls
+    expect(content).toMatch(/className="[^"]*w-\[72px\][^"]*truncate/);
+  });
+
+  test('run test button is pinned with shrink-0 and whitespace-nowrap', () => {
+    expect(content).toMatch(/handleSend[\s\S]*?shrink-0[\s\S]*?whitespace-nowrap/);
+  });
 });
