@@ -66,7 +66,7 @@ describe('LogsView & Preview Modes Theme Cleanliness Test', () => {
 
   it('verifies App shell applies dynamic viewport locking for workbench tabs', () => {
     const appCode = fs.readFileSync(path.join(__dirname, '../frontend/src/App.tsx'), 'utf-8');
-    expect(appCode).toContain("const isWorkbenchTab = ['playground', 'logs', 'translate', 'terminal'].includes(activeTab);");
+    expect(appCode).toContain("const isWorkbenchTab = activeTab === 'logs' || (activeTab === 'discover' && discoverSubView !== 'hub');");
     expect(appCode).toContain("isWorkbenchTab ? 'h-[100dvh] max-h-[100dvh] overflow-hidden' : 'min-h-[100dvh]'");
     expect(appCode).toContain("isWorkbenchTab ? 'h-full min-h-0 overflow-hidden' : ''");
   });
