@@ -95,6 +95,18 @@ export async function updateConfig(
     return;
   }
 
+  if (partialConfig.geminiBaseUrl !== undefined) {
+    if (typeof partialConfig.geminiBaseUrl === 'string') {
+      let cleanUrl = partialConfig.geminiBaseUrl.trim().replace(/\/+$/, '');
+      if (!cleanUrl) {
+        cleanUrl = process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com';
+      } else if (!/^https?:\/\//i.test(cleanUrl)) {
+        cleanUrl = `https://${cleanUrl}`;
+      }
+      partialConfig.geminiBaseUrl = cleanUrl;
+    }
+  }
+
   // Record only explicit keys
   Object.assign(runtimeOverrides, partialConfig);
   Object.assign(config, partialConfig);
