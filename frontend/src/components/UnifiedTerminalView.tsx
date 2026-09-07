@@ -4,14 +4,18 @@ import TerminalLogsView from './TerminalLogsView';
 
 export interface UnifiedTerminalViewProps {
   adminKey: string;
+  isStandalone?: boolean;
   onEnterStandalone?: () => void;
+  onExitStandalone?: () => void;
 }
 
 export type TerminalSubTab = 'interactive' | 'logs';
 
 export default function UnifiedTerminalView({
   adminKey,
+  isStandalone,
   onEnterStandalone,
+  onExitStandalone,
 }: UnifiedTerminalViewProps) {
   const [subTab, setSubTab] = useState<TerminalSubTab>(() => {
     const saved = localStorage.getItem('terminal_sub_tab');
@@ -48,12 +52,15 @@ export default function UnifiedTerminalView({
         <div className={`w-full flex-1 flex flex-col min-h-0 ${subTab === 'interactive' ? '' : 'hidden'}`}>
           <WebTerminalView
             adminKey={adminKey}
-            standalone={false}
+            standalone={Boolean(isStandalone)}
+            onExitStandalone={onExitStandalone}
             subTab={subTab}
             onSubTabChange={handleSubTabChange}
             onToggleStandalone={(val) => {
               if (val && onEnterStandalone) {
                 onEnterStandalone();
+              } else if (!val && onExitStandalone) {
+                onExitStandalone();
               }
             }}
           />

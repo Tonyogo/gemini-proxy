@@ -31,7 +31,6 @@ import AccountsView from './components/AccountsView';
 import LogsView from './components/LogsView';
 import PlaygroundView from './components/PlaygroundView';
 import UnifiedTerminalView from './components/UnifiedTerminalView';
-import WebTerminalView from './components/WebTerminalView';
 import TranslateView from './components/TranslateView';
 import DiscoverHubView, { DiscoverToolId } from './components/DiscoverHubView';
 import ConfigModal from './components/ConfigModal';
@@ -70,6 +69,9 @@ const isTerminalRoute = (): boolean => {
 export default function App() {
   const { t, lang, setLang } = useTranslation();
   const [activeTab, setActiveTab] = useState<TabType>(() => {
+    if (isTerminalRoute()) {
+      return 'discover';
+    }
     const rawSaved = localStorage.getItem('admin_active_tab');
     if (rawSaved === 'terminal' || rawSaved === 'playground' || rawSaved === 'translate') {
       return 'discover';
@@ -78,6 +80,9 @@ export default function App() {
     return VALID_TABS.includes(saved) ? saved : 'dashboard';
   });
   const [discoverSubView, setDiscoverSubView] = useState<DiscoverSubView>(() => {
+    if (isTerminalRoute()) {
+      return 'terminal';
+    }
     const rawSaved = localStorage.getItem('admin_active_tab');
     if (rawSaved === 'terminal' || rawSaved === 'playground' || rawSaved === 'translate') {
       return rawSaved as DiscoverSubView;
@@ -94,7 +99,12 @@ export default function App() {
 
   useEffect(() => {
     const handlePopState = () => {
-      setIsStandaloneTerminal(isTerminalRoute());
+      const isTerm = isTerminalRoute();
+      setIsStandaloneTerminal(isTerm);
+      if (isTerm) {
+        setActiveTab('discover');
+        setDiscoverSubView('terminal');
+      }
     };
     window.addEventListener('popstate', handlePopState);
     window.addEventListener('hashchange', handlePopState);
@@ -114,6 +124,8 @@ export default function App() {
   };
 
   const handleEnterStandalone = () => {
+    setActiveTab('discover');
+    setDiscoverSubView('terminal');
     setIsStandaloneTerminal(true);
     window.history.pushState(null, '', '#/terminal');
   };
@@ -360,20 +372,6 @@ export default function App() {
             )}
           </p>
         </div>
-      </div>
-    );
-  }
-
-  // Standalone Fullscreen Terminal Mode (Zero DOM bleed)
-  if (isStandaloneTerminal) {
-    return (
-      <div className="fixed inset-0 z-50 w-full h-full bg-[#07090E] overflow-hidden">
-        <WebTerminalView
-          key={refreshTrigger}
-          adminKey={adminKey}
-          standalone={true}
-          onExitStandalone={handleExitStandalone}
-        />
       </div>
     );
   }
@@ -737,7 +735,9 @@ export default function App() {
                 <UnifiedTerminalView
                   key={refreshTrigger}
                   adminKey={adminKey}
+                  isStandalone={isStandaloneTerminal}
                   onEnterStandalone={handleEnterStandalone}
+                  onExitStandalone={handleExitStandalone}
                 />
               )}
               {discoverSubView === 'playground' && (
