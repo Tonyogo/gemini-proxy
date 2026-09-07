@@ -778,7 +778,27 @@ export default function WebTerminalView({
       }, 80);
     };
 
+    let orientationTimer: NodeJS.Timeout | null = null;
+    const handleOrientationChange = () => {
+      handleHideKeyboard();
+      baseWidthRef.current = window.innerWidth;
+      baseHeightRef.current = window.innerHeight;
+      if (orientationTimer) {
+        clearTimeout(orientationTimer);
+      }
+      orientationTimer = setTimeout(() => {
+        if (isMountedRef.current && fitAddonRef.current && xtermRef.current) {
+          fitAddonRef.current.fit();
+          sendResize(xtermRef.current.cols, xtermRef.current.rows);
+          if (xtermRef.current.buffer.active.type !== 'alternate') {
+            xtermRef.current.scrollToBottom();
+          }
+        }
+      }, 100);
+    };
+
     window.addEventListener('resize', handleViewportChange);
+    window.addEventListener('orientationchange', handleOrientationChange);
 
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', handleViewportChange);
@@ -792,6 +812,9 @@ export default function WebTerminalView({
       isMountedRef.current = false;
       clearReconnectTimers();
       clearTimeout(fitTimer);
+      if (orientationTimer) {
+        clearTimeout(orientationTimer);
+      }
       if (viewportDebounceTimerRef.current) {
         clearTimeout(viewportDebounceTimerRef.current);
       }
@@ -809,6 +832,7 @@ export default function WebTerminalView({
         container.removeEventListener('touchend', handleTouchEnd);
       }
       window.removeEventListener('resize', handleViewportChange);
+      window.removeEventListener('orientationchange', handleOrientationChange);
       if (window.visualViewport) {
         window.visualViewport.removeEventListener('resize', handleViewportChange);
         window.visualViewport.removeEventListener('scroll', handleViewportChange);

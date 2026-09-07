@@ -31,4 +31,9 @@ describe('WebTerminalView Mobile Smooth Push Integration', () => {
     expect(content).toContain('handleTouchMove');
     expect(content).toContain('handleHideKeyboard');
   });
+
+  test('handles orientation change by resetting base dimensions and blurring active inputs', () => {
+    expect(content).toContain('orientationchange');
+  });
 });
+

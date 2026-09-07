@@ -362,7 +362,7 @@ git commit -m "feat(terminal): implement mobile smooth translateY push and isola
 - Test: `tests/terminalMobileSmoothPush.test.ts`
 - Test: `tests/terminalMobileKeyboard.test.ts`
 
-- [ ] **Step 1: 补充旋转检测与处理的测试**
+- [x] **Step 1: 补充旋转检测与处理的测试**
 
 Add to `tests/terminalMobileSmoothPush.test.ts`:
 ```ts
@@ -371,12 +371,12 @@ Add to `tests/terminalMobileSmoothPush.test.ts`:
   });
 ```
 
-- [ ] **Step 2: 运行测试并验证失败**
+- [x] **Step 2: 运行测试并验证失败**
 
 Run: `npx jest tests/terminalMobileSmoothPush.test.ts`
 Expected: FAIL because orientationchange listener is not yet wired.
 
-- [ ] **Step 3: 完善旋转监听与清理逻辑**
+- [x] **Step 3: 完善旋转监听与清理逻辑**
 
 In `frontend/src/components/WebTerminalView.tsx`:
 - 添加 `orientationchange` 监听，在屏幕旋转时：
@@ -384,17 +384,17 @@ In `frontend/src/components/WebTerminalView.tsx`:
   2. 重置 `baseWidthRef.current = window.innerWidth` 与 `baseHeightRef.current = window.innerHeight`；
   3. 延迟 100ms 触发一次完整的 `fitAddon.fit()` 与 `sendResize`。
 
-- [ ] **Step 4: 运行所有终端移动端相关测试**
+- [x] **Step 4: 运行所有终端移动端相关测试**
 
 Run: `npx jest tests/terminalMobile*.test.ts tests/mobileViewportHelper.test.ts`
 Expected: PASS with 100% tests passing.
 
-- [ ] **Step 5: 运行前端构建验证**
+- [x] **Step 5: 运行前端构建验证**
 
 Run: `npm run build:frontend`
 Expected: 0 errors, Vite production build successfully generated in `dist/frontend`.
 
-- [ ] **Step 6: 提交更改**
+- [x] **Step 6: 提交更改**
 
 ```bash
 git add frontend/src/components/WebTerminalView.tsx tests/terminalMobileSmoothPush.test.ts
