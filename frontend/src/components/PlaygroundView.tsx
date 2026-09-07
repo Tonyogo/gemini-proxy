@@ -39,7 +39,7 @@ type PresetKey = 'basicChat' | 'toolUse' | 'vision' | 'thinkingMode';
 
 const PRESETS: Record<PresetKey, any> = {
   basicChat: {
-    model: "gemini-flash-latest",
+    model: "gemini-flash-lite-latest",
     max_tokens: 1024,
     messages: [
       { role: "user", content: "Hello! Explain quantum computing in simple terms." }
@@ -47,7 +47,7 @@ const PRESETS: Record<PresetKey, any> = {
     stream: true
   },
   toolUse: {
-    model: "gemini-flash-latest",
+    model: "gemini-flash-lite-latest",
     max_tokens: 1024,
     tools: [
       {
@@ -69,7 +69,7 @@ const PRESETS: Record<PresetKey, any> = {
     stream: false
   },
   vision: {
-    model: "gemini-flash-latest",
+    model: "gemini-flash-lite-latest",
     max_tokens: 1024,
     messages: [
       {
@@ -109,13 +109,13 @@ const PRESETS: Record<PresetKey, any> = {
 const DEFAULT_PRESETS: Record<EndpointOption, any> = {
   messages: PRESETS.basicChat,
   count_tokens: {
-    model: "gemini-flash-latest",
+    model: "gemini-flash-lite-latest",
     messages: [
       { role: "user", content: "Hello! Count the tokens in this message." }
     ]
   },
   custom: {
-    model: "gemini-flash-latest",
+    model: "gemini-flash-lite-latest",
     messages: [
       { role: "user", content: "Test custom endpoint payload" }
     ]
@@ -130,7 +130,7 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
   const [endpointOption, setEndpointOption] = useState<EndpointOption>('messages');
   const [customMethod, setCustomMethod] = useState<string>('POST');
   const [customPath, setCustomPath] = useState<string>('/v1/models');
-  const [selectedModel, setSelectedModel] = useState<string>('gemini-flash-latest');
+  const [selectedModel, setSelectedModel] = useState<string>('gemini-flash-lite-latest');
 
   const [requestBody, setRequestBody] = useState<string>(JSON.stringify(DEFAULT_PRESETS.messages, null, 2));
   const [responseRaw, setResponseRaw] = useState<string>(() => t('playground.initialResponse'));
@@ -226,7 +226,7 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
     setActivePreset(key);
     const preset = PRESETS[key];
     setRequestBody(JSON.stringify(preset, null, 2));
-    setSelectedModel(preset.model || 'gemini-flash-latest');
+    setSelectedModel(preset.model || 'gemini-flash-lite-latest');
     setEndpointOption('messages');
     setShowPresetsDropdown(false);
   };

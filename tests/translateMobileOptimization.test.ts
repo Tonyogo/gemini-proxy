@@ -43,6 +43,17 @@ describe('Translate View Mobile Optimization & Model Harmonization', () => {
     expect(concurrentModalContent).toContain("import { STANDARD_MODELS } from '../utils/modelHelpers';");
     expect(concurrentModalContent).toContain("{STANDARD_MODELS.map((model) => (");
   });
+
+  test('TranslateView and PlaygroundView default to gemini-flash-lite-latest', () => {
+    // TranslateView fallback model
+    expect(translateViewContent).toContain("return 'gemini-flash-lite-latest';");
+    // PlaygroundView selectedModel default state
+    expect(playgroundContent).toContain("const [selectedModel, setSelectedModel] = useState<string>('gemini-flash-lite-latest');");
+    // PlaygroundView default presets model
+    expect(playgroundContent).toContain('model: "gemini-flash-lite-latest"');
+    // ConcurrentTestModal fallback model
+    expect(concurrentModalContent).toContain("'gemini-flash-lite-latest'");
+  });
 });
 
 

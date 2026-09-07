@@ -47,7 +47,7 @@ export default function ConcurrentTestModal({
   const { t } = useTranslation();
   const [concurrency, setConcurrency] = useState<number>(5);
   const [totalRequests, setTotalRequests] = useState<number>(10);
-  const [targetModel, setTargetModel] = useState<string>(parsedPayload?.model || 'gemini-flash-latest');
+  const [targetModel, setTargetModel] = useState<string>(parsedPayload?.model || 'gemini-flash-lite-latest');
 
   const [testing, setTesting] = useState(false);
   const [completedCount, setCompletedCount] = useState<number>(0);

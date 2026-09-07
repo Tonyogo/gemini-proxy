@@ -74,7 +74,7 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
     if (saved && (STANDARD_MODELS as readonly string[]).includes(saved)) {
       return saved;
     }
-    return 'gemini-flash-latest';
+    return 'gemini-flash-lite-latest';
   });
   const [selectedCompareModels, setSelectedCompareModels] = useState<string[]>(() => {
     const saved = localStorage.getItem('translate_compare_models');
@@ -89,7 +89,7 @@ export default function TranslateView({ adminKey }: { adminKey: string }) {
         // fallback
       }
     }
-    return ['gemini-flash-latest', 'gemini-pro-latest'];
+    return ['gemini-flash-lite-latest', 'gemini-flash-latest'];
   });
 
   const [availableModels] = useState<readonly string[]>(STANDARD_MODELS);
