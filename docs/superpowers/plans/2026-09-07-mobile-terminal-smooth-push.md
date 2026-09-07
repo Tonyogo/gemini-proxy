@@ -244,7 +244,7 @@ git commit -m "feat(terminal): add mobileViewportHelper for keyboard offset and 
   - `calculateKeyboardTranslateY` from `../utils/mobileViewportHelper`
   - `shouldBlockPtyResize` from `../utils/mobileViewportHelper`
 
-- [ ] **Step 1: 编写组件集成的失败测试用例**
+- [x] **Step 1: 编写组件集成的失败测试用例**
 
 Create `tests/terminalMobileSmoothPush.test.ts`:
 ```ts
@@ -284,12 +284,12 @@ describe('WebTerminalView Mobile Smooth Push Integration', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试并验证测试失败**
+- [x] **Step 2: 运行测试并验证测试失败**
 
 Run: `npx jest tests/terminalMobileSmoothPush.test.ts`
 Expected: FAIL due to missing imports and logic in `WebTerminalView.tsx`.
 
-- [ ] **Step 3: 修改 `WebTerminalView.tsx` 实现键盘平滑上推与拦截**
+- [x] **Step 3: 修改 `WebTerminalView.tsx` 实现键盘平滑上推与拦截**
 
 In `frontend/src/components/WebTerminalView.tsx`:
 1. 导入 `calculateKeyboardTranslateY` 与 `shouldBlockPtyResize`：
@@ -341,12 +341,12 @@ In `frontend/src/components/WebTerminalView.tsx`:
 5. 在手势处理中增加下滑退出键盘（仿微信聊天交互）：
    - 在 `handleTouchMove` 中，若 `isKeyboardShowingRef.current` 为 true，且检测到用户向下手势滑动（`deltaY < -25`），自动触发 `handleHideKeyboard()`。
 
-- [ ] **Step 4: 运行组件集成测试并验证通过**
+- [x] **Step 4: 运行组件集成测试并验证通过**
 
 Run: `npx jest tests/terminalMobileSmoothPush.test.ts`
 Expected: PASS with 5 tests passed.
 
-- [ ] **Step 5: 提交更改**
+- [x] **Step 5: 提交更改**
 
 ```bash
 git add frontend/src/components/WebTerminalView.tsx tests/terminalMobileSmoothPush.test.ts

@@ -25,6 +25,10 @@ import { TerminalAccessoryBar } from './terminal/TerminalAccessoryBar';
 import { TerminalSnippetsDrawer } from './terminal/TerminalSnippetsDrawer';
 import { isSyntheticTerminalReport } from '../utils/terminalFilter';
 import { encodeModifierKey } from '../utils/terminalKeyEncoder';
+import {
+  calculateKeyboardTranslateY,
+  shouldBlockPtyResize,
+} from '../utils/mobileViewportHelper';
 
 const DARK_TERMINAL_THEME = {
   background: '#090A0F',
@@ -154,6 +158,27 @@ export default function WebTerminalView({
   const [isMobile, setIsMobile] = useState<boolean>(() => {
     return typeof window !== 'undefined' ? window.innerWidth < 768 : false;
   });
+
+  const baseHeightRef = useRef<number>(typeof window !== 'undefined' ? window.innerHeight : 0);
+  const baseWidthRef = useRef<number>(typeof window !== 'undefined' ? window.innerWidth : 0);
+  const isKeyboardShowingRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      baseHeightRef.current = window.innerHeight;
+      baseWidthRef.current = window.innerWidth;
+    }
+  }, [standalone]);
+
+  const handleHideKeyboard = () => {
+    const textarea = terminalContainerRef.current?.querySelector('textarea');
+    if (textarea) {
+      textarea.blur();
+    }
+    (document.activeElement as HTMLElement)?.blur();
+    setIsKeyboardOpen(false);
+    isKeyboardShowingRef.current = false;
+  };
 
   const fontSizeRef = useRef<number>(fontSize);
   fontSizeRef.current = fontSize;
@@ -561,6 +586,11 @@ export default function WebTerminalView({
       const deltaY = touchStartY - currentY;
       const deltaX = touchStartX - currentX;
 
+      // When virtual keyboard is showing on mobile, swipe down to dismiss
+      if (isKeyboardShowingRef.current && deltaY < -25) {
+        handleHideKeyboard();
+      }
+
       if (!isDragging && (Math.abs(deltaY) > 8 || Math.abs(deltaX) > 8)) {
         isDragging = true;
       }
@@ -665,27 +695,48 @@ export default function WebTerminalView({
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
 
+      let isKeyboardShowing = false;
+      let translateY = 0;
+
       if (window.visualViewport) {
         const vv = window.visualViewport;
-        if (vv.height < window.innerHeight * 0.82) {
+        const offsetResult = calculateKeyboardTranslateY({
+          baseHeight: baseHeightRef.current,
+          viewportHeight: vv.height,
+          offsetTop: vv.offsetTop,
+        });
+        isKeyboardShowing = offsetResult.isKeyboardShowing;
+        translateY = offsetResult.translateY;
+
+        if (isKeyboardShowing) {
           setIsKeyboardOpen(true);
         } else {
           const textarea = terminalContainerRef.current?.querySelector('textarea');
           if (document.activeElement !== textarea) {
             setIsKeyboardOpen(false);
           }
+          // When keyboard is hidden, sync base dimensions to account for URL bar show/hide
+          baseHeightRef.current = window.innerHeight;
+          baseWidthRef.current = window.innerWidth;
         }
+      } else {
+        baseHeightRef.current = window.innerHeight;
+        baseWidthRef.current = window.innerWidth;
       }
 
-      if (mobile && standalone && window.visualViewport) {
-        const vv = window.visualViewport;
+      isKeyboardShowingRef.current = isKeyboardShowing;
+
+      if (mobile && standalone) {
         setViewportStyle({
           position: 'fixed',
-          top: `${vv.offsetTop}px`,
-          left: `${vv.offsetLeft}px`,
-          width: `${vv.width}px`,
-          height: `${vv.height}px`,
-          maxHeight: `${vv.height}px`,
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: `${baseHeightRef.current}px`,
+          maxHeight: `${baseHeightRef.current}px`,
+          transform: `translate3d(0, -${translateY}px, 0)`,
+          transition: 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
+          willChange: 'transform',
           zIndex: 50,
           borderRadius: 0,
           border: 'none',
@@ -695,11 +746,25 @@ export default function WebTerminalView({
         setViewportStyle({});
       }
 
-      if (fitAddonRef.current && xtermRef.current) {
-        fitAddonRef.current.fit();
-        sendResize(xtermRef.current.cols, xtermRef.current.rows);
-        if (xtermRef.current.buffer.active.type !== 'alternate') {
+      const blockResize = shouldBlockPtyResize({
+        baseWidth: baseWidthRef.current,
+        currentWidth: window.innerWidth,
+        isKeyboardShowing,
+        isMobile: mobile,
+        standalone,
+      });
+
+      if (blockResize) {
+        if (xtermRef.current && xtermRef.current.buffer.active.type !== 'alternate') {
           xtermRef.current.scrollToBottom();
+        }
+      } else {
+        if (fitAddonRef.current && xtermRef.current) {
+          fitAddonRef.current.fit();
+          sendResize(xtermRef.current.cols, xtermRef.current.rows);
+          if (xtermRef.current.buffer.active.type !== 'alternate') {
+            xtermRef.current.scrollToBottom();
+          }
         }
       }
     };
@@ -837,15 +902,6 @@ export default function WebTerminalView({
   const handleRunCommand = (cmd: string, execute: boolean) => {
     const textToSend = execute ? `${cmd}\r` : cmd;
     handleSendInput(textToSend);
-  };
-
-  const handleHideKeyboard = () => {
-    const textarea = terminalContainerRef.current?.querySelector('textarea');
-    if (textarea) {
-      textarea.blur();
-    }
-    (document.activeElement as HTMLElement)?.blur();
-    setIsKeyboardOpen(false);
   };
 
   const handleToggleKeyboard = () => {
