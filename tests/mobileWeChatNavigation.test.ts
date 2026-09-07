@@ -22,7 +22,7 @@ describe('Mobile WeChat-Style Immersive Detail Navigation', () => {
   test('App.tsx should detect mobile detail immersion and conditionally hide mobile bottom nav', () => {
     expect(appContent).toMatch(/isMobileDetailActive|isMobileImmersive/);
     // Bottom nav must be conditionally rendered based on immersion
-    expect(appContent).toMatch(/!isMobileDetailActive\s*&&\s*<nav[^>]*fixed bottom-0/);
+    expect(appContent).toMatch(/!isMobileDetailActive\s*&&\s*\(?\s*<nav[^>]*fixed bottom-0/);
   });
 
   test('App.tsx should render WeChat-style back button in top bar during mobile detail immersion', () => {

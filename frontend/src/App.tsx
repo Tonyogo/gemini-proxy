@@ -123,10 +123,28 @@ export default function App() {
     return localStorage.getItem('sidebar_collapsed') === 'true';
   });
 
+  const [mobileLogDetailOpen, setMobileLogDetailOpen] = useState<boolean>(false);
+
+  // Calculate composite mobile immersive detail state
+  const isMobileDetailActive =
+    (activeTab === 'logs' && mobileLogDetailOpen) ||
+    (activeTab === 'discover' && discoverSubView !== 'hub');
+
+  const handleMobileBack = () => {
+    if (activeTab === 'logs') {
+      setMobileLogDetailOpen(false);
+    } else if (activeTab === 'discover') {
+      setDiscoverSubView('hub');
+    }
+  };
+
   // Switch tab and persist to localStorage
   const handleTabChange = (tabId: TabType) => {
     if (tabId === 'discover' && activeTab === 'discover') {
       setDiscoverSubView('hub');
+    }
+    if (tabId !== 'logs') {
+      setMobileLogDetailOpen(false);
     }
     setActiveTab(tabId);
     localStorage.setItem('admin_active_tab', tabId);
@@ -538,15 +556,15 @@ export default function App() {
         <header className="h-12 sm:h-14 backdrop-blur-md bg-[var(--bg-surface)]/80 border-b border-[var(--border-subtle)] px-3 sm:px-6 flex items-center justify-between sticky top-0 z-30 shrink-0">
           {/* Left Breadcrumbs & Brand / Sidebar Toggle */}
           <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
-            {/* Mobile Brand Logo Icon or Discover Subview Back Button */}
-            {activeTab === 'discover' && discoverSubView !== 'hub' ? (
+            {/* Mobile Brand Logo Icon or Immersive Detail Back Button */}
+            {isMobileDetailActive ? (
               <button
                 type="button"
-                onClick={() => setDiscoverSubView('hub')}
-                className="flex items-center space-x-1 py-1 px-2 -ml-1.5 rounded-lg text-indigo-600 dark:text-indigo-400 font-medium text-xs hover:bg-indigo-500/10 active:scale-95 transition-all md:hidden"
+                onClick={handleMobileBack}
+                className="flex items-center space-x-1 py-1 px-2 -ml-2 rounded-lg text-indigo-600 dark:text-indigo-400 font-medium text-xs hover:bg-indigo-500/10 active:scale-95 transition-all md:hidden"
               >
-                <ChevronLeft className="w-4 h-4" />
-                <span>{t('discover.back')}</span>
+                <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
+                <span>{activeTab === 'logs' ? t('logs.title', '日志') : t('discover.back', '发现')}</span>
               </button>
             ) : (
               <img
@@ -615,7 +633,7 @@ export default function App() {
               target="_blank"
               rel="noopener noreferrer"
               title={t('nav.github')}
-              className="px-2 sm:px-2.5 py-1.5 bg-black/[0.02] dark:bg-white/[0.03] hover:bg-black/[0.06] dark:hover:bg-white/[0.08] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] rounded-lg text-xs text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all flex items-center space-x-1.5 shadow-sm active:scale-95"
+              className={`${isMobileDetailActive ? 'hidden sm:flex' : 'flex'} px-2 sm:px-2.5 py-1.5 bg-black/[0.02] dark:bg-white/[0.03] hover:bg-black/[0.06] dark:hover:bg-white/[0.08] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] rounded-lg text-xs text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all items-center space-x-1.5 shadow-sm active:scale-95`}
             >
               <Github className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
               <span className="hidden sm:inline text-[11px] font-medium">GitHub</span>
@@ -625,43 +643,51 @@ export default function App() {
             <button
               onClick={handleRefresh}
               title={lang === 'zh' ? '刷新当前视图' : 'Refresh Active View'}
-              className="px-2 sm:px-2.5 py-1.5 bg-black/[0.02] dark:bg-white/[0.03] hover:bg-black/[0.06] dark:hover:bg-white/[0.08] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] rounded-lg text-xs text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all flex items-center space-x-1.5 shadow-sm active:scale-95"
+              className={`${isMobileDetailActive ? 'hidden sm:flex' : 'flex'} px-2 sm:px-2.5 py-1.5 bg-black/[0.02] dark:bg-white/[0.03] hover:bg-black/[0.06] dark:hover:bg-white/[0.08] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] rounded-lg text-xs text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all items-center space-x-1.5 shadow-sm active:scale-95`}
             >
               <RefreshCw className={`w-3.5 h-3.5 text-slate-400 ${isRefreshing ? 'animate-spin text-indigo-400' : ''}`} />
               <span className="hidden sm:inline text-[11px]">{lang === 'zh' ? '刷新' : 'Refresh'}</span>
             </button>
 
             {/* Mobile Settings Button */}
-            <button
-              onClick={() => setIsConfigModalOpen(true)}
-              title={t('nav.configTitle')}
-              className="p-1.5 bg-black/[0.02] dark:bg-white/[0.03] hover:bg-black/[0.06] dark:hover:bg-white/[0.08] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] rounded-lg text-xs text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all md:hidden active:scale-95"
-            >
-              <Settings className="w-3.5 h-3.5 text-slate-400" />
-            </button>
+            {!isMobileDetailActive && (
+              <button
+                onClick={() => setIsConfigModalOpen(true)}
+                title={t('nav.configTitle')}
+                className="p-1.5 bg-black/[0.02] dark:bg-white/[0.03] hover:bg-black/[0.06] dark:hover:bg-white/[0.08] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] rounded-lg text-xs text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all md:hidden active:scale-95"
+              >
+                <Settings className="w-3.5 h-3.5 text-slate-400" />
+              </button>
+            )}
 
             {/* Theme Switcher (Mobile) */}
-            <div className="md:hidden flex items-center">
-              <ThemeSwitcher variant="header" />
-            </div>
+            {!isMobileDetailActive && (
+              <div className="md:hidden flex items-center">
+                <ThemeSwitcher variant="header" />
+              </div>
+            )}
 
             {/* Mobile Language Switcher */}
-            <button
-              onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
-              title={lang === 'zh' ? 'Switch to English' : '切换至中文'}
-              className="p-1.5 bg-black/[0.02] dark:bg-white/[0.03] hover:bg-black/[0.06] dark:hover:bg-white/[0.08] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] rounded-lg text-xs text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all md:hidden active:scale-95 font-mono text-[10px]"
-            >
-              <Globe className="w-3.5 h-3.5 text-slate-400" />
-            </button>
+            {!isMobileDetailActive && (
+              <button
+                onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
+                title={lang === 'zh' ? 'Switch to English' : '切换至中文'}
+                className="p-1.5 bg-black/[0.02] dark:bg-white/[0.03] hover:bg-black/[0.06] dark:hover:bg-white/[0.08] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] rounded-lg text-xs text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all md:hidden active:scale-95 font-mono text-[10px]"
+              >
+                <Globe className="w-3.5 h-3.5 text-slate-400" />
+              </button>
+            )}
 
             {/* Mobile Logout Button */}
-            <button
-              onClick={handleLogout}
-              title={t('nav.logout')}
-              className="p-1.5 bg-black/[0.02] dark:bg-white/[0.03] hover:bg-rose-500/20 border border-[var(--border-subtle)] hover:border-rose-500/30 rounded-lg text-xs text-slate-500 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-300 transition-all md:hidden active:scale-95"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-            </button>
+            {!isMobileDetailActive && (
+              <button
+                onClick={handleLogout}
+                title={t('nav.logout')}
+                className="p-1.5 bg-black/[0.02] dark:bg-white/[0.03] hover:bg-rose-500/20 border border-[var(--border-subtle)] hover:border-rose-500/30 rounded-lg text-xs text-slate-500 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-300 transition-all md:hidden active:scale-95"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            )}
 
             {/* Status Online Badge (Desktop) */}
             <div className="hidden sm:flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-mono">
@@ -673,8 +699,8 @@ export default function App() {
 
         {/* Main View Workspace */}
         <main className={`flex-1 overflow-x-hidden ${
-          activeTab === 'discover' && discoverSubView === 'terminal'
-            ? 'p-0 md:p-6 pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))] md:pb-6 flex flex-col min-h-0 h-full max-h-full overflow-hidden'
+          isMobileDetailActive
+            ? 'p-0 md:p-6 pb-0 md:pb-6 flex flex-col min-h-0 h-full overflow-hidden'
             : isWorkbenchTab
               ? 'p-2 sm:p-4 md:p-6 pb-[calc(3.75rem+env(safe-area-inset-bottom,0px))] md:pb-6 flex flex-col min-h-0 h-full overflow-hidden'
               : 'p-2.5 sm:p-4 md:p-6 pb-20 md:pb-6'
@@ -695,6 +721,8 @@ export default function App() {
             <LogsView
               key={refreshTrigger}
               adminKey={adminKey}
+              mobileDetailOpenControlled={mobileLogDetailOpen}
+              onMobileDetailChange={setMobileLogDetailOpen}
             />
           )}
           {activeTab === 'discover' && (
@@ -729,37 +757,37 @@ export default function App() {
         </main>
 
         {/* Fixed Mobile Bottom Navigation Bar */}
-        <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[var(--bg-surface)]/95 backdrop-blur-xl border-t border-[var(--border-subtle)] px-2 py-1 flex items-center justify-around md:hidden shadow-[0_-4px_20px_rgba(0,0,0,0.1)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.6)]">
-          {NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
-            const title = t(`nav.${item.id}`);
+        {!isMobileDetailActive && <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[var(--bg-surface)]/95 backdrop-blur-xl border-t border-[var(--border-subtle)] px-2 py-1 flex items-center justify-around md:hidden shadow-[0_-4px_20px_rgba(0,0,0,0.1)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.6)]">
+            {NAV_ITEMS.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              const title = t(`nav.${item.id}`);
 
-            return (
-              <button
-                key={item.id}
-                onClick={() => handleTabChange(item.id)}
-                className={`relative flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition-all ${
-                  isActive
-                    ? 'text-indigo-400 font-semibold'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <div className={`p-1 rounded-lg transition-transform ${
-                  isActive ? 'bg-indigo-500/15 scale-110 shadow-[0_0_12px_rgba(99,102,241,0.3)]' : ''
-                }`}>
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-indigo-400' : 'text-slate-400'}`} />
-                </div>
-                <span className="text-[10px] mt-0.5 tracking-tight truncate max-w-[56px]">
-                  {title}
-                </span>
-                {isActive && (
-                  <span className="w-1 h-1 rounded-full bg-indigo-500 mt-0.5 shadow-[0_0_6px_rgba(99,102,241,0.8)]" />
-                )}
-              </button>
-            );
-          })}
-        </nav>
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleTabChange(item.id)}
+                  className={`relative flex flex-col items-center justify-center flex-1 py-1 px-1 rounded-xl transition-all ${
+                    isActive
+                      ? 'text-indigo-400 font-semibold'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <div className={`p-1 rounded-lg transition-transform ${
+                    isActive ? 'bg-indigo-500/15 scale-110 shadow-[0_0_12px_rgba(99,102,241,0.3)]' : ''
+                  }`}>
+                    <Icon className={`w-4 h-4 ${isActive ? 'text-indigo-400' : 'text-slate-400'}`} />
+                  </div>
+                  <span className="text-[10px] mt-0.5 tracking-tight truncate max-w-[56px]">
+                    {title}
+                  </span>
+                  {isActive && (
+                    <span className="w-1 h-1 rounded-full bg-indigo-500 mt-0.5 shadow-[0_0_6px_rgba(99,102,241,0.8)]" />
+                  )}
+                </button>
+              );
+            })}
+          </nav>}
       </div>
 
       {/* Global Config Modal */}
