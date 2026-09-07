@@ -99,6 +99,8 @@ export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
             });
             return;
           }
+          // Any other control frame is consumed here
+          return;
         }
         terminalHostManager.handleAgentData(hostId, msgStr);
       } catch (err: any) {

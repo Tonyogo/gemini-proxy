@@ -94,6 +94,9 @@ export class RemoteAgentTerminalSession implements ITerminalSession {
   }
 
   public handleData(data: string): void {
+    if (typeof data === 'string' && data.startsWith('JSON:')) {
+      return;
+    }
     this.historyBuffer.push(data);
     this.totalBufferSize += data.length;
 

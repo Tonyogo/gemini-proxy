@@ -271,8 +271,8 @@ export default function WebTerminalView({
               isProcessExitedRef.current = true;
               setIsConnected(false);
               clearReconnectTimers();
-              return;
             }
+            return;
           } catch {
             // Not json, print as raw text
           }

@@ -186,6 +186,12 @@ function connect() {
           }
           return;
         }
+        if (control.type === 'registered') {
+          console.log(`[Agent] Registered confirmed: hostId=${control.hostId}, status=${control.status}`);
+          return;
+        }
+        // Any other control frame starting with JSON: is consumed and not written to PTY
+        return;
       }
 
       if (ptyProcess) {
