@@ -753,7 +753,21 @@ export default function WebTerminalView({
       }
       term.dispose();
     };
-  }, [standalone, sendResize, clearReconnectTimers]);
+  }, [sendResize, clearReconnectTimers, adminKey]);
+
+  // Re-fit and send resize when standalone mode toggles without disconnecting WS
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (fitAddonRef.current && xtermRef.current) {
+        fitAddonRef.current.fit();
+        sendResize(xtermRef.current.cols, xtermRef.current.rows);
+        if (xtermRef.current.buffer.active.type !== 'alternate') {
+          xtermRef.current.scrollToBottom();
+        }
+      }
+    }, 60);
+    return () => clearTimeout(timer);
+  }, [standalone, sendResize]);
 
   // Sync font size change
   useEffect(() => {
