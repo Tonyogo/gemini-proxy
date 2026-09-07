@@ -44,7 +44,7 @@
   - `discover.back`, `discover.launch`, `discover.openWorkbench`
   - `discover.systemCategory`, `discover.devCategory`
 
-- [ ] **Step 1: 编写失败的单元与结构测试 `tests/discoverNavigation.test.ts`**
+- [x] **Step 1: 编写失败的单元与结构测试 `tests/discoverNavigation.test.ts`**
 
 ```typescript
 import * as fs from 'fs';
@@ -110,12 +110,12 @@ describe('Discover Navigation & WeChat Style Hub', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试并确认失败**
+- [x] **Step 2: 运行测试并确认失败**
 
 Run: `npx jest tests/discoverNavigation.test.ts`
 Expected: FAIL (词条未补充、`DiscoverHubView` 尚未创建、`App.tsx` 尚未重构)
 
-- [ ] **Step 3: 更新 `frontend/src/i18n/locales/zh.ts` 与 `en.ts`**
+- [x] **Step 3: 更新 `frontend/src/i18n/locales/zh.ts` 与 `en.ts`**
 
 在 `frontend/src/i18n/locales/en.ts` 中：
 ```typescript
@@ -163,12 +163,12 @@ Expected: FAIL (词条未补充、`DiscoverHubView` 尚未创建、`App.tsx` 尚
   },
 ```
 
-- [ ] **Step 4: 重新运行测试验证 i18n 断言通过**
+- [x] **Step 4: 重新运行测试验证 i18n 断言通过**
 
 Run: `npx jest tests/discoverNavigation.test.ts -t "i18n should include complete discover translations"`
 Expected: PASS
 
-- [ ] **Step 5: 提交 Task 1 改动**
+- [x] **Step 5: 提交 Task 1 改动**
 
 ```bash
 git add frontend/src/i18n/locales/zh.ts frontend/src/i18n/locales/en.ts tests/discoverNavigation.test.ts
@@ -188,7 +188,7 @@ git commit -m "feat(i18n): add discover navigation and tool hub translations"
   - 移动端（`< md`）：微信原生风格列表（2 个分组卡片，墨绿终端、活力橙调试、靛蓝翻译，副标题与右箭头）。
   - 桌面端（`≥ md`）：3 列 APM 级 Discover Hub 工具展厅网格卡片。
 
-- [ ] **Step 1: 编写 `DiscoverHubView.tsx` 组件**
+- [x] **Step 1: 编写 `DiscoverHubView.tsx` 组件**
 
 ```tsx
 import React from 'react';
@@ -403,12 +403,12 @@ export const DiscoverHubView: React.FC<DiscoverHubViewProps> = ({ onSelectTool }
 export default DiscoverHubView;
 ```
 
-- [ ] **Step 2: 验证组件断言通过**
+- [x] **Step 2: 验证组件断言通过**
 
 Run: `npx jest tests/discoverNavigation.test.ts -t "DiscoverHubView component file should exist"`
 Expected: PASS
 
-- [ ] **Step 3: 提交 Task 2 改动**
+- [x] **Step 3: 提交 Task 2 改动**
 
 ```bash
 git add frontend/src/components/DiscoverHubView.tsx
@@ -430,7 +430,7 @@ git commit -m "feat(discover): add DiscoverHubView with WeChat mobile style and 
   - 顶栏动态渲染：若在移动端处于发现子页面，左上角显示 `‹ 发现` 按钮并点击返回 `discoverSubView = 'hub'`
   - 面包屑支持点击“发现”返回展厅
 
-- [ ] **Step 1: 修改 `App.tsx` 引入图标与组件**
+- [x] **Step 1: 修改 `App.tsx` 引入图标与组件**
 
 1. 引入 `Compass`, `ChevronLeft` 图标；
 2. 引入 `DiscoverHubView, { DiscoverToolId }` 组件；
@@ -449,7 +449,7 @@ git commit -m "feat(discover): add DiscoverHubView with WeChat mobile style and 
    ```
 5. `VALID_TABS` 映射为 `['dashboard', 'accounts', 'logs', 'discover']`，处理旧缓存容错（如果从 `terminal`, `playground`, `translate` 进来的自动映射为 `discover` 并打开对应子页面）。
 
-- [ ] **Step 2: 在 `App` 组件中添加 `discoverSubView` 状态与逻辑**
+- [x] **Step 2: 在 `App` 组件中添加 `discoverSubView` 状态与逻辑**
 
 ```typescript
 const [discoverSubView, setDiscoverSubView] = useState<DiscoverSubView>(() => {
@@ -468,7 +468,7 @@ const handleSelectDiscoverTool = (tool: DiscoverToolId) => {
 };
 ```
 
-- [ ] **Step 3: 更新移动端顶栏返回按钮与标题渲染**
+- [x] **Step 3: 更新移动端顶栏返回按钮与标题渲染**
 
 在 `header` 的左侧区域：
 ```tsx
@@ -520,7 +520,7 @@ const handleSelectDiscoverTool = (tool: DiscoverToolId) => {
 </div>
 ```
 
-- [ ] **Step 4: 渲染主内容区 `activeTab === 'discover'`**
+- [x] **Step 4: 渲染主内容区 `activeTab === 'discover'`**
 
 ```tsx
 {activeTab === 'discover' && (
@@ -559,12 +559,12 @@ const handleSelectDiscoverTool = (tool: DiscoverToolId) => {
 const isWorkbenchTab = activeTab === 'logs' || (activeTab === 'discover' && discoverSubView !== 'hub');
 ```
 
-- [ ] **Step 5: 运行全部 `tests/discoverNavigation.test.ts` 测试**
+- [x] **Step 5: 运行全部 `tests/discoverNavigation.test.ts` 测试**
 
 Run: `npx jest tests/discoverNavigation.test.ts`
 Expected: 4 个测试全部 PASS
 
-- [ ] **Step 6: 提交 Task 3 改动**
+- [x] **Step 6: 提交 Task 3 改动**
 
 ```bash
 git add frontend/src/App.tsx
@@ -578,22 +578,22 @@ git commit -m "feat(nav): consolidate tools into 4-tab Discover menu with WeChat
 **Files:**
 - None (执行全面验证与回归测试)
 
-- [ ] **Step 1: 运行全量 Jest 测试套件**
+- [x] **Step 1: 运行全量 Jest 测试套件**
 
 Run: `/Users/yogo/.nvm/versions/node/v22.12.0/bin/npm test`
 Expected: 所有测试套件全部 PASS
 
-- [ ] **Step 2: 运行前端 Vite 严格构建**
+- [x] **Step 2: 运行前端 Vite 严格构建**
 
 Run: `/Users/yogo/.nvm/versions/node/v22.12.0/bin/npm run build:frontend`
 Expected: 0 错误构建成功
 
-- [ ] **Step 3: 运行后端 TypeScript 严格构建**
+- [x] **Step 3: 运行后端 TypeScript 严格构建**
 
 Run: `/Users/yogo/.nvm/versions/node/v22.12.0/bin/npm run build:backend`
 Expected: 0 错误构建成功
 
-- [ ] **Step 4: 运行全量生产构建**
+- [x] **Step 4: 运行全量生产构建**
 
 Run: `/Users/yogo/.nvm/versions/node/v22.12.0/bin/npm run build`
 Expected: SUCCESS
