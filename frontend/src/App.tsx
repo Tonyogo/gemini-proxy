@@ -31,6 +31,7 @@ import AccountsView from './components/AccountsView';
 import LogsView from './components/LogsView';
 import PlaygroundView from './components/PlaygroundView';
 import UnifiedTerminalView from './components/UnifiedTerminalView';
+import TerminalLogsView from './components/TerminalLogsView';
 import TranslateView from './components/TranslateView';
 import DiscoverHubView, { DiscoverToolId } from './components/DiscoverHubView';
 import ConfigModal from './components/ConfigModal';
@@ -38,7 +39,7 @@ import { useTranslation } from './i18n/LanguageContext';
 import { ThemeSwitcher } from './components/ThemeSwitcher';
 
 type TabType = 'dashboard' | 'accounts' | 'logs' | 'discover';
-export type DiscoverSubView = 'hub' | 'terminal' | 'playground' | 'translate';
+export type DiscoverSubView = 'hub' | 'terminal' | 'systemLogs' | 'playground' | 'translate';
 
 interface NavItem {
   id: TabType;
@@ -73,7 +74,7 @@ export default function App() {
       return 'discover';
     }
     const rawSaved = localStorage.getItem('admin_active_tab');
-    if (rawSaved === 'terminal' || rawSaved === 'playground' || rawSaved === 'translate') {
+    if (rawSaved === 'terminal' || rawSaved === 'systemLogs' || rawSaved === 'playground' || rawSaved === 'translate') {
       return 'discover';
     }
     const saved = rawSaved === 'webTerminal' ? 'discover' : (rawSaved as TabType);
@@ -84,7 +85,7 @@ export default function App() {
       return 'terminal';
     }
     const rawSaved = localStorage.getItem('admin_active_tab');
-    if (rawSaved === 'terminal' || rawSaved === 'playground' || rawSaved === 'translate') {
+    if (rawSaved === 'terminal' || rawSaved === 'systemLogs' || rawSaved === 'playground' || rawSaved === 'translate') {
       return rawSaved as DiscoverSubView;
     }
     return 'hub';
@@ -602,6 +603,7 @@ export default function App() {
                   <ChevronRight className="hidden sm:inline w-3.5 h-3.5 text-slate-600 shrink-0" />
                   <span className="text-[var(--text-primary)] font-semibold truncate max-w-[130px] sm:max-w-none">
                     {discoverSubView === 'terminal' && t('discover.terminalTitle')}
+                    {discoverSubView === 'systemLogs' && t('discover.systemLogsTitle')}
                     {discoverSubView === 'playground' && t('discover.playgroundTitle')}
                     {discoverSubView === 'translate' && t('discover.translateTitle')}
                   </span>
@@ -738,6 +740,12 @@ export default function App() {
                   isStandalone={isStandaloneTerminal}
                   onEnterStandalone={handleEnterStandalone}
                   onExitStandalone={handleExitStandalone}
+                />
+              )}
+              {discoverSubView === 'systemLogs' && (
+                <TerminalLogsView
+                  key={refreshTrigger}
+                  adminKey={adminKey}
                 />
               )}
               {discoverSubView === 'playground' && (
