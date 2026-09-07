@@ -19,9 +19,11 @@
   - 智能思考（Thinking Mode）：支持 Claude `thinking` 参数与 Gemini 思考预算的自动映射与 Token 统计。
   - 完备的工具调用（Tools / Function Calling）：支持 Claude 工具格式到 Gemini 声明的自动大写转换、Draft 不兼容属性递归剔除，以及多轮对话下 `tool_use_id` 到原始函数名的 Map 还原和非标参数类型兼容。
 - **流式 SSE 实时传输与生命周期管理**：支持毫秒级、低延迟 Server-Sent Events 流式生成，并集成客户端中断检测与超时取消机制（`UPSTREAM_TIMEOUT_MS`）。
-- **Token 计数支持**：完整实现 `/v1/messages/count_tokens` 接口。
-- **可用模型名查询**：完整支持 `/v1/models` 以及 `/v1/models/:model_id` 查询，且已自动通过数据清洗在输出时对客户端过滤隐藏内部映射字段（如 `gemini_mapping`）。
-- **完善的错误映射**：自动将 Gemini 各种错误格式包装成 Claude 官方格式，使客户端的 SDK 能够完美捕获异常。
+- **Token 计数与模型查询**：完整实现 `/v1/messages/count_tokens` 与 `/v1/models`、`/v1/models/:model_id` 接口。
+- **现代可视化 Web 管理控制台 (`/ui`)**：开箱即用的现代化前端控制台，提供实时 QPS/耗时/错误率仪表盘、Chrome DevTools 级交易日志详情查看器（JSON 树形预览与 SSE 打字机流式汇编），以及集成 Monaco Editor 的 API 测试 Playground。
+- **全功能 Web 交互终端 (WebTerminal)**：免 SSH 密钥直接在浏览器中操作 Linux/macOS Shell 及实时追踪系统日志，会话常驻后台并自动回放 1MB 屏幕历史。
+- **移动端绝佳终端体验**：独创基于 Visual Viewport 动态计算的虚拟键盘平滑推顶补偿（零遮挡底部命令行、零白屏）、专属移动端辅助按键栏（Accessory Bar：Esc/Tab/Ctrl/Alt/Shift/方向键）、常用命令抽屉（Snippets Drawer）与全屏沉浸模式。
+- **多局域网主机内网集中管理 (Reverse Agent)**：无需内网主机拥有公网 IP 或放行防火墙端口，只需单命令启动轻量反向 Agent 脚本，即可在 Web 控制台统一秒级切换、纳管多台内网机器/虚拟机/树莓派/NAS 终端。
 
 ---
 
@@ -33,12 +35,23 @@ gemini-proxy/
 │   └── workflows/
 │       └── deploy.yml         # GitHub Actions: 基于 Cloudflare SSH 隧道的自动部署流水线
 ├── config/
-│   ├── default.ts             # 配置文件读取、基础默认配置项
+│   ├── default.ts             # 配置文件读取、基础默认配置项与热重载
 │   └── models.json            # 核心配置文件：受支持的模型列表及到 Gemini 的映射规则
 ├── frontend/                  # React + Vite + Tailwind 前端 Admin Web 控制台
+│   └── src/
+│       ├── components/        # DashboardView, LogsView, PlaygroundView, WebTerminalView
+│       │   └── terminal/      # TerminalHostSelector, TerminalAccessoryBar, TerminalSnippetsDrawer
+│       ├── i18n/              # 中英文国际化语言包 (zh / en)
+│       └── utils/             # 移动端视口计算、按键编码器、终端过滤器等
 ├── scripts/
-│   └── deploy.sh              # 统一步署脚本 (Git 拉取、依赖安装、编译、PM2 重启及状态检查)
+│   ├── deploy.sh              # 统一步署脚本 (Git 拉取、依赖安装、前后端编译、PM2 平滑重载)
+│   └── terminal-agent.js      # 轻量级多主机反向终端 Agent 脚本 (局域网主机一键接入)
 ├── src/
+│   ├── admin/                 # 管理控制台后端逻辑
+│   │   ├── controllers/       # Admin 控制器 (状态、统计、日志分卷、主机列表等)
+│   │   ├── middlewares/       # 管理员密钥鉴权中间件 (x-admin-key)
+│   │   ├── routes/            # Admin REST API 及 WebTerminal WebSocket 网关 (/agent-ws & /ws)
+│   │   └── services/          # TerminalHostManager (多主机终端会话抽象与 Agent 状态管理)
 │   ├── types/
 │   │   └── index.ts           # 强类型定义声明 (Claude 与 Gemini API REST 协议载荷接口)
 │   ├── routes/
@@ -53,12 +66,10 @@ gemini-proxy/
 │   │   └── streamLifecycleManager.ts # 工具类：流式传输超时控制与客户端断开检测管理
 │   ├── app.ts                 # Express 应用注册、中间件绑定
 │   └── index.ts               # 服务监听主启动入口
-├── tests/
-│   ├── jest.config.ts         # ts-jest 测试框架配置
-│   └── *.test.ts              # 包含 60+ 个精细化功能断言的高覆盖 TS 自动化测试集
-├── dist/                      # (Git-ignored) 经 tsc 编译输出的 CommonJS 生产代码
+├── tests/                     # 包含 64 个测试套件、316+ 断言的高覆盖自动化测试集
+├── dist/                      # (Git-ignored) 经构建输出的 CommonJS 生产代码与静态前端
 ├── ecosystem.config.js        # PM2 进程守护及平滑重载配置
-├── .env                       # 本地环境变量配置（端口、中转基址等）
+├── .env                       # 本地环境变量配置（端口、中转基址、管理密钥等）
 ├── tsconfig.json              # TypeScript 编译选项配置文件
 ├── package.json               # 项目依赖、TypeScript 工具链及 npm 运行脚本
 └── README.md                  # 本使用说明文档
@@ -88,11 +99,23 @@ PORT=3000
 # 自定义 Gemini Upstream API 基础地址 (可选项。默认指向官方地址)
 GEMINI_BASE_URL=https://generativelanguage.googleapis.com
 
+# 管理控制台 (/ui) 与 Web 终端鉴权密钥 (强烈建议配置)
+ADMIN_SECRET_KEY=your_secure_admin_key_here
+
+# 是否启用 Web 管理控制台前端托管 (默认 true，访问地址 /ui)
+ENABLE_UI=true
+
 # 日志输出级别: error, warn, info, debug
 LOG_LEVEL=info
 
 # 交易日志存储目录 (按日期/小时自动分卷存储)
 TRANSACTION_LOGS_DIR=logs
+
+# 交易日志保留天数 (默认 3 天，0 表示不自动清理)
+LOG_RETENTION_DAYS=3
+
+# 时区配置 (默认 Asia/Shanghai)
+TIME_ZONE=Asia/Shanghai
 
 # 是否将消息中的 role='system' 路由至 systemInstruction 并按标题去重 (默认 false)
 SYSTEM_ROLE_TO_INSTRUCTION=false
@@ -109,22 +132,25 @@ CUSTOM_SYSTEM_INSTRUCTION=
 
 ### 3. 运行服务
 
-#### A. 生产环境编译运行 (标准 tsc 模式)：
+#### A. 生产环境全量编译运行：
 ```bash
-# 1. 编译 TypeScript 到 dist 文件夹中
+# 1. 一键编译前端静态资源 (Vite) 与后端代码 (tsc)
 npm run build
 
-# 2. 启动编译好的生产服务
+# 2. 启动生产服务
 npm start
 ```
 
-#### B. 极速开发模式 (热重载及免编译直接执行)：
+#### B. 极速开发模式：
 ```bash
-# 使用 ts-node-dev 动态监控更改并免编译启动
+# 后端：使用 ts-node-dev 动态监控更改并免编译热重载
 npm run dev
+
+# 前端：启动 Vite 独立调试热重载服务 (端口 5173，自动转发 /api, /v1 请求至后端 3000 端口)
+npm run dev:frontend
 ```
 
-服务启动后，默认会在本地 `http://localhost:3000` 监听请求。
+服务启动后，默认会在 `http://localhost:3000` 监听 API 请求，管理控制台可在浏览器直接访问 `http://localhost:3000/ui`。
 
 ---
 
@@ -166,6 +192,96 @@ npm run pm2:logs     # 查看实时运行日志
 | `SSH_PORT` | 否 | SSH 端口（默认 `22`） |
 
 配置完成后，推送代码到 `main` 分支即可全自动触发构建与热重载。
+
+---
+
+## 🖥️ Web 管理控制台与 API 调试器 (/ui)
+
+项目内置了现代化的单页 Web 控制台，在浏览器中访问 `http://localhost:3000/ui`（或您部署的域名后加 `/ui`）即可进入。
+
+- **安全鉴权**：在 `.env` 中配置 `ADMIN_SECRET_KEY`，前端通过 Header `x-admin-key` 鉴权，支持记住登录状态与多语言无缝切换（简体中文 / English）。
+- **实时监控仪表盘 (Dashboard)**：
+  - 呈现系统运行时间、总调用量、平均响应耗时、错误率及实时活跃连接数；
+  - 动态展示各模型调用占比环形图、近期 QPS 趋势图与各错误类型分布。
+- **Chrome DevTools 级交易日志检查器 (Logs Inspector)**：
+  - 左右分栏设计，左侧展示请求流列表（状态码、模型、耗时、时间戳、客户端 IP），支持按状态与关键词实时搜索；
+  - 右侧详情面板支持查看原始请求/响应 Header 与 Body；
+  - 内置交互式 **JSON 树形组件**，支持键值搜索与展开折叠；
+  - 针对流式传输特别集成 **SSE 打字机预览组件**，直观回放流式事件时间轴与事件块内容。
+- **API 实时测试 Playground**：
+  - 内置基于 Monaco Editor（VS Code 同款）的请求体编辑器，提供一键格式化与常用模板；
+  - 支持即时发送请求并以流式（打字机）或完整 JSON 格式输出，排查 API 问题零等待。
+- **模型动态映射与调度策略**：
+  - 支持给 Claude 模型配置目标 Gemini 模型别名，并支持选择负载调度策略（`least-used` 最小负载、`round-robin` 轮询、`weighted` 权重）。
+
+---
+
+## 💻 WebTerminal 终端与多局域网主机集中管理 (全新)
+
+为方便日常运维与无 SSH 密钥环境下的服务器维护，Gemini-Proxy 内置了基于 Web 的全功能交互式终端与多主机内网反向穿透架构。
+
+### 1. 架构原理
+
+```text
+┌──────────────────────────────────────────────────────────────┐
+│                    Web Browser (PC / 移动端)                  │
+│   WebTerminal 交互终端 + 主机切换选择器 (TerminalHostSelector)  │
+└──────────────────────────────▲───────────────────────────────┘
+                               │  /api/admin/terminal/ws?hostId=...
+                               ▼
+┌──────────────────────────────────────────────────────────────┐
+│                       Gemini-Proxy Hub                       │
+│  - TerminalHostManager: 统一管理本地进程会话与远程 Agent 会话   │
+│  - /api/admin/terminal/agent-ws: 远程 Agent 反向 WebSocket 通道│
+│  - GET /api/admin/terminal/hosts: 节点状态与心跳查询 REST 接口 │
+└───────────────▲──────────────────────────────▲───────────────┘
+                │ 反向 WebSocket 隧道           │ 本地 PTY 进程
+                │ (双向 stdio + 控制帧)         │ (node-pty)
+┌───────────────┴──────────────┐ ┌─────────────┴───────────────┐
+│ 局域网主机 A (terminal-agent) │ │    本地宿主机 (Local Host)    │
+│ Ubuntu / Debian / 树莓派 / NAS│ │  当前 Gemini-Proxy 所在服务器 │
+└──────────────────────────────┘ └─────────────────────────────┘
+```
+
+### 2. 核心特性
+
+- **后台常驻与断线无损重放**：
+  - 终端 PTY 进程在后台持续常驻，关闭网页或刷新不会中断后台任务；
+  - 服务端维护 1MB 环形历史回放缓冲区，重新进入时秒级恢复最近屏幕输出。
+- **移动端深度交互优化**：
+  - **软键盘平滑推顶**：基于 Visual Viewport 动态跟踪与双向缓动补偿算法，键盘弹起时光标与输入行平滑上推，杜绝键盘遮挡与页面白屏；
+  - **移动端辅助按键栏 (Accessory Bar)**：在手机端提供快捷键条，一键输入 `Esc`、`Tab`、`Ctrl`、`Alt`、`Shift`、方向键及常用字符（`|`, `/`, `-`, `~`, `$` 等），支持长按连续触发；
+  - **运维命令抽屉 (Snippets Drawer)**：内置一键查看系统负载 (`top`)、磁盘空间 (`df -h`)、内存使用 (`free -m`)、网络连接等常用运维指令；
+  - **自由框选与复制**：专为触屏设计的选择模式，便于在移动端复制日志和终端文本。
+
+### 3. 多内网主机反向 Agent 接入
+
+无需给局域网内的其它服务器配置公网 IP 或配置 NAT 端口映射，目标机器只需执行轻量级 Agent 脚本即可反向注册至控制台。
+
+#### A. 一键接入命令
+在局域网内任意 Linux、macOS 或 Windows 主机上执行：
+
+```bash
+# 方式 1: 使用已安装依赖的项目仓库
+npm run terminal-agent -- --server=http://<proxy-ip>:3000 --key=<ADMIN_SECRET_KEY> --name="Ubuntu-GPU-Server"
+
+# 方式 2: 单文件独立启动
+node scripts/terminal-agent.js --server=http://<proxy-ip>:3000 --key=<ADMIN_SECRET_KEY> --name="NAS-Storage"
+```
+
+#### B. Agent 参数列表
+| 参数选项 | 说明 | 默认值 / 示例 |
+| :--- | :--- | :--- |
+| `--server` | Gemini-Proxy 服务地址 (必填) | `http://192.168.1.100:3000` |
+| `--key` | 管理密钥 (与服务端 `ADMIN_SECRET_KEY` 一致) | `your_secret_key` |
+| `--name` | 在控制台顶部下拉框显示的主机名称 | 默认为机器 Hostname |
+| `--id` | 主机唯一标识 | 默认为 `agent-<hash>` |
+| `--shell` | 指定调起的 Shell 程序路径 | 自动检测 (bash/zsh/PowerShell) |
+
+#### C. 特性保障
+- **自动检测内网 IP**：Agent 自动探测并上报主机的真实局域网 IPv4 地址与操作系统平台；
+- **自愈重连机制**：遇网络波动或代理重启，Agent 会自动采用指数退避算法（2s, 4s, 8s...）无限重连保活；
+- **零额外编译开销**：基于纯 Node.js 运行时，直接复用标准 `ws` 和 `node-pty`。
 
 ---
 
@@ -253,32 +369,41 @@ curl -X POST http://localhost:3000/v1/messages \
 
 ## 🧪 测试验证
 
-本项目包含一套基于 `ts-jest` 驱动的自动化测试集：
+本项目包含一套基于 `ts-jest` 驱动的严苛自动化测试集，涵盖翻译协议、流式生命周期、鉴权中间件、Web 控制台组件、多主机终端网关及移动端视口算法：
 
-运行全量测试：
 ```bash
+# 运行全量单元测试
 npm test
-# 或使用单线程模式规避并发信号中断：
+
+# 运行终端与多主机管理专属测试
+npx jest tests/terminal*.test.ts
+
+# 单线程模式运行 (规避并发端口占用)
 npx jest --runInBand
 ```
 
 测试执行结果：
 ```text
+PASS tests/terminalWs.test.ts
+PASS tests/terminalHostsApi.test.ts
+PASS tests/terminalHostManager.test.ts
+PASS tests/terminalHostSelector.test.ts
+PASS tests/terminalAgent.test.ts
+PASS tests/terminalMobileSmoothPush.test.ts
+PASS tests/terminalAccessoryBar.test.ts
+PASS tests/terminalPersistence.test.ts
 PASS tests/claudeTranslator.test.ts
 PASS tests/claudeController.test.ts
 PASS tests/claudeControllerStreamLifecycle.test.ts
-PASS tests/claudeLogging.test.ts
 PASS tests/claudeStreaming.test.ts
 PASS tests/payloadLogger.test.ts
-PASS tests/claudeModels.test.ts
-PASS tests/claudeCountTokens.test.ts
-PASS tests/health.test.ts
-PASS tests/streamLifecycleManager.test.ts
-PASS tests/requestHelper.test.ts
+PASS tests/adminController.test.ts
+PASS tests/metricsService.test.ts
+...
 
-Test Suites: 11 passed, 11 total
-Tests:       1 skipped, 66 passed, 67 total
+Test Suites: 64 passed, 64 total
+Tests:       1 skipped, 316 passed, 317 total
 Snapshots:   0 total
-Time:        5.93 s
+Time:        3.808 s
 Ran all test suites.
 ```

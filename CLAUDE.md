@@ -13,12 +13,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Start Production**: `npm start` (automatically builds before running `dist/src/index.js`)
 - **Dev Mode Backend**: `npm run dev` (starts hot-reloading development server via `ts-node-dev`)
 - **Dev Mode Frontend**: `npm run dev:frontend` (starts Vite dev server on port 5173 proxying API requests to `:3000`)
+- **Terminal Agent**: `npm run terminal-agent -- --server=http://<host>:3000 --key=<admin-key> --name="Node-Name"` (runs standalone reverse terminal agent on intranet host)
 - **Run All Tests**: `npm test` (runs complete Jest test suite; use `npx jest --runInBand` if experiencing SIGSEGV clustering issues)
 - **Run Single Test**: `npx jest tests/<test-name>.test.ts` (e.g., `npx jest tests/claudeTranslator.test.ts`)
 
 ## Architecture & Structure
 
-This is a **stateless API proxy** that translates Anthropic Claude Messages API requests into Google Gemini (AI Studio) API requests, and translates responses (SSE stream or non-stream) back to Claude format, equipped with an out-of-band Admin Web Console and API Debugger.
+This is a **stateless API proxy** that translates Anthropic Claude Messages API requests into Google Gemini (AI Studio) API requests, and translates responses (SSE stream or non-stream) back to Claude format, equipped with an out-of-band Admin Web Console, API Debugger, and multi-host WebTerminal.
 
 ### Key Components
 
@@ -28,11 +29,18 @@ This is a **stateless API proxy** that translates Anthropic Claude Messages API 
   - Returns structured Claude JSON event arrays during stream translation, which are written as standard SSE events to client sockets while recorded natively as JSON arrays in transaction logs.
 
 - **Out-of-Band Admin & Web Console (`src/admin/`, `frontend/`):**
-  - **Admin Controller & Routes (`src/admin/controllers/`, `src/admin/routes/`):** Exposes `/api/admin/status`, `/api/admin/stats`, `/api/admin/models`, `/api/admin/logs`, and `/api/admin/config`.
+  - **Admin Controller & Routes (`src/admin/controllers/`, `src/admin/routes/`):** Exposes `/api/admin/status`, `/api/admin/stats`, `/api/admin/models`, `/api/admin/logs`, `/api/admin/terminal/hosts`, and `/api/admin/config`.
   - **Admin Auth Middleware (`src/admin/middlewares/adminAuth.ts`):** Validates incoming `x-admin-key` header against `ADMIN_SECRET_KEY`.
   - **In-Memory Metrics (`src/admin/services/metricsService.ts`):** O(1) in-memory performance counter initialized on server startup with a fast capped file scan (max 1,000 recent logs via `Promise.all`), giving sub-millisecond `/api/admin/stats` responses.
   - **Log Viewer & Inspector (`frontend/src/components/LogsView.tsx`):** Chrome DevTools Network-style inspector featuring an interactive `JsonTreeView` (level 1 default expansion) and `SseStreamPreview` for real-time stream assembly and EventSource chunk timelines. Supports VS Code style zero-width sidebar toggling.
   - **Raw Body API Playground (`frontend/src/components/PlaygroundView.tsx`):** Monaco Editor-powered raw JSON request body tester supporting live typewriter stream output.
+
+- **WebTerminal & Multi-Host Reverse Agent (`src/admin/services/terminalHostManager.ts`, `src/admin/routes/terminalWs.ts`, `scripts/terminal-agent.js`, `frontend/src/components/terminal/`):**
+  - **Session Abstraction (`ITerminalSession`):** Unified interface for local PTY sessions (`LocalTerminalSessionWrapper`) and remote agent sessions (`RemoteAgentTerminalSession`) featuring 1MB ring history buffers and multi-client attach/detach.
+  - **Host Manager (`TerminalHostManager`):** Central registry managing local and dynamic remote agent hosts with heartbeat ping/pong, metadata tracking, and online/offline status.
+  - **Dual WebSocket Gateway (`terminalWs.ts`):** Routes client connections to `/api/admin/terminal/ws?hostId=...` and authenticates reverse intranet agent connections via `/api/admin/terminal/agent-ws`.
+  - **Standalone Agent Script (`scripts/terminal-agent.js`):** Pure Node.js client detecting LAN IPv4 and platform, spawning local PTY, and connecting reverse tunnel with backoff reconnection.
+  - **Frontend UI & Mobile Adaptation:** `TerminalHostSelector` for node switching, `TerminalAccessoryBar` for touch modifier keys, `TerminalSnippetsDrawer` for quick ops commands, and `mobileViewportHelper` with dynamic keyboard push-up compensation.
 
 - **Payload Debug Logger (`src/services/payloadLogger.ts`):**
   - Asynchronously saves JSON transaction details partitioned into date/hour subdirectories under `TRANSACTION_LOGS_DIR` formatted using the configured `TIME_ZONE` (defaults to `Asia/Shanghai`).
