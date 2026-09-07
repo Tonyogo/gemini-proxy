@@ -544,19 +544,22 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
 
           {/* Stream Toggle Pill */}
           {endpointOption !== 'custom' && (
-            <button
-              type="button"
-              onClick={handleToggleStreamInBody}
-              className={`px-2.5 py-1 rounded-xl text-xs font-semibold flex items-center justify-center space-x-1.5 transition-all border shrink-0 ${
-                isStreamChecked
-                  ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.15)]'
-                  : 'ui-btn-secondary text-slate-400 hover:text-slate-200'
-              }`}
-              title="Toggle stream: true/false in payload"
-            >
-              <Zap className={`w-3 h-3 ${isStreamChecked ? 'text-emerald-400' : 'text-slate-500'}`} />
-              <span>Stream</span>
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="h-4 w-[1px] bg-white/10 mx-0.5 hidden sm:block" />
+              <button
+                type="button"
+                onClick={handleToggleStreamInBody}
+                className={`px-2.5 py-1 rounded-xl text-xs font-semibold flex items-center justify-center space-x-1.5 transition-all border shrink-0 ${
+                  isStreamChecked
+                    ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.15)]'
+                    : 'ui-btn-secondary text-slate-400 hover:text-slate-200'
+                }`}
+                title="Toggle stream: true/false in payload"
+              >
+                <Zap className={`w-3 h-3 ${isStreamChecked ? 'text-emerald-400' : 'text-slate-500'}`} />
+                <span>Stream</span>
+              </button>
+            </div>
           )}
         </div>
 
