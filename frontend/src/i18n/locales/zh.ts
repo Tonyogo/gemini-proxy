@@ -489,7 +489,9 @@ export const zh: Translations = {
       filterPlaceholder: "搜索机器名称/IP/系统...",
       hostsCount: "{online}/{total} 在线",
       nodeInfo: "系统: {platform} | IP: {ip}",
-      switchHostPrompt: "切换至该机器终端会话"
+      switchHostPrompt: "切换至该机器终端会话",
+      noHosts: "未找到匹配的主机节点",
+      onlyLocalTip: "当前仅有本地宿主机。点击上方「接入内网新节点」即可通过反向隧道将其他局域网服务器接入此终端。"
     }
   },
   discover: {

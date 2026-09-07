@@ -22,5 +22,13 @@ describe('Terminal Host Selector & Multi-host Frontend Integration', () => {
     expect((en as any).webTerminal.hostSelector).toBeDefined();
     expect((zh as any).webTerminal.hostSelector).toBeDefined();
     expect((zh as any).webTerminal.hostSelector.localhost).toBe('本地宿主机');
+    expect((zh as any).webTerminal.hostSelector.onlyLocalTip).toBeDefined();
+  });
+
+  test('TerminalHostSelector ensures local host is always in displayHosts list', () => {
+    const content = fs.readFileSync(selectorPath, 'utf-8');
+    expect(content).toContain('displayHosts');
+    expect(content).toContain('localHostFallback');
+    expect(content).toContain('onlyLocalTip');
   });
 });

@@ -47,14 +47,13 @@ export function TerminalHostSelector({
   const fetchHosts = async () => {
     try {
       setIsLoading(true);
+      const effectiveKey = adminKey || (typeof localStorage !== 'undefined' ? localStorage.getItem('adminKey') || '' : '');
       const res = await fetch('/api/admin/terminal/hosts', {
-        headers: {
-          'x-admin-key': adminKey,
-        },
+        headers: effectiveKey ? { 'x-admin-key': effectiveKey } : {},
       });
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data.hosts)) {
+        if (Array.isArray(data.hosts) && data.hosts.length > 0) {
           setHosts(data.hosts);
         }
       }
@@ -83,36 +82,53 @@ export function TerminalHostSelector({
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, [isOpen]);
 
+  const localHostFallback: ManagedHostItem = useMemo(() => ({
+    id: 'local',
+    name: t('webTerminal.hostSelector.localhost'),
+    hostname: 'localhost',
+    ip: '127.0.0.1',
+    platform: typeof navigator !== 'undefined' && /Mac/i.test(navigator.userAgent) ? 'darwin' : 'linux',
+    status: 'online',
+    lastSeen: Date.now(),
+    type: 'local',
+  }), [t]);
+
+  const displayHosts = useMemo(() => {
+    const list = [...hosts];
+    const localIndex = list.findIndex((h) => h.id === 'local');
+    if (localIndex === -1) {
+      list.unshift(localHostFallback);
+    } else {
+      list[localIndex] = {
+        ...list[localIndex],
+        name: t('webTerminal.hostSelector.localhost'),
+      };
+    }
+    return list;
+  }, [hosts, localHostFallback, t]);
+
   const activeHost = useMemo(() => {
-    return hosts.find((h) => h.id === activeHostId) || {
-      id: activeHostId,
-      name: activeHostId === 'local' ? t('webTerminal.hostSelector.localhost') : activeHostId,
-      hostname: 'localhost',
-      ip: '127.0.0.1',
-      platform: 'linux',
-      status: 'online' as const,
-      lastSeen: Date.now(),
-      type: 'local' as const,
-    };
-  }, [hosts, activeHostId, t]);
+    return displayHosts.find((h) => h.id === activeHostId) || localHostFallback;
+  }, [displayHosts, activeHostId, localHostFallback]);
 
   const filteredHosts = useMemo(() => {
-    if (!searchQuery.trim()) return hosts;
+    if (!searchQuery.trim()) return displayHosts;
     const q = searchQuery.toLowerCase();
-    return hosts.filter(
+    return displayHosts.filter(
       (h) =>
         h.name.toLowerCase().includes(q) ||
         h.id.toLowerCase().includes(q) ||
         h.ip.toLowerCase().includes(q) ||
         h.platform.toLowerCase().includes(q)
     );
-  }, [hosts, searchQuery]);
+  }, [displayHosts, searchQuery]);
 
-  const onlineCount = useMemo(() => hosts.filter((h) => h.status === 'online').length, [hosts]);
+  const onlineCount = useMemo(() => displayHosts.filter((h) => h.status === 'online').length, [displayHosts]);
 
   const agentCommand = useMemo(() => {
     const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
-    return `node scripts/terminal-agent.js --server="${origin}" --key="${adminKey}" --name="worker-${Math.floor(Math.random() * 900 + 100)}"`;
+    const effectiveKey = adminKey || (typeof localStorage !== 'undefined' ? localStorage.getItem('adminKey') || '' : '');
+    return `node scripts/terminal-agent.js --server="${origin}" --key="${effectiveKey}" --name="worker-${Math.floor(Math.random() * 900 + 100)}"`;
   }, [adminKey]);
 
   const handleCopyCommand = () => {
@@ -175,10 +191,10 @@ export function TerminalHostSelector({
                 <span>
                   {t('webTerminal.hostSelector.hostsCount', {
                     online: onlineCount.toString(),
-                    total: hosts.length.toString(),
+                    total: displayHosts.length.toString(),
                   })
                     .replace('{online}', onlineCount.toString())
-                    .replace('{total}', hosts.length.toString())}
+                    .replace('{total}', displayHosts.length.toString())}
                 </span>
               </span>
 
@@ -264,9 +280,19 @@ export function TerminalHostSelector({
             })}
 
             {filteredHosts.length === 0 && (
-              <div className="p-4 text-center text-xs text-[var(--text-muted)]">
+              <div className="p-4 text-center text-xs text-[var(--text-muted)] font-sans">
                 {isLoading ? <RefreshCw className="w-4 h-4 animate-spin mx-auto mb-1 text-indigo-400" /> : null}
-                <span>No matching nodes found.</span>
+                <span>{t('webTerminal.hostSelector.noHosts', '未找到匹配的主机节点')}</span>
+              </div>
+            )}
+
+            {/* Helper tip when only local host exists */}
+            {displayHosts.length === 1 && !searchQuery.trim() && (
+              <div className="p-2.5 bg-indigo-500/5 rounded-lg m-1 border border-indigo-500/10 text-[11px] text-slate-400 font-sans leading-relaxed">
+                {t(
+                  'webTerminal.hostSelector.onlyLocalTip',
+                  '当前仅有本地宿主机。点击上方「接入内网新节点」即可通过反向隧道将其他局域网服务器接入此终端。'
+                )}
               </div>
             )}
           </div>

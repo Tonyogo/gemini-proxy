@@ -487,7 +487,9 @@ export const en = {
       filterPlaceholder: "Search hosts...",
       hostsCount: "{online}/{total} Online",
       nodeInfo: "OS: {platform} | IP: {ip}",
-      switchHostPrompt: "Switch to this host session"
+      switchHostPrompt: "Switch to this host session",
+      noHosts: "No matching hosts found",
+      onlyLocalTip: "Currently only the local host is available. Click \"Add Intranet Node\" above to connect additional servers via reverse tunnel."
     }
   },
   discover: {
