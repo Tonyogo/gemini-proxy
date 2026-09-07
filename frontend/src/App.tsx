@@ -385,9 +385,7 @@ export default function App() {
   const isWorkbenchTab = activeTab === 'logs' || (activeTab === 'discover' && discoverSubView !== 'hub');
 
   return (
-    <div className={`flex bg-[var(--bg-canvas)] text-[var(--text-primary)] font-sans selection:bg-indigo-500 selection:text-white antialiased ${
-      isWorkbenchTab ? 'h-[100dvh] max-h-[100dvh] overflow-hidden' : 'min-h-[100dvh]'
-    }`}>
+    <div className={`flex bg-[var(--bg-canvas)] text-[var(--text-primary)] font-sans selection:bg-indigo-500 selection:text-white antialiased h-[100dvh] max-h-[100dvh] overflow-hidden`}>
       {/* Collapsible Sidebar (Desktop only) */}
       <aside
         className={`fixed top-0 bottom-0 left-0 z-40 hidden md:flex flex-col bg-[var(--bg-surface)] border-r border-[var(--border-subtle)] transition-all duration-300 ease-in-out ${
@@ -549,10 +547,10 @@ export default function App() {
       <div
         className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out ${
           isSidebarCollapsed ? 'md:pl-16' : 'md:pl-60'
-        } pl-0 ${isWorkbenchTab ? 'h-full min-h-0 overflow-hidden' : ''}`}
+        } pl-0 h-full min-h-0 overflow-hidden`}
       >
         {/* Minimal Glass Top Bar */}
-        <header className="h-12 sm:h-14 backdrop-blur-md bg-[var(--bg-surface)]/80 border-b border-[var(--border-subtle)] px-3 sm:px-6 flex items-center justify-between sticky top-0 z-30 shrink-0">
+        <header className="h-12 sm:h-14 backdrop-blur-md bg-[var(--bg-surface)]/90 border-b border-[var(--border-subtle)] px-3 sm:px-6 flex items-center justify-between sticky top-0 z-40 shrink-0 select-none">
           {/* Left Breadcrumbs & Brand / Sidebar Toggle */}
           <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
             {/* Mobile Brand Logo Icon or Immersive Detail Back Button */}
@@ -698,12 +696,12 @@ export default function App() {
         </header>
 
         {/* Main View Workspace */}
-        <main className={`flex-1 overflow-x-hidden ${
+        <main className={`flex-1 min-h-0 overflow-hidden ${
           isMobileDetailActive
-            ? 'p-0 md:p-6 pb-0 md:pb-6 flex flex-col min-h-0 h-full overflow-hidden'
+            ? 'p-0 md:p-6 pb-0 md:pb-6 flex flex-col h-full'
             : isWorkbenchTab
-              ? 'p-2 sm:p-4 md:p-6 pb-[calc(3.75rem+env(safe-area-inset-bottom,0px))] md:pb-6 flex flex-col min-h-0 h-full overflow-hidden'
-              : 'p-2.5 sm:p-4 md:p-6 pb-20 md:pb-6'
+              ? 'p-2 sm:p-4 md:p-6 pb-[calc(3.75rem+env(safe-area-inset-bottom,0px))] md:pb-6 flex flex-col h-full'
+              : 'p-2.5 sm:p-4 md:p-6 pb-20 md:pb-6 overflow-y-auto'
         }`}>
           {activeTab === 'dashboard' && (
             <DashboardView
