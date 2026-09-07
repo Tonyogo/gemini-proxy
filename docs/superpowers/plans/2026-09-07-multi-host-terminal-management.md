@@ -372,7 +372,7 @@ git commit -m "feat(terminal): add standalone terminal-agent script for intranet
   - 本地缓存记住最后选中的节点 (`localStorage.getItem('terminal_active_host')`)
   - “接入新节点向导” 弹窗（一键复制 Agent 运行命令）
 
-- [ ] **Step 1: 编写前端组件的失败测试**
+- [x] **Step 1: 编写前端组件的失败测试**
 
 Create `tests/terminalHostSelector.test.ts`:
 ```ts
@@ -404,36 +404,36 @@ describe('Terminal Host Selector & Multi-host Frontend Integration', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试并验证失败**
+- [x] **Step 2: 运行测试并验证失败**
 
 Run: `npx jest tests/terminalHostSelector.test.ts`
 Expected: FAIL because `TerminalHostSelector.tsx` and i18n keys are missing.
 
-- [ ] **Step 3: 添加多机器中英文翻译字典**
+- [x] **Step 3: 添加多机器中英文翻译字典**
 
 In `frontend/src/i18n/locales/en.ts` and `frontend/src/i18n/locales/zh.ts`:
 - 添加 `hostSelector`: `localhost`, `addNode`, `copyCommand`, `online`, `offline`, `switchHostPrompt`, `filterPlaceholder` 等。
 
-- [ ] **Step 4: 实现 `TerminalHostSelector.tsx`**
+- [x] **Step 4: 实现 `TerminalHostSelector.tsx`**
 
 Create `frontend/src/components/terminal/TerminalHostSelector.tsx`:
 - 紧凑的胶囊触发按钮，显示当前选中的主机图标、主机名与在线绿点；
 - 下拉浮层：展示机器列表（按在线优先排序）、过滤输入框；
 - 接入指引对话框（展示基于当前 URL 和 key 自动生成的 Agent 一键运行命令）。
 
-- [ ] **Step 5: 将选择器接入 `WebTerminalView.tsx`**
+- [x] **Step 5: 将选择器接入 `WebTerminalView.tsx`**
 
 In `frontend/src/components/WebTerminalView.tsx`:
 - 增加 `activeHostId` 状态（初始化从 `localStorage.getItem('terminal_active_host') || 'local'` 读取）；
 - 在 `initWebSocket` 中将 `&hostId=${activeHostId}` 附加到 ws 连接 URL；
 - 节点切换回调 `handleHostChange(newHostId)`：更新状态、更新 localStorage、清空当前终端并重连 WebSocket（服务端将自动重放该机器的终端 history buffer）。
 
-- [ ] **Step 6: 运行测试并验证通过**
+- [x] **Step 6: 运行测试并验证通过**
 
 Run: `npx jest tests/terminalHostSelector.test.ts`
 Expected: PASS.
 
-- [ ] **Step 7: 提交更改**
+- [x] **Step 7: 提交更改**
 
 ```bash
 git add frontend/src/components/terminal/TerminalHostSelector.tsx frontend/src/components/WebTerminalView.tsx frontend/src/i18n/locales/ tests/terminalHostSelector.test.ts

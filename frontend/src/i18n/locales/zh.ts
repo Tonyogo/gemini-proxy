@@ -476,6 +476,20 @@ export const zh: Translations = {
       ctrlL: "^L",
       ctrlB: "^B",
       ctrlZ: "^Z"
+    },
+    hostSelector: {
+      localhost: "本地宿主机",
+      addNode: "接入内网新节点",
+      addNodeTitle: "接入内网机器至 WebTerminal",
+      addNodeDesc: "在任意内网服务器或工控机上运行极简反向 Agent，无需公网 IP 和开放 SSH 端口即可在控制台集中管理命令行终端。",
+      copyCommand: "复制运行命令",
+      commandCopied: "命令已复制！",
+      online: "在线",
+      offline: "离线",
+      filterPlaceholder: "搜索机器名称/IP/系统...",
+      hostsCount: "{online}/{total} 在线",
+      nodeInfo: "系统: {platform} | IP: {ip}",
+      switchHostPrompt: "切换至该机器终端会话"
     }
   },
   discover: {

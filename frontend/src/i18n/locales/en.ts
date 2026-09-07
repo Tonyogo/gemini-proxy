@@ -474,6 +474,20 @@ export const en = {
       ctrlL: "^L",
       ctrlB: "^B",
       ctrlZ: "^Z"
+    },
+    hostSelector: {
+      localhost: "Local Host",
+      addNode: "Add Intranet Node",
+      addNodeTitle: "Connect Intranet Node to WebTerminal",
+      addNodeDesc: "Run the lightweight reverse agent on any server or workstation to manage its shell directly from this dashboard without exposing SSH ports.",
+      copyCommand: "Copy Command",
+      commandCopied: "Command Copied!",
+      online: "Online",
+      offline: "Offline",
+      filterPlaceholder: "Search hosts...",
+      hostsCount: "{online}/{total} Online",
+      nodeInfo: "OS: {platform} | IP: {ip}",
+      switchHostPrompt: "Switch to this host session"
     }
   },
   discover: {

@@ -23,6 +23,7 @@ import { useTranslation } from '../i18n/LanguageContext';
 import { useTheme } from '../theme/ThemeContext';
 import { TerminalAccessoryBar } from './terminal/TerminalAccessoryBar';
 import { TerminalSnippetsDrawer } from './terminal/TerminalSnippetsDrawer';
+import { TerminalHostSelector } from './terminal/TerminalHostSelector';
 import { isSyntheticTerminalReport } from '../utils/terminalFilter';
 import { encodeModifierKey } from '../utils/terminalKeyEncoder';
 import {
@@ -112,6 +113,12 @@ export default function WebTerminalView({
   const [isKeyboardOpen, setIsKeyboardOpen] = useState<boolean>(false);
   const [hasSelection, setHasSelection] = useState<boolean>(false);
   const [isSelectMode, setIsSelectMode] = useState<boolean>(false);
+  const [activeHostId, setActiveHostId] = useState<string>(() => {
+    return localStorage.getItem('terminal_active_host') || 'local';
+  });
+  const activeHostIdRef = useRef<string>(activeHostId);
+  activeHostIdRef.current = activeHostId;
+
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -231,7 +238,7 @@ export default function WebTerminalView({
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = window.location.host;
-    const wsUrl = `${protocol}//${host}/api/admin/terminal/ws?x-admin-key=${encodeURIComponent(adminKey)}`;
+    const wsUrl = `${protocol}//${host}/api/admin/terminal/ws?x-admin-key=${encodeURIComponent(adminKey)}&hostId=${encodeURIComponent(activeHostIdRef.current)}`;
 
     const ws = new WebSocket(wsUrl);
     ws.binaryType = 'arraybuffer';
@@ -1083,6 +1090,18 @@ export default function WebTerminalView({
     initWebSocket();
   };
 
+  const handleHostChange = (newHostId: string) => {
+    setActiveHostId(newHostId);
+    activeHostIdRef.current = newHostId;
+    localStorage.setItem('terminal_active_host', newHostId);
+    if (xtermRef.current) {
+      xtermRef.current.clear();
+      xtermRef.current.reset();
+    }
+    reconnectAttemptRef.current = 0;
+    initWebSocket();
+  };
+
   const handleResetSession = () => {
     if (window.confirm(t('webTerminal.resetConfirm'))) {
       reconnectAttemptRef.current = 0;
@@ -1186,6 +1205,13 @@ export default function WebTerminalView({
               </span>
             </div>
           )}
+
+          {/* Host Selector */}
+          <TerminalHostSelector
+            adminKey={adminKey}
+            activeHostId={activeHostId}
+            onSelectHost={handleHostChange}
+          />
 
           {/* Connection Status Badge */}
           <div
