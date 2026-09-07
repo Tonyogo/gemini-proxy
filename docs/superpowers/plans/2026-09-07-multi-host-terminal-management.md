@@ -299,7 +299,7 @@ git commit -m "feat(terminal): add agent-ws endpoint and terminal hosts REST API
   - 自动获取内网 IPv4 与操作系统平台
   - 创建本地 PTY 进程并将 stdio 与 WebSocket 进行双向 Pipe
 
-- [ ] **Step 1: 编写 Agent 逻辑测试用例**
+- [x] **Step 1: 编写 Agent 逻辑测试用例**
 
 Create `tests/terminalAgent.test.ts`:
 ```ts
@@ -326,12 +326,12 @@ describe('Terminal Agent Script', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试并验证失败**
+- [x] **Step 2: 运行测试并验证失败**
 
 Run: `npx jest tests/terminalAgent.test.ts`
 Expected: FAIL because `scripts/terminal-agent.js` does not exist yet.
 
-- [ ] **Step 3: 编写 `scripts/terminal-agent.js`**
+- [x] **Step 3: 编写 `scripts/terminal-agent.js`**
 
 Create `scripts/terminal-agent.js`:
 - 参数解析（`--server`, `--key`, `--name`, `--id`, `--shell`）；
@@ -342,12 +342,12 @@ Create `scripts/terminal-agent.js`:
 - 实现指数退避自动重连机制（网络抖动时 2s, 4s, 8s 重试）。
 并在 `package.json` 添加 `"terminal-agent": "node scripts/terminal-agent.js"`。
 
-- [ ] **Step 4: 运行测试并验证通过**
+- [x] **Step 4: 运行测试并验证通过**
 
 Run: `npx jest tests/terminalAgent.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: 提交更改**
+- [x] **Step 5: 提交更改**
 
 ```bash
 git add scripts/terminal-agent.js package.json tests/terminalAgent.test.ts
