@@ -31,7 +31,7 @@
   - 主 WebSocket/xterm 初始化 Effect 不再依赖 `standalone`；
   - 增加独立的 `standalone` 监听 Effect 触发 `fitAddon.fit()` 与 `sendResize`。
 
-- [ ] **Step 1: 编写失败的测试 `tests/terminalFullscreenReuse.test.ts`**
+- [x] **Step 1: 编写失败的测试 `tests/terminalFullscreenReuse.test.ts`**
 
 ```typescript
 import * as fs from 'fs';
@@ -65,12 +65,12 @@ describe('Terminal Fullscreen Connection Reuse & Lifecycle', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试并确认失败**
+- [x] **Step 2: 运行测试并确认失败**
 
 Run: `npx jest tests/terminalFullscreenReuse.test.ts`
 Expected: FAIL (因为 `WebTerminalView.tsx` 依赖仍含 `standalone`，且 `App.tsx` 仍有提前 return)
 
-- [ ] **Step 3: 更新 `frontend/src/components/WebTerminalView.tsx`**
+- [x] **Step 3: 更新 `frontend/src/components/WebTerminalView.tsx`**
 
 1. 将第 756 行主 Effect 的依赖项：
    ```typescript
@@ -94,12 +94,12 @@ Expected: FAIL (因为 `WebTerminalView.tsx` 依赖仍含 `standalone`，且 `Ap
    }, [standalone, sendResize]);
    ```
 
-- [ ] **Step 4: 运行单项测试检查 `WebTerminalView` 相关断言**
+- [x] **Step 4: 运行单项测试检查 `WebTerminalView` 相关断言**
 
 Run: `npx jest tests/terminalFullscreenReuse.test.ts -t "WebTerminalView"`
 Expected: 2 个测试 PASS
 
-- [ ] **Step 5: 提交 Task 1 改动**
+- [x] **Step 5: 提交 Task 1 改动**
 
 ```bash
 git add frontend/src/components/WebTerminalView.tsx tests/terminalFullscreenReuse.test.ts
@@ -118,7 +118,7 @@ git commit -m "fix(terminal): decouple standalone mode from WebSocket init effec
 - Consumes: `isStandaloneTerminal: boolean`, `handleExitStandalone: () => void`, `handleEnterStandalone: () => void`
 - Produces: 统一在主组件树中渲染终端，通过 CSS `fixed inset-0` 满屏覆盖，保持 React 组件实例存活。
 
-- [ ] **Step 1: 移除 `App.tsx` 中的提前条件 return**
+- [x] **Step 1: 移除 `App.tsx` 中的提前条件 return**
 
 删除 `App.tsx` 约 368-379 行：
 ```tsx
@@ -137,7 +137,7 @@ if (isStandaloneTerminal) {
 }
 ```
 
-- [ ] **Step 2: 将 `isStandaloneTerminal` 传递给 `UnifiedTerminalView`**
+- [x] **Step 2: 将 `isStandaloneTerminal` 传递给 `UnifiedTerminalView`**
 
 在 `frontend/src/components/UnifiedTerminalView.tsx` 中：
 ```typescript
@@ -163,12 +163,12 @@ export interface UnifiedTerminalViewProps {
 )}
 ```
 
-- [ ] **Step 3: 运行 `tests/terminalFullscreenReuse.test.ts` 全部测试**
+- [x] **Step 3: 运行 `tests/terminalFullscreenReuse.test.ts` 全部测试**
 
 Run: `npx jest tests/terminalFullscreenReuse.test.ts`
 Expected: 3 个测试全部 PASS
 
-- [ ] **Step 4: 提交 Task 2 改动**
+- [x] **Step 4: 提交 Task 2 改动**
 
 ```bash
 git add frontend/src/App.tsx frontend/src/components/UnifiedTerminalView.tsx
@@ -182,22 +182,22 @@ git commit -m "refactor(app): keep terminal mounted during fullscreen toggle to 
 **Files:**
 - None (全面回归验证)
 
-- [ ] **Step 1: 运行全量 Jest 测试套件**
+- [x] **Step 1: 运行全量 Jest 测试套件**
 
 Run: `/Users/yogo/.nvm/versions/node/v22.12.0/bin/npm test`
 Expected: 45+ 个测试套件全部 PASS
 
-- [ ] **Step 2: 运行前端 Vite 严格构建**
+- [x] **Step 2: 运行前端 Vite 严格构建**
 
 Run: `/Users/yogo/.nvm/versions/node/v22.12.0/bin/npm run build:frontend`
 Expected: 0 错误构建成功
 
-- [ ] **Step 3: 运行后端 TypeScript 严格构建**
+- [x] **Step 3: 运行后端 TypeScript 严格构建**
 
 Run: `/Users/yogo/.nvm/versions/node/v22.12.0/bin/npm run build:backend`
 Expected: 0 错误构建成功
 
-- [ ] **Step 4: 运行全量生产构建**
+- [x] **Step 4: 运行全量生产构建**
 
 Run: `/Users/yogo/.nvm/versions/node/v22.12.0/bin/npm run build`
 Expected: SUCCESS
