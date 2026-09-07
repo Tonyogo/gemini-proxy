@@ -419,7 +419,7 @@ export default function LogsView({
           </div>
 
           {/* Date & Hour Dropdown Pickers */}
-          <div className="grid grid-cols-2 gap-2 mb-2.5 shrink-0">
+          <div className="grid grid-cols-2 gap-2 mb-2.5 shrink-0" aria-label="Date & Hour Dropdown Pickers">
             <div>
               <label className="text-[10px] font-semibold text-slate-400 block mb-1 flex items-center space-x-1">
                 <Calendar className="w-2.5 h-2.5 text-slate-500" />
@@ -521,7 +521,7 @@ export default function LogsView({
           </div>
 
           {/* Master Log Entries List */}
-          <div className="flex-1 min-h-0 overflow-y-auto space-y-1.5 pr-1 text-xs">
+          <div className="flex-1 min-h-0 overflow-y-auto space-y-1.5 pr-1 text-xs overscroll-contain">
             {loading ? (
               <div className="flex flex-col items-center justify-center h-48 text-slate-400 text-xs space-y-2">
                 <RefreshCw className="w-5 h-5 animate-spin text-indigo-400" />
@@ -669,7 +669,7 @@ export default function LogsView({
 
           {/* Bottom Pagination Bar */}
           {totalLogs > 0 && (
-            <div className="pt-2.5 mt-2 border-t border-[var(--border-subtle)] flex flex-col gap-2 font-mono text-[11px] text-[var(--text-secondary)] shrink-0">
+            <div className="pt-2.5 mt-auto border-t border-[var(--border-subtle)] flex flex-col gap-2 font-mono text-[11px] text-[var(--text-secondary)] shrink-0">
               <div className="flex items-center justify-between">
                 <span>
                   {t('logs.showingRange', `{start}-{end} of {total}`)
