@@ -548,8 +548,8 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
         {/* Row 2 (Mobile) / Right Group (Desktop): Presets, Independent Stream Toggle, Tools, Status & Run Test Button */}
         <div className="flex items-center justify-between sm:justify-end gap-1.5 sm:gap-2 w-full lg:w-auto min-w-0">
           <div className="flex items-center gap-1 sm:gap-1.5 flex-1 sm:flex-none min-w-0 overflow-x-auto no-scrollbar">
-            {/* 3. Presets Selector (Compact on mobile) */}
-            <div className="relative shrink-0">
+            {/* 3. Presets Selector (Adaptive on mobile) */}
+            <div className="relative flex-1 min-w-[96px] max-w-[170px] sm:max-w-none sm:flex-none">
               <select
                 value={activePreset || ''}
                 onChange={(e) => {
@@ -557,15 +557,15 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
                     handleApplyPreset(e.target.value as PresetKey);
                   }
                 }}
-                className="appearance-none ui-input w-[72px] sm:w-auto max-w-[80px] sm:max-w-none pr-5 sm:pr-6 py-1 px-1.5 sm:px-2 text-[11px] sm:text-xs font-medium cursor-pointer truncate"
+                className="appearance-none ui-input w-full sm:w-auto pr-6 py-1 px-2 text-xs font-medium cursor-pointer truncate"
               >
-                <option value="" disabled>{t('playground.presetsBtn') || t('playground.presets')}</option>
+                <option value="" disabled>{t('playground.presets')}</option>
                 <option value="basicChat">{t('playground.presetBasicChat')}</option>
                 <option value="toolUse">{t('playground.presetToolUse')}</option>
                 <option value="vision">{t('playground.presetVision')}</option>
                 <option value="thinkingMode">{t('playground.presetThinkingMode')}</option>
               </select>
-              <ChevronDown className="w-3 h-3 text-slate-400 absolute right-1 sm:right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <ChevronDown className="w-3 h-3 text-slate-400 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
 
             {/* 4. Independent Stream Toggle Pill (Icon only on mobile) */}

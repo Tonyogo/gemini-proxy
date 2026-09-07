@@ -44,9 +44,10 @@ describe('PlaygroundView Header Controls Decoupling', () => {
     expect(content).toMatch(/<span\s+className="hidden\s+sm:inline[^"]*">\s*Stream\s*<\/span>/);
   });
 
-  test('presets dropdown has compact width constraint on mobile', () => {
-    // Presets select should have compact mobile width and truncation to prevent pushing row controls
-    expect(content).toMatch(/className="[^"]*w-\[72px\][^"]*truncate/);
+  test('presets dropdown has adaptive width and truncation on mobile', () => {
+    // Presets select should have flexible adaptive width and truncation to maintain balanced row layout
+    expect(content).toMatch(/flex-1\s+min-w-\[96px\]\s+max-w-\[170px\]/);
+    expect(content).toMatch(/ui-input[^"]*truncate/);
   });
 
   test('run test button is pinned with shrink-0 and whitespace-nowrap', () => {
