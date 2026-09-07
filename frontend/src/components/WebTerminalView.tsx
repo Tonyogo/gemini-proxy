@@ -156,7 +156,9 @@ export default function WebTerminalView({
   // Mobile Visual Viewport tracking for virtual keyboard positioning
   const [viewportStyle, setViewportStyle] = useState<React.CSSProperties>({});
   const [isMobile, setIsMobile] = useState<boolean>(() => {
-    return typeof window !== 'undefined' ? window.innerWidth < 768 : false;
+    return typeof window !== 'undefined'
+      ? window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+      : false;
   });
 
   const baseHeightRef = useRef<number>(typeof window !== 'undefined' ? window.innerHeight : 0);
@@ -165,7 +167,7 @@ export default function WebTerminalView({
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      baseHeightRef.current = window.innerHeight;
+      baseHeightRef.current = Math.max(baseHeightRef.current, window.innerHeight);
       baseWidthRef.current = window.innerWidth;
     }
   }, [standalone]);
@@ -395,7 +397,10 @@ export default function WebTerminalView({
       helperTextarea.setAttribute('aria-label', 'Terminal input');
       helperTextarea.setAttribute('enterkeyhint', 'done');
 
-      handleFocus = () => setIsKeyboardOpen(true);
+      handleFocus = () => {
+        setIsKeyboardOpen(true);
+        setTimeout(() => updateViewport(), 50);
+      };
       handleBlur = () => setIsKeyboardOpen(false);
       helperTextarea.addEventListener('focus', handleFocus);
       helperTextarea.addEventListener('blur', handleBlur);
@@ -691,19 +696,34 @@ export default function WebTerminalView({
     initWebSocket();
 
     // Resize observer & Visual Viewport updater
-    const updateViewport = () => {
-      const mobile = window.innerWidth < 768;
+    function updateViewport() {
+      const mobile = window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
       setIsMobile(mobile);
+
+      // Keep window scroll at top to avoid browser auto-scroll misalignment on mobile
+      if (typeof window !== 'undefined' && window.scrollY !== 0) {
+        window.scrollTo(0, 0);
+      }
 
       let isKeyboardShowing = false;
       let translateY = 0;
 
+      const textarea = terminalContainerRef.current?.querySelector('textarea');
+      const isInputFocused = document.activeElement === textarea;
+
       if (window.visualViewport) {
         const vv = window.visualViewport;
+
+        // If not typing and keyboard is definitely not showing, sync base dimensions
+        if (!isInputFocused && !isKeyboardShowingRef.current && vv.height >= baseHeightRef.current * 0.85) {
+          baseHeightRef.current = Math.max(window.innerHeight, vv.height);
+          baseWidthRef.current = window.innerWidth;
+        }
+
         const offsetResult = calculateKeyboardTranslateY({
           baseHeight: baseHeightRef.current,
           viewportHeight: vv.height,
-          offsetTop: vv.offsetTop,
+          offsetTop: 0,
         });
         isKeyboardShowing = offsetResult.isKeyboardShowing;
         translateY = offsetResult.translateY;
@@ -711,17 +731,15 @@ export default function WebTerminalView({
         if (isKeyboardShowing) {
           setIsKeyboardOpen(true);
         } else {
-          const textarea = terminalContainerRef.current?.querySelector('textarea');
-          if (document.activeElement !== textarea) {
+          if (!isInputFocused) {
             setIsKeyboardOpen(false);
           }
-          // When keyboard is hidden, sync base dimensions to account for URL bar show/hide
+        }
+      } else {
+        if (!isInputFocused && !isKeyboardShowingRef.current) {
           baseHeightRef.current = window.innerHeight;
           baseWidthRef.current = window.innerWidth;
         }
-      } else {
-        baseHeightRef.current = window.innerHeight;
-        baseWidthRef.current = window.innerWidth;
       }
 
       isKeyboardShowingRef.current = isKeyboardShowing;
@@ -731,6 +749,8 @@ export default function WebTerminalView({
           position: 'fixed',
           top: 0,
           left: 0,
+          right: 0,
+          bottom: 'auto',
           width: '100vw',
           height: `${baseHeightRef.current}px`,
           maxHeight: `${baseHeightRef.current}px`,
@@ -767,7 +787,7 @@ export default function WebTerminalView({
           }
         }
       }
-    };
+    }
 
     const handleViewportChange = () => {
       if (viewportDebounceTimerRef.current) {
@@ -775,7 +795,7 @@ export default function WebTerminalView({
       }
       viewportDebounceTimerRef.current = setTimeout(() => {
         updateViewport();
-      }, 80);
+      }, 16);
     };
 
     let orientationTimer: NodeJS.Timeout | null = null;
@@ -1083,7 +1103,7 @@ export default function WebTerminalView({
       if (onToggleStandalone) {
         onToggleStandalone(true);
       }
-      if (document.documentElement.requestFullscreen) {
+      if (!isMobile && document.documentElement.requestFullscreen) {
         document.documentElement.requestFullscreen().catch(() => {});
       }
     }
