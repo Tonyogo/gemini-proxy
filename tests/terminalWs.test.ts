@@ -8,11 +8,12 @@ import config from '../config/default';
 describe('Terminal WebSocket Gateway', () => {
   let server: http.Server;
   let port: number;
+  let wss: any;
 
   beforeAll((done) => {
     const app = express();
     server = http.createServer(app);
-    setupTerminalWebSocket(server);
+    wss = setupTerminalWebSocket(server);
     server.listen(0, () => {
       const addr = server.address() as any;
       port = addr.port;
@@ -22,6 +23,14 @@ describe('Terminal WebSocket Gateway', () => {
 
   afterAll((done) => {
     destroyDefaultTerminalSession();
+    if (wss) {
+      try {
+        wss.close();
+      } catch {}
+    }
+    if (typeof (server as any).closeAllConnections === 'function') {
+      (server as any).closeAllConnections();
+    }
     server.close(done);
   });
 
@@ -58,9 +67,11 @@ describe('Terminal WebSocket Gateway', () => {
     ws.on('message', (msg) => {
       const text = msg.toString();
       if (text.includes('WS_TEST_OK')) {
+        ws.on('close', () => {
+          config.adminSecretKey = originalKey;
+          done();
+        });
         ws.close();
-        config.adminSecretKey = originalKey;
-        done();
       }
     });
   }, 10000);

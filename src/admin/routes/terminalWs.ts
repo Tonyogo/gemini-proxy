@@ -9,7 +9,7 @@ export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
   const wss = new WebSocketServer({ noServer: true });
   const agentWss = new WebSocketServer({ noServer: true });
 
-  server.on('upgrade', (req, socket, head) => {
+  const onUpgrade = (req: http.IncomingMessage, socket: any, head: Buffer) => {
     const reqUrl = req.url || '';
     const isClientWs = reqUrl.startsWith('/api/admin/terminal/ws');
     const isAgentWs = reqUrl.startsWith('/api/admin/terminal/agent-ws');
@@ -43,6 +43,15 @@ export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
         wss.emit('connection', ws, req);
       });
     }
+  };
+
+  server.on('upgrade', onUpgrade);
+
+  wss.on('close', () => {
+    try {
+      agentWss.close();
+    } catch {}
+    server.removeListener('upgrade', onUpgrade);
   });
 
   // Agent Reverse Tunnel Handler

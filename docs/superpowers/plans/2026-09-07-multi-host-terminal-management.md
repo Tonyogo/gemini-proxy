@@ -448,17 +448,17 @@ git commit -m "feat(terminal): add TerminalHostSelector and multi-host switching
 - All touched files
 - Test: All tests
 
-- [ ] **Step 1: 运行完整单元测试套件**
+- [x] **Step 1: 运行完整单元测试套件**
 
 Run: `npx jest tests/terminal*.test.ts tests/mobileViewport*.test.ts`
 Expected: PASS with 100% tests passing.
 
-- [ ] **Step 2: 执行前后端全量生产构建**
+- [x] **Step 2: 执行前后端全量生产构建**
 
 Run: `npm run build`
 Expected: `dist/frontend` 和 `dist/src` 全部无报错编译生成。
 
-- [ ] **Step 3: 提交最终文档与代码**
+- [x] **Step 3: 提交最终文档与代码**
 
 ```bash
 git status
