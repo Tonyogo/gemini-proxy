@@ -21,7 +21,6 @@ import {
   Sparkles,
   Terminal,
   MessageSquare,
-  ArrowLeft,
   ArrowUpRight,
   ArrowDownLeft
 } from 'lucide-react';
@@ -32,7 +31,19 @@ import { defineGeminiProxyTheme } from '../utils/monacoTheme';
 import { useTranslation } from '../i18n/LanguageContext';
 import { useTheme } from '../theme/ThemeContext';
 
-export default function LogsView({ adminKey }: { adminKey: string }) {
+export interface LogsViewProps {
+  adminKey: string;
+  onMobileDetailChange?: (isOpen: boolean) => void;
+  mobileDetailOpenControlled?: boolean;
+  onBackToList?: () => void;
+}
+
+export default function LogsView({
+  adminKey,
+  onMobileDetailChange,
+  mobileDetailOpenControlled,
+  onBackToList
+}: LogsViewProps) {
   const { t } = useTranslation();
   const { resolvedTheme } = useTheme();
   const monacoTheme = resolvedTheme === 'dark' ? 'gemini-proxy-dark' : 'gemini-proxy-light';
@@ -56,7 +67,15 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
   const [clientViewMode, setClientViewMode] = useState<'preview' | 'raw'>('preview');
   const [upstreamViewMode, setUpstreamViewMode] = useState<'preview' | 'raw'>('preview');
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(false);
-  const [mobileDetailOpen, setMobileDetailOpen] = useState<boolean>(false);
+  const [internalMobileDetailOpen, setInternalMobileDetailOpen] = useState<boolean>(false);
+  const mobileDetailOpen = mobileDetailOpenControlled !== undefined ? mobileDetailOpenControlled : internalMobileDetailOpen;
+
+  const setMobileDetailOpen = (open: boolean) => {
+    setInternalMobileDetailOpen(open);
+    if (onMobileDetailChange) {
+      onMobileDetailChange(open);
+    }
+  };
   const [hourCount, setHourCount] = useState<number>(0);
   const [page, setPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(50);
@@ -703,15 +722,6 @@ export default function LogsView({ adminKey }: { adminKey: string }) {
         {/* Top Header & Navigation Bar */}
         <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/[0.08] gap-2.5 shrink-0">
           <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
-            {/* Mobile back to list button */}
-            <button
-              onClick={() => setMobileDetailOpen(false)}
-              className="md:hidden p-1.5 rounded-lg bg-indigo-600/20 border border-indigo-500/40 text-indigo-300 hover:bg-indigo-600/30 flex items-center justify-center text-xs shrink-0 active:scale-95 transition-transform"
-              title={t('logs.backToList', '返回列表')}
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </button>
-
             {/* Desktop Sidebar toggle button */}
             <button
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}

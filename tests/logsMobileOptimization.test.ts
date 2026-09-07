@@ -23,13 +23,9 @@ describe('Logs Mobile Optimization and Sub-Tab Navigation', () => {
     expect(logsViewContent).toContain('onClick={() => loadDetail(log, true)}');
   });
 
-  test('detail page header back button is a pure icon without text clutter', () => {
-    // Back button has ArrowLeft icon
-    expect(logsViewContent).toContain('<ArrowLeft className="w-4 h-4" />');
-
-    // Back button does not render the text span on mobile
-    expect(logsViewContent).not.toMatch(/<ArrowLeft[^>]*>\s*<\/ArrowLeft>\s*<span[^>]*>\{t\('logs\.backToList'/);
-    expect(logsViewContent).not.toMatch(/<ArrowLeft[^>]*\/>\s*<span[^>]*>\{t\('logs\.backToList'/);
+  test('detail page header inner duplicate back button is eliminated in favor of top-level navigation', () => {
+    // Ensure duplicate inner back button is eliminated
+    expect(logsViewContent).not.toMatch(/<button[^>]*setMobileDetailOpen\(false\)[^>]*>\s*<ArrowLeft/);
   });
 
   test('action buttons in detail view hide text on small screens', () => {
