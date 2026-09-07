@@ -3,14 +3,18 @@ import { URL } from 'url';
 import { WebSocketServer, WebSocket, RawData } from 'ws';
 import config from '../../../config/default';
 import logger from '../../utils/logger';
-import { getDefaultTerminalSession } from '../services/terminalService';
+import { terminalHostManager } from '../services/terminalHostManager';
 
 export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
   const wss = new WebSocketServer({ noServer: true });
+  const agentWss = new WebSocketServer({ noServer: true });
 
   server.on('upgrade', (req, socket, head) => {
     const reqUrl = req.url || '';
-    if (!reqUrl.startsWith('/api/admin/terminal/ws')) {
+    const isClientWs = reqUrl.startsWith('/api/admin/terminal/ws');
+    const isAgentWs = reqUrl.startsWith('/api/admin/terminal/agent-ws');
+
+    if (!isClientWs && !isAgentWs) {
       return;
     }
 
@@ -23,21 +27,101 @@ export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
         parsedUrl.searchParams.get('key');
 
       if (providedKey !== secretKey) {
-        logger.warn(`[TerminalWS] Unauthorized WebSocket connection attempt rejected`);
+        logger.warn(`[TerminalWS] Unauthorized WebSocket connection attempt rejected (${reqUrl})`);
         socket.write('HTTP/1.1 401 Unauthorized\r\n\r\n');
         socket.destroy();
         return;
       }
     }
 
-    wss.handleUpgrade(req, socket, head, (ws) => {
-      wss.emit('connection', ws, req);
+    if (isAgentWs) {
+      agentWss.handleUpgrade(req, socket, head, (ws) => {
+        agentWss.emit('connection', ws, req);
+      });
+    } else {
+      wss.handleUpgrade(req, socket, head, (ws) => {
+        wss.emit('connection', ws, req);
+      });
+    }
+  });
+
+  // Agent Reverse Tunnel Handler
+  agentWss.on('connection', (ws: WebSocket, req: http.IncomingMessage) => {
+    const parsedUrl = new URL(req.url || '', `http://${req.headers.host || 'localhost'}`);
+    const hostId = parsedUrl.searchParams.get('hostId') || parsedUrl.searchParams.get('id') || `agent-${Date.now()}`;
+    const name = parsedUrl.searchParams.get('name') || undefined;
+    const hostname = parsedUrl.searchParams.get('hostname') || undefined;
+    const ip =
+      (req.headers['x-forwarded-for'] as string)?.split(',')[0].trim() ||
+      req.socket.remoteAddress ||
+      parsedUrl.searchParams.get('ip') ||
+      undefined;
+    const platform = parsedUrl.searchParams.get('platform') || undefined;
+
+    const host = terminalHostManager.registerAgent({
+      hostId,
+      name,
+      hostname,
+      ip,
+      platform,
+      agentWs: ws,
+    });
+
+    logger.info(`[TerminalWS:Agent] Agent connected: ${hostId} (${host.name}) from ${ip}`);
+    ws.send(`JSON:${JSON.stringify({ type: 'registered', hostId, status: 'online' })}`);
+
+    ws.on('message', (message: RawData) => {
+      try {
+        const msgStr = message.toString();
+        if (msgStr.startsWith('JSON:')) {
+          const control = JSON.parse(msgStr.slice(5));
+          if (control.type === 'ping') {
+            ws.send(JSON.stringify({ type: 'pong' }));
+            return;
+          }
+          if (control.type === 'meta') {
+            terminalHostManager.registerAgent({
+              hostId,
+              name: control.name,
+              hostname: control.hostname,
+              ip: control.ip,
+              platform: control.platform,
+              agentWs: ws,
+            });
+            return;
+          }
+        }
+        terminalHostManager.handleAgentData(hostId, msgStr);
+      } catch (err: any) {
+        terminalHostManager.handleAgentData(hostId, message);
+      }
+    });
+
+    ws.on('close', () => {
+      logger.info(`[TerminalWS:Agent] Agent disconnected: ${hostId}`);
+      terminalHostManager.unregisterAgent(hostId);
+    });
+
+    ws.on('error', (err) => {
+      logger.error(`[TerminalWS:Agent] Agent socket error (${hostId}): ${err.message}`);
+      terminalHostManager.unregisterAgent(hostId);
     });
   });
 
-  wss.on('connection', (ws: WebSocket) => {
-    logger.info(`[TerminalWS] Interactive terminal client attached to session`);
-    const session = getDefaultTerminalSession();
+  // Client Web Terminal Connection Handler
+  wss.on('connection', (ws: WebSocket, req: http.IncomingMessage) => {
+    const parsedUrl = new URL(req.url || '', `http://${req.headers.host || 'localhost'}`);
+    const hostId = parsedUrl.searchParams.get('hostId') || 'local';
+
+    logger.info(`[TerminalWS] Interactive terminal client attached to host: ${hostId}`);
+    const session = terminalHostManager.getSession(hostId);
+
+    if (!session) {
+      logger.warn(`[TerminalWS] No active session found for host: ${hostId}`);
+      ws.send(`\r\n\x1b[31m[Error] Host "${hostId}" not found or currently offline.\x1b[0m\r\n`);
+      ws.close(1008, 'Host session unavailable');
+      return;
+    }
 
     session.attach(ws);
 
@@ -46,7 +130,7 @@ export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
         const msgStr = message.toString();
         if (msgStr.startsWith('JSON:')) {
           const control = JSON.parse(msgStr.slice(5));
-          logger.debug(`[TerminalWS] Control frame: ${JSON.stringify(control)}`);
+          logger.debug(`[TerminalWS:${hostId}] Control frame: ${JSON.stringify(control)}`);
           if (
             control.type === 'resize' &&
             typeof control.cols === 'number' &&
@@ -60,7 +144,7 @@ export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
             return;
           }
           if (control.type === 'reset') {
-            logger.info(`[TerminalWS] Reset session requested by client`);
+            logger.info(`[TerminalWS:${hostId}] Reset session requested by client`);
             session.reset();
             return;
           }
@@ -72,21 +156,21 @@ export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
 
         const hex = Buffer.from(msgStr).toString('hex');
         const preview = JSON.stringify(msgStr.length > 30 ? msgStr.slice(0, 30) + '...' : msgStr);
-        logger.debug(`[TerminalWS] Raw input frame (len=${msgStr.length}, hex=${hex}, preview=${preview})`);
+        logger.debug(`[TerminalWS:${hostId}] Raw input frame (len=${msgStr.length}, hex=${hex}, preview=${preview})`);
         session.write(msgStr);
       } catch (err: any) {
-        logger.warn(`[TerminalWS] Message parse exception: ${err.message}`);
+        logger.warn(`[TerminalWS:${hostId}] Message parse exception: ${err.message}`);
         session.write(message.toString());
       }
     });
 
     ws.on('close', () => {
-      logger.info(`[TerminalWS] Client detached. Session remains active in background.`);
+      logger.info(`[TerminalWS:${hostId}] Client detached. Session remains active in background.`);
       session.detach(ws);
     });
 
     ws.on('error', (err) => {
-      logger.error(`[TerminalWS] WebSocket error: ${err.message}`);
+      logger.error(`[TerminalWS:${hostId}] WebSocket error: ${err.message}`);
       session.detach(ws);
     });
   });

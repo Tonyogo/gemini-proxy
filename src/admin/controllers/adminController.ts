@@ -4,8 +4,14 @@ import { promises as fs } from 'fs';
 import config, { updateConfig } from '../../../config/default';
 import logService from '../services/logService';
 import terminalLogService from '../services/terminalLogService';
+import { terminalHostManager } from '../services/terminalHostManager';
 
 class AdminController {
+  public async getTerminalHosts(req: Request, res: Response): Promise<void> {
+    const hosts = terminalHostManager.getHosts();
+    res.json({ hosts });
+  }
+
   public async getStatus(req: Request, res: Response): Promise<void> {
     res.json({
       status: 'ok',

@@ -205,7 +205,7 @@ git commit -m "feat(terminal): implement TerminalHostManager and session abstrac
   - `/api/admin/terminal/agent-ws` 反向 Agent 注册通道
   - `/api/admin/terminal/ws?hostId=...` 多机器终端网关
 
-- [ ] **Step 1: 编写 REST API 与 WebSocket 路由的测试用例**
+- [x] **Step 1: 编写 REST API 与 WebSocket 路由的测试用例**
 
 Create `tests/terminalHostsApi.test.ts`:
 ```ts
@@ -240,12 +240,12 @@ describe('Admin Terminal Hosts API', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试并验证测试失败**
+- [x] **Step 2: 运行测试并验证测试失败**
 
 Run: `npx jest tests/terminalHostsApi.test.ts`
 Expected: FAIL with 404 (Route not found).
 
-- [ ] **Step 3: 添加 REST API 路由与控制器方法**
+- [x] **Step 3: 添加 REST API 路由与控制器方法**
 
 In `src/admin/controllers/adminController.ts`:
 ```ts
@@ -259,7 +259,7 @@ In `src/admin/routes/adminRoutes.ts`:
 router.get('/terminal/hosts', (req, res) => adminController.getTerminalHosts(req, res));
 ```
 
-- [ ] **Step 4: 升级 `terminalWs.ts` 支持 `agent-ws` 与多机路由**
+- [x] **Step 4: 升级 `terminalWs.ts` 支持 `agent-ws` 与多机路由**
 
 In `src/admin/routes/terminalWs.ts`:
 1. 监听 `/api/admin/terminal/agent-ws`：
@@ -272,12 +272,12 @@ In `src/admin/routes/terminalWs.ts`:
    - 解析 URL Query `hostId`（未提供时默认为 `'local'`）；
    - 从 `terminalHostManager.getSession(hostId)` 获取对应的终端会话并 `session.attach(ws)`。
 
-- [ ] **Step 5: 运行测试并验证通过**
+- [x] **Step 5: 运行测试并验证通过**
 
 Run: `npx jest tests/terminalHostsApi.test.ts`
 Expected: PASS.
 
-- [ ] **Step 6: 提交更改**
+- [x] **Step 6: 提交更改**
 
 ```bash
 git add src/admin/routes/terminalWs.ts src/admin/routes/adminRoutes.ts src/admin/controllers/adminController.ts tests/terminalHostsApi.test.ts
