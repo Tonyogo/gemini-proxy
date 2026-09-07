@@ -36,7 +36,7 @@
   - 当打开详情时调用 `onMobileDetailChange(true)`，关闭详情时调用 `onMobileDetailChange(false)`；
   - 移除内部冗余的 `ArrowLeft` 按钮，让 Subtabs 直接顶格。
 
-- [ ] **Step 1: 编写失败的测试 `tests/mobileWeChatNavigation.test.ts`**
+- [x] **Step 1: 编写失败的测试 `tests/mobileWeChatNavigation.test.ts`**
 
 ```typescript
 import * as fs from 'fs';
@@ -74,12 +74,12 @@ describe('Mobile WeChat-Style Immersive Detail Navigation', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试并确认失败**
+- [x] **Step 2: 运行测试并确认失败**
 
 Run: `npx jest tests/mobileWeChatNavigation.test.ts`
 Expected: FAIL (因 `LogsView` 和 `App.tsx` 尚未重构)
 
-- [ ] **Step 3: 更新 `frontend/src/components/LogsView.tsx`**
+- [x] **Step 3: 更新 `frontend/src/components/LogsView.tsx`**
 
 1. 修改组件入参接口：
    ```typescript
@@ -106,12 +106,12 @@ Expected: FAIL (因 `LogsView` 和 `App.tsx` 尚未重构)
 4. 移除 `LogsView.tsx` 约第 707-713 行内部重复的移动端 `<button onClick={() => setMobileDetailOpen(false)} ...><ArrowLeft ... /></button>`；
 5. 如果用户点击其他导致退出的操作，调用 `updateMobileDetailOpen(false)`。
 
-- [ ] **Step 4: 运行单项测试检查 `LogsView` 断言**
+- [x] **Step 4: 运行单项测试检查 `LogsView` 断言**
 
 Run: `npx jest tests/mobileWeChatNavigation.test.ts -t "LogsView should support onMobileDetailChange"`
 Expected: PASS
 
-- [ ] **Step 5: 提交 Task 1 改动**
+- [x] **Step 5: 提交 Task 1 改动**
 
 ```bash
 git add frontend/src/components/LogsView.tsx tests/mobileWeChatNavigation.test.ts
@@ -133,7 +133,7 @@ git commit -m "refactor(logs): expose onMobileDetailChange callback and remove r
   - 微信顶栏返回按键：点击返回主列表或 hub
   - `<main>` 内边距在沉浸模式下释放为 `pb-0`
 
-- [ ] **Step 1: 在 `App.tsx` 中增加 `mobileLogDetailOpen` 状态与计算属性**
+- [x] **Step 1: 在 `App.tsx` 中增加 `mobileLogDetailOpen` 状态与计算属性**
 
 ```typescript
 const [mobileLogDetailOpen, setMobileLogDetailOpen] = useState<boolean>(false);
@@ -152,7 +152,7 @@ const handleMobileBack = () => {
 };
 ```
 
-- [ ] **Step 2: 重构顶栏 Header 微信沉浸条**
+- [x] **Step 2: 重构顶栏 Header 微信沉浸条**
 
 在 `<header>` 中：
 1. **左侧返回导航**：
@@ -179,7 +179,7 @@ const handleMobileBack = () => {
 3. **右侧操作精简**：
    当 `isMobileDetailActive` 为真时，在移动端隐藏 GitHub、刷新、设置、语言等非核心按钮，使顶栏干净舒适。
 
-- [ ] **Step 3: 底部导航栏条件挂载与 `<main>` 内边距优化**
+- [x] **Step 3: 底部导航栏条件挂载与 `<main>` 内边距优化**
 
 1. 隐藏底部导航栏：
    ```tsx
@@ -211,12 +211,12 @@ const handleMobileBack = () => {
    )}
    ```
 
-- [ ] **Step 4: 运行全部 `tests/mobileWeChatNavigation.test.ts` 测试**
+- [x] **Step 4: 运行全部 `tests/mobileWeChatNavigation.test.ts` 测试**
 
 Run: `npx jest tests/mobileWeChatNavigation.test.ts`
 Expected: 3 个测试全部 PASS
 
-- [ ] **Step 5: 提交 Task 2 改动**
+- [x] **Step 5: 提交 Task 2 改动**
 
 ```bash
 git add frontend/src/App.tsx
@@ -230,22 +230,22 @@ git commit -m "feat(mobile): implement WeChat-style immersive detail layout with
 **Files:**
 - None (全面回归验证)
 
-- [ ] **Step 1: 运行全量 Jest 测试套件**
+- [x] **Step 1: 运行全量 Jest 测试套件**
 
 Run: `/Users/yogo/.nvm/versions/node/v22.12.0/bin/npm test`
 Expected: 45+ 个测试套件全部 PASS
 
-- [ ] **Step 2: 运行前端 Vite 严格构建**
+- [x] **Step 2: 运行前端 Vite 严格构建**
 
 Run: `/Users/yogo/.nvm/versions/node/v22.12.0/bin/npm run build:frontend`
 Expected: 0 错误构建成功
 
-- [ ] **Step 3: 运行后端 TypeScript 严格构建**
+- [x] **Step 3: 运行后端 TypeScript 严格构建**
 
 Run: `/Users/yogo/.nvm/versions/node/v22.12.0/bin/npm run build:backend`
 Expected: 0 错误构建成功
 
-- [ ] **Step 4: 运行全量生产构建**
+- [x] **Step 4: 运行全量生产构建**
 
 Run: `/Users/yogo/.nvm/versions/node/v22.12.0/bin/npm run build`
 Expected: SUCCESS
