@@ -64,11 +64,11 @@ describe('LogsView & Preview Modes Theme Cleanliness Test', () => {
     expect(code).toContain('flex-1 min-h-0 overflow-y-auto');
   });
 
-  it('verifies App shell applies dynamic viewport locking for workbench tabs', () => {
+  it('verifies App shell applies viewport locking on mobile', () => {
     const appCode = fs.readFileSync(path.join(__dirname, '../frontend/src/App.tsx'), 'utf-8');
     expect(appCode).toContain("const isWorkbenchTab = activeTab === 'logs' || (activeTab === 'discover' && discoverSubView !== 'hub');");
-    expect(appCode).toContain("isWorkbenchTab ? 'h-[100dvh] max-h-[100dvh] overflow-hidden' : 'min-h-[100dvh]'");
-    expect(appCode).toContain("isWorkbenchTab ? 'h-full min-h-0 overflow-hidden' : ''");
+    expect(appCode).toContain("h-[100dvh] max-h-[100dvh] overflow-hidden");
+    expect(appCode).toContain("h-full min-h-0 overflow-hidden");
   });
 
   it('verifies LogsView detail inspector sections have shrink-0 and tab-appropriate overflow', () => {

@@ -550,7 +550,7 @@ export default function App() {
         } pl-0 h-full min-h-0 overflow-hidden`}
       >
         {/* Minimal Glass Top Bar */}
-        <header className="h-12 sm:h-14 backdrop-blur-md bg-[var(--bg-surface)]/90 border-b border-[var(--border-subtle)] px-3 sm:px-6 flex items-center justify-between sticky top-0 z-40 shrink-0 select-none">
+        <header className="h-12 sm:h-14 backdrop-blur-md bg-[var(--bg-surface)]/95 border-b border-[var(--border-subtle)] px-3 sm:px-6 flex items-center justify-between sticky top-0 z-40 shrink-0 select-none shadow-xs">
           {/* Left Breadcrumbs & Brand / Sidebar Toggle */}
           <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
             {/* Mobile Brand Logo Icon or Immersive Detail Back Button */}
@@ -558,7 +558,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={handleMobileBack}
-                className="flex items-center space-x-1 py-1 px-2 -ml-2 rounded-lg text-indigo-600 dark:text-indigo-400 font-medium text-xs hover:bg-indigo-500/10 active:scale-95 transition-all md:hidden"
+                className="flex items-center space-x-1.5 py-1 px-2.5 -ml-1 rounded-lg text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/15 border border-indigo-500/20 font-semibold text-xs active:scale-95 transition-all md:hidden shrink-0 shadow-xs"
               >
                 <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
                 <span>{activeTab === 'logs' ? t('logs.title', '日志') : t('discover.back', '发现')}</span>
