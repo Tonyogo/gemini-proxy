@@ -32,7 +32,7 @@
 - Consumes: `updateConfig({ geminiBaseUrl })`, `getUpstreamUrl('/v1beta/models')`
 - Produces: 自动格式化且即时生效的 `config.geminiBaseUrl`
 
-- [ ] **Step 1: 编写失败的测试 `tests/dynamicGeminiBaseUrl.test.ts`**
+- [x] **Step 1: 编写失败的测试 `tests/dynamicGeminiBaseUrl.test.ts`**
 
 ```typescript
 import config, { updateConfig } from '../config/default';
@@ -84,12 +84,12 @@ describe('Dynamic GEMINI_BASE_URL Hot-Reload & Normalization', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试并确认失败**
+- [x] **Step 2: 运行测试并确认失败**
 
 Run: `npx jest tests/dynamicGeminiBaseUrl.test.ts`
 Expected: FAIL (去除斜杠清洗未在 `updateConfig` 中实现，`ConfigModal.tsx` 尚未添加 `geminiBaseUrl`)
 
-- [ ] **Step 3: 更新 `config/default.ts` 实现规范化清洗**
+- [x] **Step 3: 更新 `config/default.ts` 实现规范化清洗**
 
 在 `config/default.ts` 的 `updateConfig` 中增加：
 ```typescript
@@ -106,7 +106,7 @@ Expected: FAIL (去除斜杠清洗未在 `updateConfig` 中实现，`ConfigModal
   }
 ```
 
-- [ ] **Step 4: 更新多语言词条 `zh.ts` 与 `en.ts`**
+- [x] **Step 4: 更新多语言词条 `zh.ts` 与 `en.ts`**
 
 在 `frontend/src/i18n/locales/zh.ts` 的 `config` 下：
 ```typescript
@@ -122,7 +122,7 @@ Expected: FAIL (去除斜杠清洗未在 `updateConfig` 中实现，`ConfigModal
     useOfficialDefault: "Use Official Default",
 ```
 
-- [ ] **Step 5: 提交 Task 1 改动**
+- [x] **Step 5: 提交 Task 1 改动**
 
 ```bash
 git add config/default.ts frontend/src/i18n/locales/zh.ts frontend/src/i18n/locales/en.ts tests/dynamicGeminiBaseUrl.test.ts
@@ -144,7 +144,7 @@ git commit -m "feat(config): add GEMINI_BASE_URL normalization and hot-reload lo
   - `handleSave()` 包含 `geminiBaseUrl`
   - `[⚡ 填入官方默认]` 快速回填按钮
 
-- [ ] **Step 1: 在 `ConfigModal.tsx` 中添加状态与回显逻辑**
+- [x] **Step 1: 在 `ConfigModal.tsx` 中添加状态与回显逻辑**
 
 1. 声明状态：
    ```typescript
@@ -159,7 +159,7 @@ git commit -m "feat(config): add GEMINI_BASE_URL normalization and hot-reload lo
    geminiBaseUrl: geminiBaseUrl.trim().replace(/\/+$/, ''),
    ```
 
-- [ ] **Step 2: 在 `activeTab === 'upstream'` 中渲染置顶表单项**
+- [x] **Step 2: 在 `activeTab === 'upstream'` 中渲染置顶表单项**
 
 ```tsx
 {/* TAB 2: Proxy & Upstream */}
@@ -233,12 +233,12 @@ git commit -m "feat(config): add GEMINI_BASE_URL normalization and hot-reload lo
 )}
 ```
 
-- [ ] **Step 3: 运行自动化测试验证**
+- [x] **Step 3: 运行自动化测试验证**
 
 Run: `npx jest tests/dynamicGeminiBaseUrl.test.ts`
 Expected: 4 个测试全部 PASS
 
-- [ ] **Step 4: 提交 Task 2 改动**
+- [x] **Step 4: 提交 Task 2 改动**
 
 ```bash
 git add frontend/src/components/ConfigModal.tsx
@@ -252,22 +252,22 @@ git commit -m "feat(ui): add GEMINI_BASE_URL form control and quick default fill
 **Files:**
 - None (全面回归验证)
 
-- [ ] **Step 1: 运行全量 Jest 测试套件**
+- [x] **Step 1: 运行全量 Jest 测试套件**
 
 Run: `/Users/yogo/.nvm/versions/node/v22.12.0/bin/npm test`
 Expected: 全量测试套件全部 PASS
 
-- [ ] **Step 2: 运行前端 Vite 严格构建**
+- [x] **Step 2: 运行前端 Vite 严格构建**
 
 Run: `/Users/yogo/.nvm/versions/node/v22.12.0/bin/npm run build:frontend`
 Expected: 0 错误构建成功
 
-- [ ] **Step 3: 运行后端 TypeScript 严格构建**
+- [x] **Step 3: 运行后端 TypeScript 严格构建**
 
 Run: `/Users/yogo/.nvm/versions/node/v22.12.0/bin/npm run build:backend`
 Expected: 0 错误构建成功
 
-- [ ] **Step 4: 运行全量生产构建**
+- [x] **Step 4: 运行全量生产构建**
 
 Run: `/Users/yogo/.nvm/versions/node/v22.12.0/bin/npm run build`
 Expected: SUCCESS
