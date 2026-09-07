@@ -35,7 +35,7 @@
 - Consumes: `useTranslation`
 - Produces: `discover.systemLogsTitle`, `discover.systemLogsDesc`, `discover.viewLogs`
 
-- [ ] **Step 1: 编写失败的测试 `tests/discoverSystemLogs.test.ts`**
+- [x] **Step 1: 编写失败的测试 `tests/discoverSystemLogs.test.ts`**
 
 ```typescript
 import * as fs from 'fs';
@@ -76,12 +76,12 @@ describe('Extract System Logs to Discover Hub', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试并确认失败**
+- [x] **Step 2: 运行测试并确认失败**
 
 Run: `npx jest tests/discoverSystemLogs.test.ts`
 Expected: FAIL (词条未补充、`DiscoverHubView` 尚未更新、`App.tsx` 尚未分发 `systemLogs`)
 
-- [ ] **Step 3: 更新多语言词条 `zh.ts` 与 `en.ts`**
+- [x] **Step 3: 更新多语言词条 `zh.ts` 与 `en.ts`**
 
 在 `frontend/src/i18n/locales/zh.ts` 的 `discover` 对象中：
 ```typescript
@@ -97,12 +97,12 @@ Expected: FAIL (词条未补充、`DiscoverHubView` 尚未更新、`App.tsx` 尚
     viewLogs: "View Logs",
 ```
 
-- [ ] **Step 4: 运行单项测试验证 i18n 断言通过**
+- [x] **Step 4: 运行单项测试验证 i18n 断言通过**
 
 Run: `npx jest tests/discoverSystemLogs.test.ts -t "i18n should include systemLogs"`
 Expected: PASS
 
-- [ ] **Step 5: 提交 Task 1 改动**
+- [x] **Step 5: 提交 Task 1 改动**
 
 ```bash
 git add frontend/src/i18n/locales/zh.ts frontend/src/i18n/locales/en.ts tests/discoverSystemLogs.test.ts
@@ -125,7 +125,7 @@ git commit -m "feat(i18n): add systemLogs translations to Discover Hub"
     - 分组 2（开发协同）：API 调试器 + 翻译工作台
   - 桌面端 4 列响应式卡片网格
 
-- [ ] **Step 1: 更新 `DiscoverHubView.tsx`**
+- [x] **Step 1: 更新 `DiscoverHubView.tsx`**
 
 ```tsx
 import React from 'react';
@@ -388,12 +388,12 @@ export const DiscoverHubView: React.FC<DiscoverHubViewProps> = ({ onSelectTool }
 export default DiscoverHubView;
 ```
 
-- [ ] **Step 2: 运行测试检查 `DiscoverHubView` 断言**
+- [x] **Step 2: 运行测试检查 `DiscoverHubView` 断言**
 
 Run: `npx jest tests/discoverSystemLogs.test.ts -t "DiscoverHubView"`
 Expected: PASS
 
-- [ ] **Step 3: 提交 Task 2 改动**
+- [x] **Step 3: 提交 Task 2 改动**
 
 ```bash
 git add frontend/src/components/DiscoverHubView.tsx
@@ -415,7 +415,7 @@ git commit -m "feat(discover): expand DiscoverHubView to 4 tools with systemLogs
   - 面包屑与顶栏展示 `t('discover.systemLogsTitle')`
   - `UnifiedTerminalView` 简化为纯粹交互式终端包装器
 
-- [ ] **Step 1: 在 `App.tsx` 中引入 `TerminalLogsView` 并配置子视图分发**
+- [x] **Step 1: 在 `App.tsx` 中引入 `TerminalLogsView` 并配置子视图分发**
 
 1. 引入组件：
    ```typescript
@@ -438,7 +438,7 @@ git commit -m "feat(discover): expand DiscoverHubView to 4 tools with systemLogs
    )}
    ```
 
-- [ ] **Step 2: 简化 `UnifiedTerminalView.tsx`**
+- [x] **Step 2: 简化 `UnifiedTerminalView.tsx`**
 
 使 `UnifiedTerminalView` 直接渲染 `WebTerminalView`，移除内部原有的 `subTab` 逻辑：
 ```tsx
@@ -477,12 +477,12 @@ export default function UnifiedTerminalView({
 }
 ```
 
-- [ ] **Step 3: 运行全部 `tests/discoverSystemLogs.test.ts` 测试**
+- [x] **Step 3: 运行全部 `tests/discoverSystemLogs.test.ts` 测试**
 
 Run: `npx jest tests/discoverSystemLogs.test.ts`
 Expected: 3 个测试全部 PASS
 
-- [ ] **Step 4: 提交 Task 3 改动**
+- [x] **Step 4: 提交 Task 3 改动**
 
 ```bash
 git add frontend/src/App.tsx frontend/src/components/UnifiedTerminalView.tsx
@@ -496,22 +496,22 @@ git commit -m "refactor(terminal): route system logs to discover hub and streaml
 **Files:**
 - None (全面回归验证)
 
-- [ ] **Step 1: 运行全量 Jest 测试套件**
+- [x] **Step 1: 运行全量 Jest 测试套件**
 
 Run: `/Users/yogo/.nvm/versions/node/v22.12.0/bin/npm test`
 Expected: 45+ 个测试套件全部 PASS
 
-- [ ] **Step 2: 运行前端 Vite 严格构建**
+- [x] **Step 2: 运行前端 Vite 严格构建**
 
 Run: `/Users/yogo/.nvm/versions/node/v22.12.0/bin/npm run build:frontend`
 Expected: 0 错误构建成功
 
-- [ ] **Step 3: 运行后端 TypeScript 严格构建**
+- [x] **Step 3: 运行后端 TypeScript 严格构建**
 
 Run: `/Users/yogo/.nvm/versions/node/v22.12.0/bin/npm run build:backend`
 Expected: 0 错误构建成功
 
-- [ ] **Step 4: 运行全量生产构建**
+- [x] **Step 4: 运行全量生产构建**
 
 Run: `/Users/yogo/.nvm/versions/node/v22.12.0/bin/npm run build`
 Expected: SUCCESS
