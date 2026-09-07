@@ -4,7 +4,6 @@ import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import '@xterm/xterm/css/xterm.css';
 import {
-  Terminal as TerminalIcon,
   RefreshCw,
   Trash2,
   Maximize2,
@@ -1197,14 +1196,7 @@ export default function WebTerminalView({
                 <span className="hidden sm:inline">{t('terminal.logsTab')}</span>
               </button>
             </div>
-          ) : (
-            <div className="flex items-center space-x-1.5 text-slate-200">
-              <TerminalIcon className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-              <span className="font-semibold text-slate-200 text-xs hidden sm:inline truncate">
-                {t('webTerminal.title')}
-              </span>
-            </div>
-          )}
+          ) : null}
 
           {/* Host Selector */}
           <TerminalHostSelector

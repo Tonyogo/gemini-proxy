@@ -238,14 +238,7 @@ export default function TerminalLogsView({
                   <span className="hidden sm:inline">{t('terminal.logsTab')}</span>
                 </button>
               </div>
-            ) : (
-              <div className="flex items-center space-x-1.5 text-slate-200">
-                <TerminalSquare className="w-3.5 h-3.5 text-indigo-400" />
-                <span className="font-semibold text-slate-200 tracking-wide text-xs">
-                  {t('terminal.title')}
-                </span>
-              </div>
-            )}
+            ) : null}
           </div>
 
           <div className="flex items-center space-x-2">
