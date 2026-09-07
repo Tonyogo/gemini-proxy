@@ -284,8 +284,11 @@ export const en = {
     presetToolUse: "Tool Use (Function Call)",
     presetVision: "Vision & Multimodal",
     presetThinking: "Thinking Mode (CoT)",
+    presetThinkingMode: "Thinking Mode (CoT)",
     presetsTitle: "Quick Fill Templates",
     presetsBtn: "Presets",
+    presets: "Presets",
+    stressTest: "Stress Test",
     connectedStreaming: "Connected. Streaming events...\n\n",
     initialResponse: "// API response will appear here..."
   },

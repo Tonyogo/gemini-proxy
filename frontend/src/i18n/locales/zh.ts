@@ -286,8 +286,11 @@ export const zh: Translations = {
     presetToolUse: "工具调用 (Function Call)",
     presetVision: "多模态视觉理解",
     presetThinking: "思维链模式 (CoT)",
+    presetThinkingMode: "思维链模式 (CoT)",
     presetsTitle: "预设模板",
     presetsBtn: "预设",
+    presets: "预设模板",
+    stressTest: "并发压测",
     connectedStreaming: "已连接。正在接收流式事件...\n\n",
     initialResponse: "// 响应数据将显示在此处..."
   },

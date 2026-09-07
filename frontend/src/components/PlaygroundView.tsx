@@ -148,6 +148,7 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
   const [copiedResponse, setCopiedResponse] = useState<boolean>(false);
   const [copiedAnswer, setCopiedAnswer] = useState<boolean>(false);
   const [showConcurrentModal, setShowConcurrentModal] = useState<boolean>(false);
+  const [activePreset, setActivePreset] = useState<PresetKey | null>(null);
   const [showPresetsDropdown, setShowPresetsDropdown] = useState<boolean>(false);
   const presetsRef = useRef<HTMLDivElement>(null);
 
@@ -222,11 +223,22 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
   };
 
   const handleSelectPreset = (key: PresetKey) => {
+    setActivePreset(key);
     const preset = PRESETS[key];
     setRequestBody(JSON.stringify(preset, null, 2));
     setSelectedModel(preset.model || 'gemini-flash-latest');
     setEndpointOption('messages');
     setShowPresetsDropdown(false);
+  };
+
+  const handleApplyPreset = handleSelectPreset;
+
+  const handleOpenConcurrentModal = () => {
+    if (!effectiveApiKey) {
+      alert(t('playground.alertKeyRequired'));
+      return;
+    }
+    setShowConcurrentModal(true);
   };
 
   const handleEndpointOptionChange = (option: EndpointOption) => {
@@ -476,225 +488,156 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
 
   return (
     <div className="w-full flex-1 space-y-4 flex flex-col font-sans h-auto min-h-0 md:h-[calc(100dvh-6.5rem)] overflow-hidden">
-      {/* Top Controls Header Workbench */}
-      <div className="ui-card p-3 sm:p-3.5 flex flex-col lg:flex-row lg:items-center justify-between gap-3 relative z-30 shrink-0">
-        {/* Row 1: Brand title & logo (left) + Primary Send button (right on mobile, flex on desktop) */}
-        <div className="flex items-center justify-between w-full lg:w-auto">
-          <div className="flex items-center space-x-3 min-w-0">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-indigo-600/30 to-purple-600/30 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold shadow-inner shrink-0">
-              <Terminal className="w-4 h-4 text-indigo-400" />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center space-x-2">
-                <h2 className="text-xs font-bold text-white tracking-wide uppercase truncate">{t('playground.title')}</h2>
-                <span className="px-1.5 py-0.5 rounded-md text-[9px] font-mono font-bold bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 shrink-0">
-                  v1.0
-                </span>
+      {/* Top Controls Header Workbench (Clean Control Bar aligned with TranslateView) */}
+      <div className="ui-card p-2.5 sm:p-3 flex flex-col lg:flex-row lg:items-center justify-between gap-2 sm:gap-2.5 relative z-30 shrink-0">
+        {/* Left Core Configuration Group (Model & Endpoint) */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto flex-1">
+          {/* Model Selector */}
+          <div className="flex items-center space-x-1.5 ui-card-sub px-2.5 py-1 flex-1 sm:flex-none">
+            <Sparkles className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+            <select
+              value={selectedModel}
+              onChange={(e) => handleModelChange(e.target.value)}
+              className="bg-transparent text-xs text-[var(--text-primary)] focus:outline-none font-mono cursor-pointer w-full sm:w-auto"
+            >
+              {STANDARD_MODELS.map((model) => (
+                <option key={model} value={model}>{model}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Endpoint selector */}
+          <div className="flex items-center space-x-1.5 ui-card-sub px-2.5 py-1 flex-1 sm:flex-none">
+            <Globe className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+            <select
+              value={endpointOption}
+              onChange={(e) => handleEndpointOptionChange(e.target.value as EndpointOption)}
+              className="bg-transparent text-xs text-[var(--text-primary)] focus:outline-none font-mono cursor-pointer"
+            >
+              <option value="messages">POST /v1/messages</option>
+              <option value="count_tokens">POST /v1/messages/count_tokens</option>
+              <option value="custom">{t('playground.customEndpoint')}</option>
+            </select>
+
+            {endpointOption === 'custom' && (
+              <div className="flex items-center space-x-1 pl-1.5 border-l border-[var(--border-subtle)]">
+                <select
+                  value={customMethod}
+                  onChange={(e) => setCustomMethod(e.target.value)}
+                  className="bg-transparent text-xs text-indigo-500 dark:text-indigo-400 font-bold focus:outline-none cursor-pointer"
+                >
+                  <option value="POST">POST</option>
+                  <option value="GET">GET</option>
+                  <option value="PUT">PUT</option>
+                  <option value="DELETE">DELETE</option>
+                </select>
+                <input
+                  type="text"
+                  value={customPath}
+                  onChange={(e) => setCustomPath(e.target.value)}
+                  placeholder="/v1/..."
+                  className="ui-input py-0.5 px-2 text-xs font-mono w-20 sm:w-36"
+                />
               </div>
-              <p className="text-[10px] text-slate-400 truncate hidden sm:block">{t('playground.subtitle')}</p>
-            </div>
+            )}
           </div>
 
-          <div className="flex items-center space-x-2">
-            {/* System Admin Secret Key Badge (hidden on extra small screens if tight, or compact) */}
-            <div
-              className="hidden sm:flex items-center space-x-1.5 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-mono select-none"
-              title={t('playground.systemKeyDesc')}
-            >
-              <Key className="w-3.5 h-3.5 shrink-0 text-emerald-500" />
-              <span className="font-medium whitespace-nowrap">{t('playground.systemKeyActive')}</span>
-            </div>
-
-            {/* Send Request Action Button - Mobile visible in Row 1 */}
+          {/* Stream Toggle Pill */}
+          {endpointOption !== 'custom' && (
             <button
-              onClick={handleSend}
-              disabled={loading}
-              className="lg:hidden px-3.5 py-1.5 ui-btn-primary flex items-center space-x-1.5 text-xs font-semibold disabled:opacity-50 shrink-0 shadow-md"
+              type="button"
+              onClick={handleToggleStreamInBody}
+              className={`px-2.5 py-1 rounded-xl text-xs font-semibold flex items-center justify-center space-x-1.5 transition-all border shrink-0 ${
+                isStreamChecked
+                  ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.15)]'
+                  : 'ui-btn-secondary text-slate-400 hover:text-slate-200'
+              }`}
+              title="Toggle stream: true/false in payload"
             >
-              {loading ? (
-                <>
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>{t('playground.sending')}</span>
-                </>
-              ) : (
-                <>
-                  <Send className="w-3.5 h-3.5" />
-                  <span>{t('playground.runTest')}</span>
-                </>
-              )}
+              <Zap className={`w-3 h-3 ${isStreamChecked ? 'text-emerald-400' : 'text-slate-500'}`} />
+              <span>Stream</span>
             </button>
-          </div>
+          )}
         </div>
 
-        {/* Row 2 & Row 3 Container (Mobile) / Desktop Controls */}
-        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-2 w-full lg:w-auto justify-between lg:justify-end">
-          {/* Row 2 (Mobile): Model select + Endpoint select in a 2-column flex grid on mobile */}
-          <div className="flex items-center gap-2 w-full sm:w-auto flex-1">
-            {/* Model Selector */}
-            <div className="flex items-center space-x-1.5 ui-card-sub px-2.5 py-1 flex-1 w-full sm:w-auto">
-              <Sparkles className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-              <select
-                value={selectedModel}
-                onChange={(e) => handleModelChange(e.target.value)}
-                className="w-full bg-transparent text-xs text-[var(--text-primary)] focus:outline-none font-mono cursor-pointer"
-              >
-                {STANDARD_MODELS.map((model) => (
-                  <option key={model} value={model}>{model}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Endpoint selector */}
-            <div className="flex items-center space-x-1.5 ui-card-sub px-2.5 py-1 flex-1 w-full sm:w-auto">
-              <Globe className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-              <select
-                value={endpointOption}
-                onChange={(e) => handleEndpointOptionChange(e.target.value as EndpointOption)}
-                className="w-full bg-transparent text-xs text-[var(--text-primary)] focus:outline-none font-mono cursor-pointer"
-              >
-                <option value="messages">POST /v1/messages</option>
-                <option value="count_tokens">POST /v1/messages/count_tokens</option>
-                <option value="custom">{t('playground.customEndpoint')}</option>
-              </select>
-
-              {endpointOption === 'custom' && (
-                <div className="flex items-center space-x-1 pl-1.5 border-l border-[var(--border-subtle)]">
-                  <select
-                    value={customMethod}
-                    onChange={(e) => setCustomMethod(e.target.value)}
-                    className="bg-transparent text-xs text-indigo-500 dark:text-indigo-400 font-bold focus:outline-none cursor-pointer"
-                  >
-                    <option value="POST">POST</option>
-                    <option value="GET">GET</option>
-                    <option value="PUT">PUT</option>
-                    <option value="DELETE">DELETE</option>
-                  </select>
-                  <input
-                    type="text"
-                    value={customPath}
-                    onChange={(e) => setCustomPath(e.target.value)}
-                    placeholder="/v1/..."
-                    className="ui-input py-0.5 px-2 text-xs font-mono w-20 sm:w-36"
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Row 3 (Mobile): Stream toggle, Presets, Copy cURL, and Concurrent test grouped into an auxiliary toolbar */}
-          <div className="flex items-center flex-wrap gap-2 w-full sm:w-auto justify-start sm:justify-end">
-            {/* Stream Toggle Pill */}
-            {endpointOption !== 'custom' && (
-              <button
-                type="button"
-                onClick={handleToggleStreamInBody}
-                className={`px-2.5 py-1 rounded-xl text-xs font-semibold flex items-center space-x-1.5 transition-all border ${
-                  isStreamChecked
-                    ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.15)]'
-                    : 'ui-btn-secondary text-slate-400 hover:text-slate-200'
-                }`}
-                title="Toggle stream: true/false in payload"
-              >
-                <Zap className={`w-3 h-3 ${isStreamChecked ? 'text-emerald-400' : 'text-slate-500'}`} />
-                <span>Stream</span>
-                <span className={`w-1.5 h-1.5 rounded-full ${isStreamChecked ? 'bg-emerald-400 animate-pulse' : 'bg-slate-600'}`} />
-              </button>
-            )}
-
-            {/* Quick Fill Presets Dropdown */}
-            {endpointOption !== 'custom' && (
-              <div className="relative" ref={presetsRef}>
-                <button
-                  onClick={() => setShowPresetsDropdown(!showPresetsDropdown)}
-                  className="px-2.5 py-1 ui-btn-secondary flex items-center space-x-1.5"
-                >
-                  <Sliders className="w-3.5 h-3.5 text-purple-400" />
-                  <span>{t('playground.presetsBtn')}</span>
-                  <ChevronDown className="w-3 h-3 text-slate-500" />
-                </button>
-
-                {showPresetsDropdown && (
-                  <div className="absolute right-0 mt-2 w-48 ui-card p-1 z-50 animate-in fade-in zoom-in-95 duration-150">
-                    <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-white/[0.06]">
-                      {t('playground.presetsTitle')}
-                    </div>
-                    <button
-                      onClick={() => handleSelectPreset('basicChat')}
-                      className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/[0.05] rounded-lg transition-colors flex items-center space-x-2"
-                    >
-                      <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                      <span>{t('playground.presetBasicChat')}</span>
-                    </button>
-                    <button
-                      onClick={() => handleSelectPreset('toolUse')}
-                      className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/[0.05] rounded-lg transition-colors flex items-center space-x-2"
-                    >
-                      <Code className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>{t('playground.presetToolUse')}</span>
-                    </button>
-                    <button
-                      onClick={() => handleSelectPreset('vision')}
-                      className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/[0.05] rounded-lg transition-colors flex items-center space-x-2"
-                    >
-                      <Eye className="w-3.5 h-3.5 text-amber-400" />
-                      <span>{t('playground.presetVision')}</span>
-                    </button>
-                    <button
-                      onClick={() => handleSelectPreset('thinkingMode')}
-                      className="w-full text-left px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/[0.05] rounded-lg transition-colors flex items-center space-x-2"
-                    >
-                      <Flame className="w-3.5 h-3.5 text-rose-400" />
-                      <span>{t('playground.presetThinking')}</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Copy cURL */}
-            <button
-              onClick={handleCopyCurl}
-              className="px-2.5 py-1 ui-btn-secondary flex items-center space-x-1.5"
-              title="Copy as cURL command"
-            >
-              {copiedCurl ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-slate-400" />}
-              <span>{copiedCurl ? t('playground.copied') : t('playground.copyCurl')}</span>
-            </button>
-
-            {/* Concurrent Test Modal Trigger */}
-            <button
-              onClick={() => {
-                if (!effectiveApiKey) {
-                  alert(t('playground.alertKeyRequired'));
-                  return;
+        {/* Right Auxiliary & Execution Action Group */}
+        <div className="flex items-center justify-between sm:justify-end gap-1.5 sm:gap-2 shrink-0">
+          {/* Preset templates selector */}
+          <div className="relative">
+            <select
+              value={activePreset || ''}
+              onChange={(e) => {
+                if (e.target.value) {
+                  handleApplyPreset(e.target.value as PresetKey);
                 }
-                setShowConcurrentModal(true);
               }}
-              className="px-3 py-1 ui-btn-secondary text-purple-300 border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20 flex items-center space-x-1.5"
+              className="appearance-none ui-input pr-7 py-1 px-2.5 text-xs font-medium cursor-pointer"
             >
-              <Activity className="w-3.5 h-3.5 text-purple-400" />
-              <span className="whitespace-nowrap">{t('playground.concurrentTest')}</span>
-            </button>
-
-            {/* Desktop Send Request Action Button */}
-            <button
-              onClick={handleSend}
-              disabled={loading}
-              className="hidden lg:flex px-4 py-1.5 ui-btn-primary items-center space-x-1.5 disabled:opacity-50"
-            >
-              {loading ? (
-                <>
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>{t('playground.sending')}</span>
-                </>
-              ) : (
-                <>
-                  <Send className="w-3.5 h-3.5" />
-                  <span>{t('playground.runTest')}</span>
-                </>
-              )}
-            </button>
+              <option value="" disabled>{t('playground.presets')}</option>
+              <option value="basicChat">{t('playground.presetBasicChat')}</option>
+              <option value="toolUse">{t('playground.presetToolUse')}</option>
+              <option value="vision">{t('playground.presetVision')}</option>
+              <option value="thinkingMode">{t('playground.presetThinkingMode')}</option>
+            </select>
+            <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
+
+          {/* Copy cURL Button */}
+          <button
+            onClick={handleCopyCurl}
+            className="p-1.5 sm:px-2.5 sm:py-1 ui-btn-secondary flex items-center space-x-1.5 text-xs shrink-0 active:scale-95"
+            title={t('playground.copyCurl')}
+          >
+            {copiedCurl ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="text-emerald-400 hidden sm:inline">{t('playground.copied')}</span>
+              </>
+            ) : (
+              <>
+                <Code className="w-3.5 h-3.5 text-slate-400" />
+                <span className="hidden sm:inline">cURL</span>
+              </>
+            )}
+          </button>
+
+          {/* Concurrent Stress Test Modal Trigger */}
+          <button
+            onClick={handleOpenConcurrentModal}
+            className="p-1.5 sm:px-2.5 sm:py-1 ui-btn-secondary flex items-center space-x-1.5 text-xs shrink-0 active:scale-95 hover:border-amber-500/30 hover:text-amber-300"
+            title={t('playground.concurrentTest')}
+          >
+            <Flame className="w-3.5 h-3.5 text-amber-400" />
+            <span className="hidden sm:inline">{t('playground.stressTest')}</span>
+          </button>
+
+          {/* System Key Status Indicator */}
+          <div
+            className="hidden sm:flex items-center space-x-1.5 px-2 py-1 rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-mono select-none shrink-0"
+            title={t('playground.systemKeyDesc')}
+          >
+            <Key className="w-3.5 h-3.5 shrink-0 text-emerald-500" />
+            <span className="font-medium whitespace-nowrap">{t('playground.systemKeyActive')}</span>
+          </div>
+
+          {/* Send Action Button */}
+          <button
+            onClick={handleSend}
+            disabled={loading}
+            className="px-3 sm:px-4 py-1.5 ui-btn-primary flex items-center space-x-1.5 text-xs font-semibold disabled:opacity-50 shrink-0 shadow-md active:scale-95"
+          >
+            {loading ? (
+              <>
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                <span>{t('playground.sending')}</span>
+              </>
+            ) : (
+              <>
+                <Send className="w-3.5 h-3.5" />
+                <span>{t('playground.runTest')}</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
 
