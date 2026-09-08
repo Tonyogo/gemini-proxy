@@ -33,7 +33,7 @@
   - `WebTerminalView.tsx`: 确认容器在选择模式下挂载 `.terminal-select-mode`
   - `frontend/src/index.css`: 确认包含针对 `.terminal-select-mode` 的深层 `-webkit-user-select: none !important` 规则
 
-- [ ] **Step 1: 编写 `tests/terminalCopyOnSelectAndTouchFix.test.ts` 并更新 `tests/terminalSelectionCopy.test.ts`**
+- [x] **Step 1: 编写 `tests/terminalCopyOnSelectAndTouchFix.test.ts` 并更新 `tests/terminalSelectionCopy.test.ts`**
 
 Create `tests/terminalCopyOnSelectAndTouchFix.test.ts`:
 ```ts
@@ -107,12 +107,12 @@ describe('Terminal Selection and Copy Optimization Tests', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试并验证初始失败**
+- [x] **Step 2: 运行测试并验证初始失败**
 
 Run: `npx jest tests/terminalCopyOnSelectAndTouchFix.test.ts`
 Expected: FAIL because floating bubble still exists and `.terminal-select-mode` CSS is not yet defined.
 
-- [ ] **Step 3: 提交测试文件**
+- [x] **Step 3: 提交测试文件**
 
 ```bash
 git add tests/terminalCopyOnSelectAndTouchFix.test.ts tests/terminalSelectionCopy.test.ts
@@ -134,7 +134,7 @@ git commit -m "test: add test assertions for copy on select and touch drag selec
   - 在 `handleMouseUp` 中实现 `Copy on Select`：
     当 `!isMobile` 且 `term.hasSelection()` 时，读取 `term.getSelection()`，自动调用 `navigator.clipboard.writeText(text)` 并触发 `showToast(t('webTerminal.copiedToClipboard'))`
 
-- [ ] **Step 1: 修改 `WebTerminalView.tsx` 清理旧 UI 并实现 Copy on Select**
+- [x] **Step 1: 修改 `WebTerminalView.tsx` 清理旧 UI 并实现 Copy on Select**
 
 1. 移除 `selectionBubblePos` 状态声明：
 ```tsx
@@ -193,12 +193,12 @@ git commit -m "test: add test assertions for copy on select and touch drag selec
     }
 ```
 
-- [ ] **Step 2: 运行测试并验证部分通过**
+- [x] **Step 2: 运行测试并验证部分通过**
 
 Run: `npx jest tests/terminalCopyOnSelectAndTouchFix.test.ts`
 Expected: Step 1 assertions (bubble removed, topbar removed, copy on select present) PASS.
 
-- [ ] **Step 3: 提交代码**
+- [x] **Step 3: 提交代码**
 
 ```bash
 git add frontend/src/components/WebTerminalView.tsx
@@ -235,7 +235,7 @@ git commit -m "refactor(terminal): implement desktop copy-on-select and remove r
     ```
   - 将 `touchstart` / `touchmove` / `touchend` 监听器升级为 `{ passive: false, capture: true }`，确保在进入选择模式时优先捕获事件并在触碰文字瞬间执行 `e.preventDefault()`，彻底阻止浏览器将手势升级为系统原生文字选择/放大镜。
 
-- [ ] **Step 1: 在 `frontend/src/index.css` 增加深层手势禁用样式**
+- [x] **Step 1: 在 `frontend/src/index.css` 增加深层手势禁用样式**
 
 In `frontend/src/index.css`:
 ```css
@@ -252,7 +252,7 @@ In `frontend/src/index.css`:
 }
 ```
 
-- [ ] **Step 2: 在 `WebTerminalView.tsx` 中绑定类名与手势捕获**
+- [x] **Step 2: 在 `WebTerminalView.tsx` 中绑定类名与手势捕获**
 
 在 Canvas 容器上绑定 `terminal-select-mode`：
 ```tsx
@@ -312,12 +312,12 @@ In `frontend/src/index.css`:
       }
 ```
 
-- [ ] **Step 3: 运行测试并验证全部通过**
+- [x] **Step 3: 运行测试并验证全部通过**
 
 Run: `npx jest tests/terminalCopyOnSelectAndTouchFix.test.ts tests/terminalSelectionCopy.test.ts`
 Expected: PASS (100% tests passing).
 
-- [ ] **Step 4: 提交移动端修复代码**
+- [x] **Step 4: 提交移动端修复代码**
 
 ```bash
 git add frontend/src/index.css frontend/src/components/WebTerminalView.tsx
@@ -332,17 +332,17 @@ git commit -m "fix(terminal): prevent native text drag interception and enable f
 - All touched files
 - Test: All suites
 
-- [ ] **Step 1: 运行全量 Jest 测试**
+- [x] **Step 1: 运行全量 Jest 测试**
 
 Run: `npm test`
 Expected: 68 passed, 0 failures.
 
-- [ ] **Step 2: 运行前端生产编译**
+- [x] **Step 2: 运行前端生产编译**
 
 Run: `npm run build:frontend`
 Expected: Vite build succeeds cleanly with 0 errors.
 
-- [ ] **Step 3: 提交最终整洁状态**
+- [x] **Step 3: 提交最终整洁状态**
 
 ```bash
 git status
