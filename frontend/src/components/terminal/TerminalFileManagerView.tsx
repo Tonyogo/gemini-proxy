@@ -25,7 +25,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { useTranslation } from '../../i18n/LanguageContext';
-import { useTheme } from '../../contexts/ThemeContext';
+import { useTheme } from '../../theme/ThemeContext';
 import { defineGeminiProxyTheme } from '../../utils/monacoTheme';
 
 export interface TerminalFileManagerViewProps {

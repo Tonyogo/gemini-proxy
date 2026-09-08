@@ -73,7 +73,7 @@ git commit -m "test: add integration test suite for terminal file manager"
   - `terminalFileService.getFileStream(hostId, filePath)`
   - `terminalFileService.saveUploadedFile(hostId, targetDir, filename, buffer)`
 
-- [ ] **Step 1: 编写 `src/admin/services/terminalFileService.ts`**
+- [x] **Step 1: 编写 `src/admin/services/terminalFileService.ts`**
 
 ```typescript
 import fs from 'fs';
@@ -429,7 +429,7 @@ export const terminalFileService = new TerminalFileService();
 export default terminalFileService;
 ```
 
-- [ ] **Step 2: 扩展 `TerminalHostManager` 支持 Agent RPC 调度与 Promise 等待**
+- [x] **Step 2: 扩展 `TerminalHostManager` 支持 Agent RPC 调度与 Promise 等待**
 
 In `src/admin/services/terminalHostManager.ts`:
 增加 `executeFileRpc` 方法以及对应 RPC 回调注册字典：
@@ -478,7 +478,7 @@ In `src/admin/services/terminalHostManager.ts`:
   }
 ```
 
-- [ ] **Step 3: 提交代码**
+- [x] **Step 3: 提交代码**
 
 ```bash
 git add src/admin/services/terminalFileService.ts src/admin/services/terminalHostManager.ts
@@ -500,7 +500,7 @@ git commit -m "feat(terminal): implement terminal file service with local FS dri
   - 路由挂载于 `/api/admin/terminal/files/*`
   - 处理 `multipart/form-data` 单文件/多文件解析
 
-- [ ] **Step 1: 编写 `src/admin/controllers/terminalFileController.ts`**
+- [x] **Step 1: 编写 `src/admin/controllers/terminalFileController.ts`**
 
 ```typescript
 import { Request, Response } from 'express';
@@ -653,7 +653,7 @@ export const terminalFileController = new TerminalFileController();
 export default terminalFileController;
 ```
 
-- [ ] **Step 2: 在 `src/admin/routes/adminRoutes.ts` 注册文件路由**
+- [x] **Step 2: 在 `src/admin/routes/adminRoutes.ts` 注册文件路由**
 
 ```typescript
 // Terminal File Management Routes
@@ -667,7 +667,7 @@ router.get('/terminal/files/download', (req, res) => terminalFileController.down
 router.post('/terminal/files/upload', (req, res) => terminalFileController.uploadFile(req, res));
 ```
 
-- [ ] **Step 3: 在 `src/admin/routes/terminalWs.ts` 接收 Agent RPC 回包**
+- [x] **Step 3: 在 `src/admin/routes/terminalWs.ts` 接收 Agent RPC 回包**
 
 In `src/admin/routes/terminalWs.ts`:
 在 Agent 收到以 `JSON:` 开头的消息时，判断是否为 `file_rpc_res`：
@@ -678,12 +678,12 @@ if (control.type === 'file_rpc_res') {
 }
 ```
 
-- [ ] **Step 4: 运行测试并验证通过**
+- [x] **Step 4: 运行测试并验证通过**
 
 Run: `npx jest tests/terminalFileManager.test.ts`
 Expected: PASS (all tests passing).
 
-- [ ] **Step 5: 提交更改**
+- [x] **Step 5: 提交更改**
 
 ```bash
 git add src/admin/controllers/terminalFileController.ts src/admin/routes/adminRoutes.ts src/admin/routes/terminalWs.ts
@@ -708,7 +708,7 @@ git commit -m "feat(admin): expose terminal file manager REST routes and agent R
   - `upload_chunk`: 写入上传数据
   - `download_chunk`: 读取并回传 Base64 数据
 
-- [ ] **Step 1: 修改 `scripts/terminal-agent.js` 增加 `handleFileRpc`**
+- [x] **Step 1: 修改 `scripts/terminal-agent.js` 增加 `handleFileRpc`**
 
 ```javascript
 const fs = require('fs');
@@ -831,7 +831,7 @@ async function handleFileRpc(control) {
 }
 ```
 
-- [ ] **Step 2: 在 WS 接收处挂载 `handleFileRpc` 消息分支**
+- [x] **Step 2: 在 WS 接收处挂载 `handleFileRpc` 消息分支**
 
 ```javascript
 if (msgStr.startsWith('JSON:')) {
@@ -845,7 +845,7 @@ if (msgStr.startsWith('JSON:')) {
 }
 ```
 
-- [ ] **Step 3: 提交更改**
+- [x] **Step 3: 提交更改**
 
 ```bash
 git add scripts/terminal-agent.js
@@ -870,7 +870,7 @@ git commit -m "feat(agent): support remote file rpc actions in terminal agent"
   - 文本/代码在线预览与编辑保存弹窗 (`Monaco Editor` 或轻量代码高亮编辑器)
   - 图片高清查看弹窗
 
-- [ ] **Step 1: 增补国际化文案 (`zh.ts` 与 `en.ts`)**
+- [x] **Step 1: 增补国际化文案 (`zh.ts` 与 `en.ts`)**
 
 In `frontend/src/i18n/locales/zh.ts`:
 ```typescript
@@ -944,7 +944,7 @@ In `frontend/src/i18n/locales/en.ts`:
     }
 ```
 
-- [ ] **Step 2: 编写 `frontend/src/components/terminal/TerminalFileManagerView.tsx`**
+- [x] **Step 2: 编写 `frontend/src/components/terminal/TerminalFileManagerView.tsx`**
 
 实现完整的文件管理组件，包含：
 - `useEffect` 监听 `activeHostId` 与 `currentPath` 自动拉取 `/api/admin/terminal/files/list`；
@@ -955,7 +955,7 @@ In `frontend/src/i18n/locales/en.ts`:
 - 新建/重命名/删除弹窗对话框；
 - 文件拖拽放置区 (`onDragOver`, `onDrop`) 触发上传。
 
-- [ ] **Step 3: 提交前端组件**
+- [x] **Step 3: 提交前端组件**
 
 ```bash
 git add frontend/src/components/terminal/TerminalFileManagerView.tsx frontend/src/i18n/locales/
@@ -976,7 +976,7 @@ git commit -m "feat(frontend): create TerminalFileManagerView component with ful
   - 共用 `activeHostId` 状态
   - 保持全屏和独立模式的顺畅切换
 
-- [ ] **Step 1: 修改 `UnifiedTerminalView.tsx` 增加 SubTab 状态与视图分发**
+- [x] **Step 1: 修改 `UnifiedTerminalView.tsx` 增加 SubTab 状态与视图分发**
 
 ```tsx
 import React, { useState } from 'react';
@@ -1084,12 +1084,12 @@ export default function UnifiedTerminalView({
 }
 ```
 
-- [ ] **Step 2: 运行所有 Jest 测试套件**
+- [x] **Step 2: 运行所有 Jest 测试套件**
 
 Run: `npx jest tests/terminalFileManager.test.ts`
 Expected: PASS.
 
-- [ ] **Step 3: 提交更改**
+- [x] **Step 3: 提交更改**
 
 ```bash
 git add frontend/src/components/UnifiedTerminalView.tsx frontend/src/components/WebTerminalView.tsx
@@ -1104,22 +1104,22 @@ git commit -m "feat(terminal): integrate interactive terminal and file manager s
 - All touched files
 - Test: Complete Jest test suite
 
-- [ ] **Step 1: 运行所有单元与集成测试**
+- [x] **Step 1: 运行所有单元与集成测试**
 
 Run: `npm test`
 Expected: 68 passed, 0 failures.
 
-- [ ] **Step 2: 运行前端生产编译**
+- [x] **Step 2: 运行前端生产编译**
 
 Run: `npm run build:frontend`
 Expected: Vite build completes cleanly with 0 errors.
 
-- [ ] **Step 3: 运行后端 TypeScript 编译**
+- [x] **Step 3: 运行后端 TypeScript 编译**
 
 Run: `npm run build:backend`
 Expected: `tsc` compiles cleanly with 0 errors.
 
-- [ ] **Step 4: 提交最终工程代码**
+- [x] **Step 4: 提交最终工程代码**
 
 ```bash
 git status
