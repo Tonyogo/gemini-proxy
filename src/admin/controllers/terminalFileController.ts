@@ -73,7 +73,11 @@ function parseMultipartForm(buffer: Buffer, boundary: string): { filename: strin
 class TerminalFileController {
   public async listFiles(req: Request, res: Response): Promise<void> {
     try {
-      const hostId = (req.query.hostId as string) || 'local';
+      const hostId = (req.query.hostId as string)?.trim();
+      if (!hostId) {
+        res.status(400).json({ success: false, error: 'hostId is required' });
+        return;
+      }
       const targetPath = (req.query.path as string) || undefined;
       const result = await terminalFileService.listFiles(hostId, targetPath);
       if (!result.success && result.error?.includes('not found')) {
@@ -88,7 +92,11 @@ class TerminalFileController {
 
   public async readFileContent(req: Request, res: Response): Promise<void> {
     try {
-      const hostId = (req.query.hostId as string) || 'local';
+      const hostId = (req.query.hostId as string)?.trim();
+      if (!hostId) {
+        res.status(400).json({ success: false, error: 'hostId is required' });
+        return;
+      }
       const targetPath = req.query.path as string;
       if (!targetPath) {
         res.status(400).json({ success: false, error: 'path query parameter is required' });
@@ -107,7 +115,12 @@ class TerminalFileController {
 
   public async saveFileContent(req: Request, res: Response): Promise<void> {
     try {
-      const { hostId = 'local', path: targetPath, content = '' } = req.body;
+      const hostId = (req.body.hostId as string)?.trim();
+      if (!hostId) {
+        res.status(400).json({ success: false, error: 'hostId is required' });
+        return;
+      }
+      const { path: targetPath, content = '' } = req.body;
       if (!targetPath) {
         res.status(400).json({ success: false, error: 'path is required' });
         return;
@@ -121,7 +134,12 @@ class TerminalFileController {
 
   public async createDirectory(req: Request, res: Response): Promise<void> {
     try {
-      const { hostId = 'local', path: targetPath, dirName } = req.body;
+      const hostId = (req.body.hostId as string)?.trim();
+      if (!hostId) {
+        res.status(400).json({ success: false, error: 'hostId is required' });
+        return;
+      }
+      const { path: targetPath, dirName } = req.body;
       if (!targetPath || !dirName) {
         res.status(400).json({ success: false, error: 'path and dirName are required' });
         return;
@@ -135,7 +153,12 @@ class TerminalFileController {
 
   public async renameFile(req: Request, res: Response): Promise<void> {
     try {
-      const { hostId = 'local', oldPath, newPath } = req.body;
+      const hostId = (req.body.hostId as string)?.trim();
+      if (!hostId) {
+        res.status(400).json({ success: false, error: 'hostId is required' });
+        return;
+      }
+      const { oldPath, newPath } = req.body;
       if (!oldPath || !newPath) {
         res.status(400).json({ success: false, error: 'oldPath and newPath are required' });
         return;
@@ -149,7 +172,11 @@ class TerminalFileController {
 
   public async deleteItem(req: Request, res: Response): Promise<void> {
     try {
-      const hostId = (req.query.hostId as string) || 'local';
+      const hostId = (req.query.hostId as string)?.trim();
+      if (!hostId) {
+        res.status(400).json({ success: false, error: 'hostId is required' });
+        return;
+      }
       const targetPath = req.query.path as string;
       if (!targetPath) {
         res.status(400).json({ success: false, error: 'path query parameter is required' });
@@ -164,7 +191,11 @@ class TerminalFileController {
 
   public async downloadFile(req: Request, res: Response): Promise<void> {
     try {
-      const hostId = (req.query.hostId as string) || 'local';
+      const hostId = (req.query.hostId as string)?.trim();
+      if (!hostId) {
+        res.status(400).json({ success: false, error: 'hostId is required' });
+        return;
+      }
       const targetPath = req.query.path as string;
       if (!targetPath) {
         res.status(400).json({ success: false, error: 'path query parameter is required' });
@@ -188,8 +219,12 @@ class TerminalFileController {
 
   public async uploadFile(req: Request, res: Response): Promise<void> {
     try {
-      const hostId = (req.query.hostId as string) || 'local';
-      const targetDir = (req.query.path as string) || process.cwd();
+      const hostId = (req.query.hostId as string)?.trim();
+      if (!hostId) {
+        res.status(400).json({ success: false, error: 'hostId is required' });
+        return;
+      }
+      const targetDir = (req.query.path as string) || '';
       const contentType = req.headers['content-type'] || '';
 
       const chunks: Buffer[] = [];

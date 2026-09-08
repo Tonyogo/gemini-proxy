@@ -1,148 +1,240 @@
 import request from 'supertest';
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
 import app from '../src/app';
 import config from '../config/default';
+import { terminalFileService } from '../src/admin/services/terminalFileService';
+import { terminalHostManager } from '../src/admin/services/terminalHostManager';
 
-describe('Terminal File Manager API Integration Tests', () => {
+describe('Terminal File Manager Pure RPC Integration Tests', () => {
   const secretKey = config.adminSecretKey || 'test-admin-key';
-  const testBaseDir = path.join(os.tmpdir(), `terminal-file-test-${Date.now()}`);
+  const testHostId = 'agent-file-test-node';
+
+  let mockAgentWs: any;
 
   beforeAll(() => {
     config.adminSecretKey = secretKey;
-    if (!fs.existsSync(testBaseDir)) {
-      fs.mkdirSync(testBaseDir, { recursive: true });
-    }
-    // Create initial test file
-    fs.writeFileSync(path.join(testBaseDir, 'hello.txt'), 'Hello Gemini Proxy File Manager', 'utf-8');
-    fs.mkdirSync(path.join(testBaseDir, 'subfolder'), { recursive: true });
-    fs.writeFileSync(path.join(testBaseDir, 'subfolder', 'nested.json'), JSON.stringify({ test: true }), 'utf-8');
+    mockAgentWs = {
+      readyState: 1,
+      send: jest.fn((msg: string) => {
+        if (msg.startsWith('JSON:')) {
+          const parsed = JSON.parse(msg.slice(5));
+          if (parsed.type === 'file_rpc') {
+            const { reqId, action, path: targetPath, params } = parsed;
+            if (action === 'list') {
+              terminalHostManager.handleAgentRpcResponse({
+                reqId,
+                success: true,
+                data: {
+                  currentPath: targetPath || '/home/user',
+                  parentPath: '/home',
+                  separator: '/',
+                  files: [
+                    {
+                      name: 'file1.txt',
+                      path: `${targetPath || '/home/user'}/file1.txt`,
+                      isDirectory: false,
+                      size: 100,
+                      updatedAt: Date.now(),
+                      extension: 'txt',
+                    },
+                    {
+                      name: 'folderA',
+                      path: `${targetPath || '/home/user'}/folderA`,
+                      isDirectory: true,
+                      size: 0,
+                      updatedAt: Date.now(),
+                      extension: '',
+                    },
+                  ],
+                },
+              });
+            } else if (action === 'read') {
+              if (targetPath.includes('notfound')) {
+                terminalHostManager.handleAgentRpcResponse({
+                  reqId,
+                  success: false,
+                  error: 'File not found',
+                });
+              } else {
+                terminalHostManager.handleAgentRpcResponse({
+                  reqId,
+                  success: true,
+                  data: {
+                    path: targetPath,
+                    size: 24,
+                    isBinary: false,
+                    content: 'mock remote file content',
+                  },
+                });
+              }
+            } else if (action === 'write') {
+              terminalHostManager.handleAgentRpcResponse({
+                reqId,
+                success: true,
+              });
+            } else if (action === 'mkdir') {
+              terminalHostManager.handleAgentRpcResponse({
+                reqId,
+                success: true,
+              });
+            } else if (action === 'rename') {
+              terminalHostManager.handleAgentRpcResponse({
+                reqId,
+                success: true,
+              });
+            } else if (action === 'delete') {
+              terminalHostManager.handleAgentRpcResponse({
+                reqId,
+                success: true,
+              });
+            } else if (action === 'download_chunk') {
+              terminalHostManager.handleAgentRpcResponse({
+                reqId,
+                success: true,
+                data: Buffer.from('mock download content').toString('base64'),
+              });
+            } else if (action === 'upload_chunk') {
+              terminalHostManager.handleAgentRpcResponse({
+                reqId,
+                success: true,
+              });
+            }
+          }
+        }
+      }),
+    };
+
+    terminalHostManager.registerAgent({
+      hostId: testHostId,
+      name: 'File-Test-Agent',
+      agentWs: mockAgentWs,
+    });
   });
 
   afterAll(() => {
-    try {
-      if (fs.existsSync(testBaseDir)) {
-        fs.rmSync(testBaseDir, { recursive: true, force: true });
-      }
-    } catch {
-      // Ignore cleanup error
-    }
+    terminalHostManager.unregisterAgent(testHostId);
+  });
+
+  test('returns error when hostId is not connected in service', async () => {
+    const res = await terminalFileService.listFiles('offline-host', '/tmp');
+    expect(res.success).toBe(false);
+    expect(res.error).toMatch(/offline|not found|unavailable/i);
+  });
+
+  test('routes listFiles via RPC when agent is connected', async () => {
+    const res = await terminalFileService.listFiles(testHostId, '/var/log');
+    expect(res.success).toBe(true);
+    expect(res.files.length).toBe(2);
+    expect(res.files[0].name).toBe('file1.txt');
   });
 
   test('rejects request without admin key', async () => {
     const res = await request(app)
       .get('/api/admin/terminal/files/list')
-      .query({ hostId: 'local', path: testBaseDir });
+      .query({ hostId: testHostId, path: '/var/log' });
     expect(res.status).toBe(401);
   });
 
-  test('lists files in target directory for local host', async () => {
+  test('rejects request without hostId with 400 Bad Request', async () => {
     const res = await request(app)
       .get('/api/admin/terminal/files/list')
       .set('x-admin-key', secretKey)
-      .query({ hostId: 'local', path: testBaseDir });
+      .query({ path: '/var/log' });
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error).toMatch(/hostId is required/i);
+  });
+
+  test('lists files via API endpoint', async () => {
+    const res = await request(app)
+      .get('/api/admin/terminal/files/list')
+      .set('x-admin-key', secretKey)
+      .query({ hostId: testHostId, path: '/var/log' });
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
-    expect(res.body.currentPath).toBe(testBaseDir);
-    expect(Array.isArray(res.body.files)).toBe(true);
-
-    const fileNames = res.body.files.map((f: any) => f.name);
-    expect(fileNames).toContain('hello.txt');
-    expect(fileNames).toContain('subfolder');
-
-    const subfolder = res.body.files.find((f: any) => f.name === 'subfolder');
-    expect(subfolder.isDirectory).toBe(true);
+    expect(res.body.files).toHaveLength(2);
   });
 
-  test('reads file content for text files', async () => {
-    const filePath = path.join(testBaseDir, 'hello.txt');
+  test('reads file content via API endpoint', async () => {
     const res = await request(app)
       .get('/api/admin/terminal/files/content')
       .set('x-admin-key', secretKey)
-      .query({ hostId: 'local', path: filePath });
+      .query({ hostId: testHostId, path: '/var/log/app.log' });
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
-    expect(res.body.content).toBe('Hello Gemini Proxy File Manager');
-    expect(res.body.isBinary).toBe(false);
+    expect(res.body.content).toBe('mock remote file content');
   });
 
-  test('saves modified file content', async () => {
-    const filePath = path.join(testBaseDir, 'hello.txt');
-    const newContent = 'Updated content from test';
+  test('returns 404 when file is not found', async () => {
+    const res = await request(app)
+      .get('/api/admin/terminal/files/content')
+      .set('x-admin-key', secretKey)
+      .query({ hostId: testHostId, path: '/var/log/notfound.log' });
+
+    expect(res.status).toBe(404);
+    expect(res.body.success).toBe(false);
+  });
+
+  test('saves file content via API endpoint', async () => {
     const res = await request(app)
       .post('/api/admin/terminal/files/save')
       .set('x-admin-key', secretKey)
-      .send({ hostId: 'local', path: filePath, content: newContent });
+      .send({ hostId: testHostId, path: '/var/log/app.log', content: 'new content' });
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
-    expect(fs.readFileSync(filePath, 'utf-8')).toBe(newContent);
   });
 
-  test('creates a new directory (mkdir)', async () => {
+  test('creates directory via API endpoint', async () => {
     const res = await request(app)
       .post('/api/admin/terminal/files/mkdir')
       .set('x-admin-key', secretKey)
-      .send({ hostId: 'local', path: testBaseDir, dirName: 'new-created-dir' });
+      .send({ hostId: testHostId, path: '/var/log', dirName: 'test-dir' });
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
-    expect(fs.existsSync(path.join(testBaseDir, 'new-created-dir'))).toBe(true);
   });
 
-  test('renames a file or directory', async () => {
-    const oldPath = path.join(testBaseDir, 'new-created-dir');
-    const newPath = path.join(testBaseDir, 'renamed-dir');
+  test('renames file via API endpoint', async () => {
     const res = await request(app)
       .post('/api/admin/terminal/files/rename')
       .set('x-admin-key', secretKey)
-      .send({ hostId: 'local', oldPath, newPath });
+      .send({ hostId: testHostId, oldPath: '/var/log/old.log', newPath: '/var/log/new.log' });
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
-    expect(fs.existsSync(newPath)).toBe(true);
-    expect(fs.existsSync(oldPath)).toBe(false);
   });
 
-  test('downloads a file with correct headers', async () => {
-    const filePath = path.join(testBaseDir, 'hello.txt');
+  test('downloads file via API endpoint', async () => {
     const res = await request(app)
       .get('/api/admin/terminal/files/download')
       .set('x-admin-key', secretKey)
-      .query({ hostId: 'local', path: filePath });
+      .query({ hostId: testHostId, path: '/var/log/download.txt' });
 
     expect(res.status).toBe(200);
-    expect(res.headers['content-disposition']).toContain('attachment; filename="hello.txt"');
-    expect(res.text).toBe('Updated content from test');
+    expect(res.text).toBe('mock download content');
   });
 
-  test('uploads a file into target directory', async () => {
-    const uploadFilePath = path.join(testBaseDir, 'temp-upload-source.txt');
-    fs.writeFileSync(uploadFilePath, 'Upload test payload', 'utf-8');
-
+  test('uploads file via API endpoint', async () => {
     const res = await request(app)
       .post('/api/admin/terminal/files/upload')
       .set('x-admin-key', secretKey)
-      .query({ hostId: 'local', path: testBaseDir })
-      .attach('file', uploadFilePath);
+      .set('x-filename', 'test-upload.txt')
+      .query({ hostId: testHostId, path: '/var/log' })
+      .send(Buffer.from('binary-data'));
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
-    expect(fs.existsSync(path.join(testBaseDir, 'temp-upload-source.txt'))).toBe(true);
   });
 
-  test('deletes a file or directory', async () => {
-    const toDeletePath = path.join(testBaseDir, 'renamed-dir');
+  test('deletes file via API endpoint', async () => {
     const res = await request(app)
       .delete('/api/admin/terminal/files/delete')
       .set('x-admin-key', secretKey)
-      .query({ hostId: 'local', path: toDeletePath });
+      .query({ hostId: testHostId, path: '/var/log/delete.txt' });
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
-    expect(fs.existsSync(toDeletePath)).toBe(false);
   });
 });
