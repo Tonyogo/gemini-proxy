@@ -741,9 +741,9 @@ export default function WebTerminalView({
     };
 
     if (container) {
-      container.addEventListener('touchstart', handleTouchStart, { passive: false });
-      container.addEventListener('touchmove', handleTouchMove, { passive: false });
-      container.addEventListener('touchend', handleTouchEnd, { passive: false });
+      container.addEventListener('touchstart', handleTouchStart, { passive: false, capture: true });
+      container.addEventListener('touchmove', handleTouchMove, { passive: false, capture: true });
+      container.addEventListener('touchend', handleTouchEnd, { passive: false, capture: true });
     }
 
     term.onData((data) => {
@@ -930,9 +930,9 @@ export default function WebTerminalView({
         if (handleBlur) helperTextarea.removeEventListener('blur', handleBlur);
       }
       if (container) {
-        container.removeEventListener('touchstart', handleTouchStart);
-        container.removeEventListener('touchmove', handleTouchMove);
-        container.removeEventListener('touchend', handleTouchEnd);
+        container.removeEventListener('touchstart', handleTouchStart, { capture: true } as any);
+        container.removeEventListener('touchmove', handleTouchMove, { capture: true } as any);
+        container.removeEventListener('touchend', handleTouchEnd, { capture: true } as any);
         container.removeEventListener('mouseup', handleMouseUp);
       }
       selectionDisposable.dispose();
@@ -1498,7 +1498,7 @@ export default function WebTerminalView({
 
         <div
           ref={terminalContainerRef}
-          className={`h-full w-full ${isSelectMode ? 'select-none' : ''}`}
+          className={`h-full w-full ${isSelectMode ? 'terminal-select-mode select-none cursor-crosshair' : 'cursor-text'}`}
           style={{
             touchAction: isSelectMode ? 'none' : undefined,
             userSelect: isSelectMode ? 'none' : undefined,

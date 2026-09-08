@@ -177,3 +177,16 @@
     @apply bg-[var(--bg-surface-sub)] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] focus:border-indigo-500/80 rounded-xl px-3 py-2 text-xs text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-indigo-500/40 font-mono transition-all;
   }
 }
+
+/* Terminal Selection Mode: Disable all browser native text drag & magnifier callouts */
+.terminal-select-mode,
+.terminal-select-mode .xterm,
+.terminal-select-mode .xterm-screen,
+.terminal-select-mode .xterm-rows,
+.terminal-select-mode .xterm-rows * {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -webkit-touch-callout: none !important;
+  touch-action: none !important;
+}
+
