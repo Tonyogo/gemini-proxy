@@ -18,7 +18,7 @@ export interface ITerminalSession {
   detach(ws: any): void;
   write(data: string): void;
   resize(cols: number, rows: number): void;
-  reset(): void;
+  reset(notifyClients?: boolean): void;
   destroy(): void;
 }
 
@@ -74,7 +74,7 @@ export class RemoteAgentTerminalSession implements ITerminalSession {
     }
   }
 
-  public reset(): void {
+  public reset(notifyClients: boolean = true): void {
     this.historyBuffer = [];
     this.totalBufferSize = 0;
     if (this.agentWs && this.agentWs.readyState === 1) {
@@ -82,6 +82,18 @@ export class RemoteAgentTerminalSession implements ITerminalSession {
         this.agentWs.send(`JSON:${JSON.stringify({ type: 'reset' })}`);
       } catch (err: any) {
         logger.warn(`[RemoteAgentTerminal:${this.hostId}] Failed to send reset to agent: ${err.message}`);
+      }
+    }
+    if (notifyClients) {
+      for (const ws of this.activeSockets) {
+        try {
+          if (ws.readyState === 1) {
+            ws.send(`JSON:${JSON.stringify({ type: 'reset' })}`);
+            ws.send('\x1b[2J\x1b[H\x1b[3J');
+          }
+        } catch {
+          // Ignore write errors
+        }
       }
     }
   }
@@ -222,7 +234,10 @@ export class TerminalHostManager {
       session = new RemoteAgentTerminalSession(id, metadata.agentWs);
       this.sessions.set(id, session);
     } else {
+      // Agent reconnecting / re-registering -> Reset dirty history and notify web clients
       session.updateAgentWs(metadata.agentWs);
+      session.reset(true);
+      this.clearPendingRpcForHost(id);
     }
 
     logger.info(`[TerminalHostManager] Agent registered: ${id} (${host.name})`);
@@ -262,6 +277,13 @@ export class TerminalHostManager {
       if (resolver) {
         resolver(response);
       }
+    }
+  }
+
+  public clearPendingRpcForHost(hostId: string): void {
+    for (const [reqId, resolver] of this.rpcResolvers.entries()) {
+      resolver({ success: false, error: `Agent ${hostId} reconnected; previous RPC cancelled` });
+      this.rpcResolvers.delete(reqId);
     }
   }
 

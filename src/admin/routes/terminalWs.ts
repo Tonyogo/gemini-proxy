@@ -103,6 +103,13 @@ export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
             terminalHostManager.handleAgentRpcResponse(control);
             return;
           }
+          if (control.type === 'reset') {
+            const session = terminalHostManager.getSession(hostId);
+            if (session) {
+              session.reset(true);
+            }
+            return;
+          }
           // Any other control frame is consumed here
           return;
         }
