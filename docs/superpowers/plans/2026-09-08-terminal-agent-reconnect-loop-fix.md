@@ -32,7 +32,7 @@
   - `RemoteAgentTerminalSession.reset()` 清空缓冲区并向前端发送重置信令
   - `isSyntheticTerminalReport` 对复合光标、设备属性及模式查询应答的全面覆盖性拦截
 
-- [ ] **Step 1: 编写自动化测试文件**
+- [x] **Step 1: 编写自动化测试文件**
 
 Create `tests/terminalAgentReconnectReset.test.ts`:
 ```ts
@@ -114,12 +114,12 @@ describe('Terminal Agent Reconnect and Replay Loop Prevention Tests', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试并验证初始失败**
+- [x] **Step 2: 运行测试并验证初始失败**
 
 Run: `npx jest tests/terminalAgentReconnectReset.test.ts`
 Expected: FAIL because `registerAgent` doesn't automatically reset `session.historyBuffer` or broadcast reset signals.
 
-- [ ] **Step 3: 提交测试文件**
+- [x] **Step 3: 提交测试文件**
 
 ```bash
 git add tests/terminalAgentReconnectReset.test.ts
@@ -140,7 +140,7 @@ git commit -m "test: add test suite for terminal agent reconnect reset and repor
   - `RemoteAgentTerminalSession.reset(notifyClients = true)`: 清空 `historyBuffer` 并向挂载的前端客户端发送 `JSON:{"type":"reset"}` 及清屏序列 `\x1b[2J\x1b[H\x1b[3J`
   - `TerminalHostManager.registerAgent()`: 当为已有 session 重新上线时，自动触发 `session.reset()` 并拒绝未决旧 RPC 请求
 
-- [ ] **Step 1: 修改 `src/admin/services/terminalHostManager.ts`**
+- [x] **Step 1: 修改 `src/admin/services/terminalHostManager.ts`**
 
 In `RemoteAgentTerminalSession`:
 ```typescript
@@ -193,12 +193,12 @@ In `TerminalHostManager.registerAgent()`:
   }
 ```
 
-- [ ] **Step 2: 运行测试并验证通过**
+- [x] **Step 2: 运行测试并验证通过**
 
 Run: `npx jest tests/terminalAgentReconnectReset.test.ts`
 Expected: PASS.
 
-- [ ] **Step 3: 提交后端更改**
+- [x] **Step 3: 提交后端更改**
 
 ```bash
 git add src/admin/services/terminalHostManager.ts src/admin/routes/terminalWs.ts
@@ -216,7 +216,7 @@ git commit -m "fix(terminal): purge history buffer and broadcast reset on agent 
 - Produces:
   - Agent 在 WS `open` 并生成新 PTY 之后，向服务端发送 `JSON:{"type":"reset"}` 和 `JSON:{"type":"resize", ...}`
 
-- [ ] **Step 1: 修改 `scripts/terminal-agent.js`**
+- [x] **Step 1: 修改 `scripts/terminal-agent.js`**
 
 在 `ws.on('open')` 处增加主动 reset 与初始化信号：
 ```javascript
@@ -238,7 +238,7 @@ git commit -m "fix(terminal): purge history buffer and broadcast reset on agent 
   });
 ```
 
-- [ ] **Step 2: 提交 Agent 脚本更改**
+- [x] **Step 2: 提交 Agent 脚本更改**
 
 ```bash
 git add scripts/terminal-agent.js
@@ -260,7 +260,7 @@ git commit -m "fix(agent): send reset and resize handshake on tunnel reconnect"
   - `isSyntheticTerminalReport`: 匹配 3 参数 CPR、全量 DA 格式、DEC 模式查询应答
   - `WebTerminalView.tsx`: 接收到 `JSON:{"type":"reset"}` 时，调用 `xterm.reset()`，重新启动 600ms 静音门控，并调用 `fitAddon.fit()` 发送干净 `resize`
 
-- [ ] **Step 1: 升级 `frontend/src/utils/terminalFilter.ts`**
+- [x] **Step 1: 升级 `frontend/src/utils/terminalFilter.ts`**
 
 ```typescript
 /**
@@ -301,7 +301,7 @@ export function isSyntheticTerminalReport(data: string): boolean {
 }
 ```
 
-- [ ] **Step 2: 升级 `WebTerminalView.tsx` 处理 reset 信号与门控保护**
+- [x] **Step 2: 升级 `WebTerminalView.tsx` 处理 reset 信号与门控保护**
 
 在 `ws.onmessage` 中处理 `JSON:{"type":"reset"}`：
 ```typescript
@@ -334,12 +334,12 @@ export function isSyntheticTerminalReport(data: string): boolean {
       }, 600);
 ```
 
-- [ ] **Step 3: 运行测试并验证通过**
+- [x] **Step 3: 运行测试并验证通过**
 
 Run: `npx jest tests/terminalReplayMute.test.ts tests/terminalAgentReconnectReset.test.ts`
 Expected: PASS (100% passing).
 
-- [ ] **Step 4: 提交前端代码**
+- [x] **Step 4: 提交前端代码**
 
 ```bash
 git add frontend/src/utils/terminalFilter.ts frontend/src/components/WebTerminalView.tsx
@@ -354,22 +354,22 @@ git commit -m "fix(terminal): enhance synthetic report filter and reset state ma
 - All touched files
 - Test: All suites
 
-- [ ] **Step 1: 运行全量 Jest 测试套件**
+- [x] **Step 1: 运行全量 Jest 测试套件**
 
 Run: `npm test`
 Expected: All suites passed (68 suites, 0 failures).
 
-- [ ] **Step 2: 运行前端生产编译**
+- [x] **Step 2: 运行前端生产编译**
 
 Run: `npm run build:frontend`
 Expected: Vite build succeeds with 0 errors.
 
-- [ ] **Step 3: 运行后端 TypeScript 编译**
+- [x] **Step 3: 运行后端 TypeScript 编译**
 
 Run: `npm run build:backend`
 Expected: `tsc` compiles cleanly with 0 errors.
 
-- [ ] **Step 4: 提交最终状态**
+- [x] **Step 4: 提交最终状态**
 
 ```bash
 git status
