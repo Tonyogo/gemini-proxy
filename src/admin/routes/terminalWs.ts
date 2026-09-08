@@ -99,6 +99,10 @@ export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
             });
             return;
           }
+          if (control.type === 'file_rpc_res') {
+            terminalHostManager.handleAgentRpcResponse(control);
+            return;
+          }
           // Any other control frame is consumed here
           return;
         }
