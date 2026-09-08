@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sun, Moon, Laptop } from 'lucide-react';
+import { Sun, Moon } from 'lucide-react';
 import { useTheme } from '../theme/ThemeContext';
 import { useTranslation } from '../i18n/LanguageContext';
 
@@ -9,16 +9,15 @@ export interface ThemeSwitcherProps {
 }
 
 export const ThemeSwitcher: React.FC<ThemeSwitcherProps> = ({ variant = 'header', isCollapsed = false }) => {
-  const { theme, resolvedTheme, toggleTheme } = useTheme();
+  const { theme, toggleTheme } = useTheme();
   const { t } = useTranslation();
 
   const getLabel = () => {
-    if (theme === 'system') return t('nav.themeSystem', '跟随系统');
     if (theme === 'light') return t('nav.themeLight', '浅色模式');
     return t('nav.themeDark', '深色模式');
   };
 
-  const Icon = theme === 'system' ? Laptop : resolvedTheme === 'light' ? Sun : Moon;
+  const Icon = theme === 'light' ? Sun : Moon;
 
   if (variant === 'sidebar') {
     return (

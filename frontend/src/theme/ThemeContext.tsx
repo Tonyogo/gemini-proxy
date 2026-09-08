@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 
-export type ThemeMode = 'dark' | 'light' | 'system';
+export type ThemeMode = 'dark' | 'light';
 export type ResolvedTheme = 'dark' | 'light';
 
 export interface ThemeContextType {
@@ -14,40 +14,20 @@ const THEME_STORAGE_KEY = 'gemini_proxy_theme';
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-function getSystemTheme(): ResolvedTheme {
-  if (typeof window === 'undefined') return 'dark';
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-}
-
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setThemeState] = useState<ThemeMode>(() => {
     try {
       const saved = localStorage.getItem(THEME_STORAGE_KEY) as ThemeMode | null;
-      if (saved === 'dark' || saved === 'light' || saved === 'system') {
+      if (saved === 'dark' || saved === 'light') {
         return saved;
       }
     } catch {
       // Ignore storage errors
     }
-    return 'system';
+    return 'dark';
   });
 
-  const [systemTheme, setSystemTheme] = useState<ResolvedTheme>(getSystemTheme);
-
-  // Listen to system preference changes
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-
-    const handler = (e: MediaQueryListEvent) => {
-      setSystemTheme(e.matches ? 'dark' : 'light');
-    };
-
-    mediaQuery.addEventListener('change', handler);
-    return () => mediaQuery.removeEventListener('change', handler);
-  }, []);
-
-  const resolvedTheme: ResolvedTheme = theme === 'system' ? systemTheme : theme;
+  const resolvedTheme: ResolvedTheme = theme;
 
   const setTheme = useCallback((newTheme: ThemeMode) => {
     setThemeState(newTheme);
@@ -60,11 +40,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const toggleTheme = useCallback(() => {
     setThemeState((current) => {
-      let next: ThemeMode;
-      if (current === 'dark') next = 'light';
-      else if (current === 'light') next = 'system';
-      else next = 'dark';
-
+      const next: ThemeMode = current === 'dark' ? 'light' : 'dark';
       try {
         localStorage.setItem(THEME_STORAGE_KEY, next);
       } catch {

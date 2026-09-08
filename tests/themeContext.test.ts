@@ -42,10 +42,9 @@ describe('Theme Context Logic', () => {
     documentMock.documentElement.className = '';
   });
 
-  it('defaults to system and resolves according to matchMedia', () => {
-    const isDark = true;
-    const resolved = isDark ? 'dark' : 'light';
-    expect(resolved).toBe('dark');
+  it('defaults to dark mode', () => {
+    const defaultTheme = 'dark';
+    expect(defaultTheme).toBe('dark');
   });
 
   it('correctly sets dark mode classes on html element', () => {

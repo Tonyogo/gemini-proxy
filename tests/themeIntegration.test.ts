@@ -7,8 +7,8 @@ describe('Theme System Integration', () => {
     storage = {};
   });
 
-  it('cycles through theme modes correctly: dark -> light -> system -> dark', () => {
-    const modes = ['dark', 'light', 'system'] as const;
+  it('cycles through theme modes correctly: dark -> light -> dark', () => {
+    const modes = ['dark', 'light'] as const;
     let currentIdx = 0;
     const nextTheme = () => {
       currentIdx = (currentIdx + 1) % modes.length;
@@ -16,8 +16,8 @@ describe('Theme System Integration', () => {
     };
 
     expect(nextTheme()).toBe('light');
-    expect(nextTheme()).toBe('system');
     expect(nextTheme()).toBe('dark');
+    expect(nextTheme()).toBe('light');
   });
 
   it('persists selected theme to storage', () => {
