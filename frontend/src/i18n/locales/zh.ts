@@ -497,7 +497,17 @@ export const zh: Translations = {
       nodeInfo: "系统: {platform} | IP: {ip}",
       switchHostPrompt: "切换至该机器终端会话",
       noHosts: "未找到匹配的主机节点",
-      onlyLocalTip: "当前仅有本地宿主机。点击上方「接入内网新节点」即可通过反向隧道将其他局域网服务器接入此终端。"
+      onlyLocalTip: "当前暂无在线主机。点击上方「接入内网新节点」即可通过反向隧道将服务器接入此终端。"
+    },
+    emptyState: {
+      title: "当前暂无在线终端节点",
+      desc: "系统采用纯反向 Agent 统一架构。请在宿主机或任意远程节点运行反向终端 Agent，建立安全连接后即可在此管理控制台与文件。",
+      copyCmd: "复制启动命令",
+      commandCopied: "命令已复制！",
+      checkAgain: "重新检测",
+      noOnlineHosts: "暂无在线节点",
+      fileManagerDesc: "反向连接终端 Agent 节点后，即可在此实时浏览、编辑、上传和下载远程文件。",
+      requirements: "支持 Linux / macOS / Windows，需要 Node.js 18+"
     }
   },
   discover: {

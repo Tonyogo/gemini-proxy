@@ -495,7 +495,17 @@ export const en = {
       nodeInfo: "OS: {platform} | IP: {ip}",
       switchHostPrompt: "Switch to this host session",
       noHosts: "No matching hosts found",
-      onlyLocalTip: "Currently only the local host is available. Click \"Add Intranet Node\" above to connect additional servers via reverse tunnel."
+      onlyLocalTip: "Currently no online hosts are available. Click \"Add Intranet Node\" above to connect servers via reverse tunnel."
+    },
+    emptyState: {
+      title: "No Online Terminal Nodes Available",
+      desc: "The system runs on a pure reverse-agent architecture. Start the reverse terminal agent on the host or any remote machine to establish a secure tunnel and manage shells and files here.",
+      copyCmd: "Copy Start Command",
+      commandCopied: "Command Copied!",
+      checkAgain: "Check Again",
+      noOnlineHosts: "No Online Hosts",
+      fileManagerDesc: "Connect a reverse terminal agent to browse, edit, upload, and download remote files in real-time.",
+      requirements: "Supports Linux / macOS / Windows, Node.js 18+ required"
     }
   },
   discover: {

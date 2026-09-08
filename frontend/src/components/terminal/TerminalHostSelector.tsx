@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Server,
-  Laptop,
   ChevronDown,
   Check,
   Plus,
@@ -21,7 +20,7 @@ export interface ManagedHostItem {
   platform: string;
   status: 'online' | 'offline';
   lastSeen: number;
-  type: 'local' | 'agent';
+  type: 'agent';
 }
 
 export interface TerminalHostSelectorProps {
@@ -53,7 +52,7 @@ export function TerminalHostSelector({
       });
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data.hosts) && data.hosts.length > 0) {
+        if (Array.isArray(data.hosts)) {
           setHosts(data.hosts);
         }
       }
@@ -70,6 +69,28 @@ export function TerminalHostSelector({
     return () => clearInterval(interval);
   }, [adminKey]);
 
+  // Auto-switch to first online host if current activeHostId is absent or invalid
+  useEffect(() => {
+    if (hosts.length === 0) {
+      if (activeHostId) {
+        onSelectHost('');
+      }
+      return;
+    }
+
+    const currentHost = hosts.find((h) => h.id === activeHostId);
+    if (!currentHost || currentHost.status !== 'online') {
+      const firstOnline = hosts.find((h) => h.status === 'online');
+      if (firstOnline) {
+        if (firstOnline.id !== activeHostId) {
+          onSelectHost(firstOnline.id);
+        }
+      } else if (!currentHost && hosts.length > 0) {
+        onSelectHost(hosts[0].id);
+      }
+    }
+  }, [hosts, activeHostId, onSelectHost]);
+
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -82,48 +103,23 @@ export function TerminalHostSelector({
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, [isOpen]);
 
-  const localHostFallback: ManagedHostItem = useMemo(() => ({
-    id: 'local',
-    name: t('webTerminal.hostSelector.localhost'),
-    hostname: 'localhost',
-    ip: '127.0.0.1',
-    platform: typeof navigator !== 'undefined' && /Mac/i.test(navigator.userAgent) ? 'darwin' : 'linux',
-    status: 'online',
-    lastSeen: Date.now(),
-    type: 'local',
-  }), [t]);
-
-  const displayHosts = useMemo(() => {
-    const list = [...hosts];
-    const localIndex = list.findIndex((h) => h.id === 'local');
-    if (localIndex === -1) {
-      list.unshift(localHostFallback);
-    } else {
-      list[localIndex] = {
-        ...list[localIndex],
-        name: t('webTerminal.hostSelector.localhost'),
-      };
-    }
-    return list;
-  }, [hosts, localHostFallback, t]);
-
   const activeHost = useMemo(() => {
-    return displayHosts.find((h) => h.id === activeHostId) || localHostFallback;
-  }, [displayHosts, activeHostId, localHostFallback]);
+    return hosts.find((h) => h.id === activeHostId) || null;
+  }, [hosts, activeHostId]);
 
   const filteredHosts = useMemo(() => {
-    if (!searchQuery.trim()) return displayHosts;
+    if (!searchQuery.trim()) return hosts;
     const q = searchQuery.toLowerCase();
-    return displayHosts.filter(
+    return hosts.filter(
       (h) =>
         h.name.toLowerCase().includes(q) ||
         h.id.toLowerCase().includes(q) ||
         h.ip.toLowerCase().includes(q) ||
         h.platform.toLowerCase().includes(q)
     );
-  }, [displayHosts, searchQuery]);
+  }, [hosts, searchQuery]);
 
-  const onlineCount = useMemo(() => displayHosts.filter((h) => h.status === 'online').length, [displayHosts]);
+  const onlineCount = useMemo(() => hosts.filter((h) => h.status === 'online').length, [hosts]);
 
   const agentCommand = useMemo(() => {
     const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
@@ -155,19 +151,15 @@ export function TerminalHostSelector({
         }`}
         title={t('webTerminal.hostSelector.switchHostPrompt')}
       >
-        {activeHost.type === 'local' ? (
-          <Laptop className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-        ) : (
-          <Server className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-        )}
+        <Server className={`w-3.5 h-3.5 shrink-0 ${activeHost && activeHost.status === 'online' ? 'text-emerald-400' : 'text-slate-400'}`} />
 
         <span className="font-medium text-[11px] max-w-[90px] sm:max-w-[130px] truncate">
-          {activeHost.id === 'local' ? t('webTerminal.hostSelector.localhost') : activeHost.name}
+          {activeHost ? activeHost.name : t('webTerminal.emptyState.noOnlineHosts', '无在线节点')}
         </span>
 
         {/* Online/Offline Status Dot */}
         <span className="relative flex items-center justify-center w-2 h-2 shrink-0">
-          {activeHost.status === 'online' ? (
+          {activeHost && activeHost.status === 'online' ? (
             <>
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
               <span className="absolute w-2 h-2 rounded-full bg-emerald-400 animate-ping opacity-60" />
@@ -191,10 +183,10 @@ export function TerminalHostSelector({
                 <span>
                   {t('webTerminal.hostSelector.hostsCount', {
                     online: onlineCount.toString(),
-                    total: displayHosts.length.toString(),
+                    total: hosts.length.toString(),
                   })
                     .replace('{online}', onlineCount.toString())
-                    .replace('{total}', displayHosts.length.toString())}
+                    .replace('{total}', hosts.length.toString())}
                 </span>
               </span>
 
@@ -204,7 +196,7 @@ export function TerminalHostSelector({
                   setIsOpen(false);
                   setIsAddModalOpen(true);
                 }}
-                className="flex items-center space-x-1 px-2 py-0.5 rounded-md bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-[11px] font-medium transition-all active:scale-95"
+                className="flex items-center space-x-1 px-2 py-0.5 rounded-md bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-[11px] font-medium transition-all active:scale-95 cursor-pointer"
               >
                 <Plus className="w-3 h-3" />
                 <span>{t('webTerminal.hostSelector.addNode')}</span>
@@ -254,13 +246,13 @@ export function TerminalHostSelector({
                           : 'bg-slate-500/10 text-slate-400'
                       }`}
                     >
-                      {h.type === 'local' ? <Laptop className="w-4 h-4" /> : <Server className="w-4 h-4" />}
+                      <Server className="w-4 h-4" />
                     </div>
 
                     <div className="min-w-0">
                       <div className="flex items-center space-x-1.5">
                         <span className="text-xs truncate font-mono">
-                          {h.id === 'local' ? t('webTerminal.hostSelector.localhost') : h.name}
+                          {h.name}
                         </span>
                         <span
                           className={`w-1.5 h-1.5 rounded-full shrink-0 ${
@@ -286,12 +278,12 @@ export function TerminalHostSelector({
               </div>
             )}
 
-            {/* Helper tip when only local host exists */}
-            {displayHosts.length === 1 && !searchQuery.trim() && (
+            {/* Helper tip when no hosts exist */}
+            {hosts.length === 0 && !searchQuery.trim() && (
               <div className="p-2.5 bg-indigo-500/5 rounded-lg m-1 border border-indigo-500/10 text-[11px] text-slate-400 font-sans leading-relaxed">
                 {t(
                   'webTerminal.hostSelector.onlyLocalTip',
-                  '当前仅有本地宿主机。点击上方「接入内网新节点」即可通过反向隧道将其他局域网服务器接入此终端。'
+                  '当前暂无在线主机。点击上方「接入内网新节点」即可通过反向隧道将服务器接入此终端。'
                 )}
               </div>
             )}
@@ -314,7 +306,7 @@ export function TerminalHostSelector({
               <button
                 type="button"
                 onClick={() => setIsAddModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.08] transition-all"
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.08] transition-all cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -362,7 +354,7 @@ export function TerminalHostSelector({
               <button
                 type="button"
                 onClick={() => setIsAddModalOpen(false)}
-                className="px-4 py-1.5 rounded-lg bg-white/[0.08] hover:bg-white/[0.12] active:scale-95 text-[var(--text-primary)] text-xs font-medium transition-all"
+                className="px-4 py-1.5 rounded-lg bg-white/[0.08] hover:bg-white/[0.12] active:scale-95 text-[var(--text-primary)] text-xs font-medium transition-all cursor-pointer"
               >
                 {t('webTerminal.done')}
               </button>
