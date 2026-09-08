@@ -256,6 +256,14 @@ export default function WebTerminalView({
       reconnectAttemptRef.current = 0;
       clearReconnectTimers();
 
+      isReplayingRef.current = true;
+      if (replayTimerRef.current) {
+        clearTimeout(replayTimerRef.current);
+      }
+      replayTimerRef.current = setTimeout(() => {
+        isReplayingRef.current = false;
+      }, 600);
+
       if (xtermRef.current && fitAddonRef.current) {
         fitAddonRef.current.fit();
         lastSentColsRef.current = 0;
@@ -271,6 +279,22 @@ export default function WebTerminalView({
           try {
             const parsed = JSON.parse(data.slice(5));
             console.debug('[WebTerminal] Received backend control message:', parsed);
+            if (parsed.type === 'reset') {
+              console.debug('[WebTerminal] Received reset signal from backend, clearing buffer and muting synthetic reports');
+              xtermRef.current?.reset();
+              isReplayingRef.current = true;
+              if (replayTimerRef.current) {
+                clearTimeout(replayTimerRef.current);
+              }
+              replayTimerRef.current = setTimeout(() => {
+                isReplayingRef.current = false;
+              }, 600);
+              if (fitAddonRef.current && xtermRef.current) {
+                fitAddonRef.current.fit();
+                sendResize(xtermRef.current.cols, xtermRef.current.rows);
+              }
+              return;
+            }
             if (parsed.type === 'status' && parsed.event === 'exit') {
               xtermRef.current?.writeln('\r\n\x1b[33m[Process Completed]\x1b[0m\r\n');
               isProcessExitedRef.current = true;
