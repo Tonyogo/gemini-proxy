@@ -23,7 +23,7 @@ export default function UnifiedTerminalView({
   const { t } = useTranslation();
   const [subTab, setSubTab] = useState<TerminalSubTab>('interactive');
   const [activeHostId, setActiveHostId] = useState<string>(() => {
-    return localStorage.getItem('terminal_active_host') || 'local';
+    return localStorage.getItem('terminal_active_host') || '';
   });
 
   const handleHostChange = (newHostId: string) => {
