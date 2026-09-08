@@ -10,6 +10,15 @@ const path = require('path');
 const fs = require('fs');
 const WebSocket = require('ws');
 const pty = require('node-pty');
+const dotenv = require('dotenv');
+
+// Load configuration from .env in current working directory if present
+const envPath = path.join(process.cwd(), '.env');
+let envLoaded = false;
+if (fs.existsSync(envPath)) {
+  dotenv.config({ path: envPath });
+  envLoaded = true;
+}
 
 // Parse CLI flags (--key=..., --server=..., --name=..., --id=..., --shell=...)
 const args = process.argv.slice(2);
@@ -75,6 +84,9 @@ function resolveWebSocketUrl(serverUrl) {
   return `${wsUrl}/api/admin/terminal/agent-ws?${query.toString()}`;
 }
 
+if (envLoaded) {
+  console.log('[Agent] Loaded .env configuration');
+}
 console.log('---------------------------------------------------------');
 console.log(' Gemini Proxy Terminal Reverse Agent');
 console.log(` Host ID   : ${hostId}`);

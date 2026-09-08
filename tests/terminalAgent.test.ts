@@ -11,6 +11,8 @@ describe('Terminal Agent Script', () => {
     expect(content).toContain('WebSocket');
     expect(content).toContain('--server');
     expect(content).toContain('--key');
+    expect(content).toContain("require('dotenv')");
+    expect(content).toContain('[Agent] Loaded .env configuration');
   });
 
   test('package.json includes terminal-agent script', () => {
