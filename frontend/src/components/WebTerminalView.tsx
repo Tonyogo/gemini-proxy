@@ -1297,6 +1297,9 @@ export default function WebTerminalView({
   };
 
   const handleHostChange = (newHostId: string) => {
+    if (newHostId === activeHostIdRef.current && (wsRef.current?.readyState === WebSocket.OPEN || wsRef.current?.readyState === WebSocket.CONNECTING)) {
+      return;
+    }
     setActiveHostId(newHostId);
     activeHostIdRef.current = newHostId;
     localStorage.setItem('terminal_active_host', newHostId);

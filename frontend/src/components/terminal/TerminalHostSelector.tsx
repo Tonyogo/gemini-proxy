@@ -36,7 +36,19 @@ export function TerminalHostSelector({
   onSelectHost,
 }: TerminalHostSelectorProps) {
   const { t } = useTranslation();
-  const [hosts, setHosts] = useState<ManagedHostItem[]>([]);
+  const [hosts, setHosts] = useState<ManagedHostItem[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = window.sessionStorage?.getItem('cached_terminal_hosts');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch {}
+    }
+    return [];
+  });
+  const hasLoadedRef = useRef<boolean>(false);
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -55,12 +67,16 @@ export function TerminalHostSelector({
         const data = await res.json();
         if (Array.isArray(data.hosts)) {
           setHosts(data.hosts);
+          try {
+            window.sessionStorage?.setItem('cached_terminal_hosts', JSON.stringify(data.hosts));
+          } catch {}
         }
       }
     } catch {
       // Ignore network fetch error
     } finally {
       setIsLoading(false);
+      hasLoadedRef.current = true;
     }
   };
 
@@ -72,6 +88,11 @@ export function TerminalHostSelector({
 
   // Auto-switch to first online host if current activeHostId is absent or invalid
   useEffect(() => {
+    // Prevent wiping activeHostId before the initial fetch completes when local state is empty
+    if (!hasLoadedRef.current && hosts.length === 0) {
+      return;
+    }
+
     if (hosts.length === 0) {
       if (activeHostId) {
         onSelectHost('');

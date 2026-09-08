@@ -27,4 +27,9 @@ describe('TerminalHostSelector Pure Agent Tests', () => {
     expect(content).toContain('createPortal');
     expect(content).toContain('document.body');
   });
+
+  test('guards against wiping activeHostId before initial fetch completes', () => {
+    expect(content).toContain('hasLoadedRef');
+    expect(content).toContain('cached_terminal_hosts');
+  });
 });
