@@ -26,4 +26,9 @@ describe('Terminal Fullscreen Connection Reuse & Lifecycle', () => {
     // Should eliminate early return `if (isStandaloneTerminal) return ...`
     expect(appContent).not.toMatch(/if\s*\(\s*isStandaloneTerminal\s*\)\s*\{\s*return\s*\(\s*<div[^>]*>\s*<WebTerminalView/);
   });
+
+  test('WebTerminalView does not invoke HTML5 requestFullscreen to prevent Esc key conflicts in CLI apps', () => {
+    expect(terminalContent).not.toContain('document.documentElement.requestFullscreen');
+    expect(terminalContent).not.toContain('document.exitFullscreen');
+  });
 });

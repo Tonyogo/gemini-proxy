@@ -213,16 +213,6 @@ export default function WebTerminalView({
   const fontSizeRef = useRef<number>(fontSize);
   fontSizeRef.current = fontSize;
 
-  // Sync fullscreenchange event listener (for Esc key / native gesture exits)
-  useEffect(() => {
-    const handleFullscreenChange = () => {
-      if (!document.fullscreenElement && standalone) {
-        // Exited browser native fullscreen
-      }
-    };
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
-  }, [standalone]);
 
   const sendResize = useCallback((cols: number, rows: number) => {
     if (cols <= 0 || rows <= 0) return;
@@ -1339,17 +1329,9 @@ export default function WebTerminalView({
 
   const handleFullscreenToggle = () => {
     if (standalone) {
-      if (document.fullscreenElement) {
-        document.exitFullscreen?.().catch(() => {});
-      }
       onExitStandalone?.();
     } else {
-      if (onToggleStandalone) {
-        onToggleStandalone(true);
-      }
-      if (!isMobile && document.documentElement.requestFullscreen) {
-        document.documentElement.requestFullscreen().catch(() => {});
-      }
+      onToggleStandalone?.(true);
     }
   };
 
