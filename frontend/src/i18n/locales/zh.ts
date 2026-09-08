@@ -463,7 +463,10 @@ export const zh: Translations = {
     selectModeActive: "划选中",
     selectModeTip: "拖动手指在屏幕上划选文本",
     selectAll: "全选",
+    selectAllShort: "全选",
     selectAllVisible: "全选当前屏",
+    selectChars: "{count} 字",
+    copyChars: "复制 ({count})",
     clearSelection: "清除选择",
     exitSelectMode: "退出选择",
     accessoryKeys: {

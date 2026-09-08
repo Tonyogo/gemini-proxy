@@ -461,7 +461,10 @@ export const en = {
     selectModeActive: "Selecting",
     selectModeTip: "Drag finger across terminal to select text",
     selectAll: "Select All",
+    selectAllShort: "All",
     selectAllVisible: "Select Screen",
+    selectChars: "{count} chars",
+    copyChars: "Copy ({count})",
     clearSelection: "Clear Selection",
     exitSelectMode: "Exit Select",
     accessoryKeys: {
