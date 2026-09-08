@@ -1437,6 +1437,8 @@ export default function WebTerminalView({
               <span>{t('webTerminal.reconnectNow')}</span>
             </button>
           </div>
+        )}
+
         {/* Desktop Floating Copy Bubble */}
         {!isMobile && selectionBubblePos && hasSelection && (
           <div
@@ -1475,6 +1477,7 @@ export default function WebTerminalView({
             <button
               type="button"
               onClick={handleSelectAll}
+              title={t('webTerminal.selectAllVisible')}
               className="px-2 py-0.5 rounded-lg bg-black/[0.05] dark:bg-white/[0.08] hover:bg-black/[0.1] dark:hover:bg-white/[0.15] active:scale-95 text-[var(--text-primary)] text-[11px] font-medium transition-all shrink-0"
             >
               {t('webTerminal.selectAllShort', '全选')}
