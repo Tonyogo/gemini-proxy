@@ -251,6 +251,49 @@ export class TerminalHostManager {
       host.status = 'online';
     }
   }
+
+  private rpcResolvers: Map<string, (response: any) => void> = new Map();
+
+  public handleAgentRpcResponse(response: any): void {
+    const { reqId } = response;
+    if (reqId && this.rpcResolvers.has(reqId)) {
+      const resolver = this.rpcResolvers.get(reqId);
+      this.rpcResolvers.delete(reqId);
+      if (resolver) {
+        resolver(response);
+      }
+    }
+  }
+
+  public async executeFileRpc(hostId: string, payload: { action: string; path: string; params?: any }): Promise<any> {
+    const session = this.getSession(hostId);
+    if (!session || !(session instanceof RemoteAgentTerminalSession)) {
+      return { success: false, error: `Agent "${hostId}" is offline or unavailable` };
+    }
+
+    const reqId = `rpc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const rpcMsg = `JSON:${JSON.stringify({
+      type: 'file_rpc',
+      reqId,
+      ...payload,
+    })}`;
+
+    return new Promise((resolve) => {
+      const timeoutTimer = setTimeout(() => {
+        if (this.rpcResolvers.has(reqId)) {
+          this.rpcResolvers.delete(reqId);
+          resolve({ success: false, error: 'Agent file request timed out (30s)' });
+        }
+      }, 30000);
+
+      this.rpcResolvers.set(reqId, (res) => {
+        clearTimeout(timeoutTimer);
+        resolve(res);
+      });
+
+      session.write(rpcMsg);
+    });
+  }
 }
 
 export const terminalHostManager = new TerminalHostManager();
