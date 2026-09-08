@@ -133,14 +133,21 @@ export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
   // Client Web Terminal Connection Handler
   wss.on('connection', (ws: WebSocket, req: http.IncomingMessage) => {
     const parsedUrl = new URL(req.url || '', `http://${req.headers.host || 'localhost'}`);
-    const hostId = parsedUrl.searchParams.get('hostId') || 'local';
+    const hostId = (parsedUrl.searchParams.get('hostId') || '').trim();
+
+    if (!hostId) {
+      logger.warn('[TerminalWS] Interactive terminal client connected without hostId');
+      ws.send('\r\n\x1b[33m[Host Offline] Host "" is offline or unavailable.\x1b[0m\r\n');
+      ws.close(1008, 'hostId query parameter is required');
+      return;
+    }
 
     logger.info(`[TerminalWS] Interactive terminal client attached to host: ${hostId}`);
     const session = terminalHostManager.getSession(hostId);
 
     if (!session) {
       logger.warn(`[TerminalWS] No active session found for host: ${hostId}`);
-      ws.send(`\r\n\x1b[31m[Error] Host "${hostId}" not found or currently offline.\x1b[0m\r\n`);
+      ws.send(`\r\n\x1b[33m[Host Offline] Host "${hostId}" is offline or unavailable.\x1b[0m\r\n`);
       ws.close(1008, 'Host session unavailable');
       return;
     }

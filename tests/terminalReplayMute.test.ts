@@ -1,11 +1,7 @@
 import { isSyntheticTerminalReport } from '../frontend/src/utils/terminalFilter';
-import { getDefaultTerminalSession, destroyDefaultTerminalSession } from '../src/admin/services/terminalService';
+import { RemoteAgentTerminalSession } from '../src/admin/services/terminalHostManager';
 
 describe('Terminal Reconnect Replay Mute', () => {
-  afterEach(() => {
-    destroyDefaultTerminalSession();
-  });
-
   it('should classify and filter all standard query response escape sequences', () => {
     // 1. Cursor Position Reports (CPR)
     expect(isSyntheticTerminalReport('\x1b[1;1R')).toBe(true);
@@ -51,9 +47,9 @@ describe('Terminal Reconnect Replay Mute', () => {
     }
   });
 
-  it('should replay historical buffer cleanly in PersistentTerminalSession', (done) => {
-    const session = getDefaultTerminalSession();
-    expect(session).toBeDefined();
+  it('should replay historical buffer cleanly in RemoteAgentTerminalSession', (done) => {
+    const mockAgentWs = { readyState: 1, send: jest.fn() };
+    const session = new RemoteAgentTerminalSession('replay-test-agent', mockAgentWs);
 
     const mockSocket = {
       readyState: 1,
@@ -65,16 +61,14 @@ describe('Terminal Reconnect Replay Mute', () => {
 
     session.attach(mockSocket as any);
 
-    // Send a query-like output through the session
-    session.write('echo "HELLO_REPLAY_TEST"\r');
+    // Send output through session
+    session.handleData('HELLO_REPLAY_TEST');
 
-    setTimeout(() => {
-      expect(mockSocket.received.length).toBeGreaterThan(0);
-      const combined = mockSocket.received.join('');
-      expect(combined).toContain('HELLO_REPLAY_TEST');
+    expect(mockSocket.received.length).toBeGreaterThan(0);
+    const combined = mockSocket.received.join('');
+    expect(combined).toContain('HELLO_REPLAY_TEST');
 
-      session.detach(mockSocket as any);
-      done();
-    }, 500);
+    session.detach(mockSocket as any);
+    done();
   });
 });

@@ -2,7 +2,6 @@ import http from 'http';
 import WebSocket from 'ws';
 import express from 'express';
 import { setupTerminalWebSocket } from '../src/admin/routes/terminalWs';
-import { destroyDefaultTerminalSession } from '../src/admin/services/terminalService';
 import config from '../config/default';
 
 describe('Terminal WebSocket Gateway', () => {
@@ -22,7 +21,6 @@ describe('Terminal WebSocket Gateway', () => {
   });
 
   afterAll((done) => {
-    destroyDefaultTerminalSession();
     if (wss) {
       try {
         wss.close();
@@ -40,9 +38,7 @@ describe('Terminal WebSocket Gateway', () => {
 
     const ws = new WebSocket(`ws://127.0.0.1:${port}/api/admin/terminal/ws?x-admin-key=wrong-key`);
 
-    let errorReceived = false;
     ws.on('error', (err) => {
-      errorReceived = true;
       expect(err.message).toContain('401');
     });
 
@@ -53,26 +49,83 @@ describe('Terminal WebSocket Gateway', () => {
     });
   });
 
-  it('should connect and echo terminal output when admin key is valid', (done) => {
+  it('should notify client and close 1008 when host is offline or not found', (done) => {
     const originalKey = config.adminSecretKey;
     config.adminSecretKey = 'valid-key';
 
-    const ws = new WebSocket(`ws://127.0.0.1:${port}/api/admin/terminal/ws?x-admin-key=valid-key`);
+    const ws = new WebSocket(`ws://127.0.0.1:${port}/api/admin/terminal/ws?hostId=non-existent-host&key=valid-key`);
+    let messageReceived = '';
 
-    ws.on('open', () => {
-      ws.send(`JSON:${JSON.stringify({ type: 'resize', cols: 100, rows: 30 })}`);
-      ws.send('echo "WS_TEST_OK"\r');
+    ws.on('message', (data) => {
+      messageReceived += data.toString();
     });
 
-    ws.on('message', (msg) => {
-      const text = msg.toString();
-      if (text.includes('WS_TEST_OK')) {
-        ws.on('close', () => {
-          config.adminSecretKey = originalKey;
-          done();
-        });
-        ws.close();
-      }
+    ws.on('close', (code) => {
+      expect(code).toBe(1008);
+      expect(messageReceived).toContain('[Host Offline]');
+      config.adminSecretKey = originalKey;
+      done();
+    });
+  });
+
+  it('should connect agent, attach client to host, and relay terminal data', (done) => {
+    const originalKey = config.adminSecretKey;
+    config.adminSecretKey = 'valid-key';
+
+    const testHostId = 'agent-ws-test';
+
+    // 1. Connect agent
+    const agentWs = new WebSocket(
+      `ws://127.0.0.1:${port}/api/admin/terminal/agent-ws?hostId=${testHostId}&name=TestNode&key=valid-key`
+    );
+
+    agentWs.on('open', () => {
+      // 2. Connect client
+      const clientWs = new WebSocket(
+        `ws://127.0.0.1:${port}/api/admin/terminal/ws?hostId=${testHostId}&key=valid-key`
+      );
+
+      // Listen for data on agent side
+      agentWs.on('message', (agentMsg) => {
+        const str = agentMsg.toString();
+        if (str.startsWith('JSON:')) {
+          const control = JSON.parse(str.slice(5));
+          if (control.type === 'resize') {
+            expect(control.cols).toBe(100);
+            expect(control.rows).toBe(30);
+            return;
+          }
+        }
+        if (str === 'hello-agent-shell\n') {
+          // Agent replies back
+          agentWs.send('reply-from-agent\n');
+        }
+      });
+
+      clientWs.on('open', () => {
+        clientWs.send(`JSON:${JSON.stringify({ type: 'resize', cols: 100, rows: 30 })}`);
+        clientWs.send('hello-agent-shell\n');
+      });
+
+      clientWs.on('message', (msg) => {
+        const text = msg.toString();
+        if (text.includes('reply-from-agent')) {
+          let closedCount = 0;
+          const checkDone = () => {
+            closedCount++;
+            if (closedCount === 2) {
+              setTimeout(() => {
+                config.adminSecretKey = originalKey;
+                done();
+              }, 50);
+            }
+          };
+          clientWs.on('close', checkDone);
+          agentWs.on('close', checkDone);
+          clientWs.close();
+          agentWs.close();
+        }
+      });
     });
   }, 10000);
 });
