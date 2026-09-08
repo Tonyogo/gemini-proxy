@@ -278,6 +278,14 @@ function connect() {
     if (!ptyProcess) {
       spawnPty();
     }
+
+    // Send reset signal to clear any stale hub buffers
+    try {
+      ws.send(`JSON:${JSON.stringify({ type: 'reset' })}`);
+      if (ptyProcess) {
+        ws.send(`JSON:${JSON.stringify({ type: 'resize', cols: ptyProcess.cols, rows: ptyProcess.rows })}`);
+      }
+    } catch {}
   });
 
   ws.on('message', (data) => {
