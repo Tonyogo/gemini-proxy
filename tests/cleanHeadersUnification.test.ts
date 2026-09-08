@@ -34,7 +34,7 @@ describe('Clean Headers Unification & Redundant Title Elimination', () => {
       expect(content).toContain('handleSend');
       expect(content).toContain('handleCopyCurl');
       expect(content).toContain('handleOpenConcurrentModal');
-      expect(content).toContain('playground.systemKeyActive');
+      expect(content).not.toContain('playground.systemKeyActive');
     });
   });
 

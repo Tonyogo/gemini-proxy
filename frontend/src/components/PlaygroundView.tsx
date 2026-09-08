@@ -18,7 +18,6 @@ import {
   CheckCircle2,
   AlertCircle,
   Clock,
-  Key,
   Globe,
   Braces,
   RotateCcw,
@@ -613,18 +612,9 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
               <Flame className="w-3.5 h-3.5 text-amber-400 shrink-0" />
               <span className="hidden sm:inline">{t('playground.stressTest')}</span>
             </button>
-
-            {/* 7. System Key Status Indicator (Desktop only) */}
-            <div
-              className="hidden lg:flex items-center space-x-1.5 px-2 py-1 rounded-lg border border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-mono select-none shrink-0"
-              title={t('playground.systemKeyDesc')}
-            >
-              <Key className="w-3.5 h-3.5 shrink-0 text-emerald-500" />
-              <span className="font-medium whitespace-nowrap">{t('playground.systemKeyActive')}</span>
-            </div>
           </div>
 
-          {/* 8. Send / Run Test Button (Adaptive & guaranteed visible) */}
+          {/* 7. Send / Run Test Button (Adaptive & guaranteed visible) */}
           <button
             onClick={handleSend}
             disabled={loading}
