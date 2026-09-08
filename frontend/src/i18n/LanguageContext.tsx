@@ -7,7 +7,7 @@ type Language = 'zh' | 'en';
 interface LanguageContextType {
   lang: Language;
   setLang: (lang: Language) => void;
-  t: (path: string, fallback?: string) => string;
+  t: (path: string, fallbackOrParams?: string | Record<string, any>, params?: Record<string, any>) => string;
 }
 
 const dictionaries: Record<Language, Translations> = { en, zh };
@@ -26,17 +26,26 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     localStorage.setItem('app_lang', newLang);
   };
 
-  const t = (path: string, fallback?: string): string => {
+  const t = (path: string, fallbackOrParams?: string | Record<string, any>, paramsOrEmpty?: Record<string, any>): string => {
+    const fallback = typeof fallbackOrParams === 'string' ? fallbackOrParams : undefined;
+    const params = typeof fallbackOrParams === 'object' && fallbackOrParams !== null ? fallbackOrParams : paramsOrEmpty;
     const keys = path.split('.');
     let current: any = dictionaries[lang];
     for (const key of keys) {
       if (current && typeof current === 'object' && key in current) {
         current = current[key];
       } else {
-        return fallback || path;
+        current = fallback || path;
+        break;
       }
     }
-    return typeof current === 'string' ? current : (fallback || path);
+    let res = typeof current === 'string' ? current : (fallback || path);
+    if (params) {
+      for (const [k, v] of Object.entries(params)) {
+        res = res.split(`{${k}}`).join(String(v));
+      }
+    }
+    return res;
   };
 
   return (
