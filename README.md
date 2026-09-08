@@ -218,54 +218,63 @@ npm run pm2:logs     # 查看实时运行日志
 
 ## 💻 WebTerminal 终端与多局域网主机集中管理 (全新)
 
-为方便日常运维与无 SSH 密钥环境下的服务器维护，Gemini-Proxy 内置了基于 Web 的全功能交互式终端与多主机内网反向穿透架构。
+为方便日常运维与无 SSH 密钥环境下的服务器维护，Gemini-Proxy 采用**纯反向 Agent 统一架构**（Pure Reverse Agent Architecture），彻底解耦 Proxy 网关进程与系统 PTY，所有节点（宿主机与远程内网节点）均通过轻量 Agent 统一反向接入。
 
 ### 1. 架构原理
 
 ```text
 ┌──────────────────────────────────────────────────────────────┐
 │                    Web Browser (PC / 移动端)                  │
-│   WebTerminal 交互终端 + 主机切换选择器 (TerminalHostSelector)  │
+│   WebTerminal 交互终端 + 文件管理 + 主机切换器 (HostSelector)  │
 └──────────────────────────────▲───────────────────────────────┘
                                │  /api/admin/terminal/ws?hostId=...
                                ▼
 ┌──────────────────────────────────────────────────────────────┐
 │                       Gemini-Proxy Hub                       │
-│  - TerminalHostManager: 统一管理本地进程会话与远程 Agent 会话   │
-│  - /api/admin/terminal/agent-ws: 远程 Agent 反向 WebSocket 通道│
-│  - GET /api/admin/terminal/hosts: 节点状态与心跳查询 REST 接口 │
+│  - TerminalHostManager: 纯动态 Agent 会话与节点注册管理中心   │
+│  - /api/admin/terminal/agent-ws: 统一反向 Agent WebSocket 通道│
+│  - TerminalFileService: 全面 RPC 化远程文件管理与分块流传输   │
+│  - GET /api/admin/terminal/hosts: 动态节点状态与心跳查询接口 │
 └───────────────▲──────────────────────────────▲───────────────┘
-                │ 反向 WebSocket 隧道           │ 本地 PTY 进程
-                │ (双向 stdio + 控制帧)         │ (node-pty)
+                │ 反向 WebSocket 隧道           │ 反向 WebSocket 隧道
+                │ (双向 stdio + 文件 RPC)       │ (双向 stdio + 文件 RPC)
 ┌───────────────┴──────────────┐ ┌─────────────┴───────────────┐
-│ 局域网主机 A (terminal-agent) │ │    本地宿主机 (Local Host)    │
-│ Ubuntu / Debian / 树莓派 / NAS│ │  当前 Gemini-Proxy 所在服务器 │
+│ 局域网/远程主机 A (Agent)    │ │   宿主机节点 (terminal-agent) │
+│ Ubuntu / Debian / 树莓派 / NAS│ │  当前服务器所在系统独立运行   │
 └──────────────────────────────┘ └─────────────────────────────┘
 ```
 
 ### 2. 核心特性
 
+- **纯反向 Agent 统一网关**：
+  - Proxy 网关本身零内置宿主机 PTY 生成与本地 `fs` 降级，避免后端臃肿与本地特权风险；
+  - 宿主机与所有远程内网服务器平权，均通过执行 `terminal-agent.js` 反向建立长连接。
 - **后台常驻与断线无损重放**：
-  - 终端 PTY 进程在后台持续常驻，关闭网页或刷新不会中断后台任务；
-  - 服务端维护 1MB 环形历史回放缓冲区，重新进入时秒级恢复最近屏幕输出。
+  - 终端 PTY 进程由 Agent 维护，关闭网页或网络波动不会中断后台任务；
+  - 服务端维护 200KB 环形历史回放缓冲区，重新进入时秒级恢复最近屏幕输出。
+- **纯 RPC 远程文件管理**：
+  - 支持多主机目录实时浏览、文件查看与编辑（集成 Monaco Editor）、文件夹新建、重命名、批量上传与下载。
+- **优雅空态与自动切换**：
+  - 当暂无在线主机时，自动展示毛玻璃空态引导卡片，提供当前服务地址的一键启动命令；
+  - 当主机上线时平滑自动连接并装载 xterm 终端，多节点自动自愈切换。
 - **移动端深度交互优化**：
   - **软键盘平滑推顶**：基于 Visual Viewport 动态跟踪与双向缓动补偿算法，键盘弹起时光标与输入行平滑上推，杜绝键盘遮挡与页面白屏；
   - **移动端辅助按键栏 (Accessory Bar)**：在手机端提供快捷键条，一键输入 `Esc`、`Tab`、`Ctrl`、`Alt`、`Shift`、方向键及常用字符（`|`, `/`, `-`, `~`, `$` 等），支持长按连续触发；
   - **运维命令抽屉 (Snippets Drawer)**：内置一键查看系统负载 (`top`)、磁盘空间 (`df -h`)、内存使用 (`free -m`)、网络连接等常用运维指令；
   - **自由框选与复制**：专为触屏设计的选择模式，便于在移动端复制日志和终端文本。
 
-### 3. 多内网主机反向 Agent 接入
+### 3. 主机节点反向 Agent 接入
 
-无需给局域网内的其它服务器配置公网 IP 或配置 NAT 端口映射，目标机器只需执行轻量级 Agent 脚本即可反向注册至控制台。
+无需为服务器配置公网 IP 或配置 NAT 端口映射，宿主机或目标机器只需执行轻量级 Agent 脚本即可反向注册至控制台。
 
 #### A. 一键接入命令
-在局域网内任意 Linux、macOS 或 Windows 主机上执行：
+在宿主机或局域网内任意 Linux、macOS 或 Windows 主机上执行：
 
 ```bash
-# 方式 1: 使用已安装依赖的项目仓库
+# 方式 1: 使用已安装依赖的项目仓库 (如宿主机或测试机)
 npm run terminal-agent -- --server=http://<proxy-ip>:3000 --key=<ADMIN_SECRET_KEY> --name="Ubuntu-GPU-Server"
 
-# 方式 2: 单文件独立启动
+# 方式 2: 单文件独立启动 (拷贝 scripts/terminal-agent.js 即可直接运行)
 node scripts/terminal-agent.js --server=http://<proxy-ip>:3000 --key=<ADMIN_SECRET_KEY> --name="NAS-Storage"
 ```
 

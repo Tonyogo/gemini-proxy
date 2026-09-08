@@ -36,11 +36,11 @@ This is a **stateless API proxy** that translates Anthropic Claude Messages API 
   - **Raw Body API Playground (`frontend/src/components/PlaygroundView.tsx`):** Monaco Editor-powered raw JSON request body tester supporting live typewriter stream output.
 
 - **WebTerminal & Multi-Host Reverse Agent (`src/admin/services/terminalHostManager.ts`, `src/admin/routes/terminalWs.ts`, `scripts/terminal-agent.js`, `frontend/src/components/terminal/`):**
-  - **Session Abstraction (`ITerminalSession`):** Unified interface for local PTY sessions (`LocalTerminalSessionWrapper`) and remote agent sessions (`RemoteAgentTerminalSession`) featuring 1MB ring history buffers and multi-client attach/detach.
-  - **Host Manager (`TerminalHostManager`):** Central registry managing local and dynamic remote agent hosts with heartbeat ping/pong, metadata tracking, and online/offline status.
-  - **Dual WebSocket Gateway (`terminalWs.ts`):** Routes client connections to `/api/admin/terminal/ws?hostId=...` and authenticates reverse intranet agent connections via `/api/admin/terminal/agent-ws`.
-  - **Standalone Agent Script (`scripts/terminal-agent.js`):** Pure Node.js client detecting LAN IPv4 and platform, spawning local PTY, and connecting reverse tunnel with backoff reconnection.
-  - **Frontend UI & Mobile Adaptation:** `TerminalHostSelector` for node switching, `TerminalAccessoryBar` for touch modifier keys, `TerminalSnippetsDrawer` for quick ops commands, and `mobileViewportHelper` with dynamic keyboard push-up compensation.
+  - **Pure Reverse Agent Architecture:** Zero built-in server PTY spawning or hardcoded local host. All machines (host server and remote nodes alike) connect dynamically through `scripts/terminal-agent.js` via reverse WebSocket (`/api/admin/terminal/agent-ws`).
+  - **Remote Terminal Session (`RemoteAgentTerminalSession`):** Handles 200KB scrollback history buffers, replay on client attach, multi-client attach/detach, and PTY resize/reset frame forwarding.
+  - **Host Manager (`TerminalHostManager`):** Pure dynamic agent registry with agent registration/unregistration, metadata tracking, RPC response dispatching, and online/offline status.
+  - **100% RPC File Management (`terminalFileService.ts` & `terminalFileController.ts`):** Pure RPC-driven file browsing, preview, editing, directory creation, deletion, download, and upload through WebSocket channels.
+  - **Frontend UI & Empty State:** `TerminalHostSelector` with automatic online host switching, rich frosted empty state guidance cards with one-click startup commands when no agents are connected, `TerminalAccessoryBar` for touch modifier keys, and `mobileViewportHelper` with dynamic keyboard push-up compensation.
 
 - **Payload Debug Logger (`src/services/payloadLogger.ts`):**
   - Asynchronously saves JSON transaction details partitioned into date/hour subdirectories under `TRANSACTION_LOGS_DIR` formatted using the configured `TIME_ZONE` (defaults to `Asia/Shanghai`).

@@ -34,7 +34,7 @@
 - `terminalHostManager.getHosts()`: 返回已注册的 Agent 列表（初始为空数组）
 - `terminalHostManager.getSession(hostId)`: 若 hostId 存在且在线返回 `RemoteAgentTerminalSession`，否则返回 `null`
 
-- [ ] **Step 1: 编写/更新 `tests/terminalHostManager.test.ts` 测试用例**
+- [x] **Step 1: 编写/更新 `tests/terminalHostManager.test.ts` 测试用例**
 
 ```ts
 import { TerminalHostManager, RemoteAgentTerminalSession } from '../src/admin/services/terminalHostManager';
@@ -77,25 +77,25 @@ describe('TerminalHostManager (Pure Dynamic Agent)', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试并验证失败**
+- [x] **Step 2: 运行测试并验证失败**
 
 Run: `npx jest tests/terminalHostManager.test.ts`
 Expected: FAIL (because manager currently initializes `'local'` host).
 
-- [ ] **Step 3: 修改 `src/admin/services/terminalHostManager.ts`**
+- [x] **Step 3: 修改 `src/admin/services/terminalHostManager.ts`**
 
 移除 `LocalTerminalSessionWrapper`，移除 `this.initLocalHost()`，确保 `hosts` 与 `sessions` 初始为空，仅通过 Agent 动态注册。
 
-- [ ] **Step 4: 清理 `src/admin/services/terminalService.ts` 并更新相关测试**
+- [x] **Step 4: 清理 `src/admin/services/terminalService.ts` 并更新相关测试**
 
 移除不再需要的 `getDefaultTerminalSession`、`destroyDefaultTerminalSession`、`PersistentTerminalSession`，保留 `TerminalSessionOptions` 导出（供工具函数或测试引用）。更新 `tests/terminalService.test.ts` 与 `tests/terminalPersistence.test.ts`。
 
-- [ ] **Step 5: 运行测试并验证通过**
+- [x] **Step 5: 运行测试并验证通过**
 
 Run: `npx jest tests/terminalHostManager.test.ts tests/terminalService.test.ts`
 Expected: PASS.
 
-- [ ] **Step 6: 提交更改**
+- [x] **Step 6: 提交更改**
 
 ```bash
 git add src/admin/services/terminalHostManager.ts src/admin/services/terminalService.ts tests/terminalHostManager.test.ts tests/terminalService.test.ts tests/terminalPersistence.test.ts
@@ -115,7 +115,7 @@ git commit -m "refactor(terminal): remove local host hardcoding and make termina
 - `terminalFileService.listFiles(hostId: string, path?: string)`: 必须接收有效 `hostId`，若节点未连接直接返回 `{ success: false, error: 'Host is offline or unavailable' }`，否则通过 `rpcAgent` 转发。
 - `terminalFileController.*`: 从 `req.query.hostId` 或 `req.body.hostId` 获取目标主机 ID，若缺失或离线返回对应 400/404/500 JSON。
 
-- [ ] **Step 1: 编写/更新 `tests/terminalFileManager.test.ts` 纯 RPC 测试用例**
+- [x] **Step 1: 编写/更新 `tests/terminalFileManager.test.ts` 纯 RPC 测试用例**
 
 ```ts
 import { terminalFileService } from '../src/admin/services/terminalFileService';
@@ -166,25 +166,25 @@ describe('TerminalFileService Pure RPC', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试并验证失败**
+- [x] **Step 2: 运行测试并验证失败**
 
 Run: `npx jest tests/terminalFileManager.test.ts`
 Expected: FAIL (due to residual local filesystem fallback branches).
 
-- [ ] **Step 3: 重构 `src/admin/services/terminalFileService.ts`**
+- [x] **Step 3: 重构 `src/admin/services/terminalFileService.ts`**
 
 移除 `resolveLocalPath` 与服务端 `fs` 操作，将所有方法收归至统一的 `this.rpcAgent(hostId, action, path, params)` 调用。
 
-- [ ] **Step 4: 更新 `src/admin/controllers/terminalFileController.ts`**
+- [x] **Step 4: 更新 `src/admin/controllers/terminalFileController.ts`**
 
 移除 `hostId = 'local'` 默认值，直接提取 `hostId`，若为空则返回 400 错误 `{ success: false, error: 'hostId is required' }`。
 
-- [ ] **Step 5: 运行测试并验证通过**
+- [x] **Step 5: 运行测试并验证通过**
 
 Run: `npx jest tests/terminalFileManager.test.ts`
 Expected: PASS.
 
-- [ ] **Step 6: 提交更改**
+- [x] **Step 6: 提交更改**
 
 ```bash
 git add src/admin/services/terminalFileService.ts src/admin/controllers/terminalFileController.ts tests/terminalFileManager.test.ts
@@ -205,20 +205,20 @@ git commit -m "refactor(terminal): make terminal file service 100% RPC-driven ac
 - 当客户端连接 `/api/admin/terminal/ws?hostId=...` 且 `hostId` 不存在或离线时：向客户端发送友好提示 `\r\n\x1b[33m[Host Offline] Host "${hostId}" is offline or unavailable.\x1b[0m\r\n`，并关闭连接 (1008)。
 - 收到有效 agent 连接时动态注册，断开时注销。
 
-- [ ] **Step 1: 更新 `tests/terminalWs.test.ts` 和 `tests/terminalHostsApi.test.ts`**
+- [x] **Step 1: 更新 `tests/terminalWs.test.ts` 和 `tests/terminalHostsApi.test.ts`**
 
 更新测试用例，使测试通过注册模拟 Agent 来验证终端 WebSocket 转发与 Hosts API 响应。
 
-- [ ] **Step 2: 修改 `src/admin/routes/terminalWs.ts`**
+- [x] **Step 2: 修改 `src/admin/routes/terminalWs.ts`**
 
 优化未指定 `hostId` 时的防护与离线提示。
 
-- [ ] **Step 3: 运行网关测试集**
+- [x] **Step 3: 运行网关测试集**
 
 Run: `npx jest tests/terminalWs.test.ts tests/terminalHostsApi.test.ts tests/terminalReplayMute.test.ts`
 Expected: PASS.
 
-- [ ] **Step 4: 提交更改**
+- [x] **Step 4: 提交更改**
 
 ```bash
 git add src/admin/routes/terminalWs.ts tests/terminalWs.test.ts tests/terminalHostsApi.test.ts tests/terminalReplayMute.test.ts
@@ -239,7 +239,7 @@ git commit -m "refactor(terminal): update terminal websocket gateway for dynamic
 - 新增 i18n 键：`webTerminal.emptyState.title`、`webTerminal.emptyState.desc`、`webTerminal.emptyState.copyCmd`、`webTerminal.emptyState.checkAgain`、`webTerminal.emptyState.noOnlineHosts` 等。
 - `TerminalHostSelector`: 移除 `localHostFallback`；当 `hosts` 变动时，若当前 `activeHostId` 不在列表中，自动切换为第一个在线 host 并触发 `onSelectHost`；若列表为空，传递 `''`。
 
-- [ ] **Step 1: 编写/更新 `tests/terminalHostSelector.test.ts`**
+- [x] **Step 1: 编写/更新 `tests/terminalHostSelector.test.ts`**
 
 ```ts
 import fs from 'fs';
@@ -259,20 +259,20 @@ describe('TerminalHostSelector Pure Agent Tests', () => {
 });
 ```
 
-- [ ] **Step 2: 扩展中英文语言包 (`zh.ts`, `en.ts`)**
+- [x] **Step 2: 扩展中英文语言包 (`zh.ts`, `en.ts`)**
 
 增加终端与文件管理器空态文案、一键命令提示文案。
 
-- [ ] **Step 3: 修改 `frontend/src/components/terminal/TerminalHostSelector.tsx`**
+- [x] **Step 3: 修改 `frontend/src/components/terminal/TerminalHostSelector.tsx`**
 
 移除 `localHostFallback`，优化节点列表选择逻辑与节点计数徽章。
 
-- [ ] **Step 4: 运行测试并验证通过**
+- [x] **Step 4: 运行测试并验证通过**
 
 Run: `npx jest tests/terminalHostSelector.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: 提交更改**
+- [x] **Step 5: 提交更改**
 
 ```bash
 git add frontend/src/i18n/locales/zh.ts frontend/src/i18n/locales/en.ts frontend/src/components/terminal/TerminalHostSelector.tsx tests/terminalHostSelector.test.ts
@@ -293,7 +293,7 @@ git commit -m "feat(terminal): update host selector for pure agent architecture 
   - 渲染 `TerminalEmptyState` 组件：毛玻璃容器、`TerminalSquare` 图标、标题“当前暂无在线终端节点”、说明文本、包含当前 `window.location.origin` 与 `adminKey` 的一键启动命令、一键复制按钮、重新检测刷新按钮。
 - 当有可用节点时：平滑挂载 xterm 终端画布并初始化 WebSocket。
 
-- [ ] **Step 1: 编写 `tests/terminalEmptyState.test.ts`**
+- [x] **Step 1: 编写 `tests/terminalEmptyState.test.ts`**
 
 ```ts
 import fs from 'fs';
@@ -311,25 +311,25 @@ describe('WebTerminal Empty State Tests', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试并验证初始失败**
+- [x] **Step 2: 运行测试并验证初始失败**
 
 Run: `npx jest tests/terminalEmptyState.test.ts`
 Expected: FAIL.
 
-- [ ] **Step 3: 在 `WebTerminalView.tsx` 中实现空态组件与渲染逻辑**
+- [x] **Step 3: 在 `WebTerminalView.tsx` 中实现空态组件与渲染逻辑**
 
 在未连接有效 Host 时渲染空态卡片，阻止无效 WebSocket 轮询；在有 Host 时正常启动 xterm 实例。
 
-- [ ] **Step 4: 更新 `UnifiedTerminalView.tsx` 联动逻辑**
+- [x] **Step 4: 更新 `UnifiedTerminalView.tsx` 联动逻辑**
 
 当 `activeHostId` 切换或离线时保持状态同步。
 
-- [ ] **Step 5: 运行测试并验证通过**
+- [x] **Step 5: 运行测试并验证通过**
 
 Run: `npx jest tests/terminalEmptyState.test.ts`
 Expected: PASS.
 
-- [ ] **Step 6: 提交更改**
+- [x] **Step 6: 提交更改**
 
 ```bash
 git add frontend/src/components/WebTerminalView.tsx frontend/src/components/UnifiedTerminalView.tsx tests/terminalEmptyState.test.ts
@@ -346,16 +346,16 @@ git commit -m "feat(terminal): implement rich empty state card and smooth auto-s
 **Interfaces:**
 - 当 `!activeHostId` 时，文件管理器展示空态卡片，提示连接 Agent 后即可远程管理主机文件与上传下载。
 
-- [ ] **Step 1: 修改 `TerminalFileManagerView.tsx`**
+- [x] **Step 1: 修改 `TerminalFileManagerView.tsx`**
 
 在无有效 `activeHostId` 时显示空态卡片，避免发出无效的 `/api/admin/terminal/files` 请求。
 
-- [ ] **Step 2: 运行构建验证**
+- [x] **Step 2: 运行构建验证**
 
 Run: `npm run build:frontend`
 Expected: Vite build succeeds with 0 errors.
 
-- [ ] **Step 3: 提交更改**
+- [x] **Step 3: 提交更改**
 
 ```bash
 git add frontend/src/components/terminal/TerminalFileManagerView.tsx
@@ -371,21 +371,21 @@ git commit -m "feat(terminal): add empty state guard for terminal file manager"
 - Modify: `CLAUDE.md`
 - Test: All tests in `tests/`
 
-- [ ] **Step 1: 运行全量自动化测试**
+- [x] **Step 1: 运行全量自动化测试**
 
 Run: `npm test`
 Expected: 60+ Test Suites, 300+ tests ALL PASS.
 
-- [ ] **Step 2: 验证前后端全量生产构建**
+- [x] **Step 2: 验证前后端全量生产构建**
 
 Run: `npm run build`
 Expected: Frontend Vite build and Backend tsc build both succeed cleanly.
 
-- [ ] **Step 3: 更新 `README.md` 与 `CLAUDE.md` 架构文档**
+- [x] **Step 3: 更新 `README.md` 与 `CLAUDE.md` 架构文档**
 
 更新关于 WebTerminal 启动与多主机反向 Agent 纳管说明（宿主机与远程主机统一通过 `npm run terminal-agent` 启动）。
 
-- [ ] **Step 4: 提交最终文档与代码**
+- [x] **Step 4: 提交最终文档与代码**
 
 ```bash
 git add README.md CLAUDE.md
