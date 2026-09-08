@@ -29,6 +29,11 @@ import {
   calculateKeyboardTranslateY,
   shouldBlockPtyResize,
 } from '../utils/mobileViewportHelper';
+import {
+  isUserAtBottom,
+  shouldScrollToBottom,
+  scrollToBottomSafe,
+} from '../utils/terminalScrollHelper';
 
 const DARK_TERMINAL_THEME = {
   background: '#090A0F',
@@ -275,6 +280,7 @@ export default function WebTerminalView({
       }
       replayTimerRef.current = setTimeout(() => {
         isReplayingRef.current = false;
+        scrollToBottomSafe(xtermRef.current);
       }, 600);
 
       if (xtermRef.current && fitAddonRef.current) {
@@ -282,6 +288,7 @@ export default function WebTerminalView({
         lastSentColsRef.current = 0;
         lastSentRowsRef.current = 0;
         sendResize(xtermRef.current.cols, xtermRef.current.rows);
+        scrollToBottomSafe(xtermRef.current);
       }
     };
 
@@ -301,10 +308,12 @@ export default function WebTerminalView({
               }
               replayTimerRef.current = setTimeout(() => {
                 isReplayingRef.current = false;
+                scrollToBottomSafe(xtermRef.current);
               }, 600);
               if (fitAddonRef.current && xtermRef.current) {
                 fitAddonRef.current.fit();
                 sendResize(xtermRef.current.cols, xtermRef.current.rows);
+                scrollToBottomSafe(xtermRef.current);
               }
               return;
             }
@@ -323,23 +332,35 @@ export default function WebTerminalView({
         if (data.length > 0) {
           console.debug('[WebTerminal] WS Recv Text:', JSON.stringify(data.slice(0, 50)), 'len:', data.length);
         }
-        xtermRef.current?.write(data, () => {
+        const term = xtermRef.current;
+        const wasAtBottom = isUserAtBottom(term);
+        term?.write(data, () => {
+          if (shouldScrollToBottom({ isReplaying: isReplayingRef.current, wasAtBottom, bufferType: term?.buffer.active.type })) {
+            scrollToBottomSafe(term);
+          }
           if (replayTimerRef.current) {
             clearTimeout(replayTimerRef.current);
           }
           replayTimerRef.current = setTimeout(() => {
             isReplayingRef.current = false;
-          }, 100);
+            scrollToBottomSafe(xtermRef.current);
+          }, 150);
         });
       } else if (data instanceof ArrayBuffer) {
         console.debug('[WebTerminal] WS Recv Binary:', data.byteLength);
-        xtermRef.current?.write(new Uint8Array(data), () => {
+        const term = xtermRef.current;
+        const wasAtBottom = isUserAtBottom(term);
+        term?.write(new Uint8Array(data), () => {
+          if (shouldScrollToBottom({ isReplaying: isReplayingRef.current, wasAtBottom, bufferType: term?.buffer.active.type })) {
+            scrollToBottomSafe(term);
+          }
           if (replayTimerRef.current) {
             clearTimeout(replayTimerRef.current);
           }
           replayTimerRef.current = setTimeout(() => {
             isReplayingRef.current = false;
-          }, 100);
+            scrollToBottomSafe(xtermRef.current);
+          }, 150);
         });
       }
     };
@@ -478,9 +499,7 @@ export default function WebTerminalView({
           wsRef.current.send(encoded);
         }
         term.focus();
-        if (term.buffer.active.type !== 'alternate') {
-          term.scrollToBottom();
-        }
+        scrollToBottomSafe(term);
 
         setIsCtrlActive(false);
         setIsAltActive(false);
@@ -514,10 +533,15 @@ export default function WebTerminalView({
       if (fitAddonRef.current && xtermRef.current && terminalContainerRef.current) {
         if (terminalContainerRef.current.clientWidth > 0 && terminalContainerRef.current.clientHeight > 0) {
           try {
+            const term = xtermRef.current;
+            const wasAtBottom = isUserAtBottom(term);
             fitAddonRef.current.fit();
-            const { cols, rows } = xtermRef.current;
+            const { cols, rows } = term;
             if (cols > 0 && rows > 0) {
               sendResize(cols, rows);
+            }
+            if (shouldScrollToBottom({ isReplaying: isReplayingRef.current, wasAtBottom, bufferType: term.buffer.active.type })) {
+              scrollToBottomSafe(term);
             }
           } catch {
             // Ignore
@@ -760,9 +784,7 @@ export default function WebTerminalView({
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
         wsRef.current.send(data);
       }
-      if (term.buffer.active.type !== 'alternate') {
-        term.scrollToBottom();
-      }
+      scrollToBottomSafe(term);
     });
 
     term.onKey((e) => {
@@ -774,9 +796,7 @@ export default function WebTerminalView({
       if (isMounted && fitAddonRef.current && xtermRef.current) {
         fitAddonRef.current.fit();
         xtermRef.current.focus();
-        if (xtermRef.current.buffer.active.type !== 'alternate') {
-          xtermRef.current.scrollToBottom();
-        }
+        scrollToBottomSafe(xtermRef.current);
       }
     }, 50);
 
@@ -862,15 +882,18 @@ export default function WebTerminalView({
       });
 
       if (blockResize) {
-        if (xtermRef.current && xtermRef.current.buffer.active.type !== 'alternate') {
-          xtermRef.current.scrollToBottom();
+        if (xtermRef.current && shouldScrollToBottom({ isReplaying: isReplayingRef.current, wasAtBottom: isUserAtBottom(xtermRef.current), bufferType: xtermRef.current.buffer.active.type })) {
+          // Keep viewport anchored to bottom cursor via scrollToBottom()
+          scrollToBottomSafe(xtermRef.current);
         }
       } else {
         if (fitAddonRef.current && xtermRef.current) {
+          const term = xtermRef.current;
+          const wasAtBottom = isUserAtBottom(term);
           fitAddonRef.current.fit();
-          sendResize(xtermRef.current.cols, xtermRef.current.rows);
-          if (xtermRef.current.buffer.active.type !== 'alternate') {
-            xtermRef.current.scrollToBottom();
+          sendResize(term.cols, term.rows);
+          if (shouldScrollToBottom({ isReplaying: isReplayingRef.current, wasAtBottom, bufferType: term.buffer.active.type })) {
+            scrollToBottomSafe(term);
           }
         }
       }
@@ -895,10 +918,12 @@ export default function WebTerminalView({
       }
       orientationTimer = setTimeout(() => {
         if (isMountedRef.current && fitAddonRef.current && xtermRef.current) {
+          const term = xtermRef.current;
+          const wasAtBottom = isUserAtBottom(term);
           fitAddonRef.current.fit();
-          sendResize(xtermRef.current.cols, xtermRef.current.rows);
-          if (xtermRef.current.buffer.active.type !== 'alternate') {
-            xtermRef.current.scrollToBottom();
+          sendResize(term.cols, term.rows);
+          if (shouldScrollToBottom({ isReplaying: isReplayingRef.current, wasAtBottom, bufferType: term.buffer.active.type })) {
+            scrollToBottomSafe(term);
           }
         }
       }, 100);
@@ -957,10 +982,12 @@ export default function WebTerminalView({
   useEffect(() => {
     const timer = setTimeout(() => {
       if (fitAddonRef.current && xtermRef.current) {
+        const term = xtermRef.current;
+        const wasAtBottom = isUserAtBottom(term);
         fitAddonRef.current.fit();
-        sendResize(xtermRef.current.cols, xtermRef.current.rows);
-        if (xtermRef.current.buffer.active.type !== 'alternate') {
-          xtermRef.current.scrollToBottom();
+        sendResize(term.cols, term.rows);
+        if (shouldScrollToBottom({ isReplaying: isReplayingRef.current, wasAtBottom, bufferType: term.buffer.active.type })) {
+          scrollToBottomSafe(term);
         }
       }
     }, 60);
@@ -970,12 +997,14 @@ export default function WebTerminalView({
   // Sync font size change
   useEffect(() => {
     if (xtermRef.current && fitAddonRef.current) {
-      xtermRef.current.options.fontSize = fontSize;
+      const term = xtermRef.current;
+      const wasAtBottom = isUserAtBottom(term);
+      term.options.fontSize = fontSize;
       localStorage.setItem('terminal_font_size', fontSize.toString());
       fitAddonRef.current.fit();
-      sendResize(xtermRef.current.cols, xtermRef.current.rows);
-      if (xtermRef.current.buffer.active.type !== 'alternate') {
-        xtermRef.current.scrollToBottom();
+      sendResize(term.cols, term.rows);
+      if (shouldScrollToBottom({ isReplaying: isReplayingRef.current, wasAtBottom, bufferType: term.buffer.active.type })) {
+        scrollToBottomSafe(term);
       }
     }
   }, [fontSize, sendResize]);
@@ -1027,9 +1056,7 @@ export default function WebTerminalView({
     if (shouldFocus) {
       xtermRef.current?.focus();
     }
-    if (xtermRef.current?.buffer.active.type !== 'alternate') {
-      xtermRef.current?.scrollToBottom();
-    }
+    scrollToBottomSafe(xtermRef.current);
   };
 
   const handleRunCommand = (cmd: string, execute: boolean) => {
@@ -1045,7 +1072,7 @@ export default function WebTerminalView({
       if (xtermRef.current) {
         xtermRef.current.focus();
         textarea?.focus();
-        xtermRef.current.scrollToBottom();
+        scrollToBottomSafe(xtermRef.current);
       }
       setIsKeyboardOpen(true);
     }

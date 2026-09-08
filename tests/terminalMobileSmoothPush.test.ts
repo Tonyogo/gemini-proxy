@@ -24,7 +24,7 @@ describe('WebTerminalView Mobile Smooth Push Integration', () => {
 
   test('blocks fitAddon.fit and sendResize when keyboard is showing', () => {
     expect(content).toContain('shouldBlockPtyResize');
-    expect(content).toContain('scrollToBottom()');
+    expect(content).toMatch(/scrollToBottom(?:Safe)?/);
   });
 
   test('dismisses keyboard on swipe down gesture in terminal', () => {
