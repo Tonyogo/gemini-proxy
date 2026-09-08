@@ -189,6 +189,11 @@ export default function TerminalFileManagerView({
 
   // Load directory items
   const loadFiles = useCallback(async (targetPath?: string) => {
+    if (!activeHostId) {
+      setLoading(false);
+      setFiles([]);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -220,6 +225,11 @@ export default function TerminalFileManagerView({
   useEffect(() => {
     setCurrentPath('');
     setParentPath(null);
+    if (!activeHostId) {
+      setLoading(false);
+      setFiles([]);
+      return;
+    }
     loadFiles();
   }, [activeHostId, loadFiles]);
 
@@ -574,8 +584,28 @@ export default function TerminalFileManagerView({
         }}
       />
 
-      {/* Top Action & Breadcrumb Bar */}
-      <div className="ui-card p-2 sm:p-2.5 flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border-subtle)] shrink-0 mb-2">
+      {/* Empty State Guard */}
+      {!activeHostId ? (
+        <div className="flex-1 flex items-center justify-center p-4 sm:p-8 bg-[var(--bg-canvas)]">
+          <div className="max-w-md w-full rounded-2xl bg-[var(--bg-surface)]/90 border border-[var(--border-subtle)] p-6 sm:p-8 backdrop-blur-xl shadow-2xl flex flex-col items-center text-center space-y-4 animate-in fade-in zoom-in-95 font-sans">
+            <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-inner shrink-0">
+              <Folder className="w-7 h-7" />
+            </div>
+
+            <div className="space-y-1.5">
+              <h3 className="text-base sm:text-lg font-semibold text-[var(--text-primary)]">
+                {t('webTerminal.emptyState.title', '当前暂无在线终端节点')}
+              </h3>
+              <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
+                {t('webTerminal.emptyState.fileManagerDesc', '反向连接终端 Agent 节点后，即可在此实时浏览、编辑、上传和下载远程文件。')}
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Top Action & Breadcrumb Bar */}
+          <div className="ui-card p-2 sm:p-2.5 flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border-subtle)] shrink-0 mb-2">
         {/* Left: Breadcrumbs / Path input */}
         <div className="flex items-center space-x-1.5 flex-1 min-w-[240px] overflow-hidden text-xs sm:text-sm">
           {parentPath !== null && (
@@ -835,6 +865,8 @@ export default function TerminalFileManagerView({
           </div>
         )}
       </div>
+      </>
+      )}
 
       {/* Modal: New Folder */}
       {newFolderOpen && (
