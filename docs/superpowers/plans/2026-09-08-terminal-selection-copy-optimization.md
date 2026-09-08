@@ -32,7 +32,7 @@
   - `WebTerminalView.tsx`: 移动端选择模式浮层包含 `whitespace-nowrap`、`max-w-[95vw]` 单行防折行约束
   - `frontend/src/i18n/locales/zh.ts` 与 `en.ts`: 包含精简版选择文案键值
 
-- [ ] **Step 1: 编写自动化测试文件**
+- [x] **Step 1: 编写自动化测试文件**
 
 Create `tests/terminalSelectionCopy.test.ts`:
 ```ts
@@ -79,12 +79,12 @@ describe('Terminal Selection and Copy Optimization Tests', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试并验证初始失败**
+- [x] **Step 2: 运行测试并验证初始失败**
 
 Run: `npx jest tests/terminalSelectionCopy.test.ts`
 Expected: FAIL because `selectionBubblePos` and `selectAllShort` are not implemented yet.
 
-- [ ] **Step 3: 提交测试文件**
+- [x] **Step 3: 提交测试文件**
 
 ```bash
 git add tests/terminalSelectionCopy.test.ts
@@ -105,7 +105,7 @@ git commit -m "test: add test assertions for terminal selection and copy optimiz
   - `webTerminal.selectChars`: "{count} 字" / "{count} chars"
   - `webTerminal.copyChars`: "复制 ({count})" / "Copy ({count})"
 
-- [ ] **Step 1: 修改 `frontend/src/i18n/locales/zh.ts`**
+- [x] **Step 1: 修改 `frontend/src/i18n/locales/zh.ts`**
 
 In `webTerminal`:
 ```typescript
@@ -114,7 +114,7 @@ In `webTerminal`:
     copyChars: "复制 ({count})",
 ```
 
-- [ ] **Step 2: 修改 `frontend/src/i18n/locales/en.ts`**
+- [x] **Step 2: 修改 `frontend/src/i18n/locales/en.ts`**
 
 In `webTerminal`:
 ```typescript
@@ -123,7 +123,7 @@ In `webTerminal`:
     copyChars: "Copy ({count})",
 ```
 
-- [ ] **Step 3: 提交国际化文件**
+- [x] **Step 3: 提交国际化文件**
 
 ```bash
 git add frontend/src/i18n/locales/zh.ts frontend/src/i18n/locales/en.ts
@@ -145,7 +145,7 @@ git commit -m "feat(i18n): add compact selection and copy localization strings"
   - 顶栏右侧常驻 `[ 📋 复制 ]` 按钮，有选区时高亮并指示已选字符数
   - 终端选区末端右上角自适应定位浮动微气泡，点击即复制并淡出
 
-- [ ] **Step 1: 在 `WebTerminalView.tsx` 中增加选区坐标与气泡定位逻辑**
+- [x] **Step 1: 在 `WebTerminalView.tsx` 中增加选区坐标与气泡定位逻辑**
 
 在组件状态中增加：
 ```tsx
@@ -214,7 +214,7 @@ git commit -m "feat(i18n): add compact selection and copy localization strings"
       };
 ```
 
-- [ ] **Step 2: 在顶栏操作区常驻快捷复制按钮**
+- [x] **Step 2: 在顶栏操作区常驻快捷复制按钮**
 
 在 `WebTerminalView.tsx` 的 `Action Buttons` 区域中（在 Zoom Out 按钮之前）：
 ```tsx
@@ -239,7 +239,7 @@ git commit -m "feat(i18n): add compact selection and copy localization strings"
           </button>
 ```
 
-- [ ] **Step 3: 渲染桌面端选区悬浮复制微气泡**
+- [x] **Step 3: 渲染桌面端选区悬浮复制微气泡**
 
 在 `xterm.js Canvas Container` 内部渲染悬浮气泡：
 ```tsx
@@ -268,7 +268,7 @@ git commit -m "feat(i18n): add compact selection and copy localization strings"
         )}
 ```
 
-- [ ] **Step 4: 提交桌面端代码**
+- [x] **Step 4: 提交桌面端代码**
 
 ```bash
 git add frontend/src/components/WebTerminalView.tsx
@@ -293,7 +293,7 @@ git commit -m "feat(terminal): add desktop selection floating bubble and topbar 
     - `[ ✕ 清除 ]` (有选区时显示)
     - `[ ✓ 完成 ]` (退出选择模式)
 
-- [ ] **Step 1: 重构 `WebTerminalView.tsx` 中的移动端浮层**
+- [x] **Step 1: 重构 `WebTerminalView.tsx` 中的移动端浮层**
 
 替换原有 `isSelectMode && (...)` 区域：
 ```tsx
@@ -361,12 +361,12 @@ git commit -m "feat(terminal): add desktop selection floating bubble and topbar 
         )}
 ```
 
-- [ ] **Step 2: 运行测试并验证通过**
+- [x] **Step 2: 运行测试并验证通过**
 
 Run: `npx jest tests/terminalSelectionCopy.test.ts`
 Expected: PASS (100% tests passing).
 
-- [ ] **Step 3: 提交移动端排版重构代码**
+- [x] **Step 3: 提交移动端排版重构代码**
 
 ```bash
 git add frontend/src/components/WebTerminalView.tsx
@@ -381,17 +381,17 @@ git commit -m "fix(terminal): refactor mobile selection mode bar into compact si
 - All touched files
 - Test: All suites
 
-- [ ] **Step 1: 运行全量 Jest 测试套件**
+- [x] **Step 1: 运行全量 Jest 测试套件**
 
 Run: `npm test`
 Expected: All suites passed (68 suites, 0 failures).
 
-- [ ] **Step 2: 运行前端生产编译**
+- [x] **Step 2: 运行前端生产编译**
 
 Run: `npm run build:frontend`
 Expected: Vite build succeeds cleanly with 0 errors.
 
-- [ ] **Step 3: 提交最终整洁状态**
+- [x] **Step 3: 提交最终整洁状态**
 
 ```bash
 git status
