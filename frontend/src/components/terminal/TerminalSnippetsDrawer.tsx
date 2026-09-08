@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Play, Copy, Plus, Trash2, Terminal as TerminalIcon } from 'lucide-react';
 import { useTranslation } from '../../i18n/LanguageContext';
 
@@ -75,9 +76,26 @@ export const TerminalSnippetsDrawer: React.FC<TerminalSnippetsDrawerProps> = ({
     setSnippets((prev) => prev.filter((s) => s.id !== id));
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm transition-opacity">
-      <div className="w-full max-w-md bg-[#0C0E14] border-l border-white/[0.08] h-full flex flex-col shadow-2xl animate-in slide-in-from-right duration-200">
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  return typeof document !== 'undefined' ? createPortal(
+    <div
+      className="fixed inset-0 z-[100] flex justify-end bg-black/60 backdrop-blur-sm transition-opacity"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md bg-[#0C0E14] border-l border-white/[0.08] h-full flex flex-col shadow-2xl animate-in slide-in-from-right duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="p-4 border-b border-white/[0.08] flex items-center justify-between bg-[#0F1118]">
           <div className="flex items-center space-x-2">
@@ -86,7 +104,7 @@ export const TerminalSnippetsDrawer: React.FC<TerminalSnippetsDrawerProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg hover:bg-white/[0.06] text-slate-400 hover:text-white"
+            className="p-1 rounded-lg hover:bg-white/[0.06] text-slate-400 hover:text-white cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -109,7 +127,7 @@ export const TerminalSnippetsDrawer: React.FC<TerminalSnippetsDrawerProps> = ({
                       onRunCommand(item.command, false);
                       onClose();
                     }}
-                    className="px-2 py-0.5 rounded bg-white/[0.05] hover:bg-white/[0.1] text-[11px] text-slate-300 flex items-center space-x-1"
+                    className="px-2 py-0.5 rounded bg-white/[0.05] hover:bg-white/[0.1] text-[11px] text-slate-300 flex items-center space-x-1 cursor-pointer"
                     title={t('webTerminal.insert')}
                   >
                     <Copy className="w-3 h-3" />
@@ -120,7 +138,7 @@ export const TerminalSnippetsDrawer: React.FC<TerminalSnippetsDrawerProps> = ({
                       onRunCommand(item.command, true);
                       onClose();
                     }}
-                    className="px-2 py-0.5 rounded bg-indigo-500/20 hover:bg-indigo-500/30 text-[11px] text-indigo-300 font-medium flex items-center space-x-1"
+                    className="px-2 py-0.5 rounded bg-indigo-500/20 hover:bg-indigo-500/30 text-[11px] text-indigo-300 font-medium flex items-center space-x-1 cursor-pointer"
                     title={t('webTerminal.run')}
                   >
                     <Play className="w-3 h-3 text-indigo-400" />
@@ -129,7 +147,7 @@ export const TerminalSnippetsDrawer: React.FC<TerminalSnippetsDrawerProps> = ({
                   {item.category === 'custom' && (
                     <button
                       onClick={() => handleDeleteSnippet(item.id)}
-                      className="p-1 rounded hover:bg-rose-500/20 text-slate-500 hover:text-rose-400"
+                      className="p-1 rounded hover:bg-rose-500/20 text-slate-500 hover:text-rose-400 cursor-pointer"
                     >
                       <Trash2 className="w-3 h-3" />
                     </button>
@@ -142,35 +160,35 @@ export const TerminalSnippetsDrawer: React.FC<TerminalSnippetsDrawerProps> = ({
             </div>
           ))}
 
-          {/* Add custom snippet form */}
+          {/* Add Snippet Form */}
           {isAdding ? (
-            <form onSubmit={handleAddSnippet} className="bg-[#141622] border border-indigo-500/30 rounded-xl p-3 space-y-2">
+            <form onSubmit={handleAddSnippet} className="bg-[#141622] border border-indigo-500/30 rounded-xl p-3 space-y-2.5">
               <input
                 type="text"
-                placeholder={t('webTerminal.snippetName')}
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                className="w-full bg-black/40 border border-white/[0.08] text-xs text-white rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-indigo-500"
+                placeholder={t('webTerminal.snippetName')}
+                className="w-full px-2.5 py-1.5 bg-black/40 border border-white/[0.08] rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
                 autoFocus
               />
-              <input
-                type="text"
-                placeholder={t('webTerminal.snippetCommand')}
+              <textarea
                 value={newCmd}
                 onChange={(e) => setNewCmd(e.target.value)}
-                className="w-full bg-black/40 border border-white/[0.08] text-xs font-mono text-cyan-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-indigo-500"
+                placeholder={t('webTerminal.snippetCommand')}
+                rows={3}
+                className="w-full px-2.5 py-1.5 bg-black/40 border border-white/[0.08] rounded-lg text-xs font-mono text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
               />
-              <div className="flex items-center justify-end space-x-2 pt-1">
+              <div className="flex justify-end space-x-2">
                 <button
                   type="button"
                   onClick={() => setIsAdding(false)}
-                  className="px-2.5 py-1 rounded text-xs text-slate-400 hover:text-white"
+                  className="px-3 py-1 bg-white/[0.06] hover:bg-white/[0.1] text-xs text-slate-300 rounded-lg cursor-pointer"
                 >
-                  Cancel
+                  {t('webTerminal.cancel')}
                 </button>
                 <button
                   type="submit"
-                  className="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-xs font-medium text-white rounded-lg"
+                  className="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-xs font-medium text-white rounded-lg cursor-pointer"
                 >
                   {t('webTerminal.saveSnippet')}
                 </button>
@@ -179,7 +197,7 @@ export const TerminalSnippetsDrawer: React.FC<TerminalSnippetsDrawerProps> = ({
           ) : (
             <button
               onClick={() => setIsAdding(true)}
-              className="w-full py-2 border border-dashed border-white/[0.1] hover:border-white/[0.2] rounded-xl text-xs text-slate-400 hover:text-white flex items-center justify-center space-x-1.5 transition-colors"
+              className="w-full py-2 border border-dashed border-white/[0.1] hover:border-white/[0.2] rounded-xl text-xs text-slate-400 hover:text-white flex items-center justify-center space-x-1.5 transition-colors cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>{t('webTerminal.addSnippet')}</span>
@@ -187,6 +205,7 @@ export const TerminalSnippetsDrawer: React.FC<TerminalSnippetsDrawerProps> = ({
           )}
         </div>
       </div>
-    </div>
-  );
+    </div>,
+    document.body
+  ) : null;
 };

@@ -22,4 +22,9 @@ describe('TerminalHostSelector Pure Agent Tests', () => {
     expect((zh as any).webTerminal.emptyState).toBeDefined();
     expect((zh as any).webTerminal.emptyState.title).toContain('在线终端节点');
   });
+
+  test('uses createPortal to mount add node guide modal to document.body avoiding container clipping', () => {
+    expect(content).toContain('createPortal');
+    expect(content).toContain('document.body');
+  });
 });
