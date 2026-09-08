@@ -85,6 +85,9 @@ interface WebTerminalViewProps {
   onToggleStandalone?: (val: boolean) => void;
   subTab?: 'interactive' | 'logs';
   onSubTabChange?: (tab: 'interactive' | 'logs') => void;
+  controlledHostId?: string;
+  onControlledHostChange?: (newHostId: string) => void;
+  hideInnerHostSelector?: boolean;
 }
 
 export default function WebTerminalView({
@@ -94,6 +97,9 @@ export default function WebTerminalView({
   onToggleStandalone,
   subTab,
   onSubTabChange,
+  controlledHostId,
+  onControlledHostChange,
+  hideInnerHostSelector = false,
 }: WebTerminalViewProps) {
   const { t } = useTranslation();
   const { resolvedTheme } = useTheme();
@@ -1093,6 +1099,9 @@ export default function WebTerminalView({
     setActiveHostId(newHostId);
     activeHostIdRef.current = newHostId;
     localStorage.setItem('terminal_active_host', newHostId);
+    if (onControlledHostChange) {
+      onControlledHostChange(newHostId);
+    }
     if (xtermRef.current) {
       xtermRef.current.clear();
       xtermRef.current.reset();
@@ -1100,6 +1109,19 @@ export default function WebTerminalView({
     reconnectAttemptRef.current = 0;
     initWebSocket();
   };
+
+  useEffect(() => {
+    if (controlledHostId !== undefined && controlledHostId !== activeHostId) {
+      setActiveHostId(controlledHostId);
+      activeHostIdRef.current = controlledHostId;
+      if (xtermRef.current) {
+        xtermRef.current.clear();
+        xtermRef.current.reset();
+      }
+      reconnectAttemptRef.current = 0;
+      initWebSocket();
+    }
+  }, [controlledHostId, activeHostId, initWebSocket]);
 
   const handleResetSession = () => {
     if (window.confirm(t('webTerminal.resetConfirm'))) {
@@ -1199,11 +1221,13 @@ export default function WebTerminalView({
           ) : null}
 
           {/* Host Selector */}
-          <TerminalHostSelector
-            adminKey={adminKey}
-            activeHostId={activeHostId}
-            onSelectHost={handleHostChange}
-          />
+          {(!hideInnerHostSelector || standalone) && (
+            <TerminalHostSelector
+              adminKey={adminKey}
+              activeHostId={activeHostId}
+              onSelectHost={handleHostChange}
+            />
+          )}
 
           {/* Connection Status Badge */}
           <div
