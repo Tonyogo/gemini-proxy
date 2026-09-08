@@ -45,6 +45,30 @@ describe('Terminal Agent Reconnect and Replay Loop Prevention Tests', () => {
       (typeof msg === 'string' && msg.includes('\x1b[2J\x1b[H'))
     );
     expect(hasResetSignal).toBe(true);
+
+    // CRITICAL: Agent WebSocket must NOT receive a reset command on re-registration (must not kill agent pty)
+    const sentToAgent2 = mockAgentWs2.send.mock.calls.map(call => call[0]);
+    expect(sentToAgent2).not.toContain('JSON:{"type":"reset"}');
+  });
+
+  test('RemoteAgentTerminalSession.reset preserves agent PTY unless resetAgentPty is explicitly true', () => {
+    const mockAgentWs = { readyState: 1, send: jest.fn() };
+    const mockClientWs = { readyState: 1, send: jest.fn() };
+    const session = new RemoteAgentTerminalSession('test-host-pty', mockAgentWs);
+    session.attach(mockClientWs);
+
+    // Non-destructive reset (e.g. reconnect / buffer purge): resetAgentPty is false
+    session.reset(true, false);
+    expect(mockAgentWs.send).not.toHaveBeenCalledWith('JSON:{"type":"reset"}');
+    expect(mockClientWs.send).toHaveBeenCalledWith('JSON:{"type":"reset"}');
+
+    mockAgentWs.send.mockClear();
+    mockClientWs.send.mockClear();
+
+    // Explicit user reset (e.g. Web UI Reset Session button): resetAgentPty is true
+    session.reset(true, true);
+    expect(mockAgentWs.send).toHaveBeenCalledWith('JSON:{"type":"reset"}');
+    expect(mockClientWs.send).toHaveBeenCalledWith('JSON:{"type":"reset"}');
   });
 
   test('isSyntheticTerminalReport catches various complex device reports', () => {

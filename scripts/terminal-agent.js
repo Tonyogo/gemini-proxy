@@ -287,13 +287,16 @@ function connect() {
     reconnectAttempts = 0;
     console.log(`[Agent] Connected and registered successfully! Reverse tunnel is active.`);
 
+    const isFirstSpawn = !ptyProcess;
     if (!ptyProcess) {
       spawnPty();
     }
 
-    // Send reset signal to clear any stale hub buffers
+    // Only send reset on initial fresh PTY spawn to clear any stale hub buffers
     try {
-      ws.send(`JSON:${JSON.stringify({ type: 'reset' })}`);
+      if (isFirstSpawn) {
+        ws.send(`JSON:${JSON.stringify({ type: 'reset' })}`);
+      }
       if (ptyProcess) {
         ws.send(`JSON:${JSON.stringify({ type: 'resize', cols: ptyProcess.cols, rows: ptyProcess.rows })}`);
       }

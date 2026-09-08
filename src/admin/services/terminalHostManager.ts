@@ -18,19 +18,19 @@ export interface ITerminalSession {
   detach(ws: any): void;
   write(data: string): void;
   resize(cols: number, rows: number): void;
-  reset(notifyClients?: boolean): void;
+  reset(notifyClients?: boolean, resetAgentPty?: boolean): void;
   destroy(): void;
 }
 
 export class RemoteAgentTerminalSession implements ITerminalSession {
-  public readonly hostId: string;
-  private agentWs: any;
+  public hostId: string;
+  private agentWs: any = null;
   private activeSockets: Set<any> = new Set();
   private historyBuffer: string[] = [];
   private totalBufferSize: number = 0;
-  private maxBufferSize: number = 1024 * 1024; // 1MB
+  private readonly maxBufferSize: number = 200 * 1024; // 200KB scrollback
 
-  constructor(hostId: string, agentWs: any) {
+  constructor(hostId: string, agentWs?: any) {
     this.hostId = hostId;
     this.agentWs = agentWs;
   }
@@ -41,11 +41,16 @@ export class RemoteAgentTerminalSession implements ITerminalSession {
 
   public attach(ws: any): void {
     this.activeSockets.add(ws);
-    if (this.historyBuffer.length > 0 && ws.readyState === 1) {
-      try {
-        ws.send(this.historyBuffer.join(''));
-      } catch {
-        // Ignore send errors
+    // Replay history buffer
+    if (this.historyBuffer.length > 0) {
+      for (const chunk of this.historyBuffer) {
+        try {
+          if (ws.readyState === 1) {
+            ws.send(chunk);
+          }
+        } catch {
+          // Ignore socket write errors during replay
+        }
       }
     }
   }
@@ -74,10 +79,10 @@ export class RemoteAgentTerminalSession implements ITerminalSession {
     }
   }
 
-  public reset(notifyClients: boolean = true): void {
+  public reset(notifyClients: boolean = true, resetAgentPty: boolean = false): void {
     this.historyBuffer = [];
     this.totalBufferSize = 0;
-    if (this.agentWs && this.agentWs.readyState === 1) {
+    if (resetAgentPty && this.agentWs && this.agentWs.readyState === 1) {
       try {
         this.agentWs.send(`JSON:${JSON.stringify({ type: 'reset' })}`);
       } catch (err: any) {
@@ -152,7 +157,7 @@ export class LocalTerminalSessionWrapper implements ITerminalSession {
     getDefaultTerminalSession().resize(cols, rows);
   }
 
-  public reset(): void {
+  public reset(notifyClients?: boolean, resetAgentPty?: boolean): void {
     getDefaultTerminalSession().reset();
   }
 
@@ -234,9 +239,9 @@ export class TerminalHostManager {
       session = new RemoteAgentTerminalSession(id, metadata.agentWs);
       this.sessions.set(id, session);
     } else {
-      // Agent reconnecting / re-registering -> Reset dirty history and notify web clients
+      // Agent reconnecting / re-registering -> Reset dirty history and notify web clients, without killing agent PTY
       session.updateAgentWs(metadata.agentWs);
-      session.reset(true);
+      session.reset(true, false);
       this.clearPendingRpcForHost(id);
     }
 

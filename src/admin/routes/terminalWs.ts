@@ -106,7 +106,7 @@ export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
           if (control.type === 'reset') {
             const session = terminalHostManager.getSession(hostId);
             if (session) {
-              session.reset(true);
+              session.reset(true, false);
             }
             return;
           }
@@ -167,7 +167,7 @@ export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
           }
           if (control.type === 'reset') {
             logger.info(`[TerminalWS:${hostId}] Reset session requested by client`);
-            session.reset();
+            session.reset(true, true);
             return;
           }
           if (control.type === 'ping') {
