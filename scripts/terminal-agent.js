@@ -7,6 +7,7 @@
 
 const os = require('os');
 const path = require('path');
+const fs = require('fs');
 const WebSocket = require('ws');
 const pty = require('node-pty');
 
@@ -141,6 +142,123 @@ function spawnPty() {
   }
 }
 
+async function handleFileRpc(control) {
+  const { reqId, action, path: targetPath, params = {} } = control;
+  const reply = (success, data = null, error = null) => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(`JSON:${JSON.stringify({
+        type: 'file_rpc_res',
+        reqId,
+        success,
+        data,
+        error
+      })}`);
+    }
+  };
+
+  try {
+    const resolvedPath = path.resolve(targetPath || os.homedir() || process.cwd());
+
+    if (action === 'list') {
+      if (!fs.existsSync(resolvedPath)) {
+        return reply(false, null, `Path not found: ${resolvedPath}`);
+      }
+      const stat = await fs.promises.stat(resolvedPath);
+      if (!stat.isDirectory()) {
+        return reply(false, null, 'Target is not a directory');
+      }
+      const entries = await fs.promises.readdir(resolvedPath, { withFileTypes: true });
+      const files = [];
+      for (const entry of entries) {
+        const full = path.join(resolvedPath, entry.name);
+        try {
+          const entryStat = await fs.promises.stat(full);
+          const isDir = entry.isDirectory();
+          files.push({
+            name: entry.name,
+            path: full,
+            isDirectory: isDir,
+            size: isDir ? 0 : entryStat.size,
+            updatedAt: entryStat.mtimeMs,
+            extension: isDir ? '' : path.extname(entry.name).replace(/^\./, '').toLowerCase(),
+          });
+        } catch {}
+      }
+      files.sort((a, b) => {
+        if (a.isDirectory && !b.isDirectory) return -1;
+        if (!a.isDirectory && b.isDirectory) return 1;
+        return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+      });
+      const parsed = path.parse(resolvedPath);
+      return reply(true, {
+        currentPath: resolvedPath,
+        parentPath: parsed.root === resolvedPath ? null : path.dirname(resolvedPath),
+        separator: path.sep,
+        files
+      });
+    }
+
+    if (action === 'read') {
+      if (!fs.existsSync(resolvedPath)) return reply(false, null, 'File not found');
+      const stat = await fs.promises.stat(resolvedPath);
+      if (stat.isDirectory()) return reply(false, null, 'Target is a directory');
+      if (stat.size > 5 * 1024 * 1024) return reply(false, null, 'File exceeds 5MB preview limit');
+      const buf = await fs.promises.readFile(resolvedPath);
+      const isBinary = buf.slice(0, 1024).includes(0);
+      return reply(true, {
+        path: resolvedPath,
+        size: stat.size,
+        isBinary,
+        content: isBinary ? '' : buf.toString('utf-8')
+      });
+    }
+
+    if (action === 'write') {
+      await fs.promises.writeFile(resolvedPath, params.content || '', 'utf-8');
+      return reply(true, { success: true });
+    }
+
+    if (action === 'mkdir') {
+      const full = path.join(resolvedPath, params.dirName || 'new-folder');
+      await fs.promises.mkdir(full, { recursive: true });
+      return reply(true, { success: true });
+    }
+
+    if (action === 'rename') {
+      const newPath = path.resolve(params.newPath);
+      await fs.promises.rename(resolvedPath, newPath);
+      return reply(true, { success: true });
+    }
+
+    if (action === 'delete') {
+      const stat = await fs.promises.stat(resolvedPath);
+      if (stat.isDirectory()) {
+        await fs.promises.rm(resolvedPath, { recursive: true, force: true });
+      } else {
+        await fs.promises.unlink(resolvedPath);
+      }
+      return reply(true, { success: true });
+    }
+
+    if (action === 'upload_chunk') {
+      const full = path.join(resolvedPath, params.filename);
+      const buf = Buffer.from(params.data || '', 'base64');
+      await fs.promises.writeFile(full, buf);
+      return reply(true, { success: true });
+    }
+
+    if (action === 'download_chunk') {
+      if (!fs.existsSync(resolvedPath)) return reply(false, null, 'File not found');
+      const buf = await fs.promises.readFile(resolvedPath);
+      return reply(true, buf.toString('base64'));
+    }
+
+    reply(false, null, `Unknown action: ${action}`);
+  } catch (err) {
+    reply(false, null, err.message);
+  }
+}
+
 function connect() {
   if (isExiting) return;
 
@@ -167,6 +285,10 @@ function connect() {
       const msgStr = data.toString();
       if (msgStr.startsWith('JSON:')) {
         const control = JSON.parse(msgStr.slice(5));
+        if (control.type === 'file_rpc') {
+          handleFileRpc(control);
+          return;
+        }
         if (control.type === 'resize') {
           const cols = Math.max(10, Math.min(500, Math.floor(control.cols)));
           const rows = Math.max(5, Math.min(200, Math.floor(control.rows)));
