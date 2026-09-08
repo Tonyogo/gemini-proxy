@@ -117,7 +117,6 @@ export default function WebTerminalView({
   const [isShiftActive, setIsShiftActive] = useState<boolean>(false);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState<boolean>(false);
   const [hasSelection, setHasSelection] = useState<boolean>(false);
-  const [selectionBubblePos, setSelectionBubblePos] = useState<{ x: number; y: number } | null>(null);
   const [selectedCharCount, setSelectedCharCount] = useState<number>(0);
   const [isSelectMode, setIsSelectMode] = useState<boolean>(false);
   const [activeHostId, setActiveHostId] = useState<string>(() => {
@@ -495,7 +494,6 @@ export default function WebTerminalView({
         setSelectedCharCount(text.length);
       } else {
         setSelectedCharCount(0);
-        setSelectionBubblePos(null);
       }
     });
 
@@ -529,35 +527,44 @@ export default function WebTerminalView({
     let selectionStartPos: { col: number; viewportRow: number; bufferRow: number } | null = null;
     const container = terminalContainerRef.current;
 
-    // Desktop selection bubble positioning on mouseup
-    const handleMouseUp = (e: MouseEvent) => {
+    // Desktop Copy on Select: automatically copy selected text on mouseup
+    const handleMouseUp = () => {
       const mobile = window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
       if (mobile) return;
+
       setTimeout(() => {
-        if (term.hasSelection() && terminalContainerRef.current) {
-          const containerRect = terminalContainerRef.current.getBoundingClientRect();
-          const bubbleWidth = 110;
-          const bubbleHeight = 36;
-          let x = e.clientX - containerRect.left + 8;
-          let y = e.clientY - containerRect.top - bubbleHeight - 6;
-
-          // Boundary checks
-          if (x + bubbleWidth > containerRect.width) {
-            x = Math.max(10, containerRect.width - bubbleWidth - 10);
+        if (!xtermRef.current) return;
+        const term = xtermRef.current;
+        if (term.hasSelection()) {
+          const selectedText = term.getSelection();
+          if (selectedText && selectedText.trim().length > 0) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(selectedText).then(() => {
+                showToast(t('webTerminal.copiedToClipboard'));
+              }).catch(() => {
+                // Fallback
+                try {
+                  const textarea = document.createElement('textarea');
+                  textarea.value = selectedText;
+                  textarea.style.position = 'fixed';
+                  textarea.style.opacity = '0';
+                  document.body.appendChild(textarea);
+                  textarea.focus();
+                  textarea.select();
+                  document.execCommand('copy');
+                  document.body.removeChild(textarea);
+                  showToast(t('webTerminal.copiedToClipboard'));
+                } catch {}
+              });
+            }
           }
-          if (y < 8) {
-            y = e.clientY - containerRect.top + 16;
-          }
-
-          setSelectionBubblePos({ x, y });
-        } else {
-          setSelectionBubblePos(null);
         }
-      }, 20);
+      }, 30);
     };
 
-    if (container) {
-      container.addEventListener('mouseup', handleMouseUp);
+    const containerEl = terminalContainerRef.current;
+    if (containerEl) {
+      containerEl.addEventListener('mouseup', handleMouseUp);
     }
 
     // Helper: convert screen touch coordinates to terminal cell coordinates (0-based)
@@ -1050,7 +1057,6 @@ export default function WebTerminalView({
         isSelectModeRef.current = false;
         xtermRef.current?.clearSelection();
         setHasSelection(false);
-        setSelectionBubblePos(null);
         setSelectedCharCount(0);
       };
 
@@ -1149,7 +1155,6 @@ export default function WebTerminalView({
     if (xtermRef.current) {
       xtermRef.current.clearSelection();
       setHasSelection(false);
-      setSelectionBubblePos(null);
       setSelectedCharCount(0);
     }
   }, []);
@@ -1326,26 +1331,6 @@ export default function WebTerminalView({
 
         {/* Action Buttons */}
         <div className="flex items-center space-x-0.5 sm:space-x-1.5 shrink-0">
-          {/* Top Bar Copy Button */}
-          <button
-            type="button"
-            disabled={!hasSelection}
-            onClick={handleCopySelection}
-            className={`p-1 sm:p-1.5 rounded-lg border transition-all flex items-center space-x-1 shrink-0 ${
-              hasSelection
-                ? 'bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.4)] active:scale-95 cursor-pointer'
-                : 'bg-white/[0.04] text-slate-500 border-white/[0.06] opacity-40 cursor-not-allowed'
-            }`}
-            title={hasSelection ? t('webTerminal.copySelection') : t('webTerminal.copy')}
-          >
-            <Copy className="w-3.5 h-3.5" />
-            {hasSelection && selectedCharCount > 0 && (
-              <span className="text-[10px] font-mono hidden md:inline px-1 py-0.5 bg-black/20 rounded">
-                {selectedCharCount}
-              </span>
-            )}
-          </button>
-
           {/* Zoom Out */}
           <button
             type="button"
@@ -1435,30 +1420,6 @@ export default function WebTerminalView({
             >
               <RefreshCw className="w-3 h-3 text-rose-300" />
               <span>{t('webTerminal.reconnectNow')}</span>
-            </button>
-          </div>
-        )}
-
-        {/* Desktop Floating Copy Bubble */}
-        {!isMobile && selectionBubblePos && hasSelection && (
-          <div
-            className="absolute z-30 flex items-center shadow-2xl rounded-xl bg-slate-900/95 dark:bg-slate-900/95 border border-indigo-500/40 text-white p-1 text-xs backdrop-blur-md animate-in fade-in zoom-in-95 select-none pointer-events-auto"
-            style={{
-              left: `${selectionBubblePos.x}px`,
-              top: `${selectionBubblePos.y}px`,
-            }}
-          >
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={handleCopySelection}
-              className="flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-medium text-xs transition-all shadow-sm cursor-pointer"
-            >
-              <Copy className="w-3.5 h-3.5" />
-              <span>{t('webTerminal.copy')}</span>
-              {selectedCharCount > 0 && (
-                <span className="text-[10px] opacity-80 font-mono">({selectedCharCount})</span>
-              )}
             </button>
           </div>
         )}
