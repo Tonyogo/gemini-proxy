@@ -1,51 +1,47 @@
-import { TerminalHostManager } from '../src/admin/services/terminalHostManager';
+import { TerminalHostManager, RemoteAgentTerminalSession } from '../src/admin/services/terminalHostManager';
 
-describe('TerminalHostManager', () => {
+describe('TerminalHostManager (Pure Dynamic Agent)', () => {
   let manager: TerminalHostManager;
 
   beforeEach(() => {
     manager = new TerminalHostManager();
   });
 
-  test('initializes with a default local host', () => {
+  test('initializes with empty hosts list', () => {
     const hosts = manager.getHosts();
-    expect(hosts.length).toBeGreaterThanOrEqual(1);
-    const local = hosts.find((h) => h.id === 'local');
-    expect(local).toBeDefined();
-    expect(local?.type).toBe('local');
-    expect(local?.status).toBe('online');
+    expect(hosts).toEqual([]);
+    expect(manager.getSession('local')).toBeNull();
+    expect(manager.getSession('non-existent')).toBeNull();
   });
 
-  test('can register an agent host and retrieve its session', () => {
-    const mockAgentWs = {
-      readyState: 1,
-      send: jest.fn(),
-      on: jest.fn(),
-    };
-
+  test('registers and unregisters remote agent correctly', () => {
+    const mockWs = { readyState: 1, send: jest.fn() };
     const host = manager.registerAgent({
-      hostId: 'agent-01',
-      name: 'Test Worker Node',
-      hostname: 'worker-ubuntu',
-      ip: '192.168.1.100',
+      hostId: 'agent-1',
+      name: 'Test-Node',
+      hostname: 'test-node',
+      ip: '192.168.1.50',
       platform: 'linux',
-      agentWs: mockAgentWs,
+      agentWs: mockWs,
     });
 
-    expect(host.id).toBe('agent-01');
+    expect(host.id).toBe('agent-1');
     expect(host.status).toBe('online');
-    expect(host.type).toBe('agent');
+    expect(manager.getHosts().length).toBe(1);
 
-    const session = manager.getSession('agent-01');
-    expect(session).not.toBeNull();
+    const session = manager.getSession('agent-1');
+    expect(session).toBeInstanceOf(RemoteAgentTerminalSession);
 
-    // Writing to remote session pipes to agentWs
+    // RemoteAgentTerminalSession write and resize
     session?.write('ls -la\n');
-    expect(mockAgentWs.send).toHaveBeenCalledWith('ls -la\n');
+    expect(mockWs.send).toHaveBeenCalledWith('ls -la\n');
 
-    // Resizing session pipes control frame to agentWs
     session?.resize(100, 30);
-    expect(mockAgentWs.send).toHaveBeenCalledWith('JSON:{"type":"resize","cols":100,"rows":30}');
+    expect(mockWs.send).toHaveBeenCalledWith('JSON:{"type":"resize","cols":100,"rows":30}');
+
+    manager.unregisterAgent('agent-1');
+    expect(manager.getHost('agent-1')?.status).toBe('offline');
+    expect(manager.getSession('agent-1')).toBeNull();
   });
 
   test('relays agent data to attached client websockets and records buffer history', () => {
@@ -76,14 +72,5 @@ describe('TerminalHostManager', () => {
     session?.detach(mockClientWs);
     manager.handleAgentData('agent-02', 'new line');
     expect(mockClientWs.send).not.toHaveBeenCalledWith('new line');
-  });
-
-  test('marks host offline on unregister or agent disconnect', () => {
-    const mockAgentWs = { readyState: 1, send: jest.fn(), on: jest.fn() };
-    manager.registerAgent({ hostId: 'agent-03', agentWs: mockAgentWs });
-    expect(manager.getHost('agent-03')?.status).toBe('online');
-
-    manager.unregisterAgent('agent-03');
-    expect(manager.getHost('agent-03')?.status).toBe('offline');
   });
 });

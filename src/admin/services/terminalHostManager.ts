@@ -1,6 +1,4 @@
-import * as os from 'os';
 import logger from '../../utils/logger';
-import { getDefaultTerminalSession } from './terminalService';
 
 export interface ManagedHost {
   id: string;
@@ -10,7 +8,7 @@ export interface ManagedHost {
   platform: string;
   status: 'online' | 'offline';
   lastSeen: number;
-  type: 'local' | 'agent';
+  type: 'agent';
 }
 
 export interface ITerminalSession {
@@ -140,54 +138,11 @@ export class RemoteAgentTerminalSession implements ITerminalSession {
   }
 }
 
-export class LocalTerminalSessionWrapper implements ITerminalSession {
-  public attach(ws: any): void {
-    getDefaultTerminalSession().attach(ws);
-  }
-
-  public detach(ws: any): void {
-    getDefaultTerminalSession().detach(ws);
-  }
-
-  public write(data: string): void {
-    getDefaultTerminalSession().write(data);
-  }
-
-  public resize(cols: number, rows: number): void {
-    getDefaultTerminalSession().resize(cols, rows);
-  }
-
-  public reset(notifyClients?: boolean, resetAgentPty?: boolean): void {
-    getDefaultTerminalSession().reset();
-  }
-
-  public destroy(): void {
-    getDefaultTerminalSession().destroy();
-  }
-}
-
 export class TerminalHostManager {
   private hosts: Map<string, ManagedHost> = new Map();
-  private sessions: Map<string, ITerminalSession> = new Map();
+  private sessions: Map<string, RemoteAgentTerminalSession> = new Map();
 
-  constructor() {
-    this.initLocalHost();
-  }
-
-  private initLocalHost(): void {
-    const localHost: ManagedHost = {
-      id: 'local',
-      name: 'Localhost',
-      hostname: typeof os.hostname === 'function' ? os.hostname() : 'localhost',
-      ip: '127.0.0.1',
-      platform: typeof os.platform === 'function' ? os.platform() : 'linux',
-      status: 'online',
-      lastSeen: Date.now(),
-      type: 'local',
-    };
-    this.hosts.set('local', localHost);
-    this.sessions.set('local', new LocalTerminalSessionWrapper());
-  }
+  constructor() {}
 
   public getHosts(): ManagedHost[] {
     return Array.from(this.hosts.values());
@@ -197,8 +152,13 @@ export class TerminalHostManager {
     return this.hosts.get(hostId) || null;
   }
 
-  public getSession(hostId?: string): ITerminalSession | null {
-    const targetId = hostId && hostId.trim() ? hostId.trim() : 'local';
+  public getSession(hostId?: string): RemoteAgentTerminalSession | null {
+    if (!hostId || !hostId.trim()) return null;
+    const targetId = hostId.trim();
+    const host = this.hosts.get(targetId);
+    if (!host || host.status !== 'online') {
+      return null;
+    }
     return this.sessions.get(targetId) || null;
   }
 
@@ -234,8 +194,8 @@ export class TerminalHostManager {
       if (metadata.platform) host.platform = metadata.platform;
     }
 
-    let session = this.sessions.get(id) as RemoteAgentTerminalSession | undefined;
-    if (!session || !(session instanceof RemoteAgentTerminalSession)) {
+    let session = this.sessions.get(id);
+    if (!session) {
       session = new RemoteAgentTerminalSession(id, metadata.agentWs);
       this.sessions.set(id, session);
     } else {
@@ -260,7 +220,7 @@ export class TerminalHostManager {
 
   public handleAgentData(hostId: string, data: any): void {
     const session = this.sessions.get(hostId);
-    if (session && session instanceof RemoteAgentTerminalSession) {
+    if (session) {
       const text = typeof data === 'string' ? data : data.toString();
       session.handleData(text);
     }
@@ -294,7 +254,7 @@ export class TerminalHostManager {
 
   public async executeFileRpc(hostId: string, payload: { action: string; path: string; params?: any }): Promise<any> {
     const session = this.getSession(hostId);
-    if (!session || !(session instanceof RemoteAgentTerminalSession)) {
+    if (!session) {
       return { success: false, error: `Agent "${hostId}" is offline or unavailable` };
     }
 
