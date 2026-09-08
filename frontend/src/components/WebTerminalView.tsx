@@ -587,42 +587,34 @@ export default function WebTerminalView({
       return { col, viewportRow, bufferRow };
     };
 
-    // Helper: apply terminal selection range supporting multi-line and reverse drag
+    // Helper: apply terminal selection range supporting multi-line and reverse drag with strict document order
     const applySelection = (
       start: { col: number; bufferRow: number },
       current: { col: number; bufferRow: number }
     ) => {
       const selectionService = (term as any)._core?._selectionService;
+      const startOrder = start.bufferRow * term.cols + start.col;
+      const currentOrder = current.bufferRow * term.cols + current.col;
+      const isReversed = startOrder > currentOrder;
+
+      const from = isReversed ? current : start;
+      const to = isReversed ? start : current;
+
       if (selectionService && selectionService._model) {
-        const startCol = start.col;
-        const startRow = start.bufferRow;
-        const endCol = current.col;
-        const endRow = current.bufferRow;
-
-        const isReversed = startRow > endRow || (startRow === endRow && startCol > endCol);
-        if (isReversed) {
-          selectionService._model.selectionStart = [startCol + 1, startRow];
-          selectionService._model.selectionEnd = [endCol, endRow];
-        } else {
-          selectionService._model.selectionStart = [startCol, startRow];
-          selectionService._model.selectionEnd = [endCol + 1, endRow];
-        }
-
+        selectionService._model.selectionStart = [from.col, from.bufferRow];
+        selectionService._model.selectionEnd = [to.col + 1, to.bufferRow];
         selectionService._model.selectionStartLength = 0;
         selectionService.refresh();
         selectionService._fireEventIfSelectionChanged();
         return;
       }
 
-      // Public API fallback with buffer coordinates
-      const startIdx = start.bufferRow * term.cols + start.col;
-      const endIdx = current.bufferRow * term.cols + current.col;
-      const minIdx = Math.min(startIdx, endIdx);
-      const maxIdx = Math.max(startIdx, endIdx);
-      const fromCol = minIdx % term.cols;
-      const fromRow = Math.floor(minIdx / term.cols);
-      const length = Math.max(1, maxIdx - minIdx + 1);
-      term.select(fromCol, fromRow, length);
+      // Public API fallback using viewport-relative coordinates
+      const viewportY = term.buffer.active.viewportY;
+      const fromViewportRow = Math.max(0, Math.min(term.rows - 1, from.bufferRow - viewportY));
+      const toViewportRow = Math.max(0, Math.min(term.rows - 1, to.bufferRow - viewportY));
+      const length = Math.max(1, (to.bufferRow - from.bufferRow) * term.cols + (to.col - from.col) + 1);
+      term.select(from.col, fromViewportRow, length);
     };
 
     const handleTouchStart = (e: TouchEvent) => {
@@ -1165,6 +1157,118 @@ export default function WebTerminalView({
     handleClearSelection();
   }, [handleClearSelection]);
 
+  // Selection Gesture Overlay Handlers
+  const overlaySelectionStartRef = useRef<{ col: number; viewportRow: number; bufferRow: number } | null>(null);
+  const isOverlayMouseSelectingRef = useRef<boolean>(false);
+  const overlayMouseStartRef = useRef<{ col: number; bufferRow: number } | null>(null);
+
+  const getOverlayCellCoords = useCallback((clientX: number, clientY: number) => {
+    const container = terminalContainerRef.current;
+    const term = xtermRef.current;
+    if (!container || !term) return null;
+
+    const screenEl = (container.querySelector('.xterm-screen') as HTMLElement) || container;
+    if (!screenEl) return null;
+    const rect = screenEl.getBoundingClientRect();
+    const relativeX = clientX - rect.left;
+    const relativeY = clientY - rect.top;
+
+    const renderService = (term as any)._core?._renderService;
+    const cellWidth = renderService?.dimensions?.css?.cell?.width || (rect.width / term.cols);
+    const cellHeight = renderService?.dimensions?.css?.cell?.height || (rect.height / term.rows);
+
+    const col = Math.max(0, Math.min(term.cols - 1, Math.floor(relativeX / cellWidth)));
+    const viewportRow = Math.max(0, Math.min(term.rows - 1, Math.floor(relativeY / cellHeight)));
+    const bufferRow = term.buffer.active.viewportY + viewportRow;
+
+    return { col, viewportRow, bufferRow };
+  }, []);
+
+  const applyOverlaySelection = useCallback((
+    start: { col: number; bufferRow: number },
+    current: { col: number; bufferRow: number }
+  ) => {
+    const term = xtermRef.current;
+    if (!term) return;
+
+    const selectionService = (term as any)._core?._selectionService;
+    const startOrder = start.bufferRow * term.cols + start.col;
+    const currentOrder = current.bufferRow * term.cols + current.col;
+    const isReversed = startOrder > currentOrder;
+
+    const from = isReversed ? current : start;
+    const to = isReversed ? start : current;
+
+    if (selectionService && selectionService._model) {
+      selectionService._model.selectionStart = [from.col, from.bufferRow];
+      selectionService._model.selectionEnd = [to.col + 1, to.bufferRow];
+      selectionService._model.selectionStartLength = 0;
+      selectionService.refresh();
+      selectionService._fireEventIfSelectionChanged();
+      return;
+    }
+
+    const viewportY = term.buffer.active.viewportY;
+    const fromViewportRow = Math.max(0, Math.min(term.rows - 1, from.bufferRow - viewportY));
+    const length = Math.max(1, (to.bufferRow - from.bufferRow) * term.cols + (to.col - from.col) + 1);
+    term.select(from.col, fromViewportRow, length);
+  }, []);
+
+  const handleOverlayTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length === 1) {
+      const touch = e.touches[0];
+      const cell = getOverlayCellCoords(touch.clientX, touch.clientY);
+      if (cell) {
+        overlaySelectionStartRef.current = cell;
+        applyOverlaySelection(cell, cell);
+      }
+    }
+  };
+
+  const handleOverlayTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (e.touches.length === 1 && overlaySelectionStartRef.current) {
+      const touch = e.touches[0];
+      const currentCell = getOverlayCellCoords(touch.clientX, touch.clientY);
+      if (currentCell) {
+        applyOverlaySelection(overlaySelectionStartRef.current, currentCell);
+      }
+    }
+  };
+
+  const handleOverlayTouchEnd = () => {
+    overlaySelectionStartRef.current = null;
+  };
+
+  const handleOverlayMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
+    isOverlayMouseSelectingRef.current = true;
+    const cell = getOverlayCellCoords(e.clientX, e.clientY);
+    if (cell) {
+      overlayMouseStartRef.current = cell;
+      applyOverlaySelection(cell, cell);
+    }
+  };
+
+  const handleOverlayMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isOverlayMouseSelectingRef.current || !overlayMouseStartRef.current) return;
+    const currentCell = getOverlayCellCoords(e.clientX, e.clientY);
+    if (currentCell) {
+      applyOverlaySelection(overlayMouseStartRef.current, currentCell);
+    }
+  };
+
+  const handleOverlayMouseUp = () => {
+    if (isOverlayMouseSelectingRef.current) {
+      isOverlayMouseSelectingRef.current = false;
+      overlayMouseStartRef.current = null;
+      // Desktop Copy on Select: if text is selected, copy immediately and exit select mode
+      const text = xtermRef.current?.getSelection();
+      if (text && text.trim().length > 0) {
+        handleCopySelection();
+      }
+    }
+  };
+
   const handleManualReconnect = () => {
     reconnectAttemptRef.current = 0;
     initWebSocket();
@@ -1371,6 +1475,23 @@ export default function WebTerminalView({
             <Trash2 className="w-3.5 h-3.5" />
           </button>
 
+          {/* Select / Copy Mode Toggle (Desktop & Mobile unified) */}
+          <button
+            type="button"
+            onClick={handleToggleSelectMode}
+            className={`p-1 sm:p-1.5 rounded-lg border transition-all flex items-center space-x-1 shrink-0 ${
+              isSelectMode
+                ? 'bg-amber-500/20 text-amber-500 dark:text-amber-300 border-amber-500/40 shadow-sm ring-1 ring-amber-500/30'
+                : 'bg-white/[0.04] hover:bg-white/[0.08] text-slate-400 hover:text-white border border-white/[0.06]'
+            }`}
+            title={isSelectMode ? t('webTerminal.exitSelectMode', '退出选择') : t('webTerminal.selectMode', '划选模式')}
+          >
+            <TextSelect className="w-3.5 h-3.5" />
+            <span className="text-[11px] hidden xl:inline">
+              {isSelectMode ? t('webTerminal.exitSelectMode', '退出选择') : t('webTerminal.selectMode', '划选模式')}
+            </span>
+          </button>
+
           {/* Fullscreen / Standalone Toggle */}
           <button
             type="button"
@@ -1422,6 +1543,19 @@ export default function WebTerminalView({
               <span>{t('webTerminal.reconnectNow')}</span>
             </button>
           </div>
+        )}
+
+        {/* Selection Gesture Overlay: Decouples user gesture tracking from xterm character DOM rendering */}
+        {isSelectMode && (
+          <div
+            className="selection-gesture-overlay absolute inset-0 z-20 cursor-crosshair touch-none select-none bg-transparent"
+            onTouchStart={handleOverlayTouchStart}
+            onTouchMove={handleOverlayTouchMove}
+            onTouchEnd={handleOverlayTouchEnd}
+            onMouseDown={handleOverlayMouseDown}
+            onMouseMove={handleOverlayMouseMove}
+            onMouseUp={handleOverlayMouseUp}
+          />
         )}
 
         {/* Floating Selection Mode Bar (Compact iOS-style Single-Line Capsule) */}
