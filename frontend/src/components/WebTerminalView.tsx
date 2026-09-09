@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo, useImperativeHandle } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
@@ -67,7 +67,7 @@ const LIGHT_TERMINAL_THEME = {
   foreground: '#0F172A',
   cursor: '#4F46E5',
   cursorAccent: '#FFFFFF',
-  selectionBackground: 'rgba(79, 70, 229, 0.2)',
+  selectionBackground: 'rgba(79, 70, 229, 0.25)',
   black: '#0F172A',
   red: '#E11D48',
   green: '#059669',
@@ -86,7 +86,17 @@ const LIGHT_TERMINAL_THEME = {
   brightWhite: '#0F172A',
 };
 
-interface WebTerminalViewProps {
+export interface WebTerminalHandle {
+  zoomIn: () => void;
+  zoomOut: () => void;
+  reconnect: () => void;
+  resetSession: () => void;
+  toggleSelectMode: () => void;
+  fit: () => void;
+  isSelectMode: boolean;
+}
+
+export interface WebTerminalViewProps {
   adminKey: string;
   standalone?: boolean;
   onExitStandalone?: () => void;
@@ -96,9 +106,12 @@ interface WebTerminalViewProps {
   controlledHostId?: string;
   onControlledHostChange?: (newHostId: string) => void;
   hideInnerHostSelector?: boolean;
+  hideHeader?: boolean;
+  onConnectionChange?: (status: { isConnected: boolean; isConnecting: boolean }) => void;
+  onSelectModeChange?: (isSelect: boolean) => void;
 }
 
-export default function WebTerminalView({
+const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps>(function WebTerminalView({
   adminKey,
   standalone = false,
   onExitStandalone,
@@ -108,7 +121,10 @@ export default function WebTerminalView({
   controlledHostId,
   onControlledHostChange,
   hideInnerHostSelector = false,
-}: WebTerminalViewProps) {
+  hideHeader = false,
+  onConnectionChange,
+  onSelectModeChange,
+}: WebTerminalViewProps, ref) {
   const { t } = useTranslation();
   const { resolvedTheme } = useTheme();
   const terminalContainerRef = useRef<HTMLDivElement>(null);
@@ -1350,15 +1366,58 @@ export default function WebTerminalView({
     }
   }, [controlledHostId, activeHostId, initWebSocket]);
 
-  const handleResetSession = () => {
-    if (window.confirm(t('webTerminal.resetConfirm'))) {
-      reconnectAttemptRef.current = 0;
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        wsRef.current.send(`JSON:${JSON.stringify({ type: 'reset' })}`);
-      }
-      xtermRef.current?.clear();
+  const executeReset = useCallback(() => {
+    reconnectAttemptRef.current = 0;
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(`JSON:${JSON.stringify({ type: 'reset' })}`);
     }
-  };
+    xtermRef.current?.clear();
+  }, []);
+
+  const handleResetSession = useCallback(() => {
+    if (window.confirm(t('webTerminal.resetConfirm'))) {
+      executeReset();
+    }
+  }, [t, executeReset]);
+
+  useEffect(() => {
+    onConnectionChange?.({ isConnected, isConnecting });
+  }, [isConnected, isConnecting, onConnectionChange]);
+
+  useEffect(() => {
+    onSelectModeChange?.(isSelectMode);
+  }, [isSelectMode, onSelectModeChange]);
+
+  useImperativeHandle(ref, () => ({
+    zoomIn: () => setFontSize((prev) => Math.min(22, prev + 1)),
+    zoomOut: () => setFontSize((prev) => Math.max(9, prev - 1)),
+    reconnect: handleManualReconnect,
+    resetSession: executeReset,
+    toggleSelectMode: handleToggleSelectMode,
+    fit: () => {
+      if (fitAddonRef.current && xtermRef.current && terminalContainerRef.current) {
+        if (terminalContainerRef.current.clientWidth > 0 && terminalContainerRef.current.clientHeight > 0) {
+          try {
+            const term = xtermRef.current;
+            const wasAtBottom = isUserAtBottom(term);
+            fitAddonRef.current.fit();
+            const { cols, rows } = term;
+            if (cols > 0 && rows > 0) {
+              sendResize(cols, rows);
+            }
+            if (shouldScrollToBottom({ wasAtBottom, bufferType: term.buffer.active.type })) {
+              scrollToBottomSafe(term);
+            }
+          } catch (err) {
+            console.warn('[WebTerminalView] fit error:', err);
+          }
+        }
+      }
+    },
+    get isSelectMode() {
+      return isSelectModeRef.current;
+    },
+  }), [handleManualReconnect, executeReset, handleToggleSelectMode, sendResize]);
 
   const handleFullscreenToggle = () => {
     if (standalone) {
@@ -1370,14 +1429,17 @@ export default function WebTerminalView({
 
   return (
     <div
-      style={isMobile && standalone ? viewportStyle : undefined}
-      className={`mx-auto flex flex-col bg-[var(--bg-canvas)] border border-[var(--border-subtle)] overflow-hidden shadow-2xl font-mono text-xs transition-all ${
-        standalone
-          ? 'fixed inset-0 z-50 rounded-none h-[100dvh] w-screen overflow-hidden overscroll-none border-none'
-          : 'w-full h-full md:max-w-7xl md:h-[calc(100vh-140px)] md:min-h-[500px] rounded-none md:rounded-2xl border-x-0 md:border-x border-t-0 md:border-t'
+      style={!hideHeader && isMobile && standalone ? viewportStyle : undefined}
+      className={`mx-auto flex flex-col bg-[var(--bg-canvas)] overflow-hidden font-mono text-xs transition-all ${
+        hideHeader
+          ? 'w-full h-full flex-1 border-none shadow-none rounded-none'
+          : standalone
+          ? 'fixed inset-0 z-50 rounded-none h-[100dvh] w-screen overflow-hidden overscroll-none border-none shadow-2xl'
+          : 'w-full h-full md:max-w-7xl md:h-[calc(100vh-140px)] md:min-h-[500px] rounded-none md:rounded-2xl border border-[var(--border-subtle)] border-x-0 md:border-x border-t-0 md:border-t shadow-2xl'
       }`}
     >
       {/* Top Window Bar */}
+      {!hideHeader && (
       <div className="bg-[var(--bg-surface-sub)] border-b border-[var(--border-subtle)] px-2 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between select-none shrink-0 sticky top-0 z-10">
         <div className="flex items-center space-x-1.5 sm:space-x-2 min-w-0">
           {/* Back to Console (Standalone Mode) */}
@@ -1557,6 +1619,7 @@ export default function WebTerminalView({
           </button>
         </div>
       </div>
+      )}
 
       {/* xterm.js Canvas Container */}
       <div
@@ -1795,4 +1858,7 @@ export default function WebTerminalView({
       />
     </div>
   );
-}
+});
+
+export default WebTerminalView;
+

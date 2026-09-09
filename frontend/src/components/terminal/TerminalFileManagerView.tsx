@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useImperativeHandle } from 'react';
 import Editor from '@monaco-editor/react';
 import {
   Folder,
@@ -29,6 +29,10 @@ import { useTranslation } from '../../i18n/LanguageContext';
 import { useTheme } from '../../theme/ThemeContext';
 import { defineGeminiProxyTheme } from '../../utils/monacoTheme';
 import { TerminalImagePreviewModal } from './TerminalImagePreviewModal';
+
+export interface TerminalFileManagerHandle {
+  refresh: () => void;
+}
 
 export interface TerminalFileManagerViewProps {
   adminKey: string;
@@ -137,10 +141,10 @@ function formatDate(timestamp: number): string {
   });
 }
 
-export default function TerminalFileManagerView({
+const TerminalFileManagerView = React.forwardRef<TerminalFileManagerHandle, TerminalFileManagerViewProps>(function TerminalFileManagerView({
   adminKey,
   activeHostId,
-}: TerminalFileManagerViewProps) {
+}: TerminalFileManagerViewProps, ref) {
   const { t } = useTranslation();
   const { resolvedTheme } = useTheme();
   const monacoTheme = resolvedTheme === 'dark' ? 'gemini-proxy-dark' : 'gemini-proxy-light';
@@ -239,6 +243,12 @@ export default function TerminalFileManagerView({
       setLoading(false);
     }
   }, [adminKey, activeHostId]);
+
+  useImperativeHandle(ref, () => ({
+    refresh: () => {
+      loadFiles(currentPath);
+    },
+  }), [loadFiles, currentPath]);
 
   // Reload when activeHostId changes
   useEffect(() => {
@@ -1152,4 +1162,7 @@ export default function TerminalFileManagerView({
       )}
     </div>
   );
-}
+});
+
+export default TerminalFileManagerView;
+
