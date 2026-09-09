@@ -19,7 +19,7 @@ export function calculateAnsiModifier(ctrl: boolean, alt: boolean, shift: boolea
 }
 
 export function encodeNavigationKey(
-  key: 'PageUp' | 'PageDown' | 'ArrowUp' | 'ArrowDown' | 'ArrowLeft' | 'ArrowRight' | string,
+  key: 'PageUp' | 'PageDown' | 'Home' | 'End' | 'Delete' | 'Del' | 'ArrowUp' | 'ArrowDown' | 'ArrowLeft' | 'ArrowRight' | string,
   ctrl: boolean = false,
   alt: boolean = false,
   shift: boolean = false
@@ -32,6 +32,15 @@ export function encodeNavigationKey(
   }
   if (key === 'PageDown') {
     return isModified ? `\x1b[6;${mod}~` : '\x1b[6~';
+  }
+  if (key === 'Home') {
+    return isModified ? `\x1b[1;${mod}H` : '\x1b[H';
+  }
+  if (key === 'End') {
+    return isModified ? `\x1b[1;${mod}F` : '\x1b[F';
+  }
+  if (key === 'Delete' || key === 'Del') {
+    return isModified ? `\x1b[3;${mod}~` : '\x1b[3~';
   }
 
   const arrowCodes: Record<string, string> = {
@@ -66,7 +75,15 @@ export function encodeModifierKey(
   }
 
   // 1. Arrow & Navigation Keys with Modifier
-  if (key === 'PageUp' || key === 'PageDown' || key.startsWith('Arrow')) {
+  if (
+    key === 'PageUp' ||
+    key === 'PageDown' ||
+    key === 'Home' ||
+    key === 'End' ||
+    key === 'Delete' ||
+    key === 'Del' ||
+    key.startsWith('Arrow')
+  ) {
     const seq = encodeNavigationKey(key, ctrl, alt, effectiveShift);
     return seq || null;
   }

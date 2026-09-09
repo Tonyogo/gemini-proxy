@@ -188,6 +188,56 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
           ↵
         </button>
 
+        {/* Quick OK Key */}
+        <button
+          type="button"
+          onTouchStart={(e) => e.preventDefault()}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => onSendInput('ok\r')}
+          className="px-2 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 active:scale-95 text-emerald-600 dark:text-emerald-400 font-mono text-xs font-semibold border border-emerald-500/30 transition-all shadow-sm"
+          title="Quick Input (ok + Enter)"
+        >
+          {t('webTerminal.accessoryKeys.ok', 'ok')}
+        </button>
+
+        <div className="h-4 w-[1px] bg-[var(--border-subtle)] mx-0.5" />
+
+        {/* Navigation: Home */}
+        <button
+          type="button"
+          onTouchStart={(e) => e.preventDefault()}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => onSendInput(encodeNavigationKey('Home', isCtrlActive, isAltActive, !!isShiftActive))}
+          className="px-2 py-1 rounded-lg bg-black/[0.04] dark:bg-white/[0.05] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] active:scale-95 text-[var(--text-primary)] font-mono text-xs font-semibold border border-[var(--border-subtle)] transition-all shadow-sm"
+          title="Home"
+        >
+          {t('webTerminal.accessoryKeys.home', 'Home')}
+        </button>
+
+        {/* Navigation: End */}
+        <button
+          type="button"
+          onTouchStart={(e) => e.preventDefault()}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => onSendInput(encodeNavigationKey('End', isCtrlActive, isAltActive, !!isShiftActive))}
+          className="px-2 py-1 rounded-lg bg-black/[0.04] dark:bg-white/[0.05] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] active:scale-95 text-[var(--text-primary)] font-mono text-xs font-semibold border border-[var(--border-subtle)] transition-all shadow-sm"
+          title="End"
+        >
+          {t('webTerminal.accessoryKeys.end', 'End')}
+        </button>
+
+        {/* Navigation / Edit: Del (Forward Delete) */}
+        <button
+          type="button"
+          onTouchStart={(e) => e.preventDefault()}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => onSendInput(encodeNavigationKey('Delete', isCtrlActive, isAltActive, !!isShiftActive))}
+          className="px-2 py-1 rounded-lg bg-black/[0.04] dark:bg-white/[0.05] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] active:scale-95 text-[var(--text-primary)] font-mono text-xs font-semibold border border-[var(--border-subtle)] transition-all shadow-sm"
+          title="Delete (Forward Delete)"
+        >
+          {t('webTerminal.accessoryKeys.del', 'Del')}
+        </button>
+
         {/* Navigation: Page Up */}
         <button
           type="button"

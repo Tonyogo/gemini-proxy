@@ -15,7 +15,7 @@ describe('TerminalAccessoryBar and Anti-Keyboard-Popup Controls', () => {
     expect(content).toContain('isShiftActive = false');
   });
 
-  test('TerminalAccessoryBar renders Shift, Page Up, and Page Down shortcut buttons', () => {
+  test('TerminalAccessoryBar renders Shift, Page Up, Page Down, Home, End, Del, and OK shortcut buttons', () => {
     const content = fs.readFileSync(accessoryBarPath, 'utf-8');
 
     // Sticky Shift button in modifier section
@@ -23,6 +23,19 @@ describe('TerminalAccessoryBar and Anti-Keyboard-Popup Controls', () => {
     expect(content).toContain('onClick={onToggleShift}');
     expect(content).toContain('isShiftActive');
     expect(content).toContain('bg-amber-600');
+
+    // Quick OK button next to Enter
+    expect(content).toContain("onClick={() => onSendInput('ok\\r')}");
+    expect(content).toContain("t('webTerminal.accessoryKeys.ok'");
+    expect(content).toContain('bg-emerald-500/15');
+
+    // Navigation section: Home, End, Del, Page Up, Page Down
+    expect(content).toContain("t('webTerminal.accessoryKeys.home'");
+    expect(content).toContain("t('webTerminal.accessoryKeys.end'");
+    expect(content).toContain("t('webTerminal.accessoryKeys.del'");
+    expect(content).toContain("encodeNavigationKey('Home'");
+    expect(content).toContain("encodeNavigationKey('End'");
+    expect(content).toContain("encodeNavigationKey('Delete'");
 
     // Page Up & Page Down in navigation section
     expect(content).toContain("{t('webTerminal.accessoryKeys.pgUp')}");
@@ -42,6 +55,9 @@ describe('TerminalAccessoryBar and Anti-Keyboard-Popup Controls', () => {
   test('Navigation buttons use encodeNavigationKey for Shift/Ctrl/Alt modifier compatibility', () => {
     const content = fs.readFileSync(accessoryBarPath, 'utf-8');
 
+    expect(content).toContain("encodeNavigationKey('Home', isCtrlActive, isAltActive, !!isShiftActive)");
+    expect(content).toContain("encodeNavigationKey('End', isCtrlActive, isAltActive, !!isShiftActive)");
+    expect(content).toContain("encodeNavigationKey('Delete', isCtrlActive, isAltActive, !!isShiftActive)");
     expect(content).toContain("encodeNavigationKey('ArrowUp', isCtrlActive, isAltActive, !!isShiftActive)");
     expect(content).toContain("encodeNavigationKey('ArrowDown', isCtrlActive, isAltActive, !!isShiftActive)");
     expect(content).toContain("encodeNavigationKey('ArrowLeft', isCtrlActive, isAltActive, !!isShiftActive)");
@@ -76,13 +92,21 @@ describe('TerminalAccessoryBar and Anti-Keyboard-Popup Controls', () => {
     expect(content).toContain('onToggleShift={() => setIsShiftActive(!isShiftActive)}');
   });
 
-  test('i18n locales contain shift, pgUp, and pgDn translations in accessoryKeys', () => {
+  test('i18n locales contain shift, pgUp, pgDn, home, end, del, and ok translations in accessoryKeys', () => {
     expect(en.webTerminal.accessoryKeys.shift).toBe('SHIFT');
     expect(en.webTerminal.accessoryKeys.pgUp).toBe('PgUp');
     expect(en.webTerminal.accessoryKeys.pgDn).toBe('PgDn');
+    expect(en.webTerminal.accessoryKeys.home).toBe('Home');
+    expect(en.webTerminal.accessoryKeys.end).toBe('End');
+    expect(en.webTerminal.accessoryKeys.del).toBe('Del');
+    expect(en.webTerminal.accessoryKeys.ok).toBe('ok');
 
     expect(zh.webTerminal.accessoryKeys.shift).toBe('SHIFT');
     expect(zh.webTerminal.accessoryKeys.pgUp).toBe('PgUp');
     expect(zh.webTerminal.accessoryKeys.pgDn).toBe('PgDn');
+    expect(zh.webTerminal.accessoryKeys.home).toBe('Home');
+    expect(zh.webTerminal.accessoryKeys.end).toBe('End');
+    expect(zh.webTerminal.accessoryKeys.del).toBe('Del');
+    expect(zh.webTerminal.accessoryKeys.ok).toBe('ok');
   });
 });
