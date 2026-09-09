@@ -39,16 +39,12 @@ export class RemoteAgentTerminalSession implements ITerminalSession {
 
   public attach(ws: any): void {
     this.activeSockets.add(ws);
-    // Replay history buffer
-    if (this.historyBuffer.length > 0) {
-      for (const chunk of this.historyBuffer) {
-        try {
-          if (ws.readyState === 1) {
-            ws.send(chunk);
-          }
-        } catch {
-          // Ignore socket write errors during replay
-        }
+    // Replay history buffer atomically as a single combined stream to avoid multi-frame rendering flicker
+    if (this.historyBuffer.length > 0 && ws.readyState === 1) {
+      try {
+        ws.send(this.historyBuffer.join(''));
+      } catch {
+        // Ignore socket write errors during replay
       }
     }
   }
