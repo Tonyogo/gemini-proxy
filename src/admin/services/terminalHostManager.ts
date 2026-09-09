@@ -20,6 +20,19 @@ export interface ITerminalSession {
   destroy(): void;
 }
 
+/**
+ * Strips terminal query escape sequences from historical replayed streams
+ * (such as OSC 10/11 color queries, DA device attribute queries, CPR cursor requests)
+ * to prevent attached xterm.js clients from generating synthetic response reports back into the shell.
+ */
+export function stripTerminalQuerySequences(stream: string): string {
+  if (!stream || typeof stream !== 'string') return '';
+  return stream.replace(
+    /\x1b(?:\](?:4|10|11|12);\?(?:\x1b\\|\x07)|\[[>?=]?(?:0)?c|\[\??6n|\[\??\d+\$p|\[>0?q|\[(?:14|18|19|20|21)t)/g,
+    ''
+  );
+}
+
 export class RemoteAgentTerminalSession implements ITerminalSession {
   public hostId: string;
   private agentWs: any = null;
@@ -39,10 +52,14 @@ export class RemoteAgentTerminalSession implements ITerminalSession {
 
   public attach(ws: any): void {
     this.activeSockets.add(ws);
-    // Replay history buffer atomically as a single combined stream to avoid multi-frame rendering flicker
+    // Replay history buffer atomically as a single combined stream with query sequences stripped to prevent echo storms
     if (this.historyBuffer.length > 0 && ws.readyState === 1) {
       try {
-        ws.send(this.historyBuffer.join(''));
+        const fullStream = this.historyBuffer.join('');
+        const sanitized = stripTerminalQuerySequences(fullStream);
+        if (sanitized.length > 0) {
+          ws.send(sanitized);
+        }
       } catch {
         // Ignore socket write errors during replay
       }

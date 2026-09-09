@@ -23,7 +23,10 @@ import { useTheme } from '../theme/ThemeContext';
 import { TerminalAccessoryBar } from './terminal/TerminalAccessoryBar';
 import { TerminalSnippetsDrawer } from './terminal/TerminalSnippetsDrawer';
 import { TerminalHostSelector } from './terminal/TerminalHostSelector';
-import { isSyntheticTerminalReport } from '../utils/terminalFilter';
+import {
+  isSyntheticTerminalReport,
+  isUnsolicitedShellDeviceReport,
+} from '../utils/terminalFilter';
 import { encodeModifierKey } from '../utils/terminalKeyEncoder';
 import {
   calculateKeyboardTranslateY,
@@ -770,8 +773,15 @@ export default function WebTerminalView({
     }
 
     term.onData((data) => {
+      // 1. Suppress all synthetic reports during session replay or connect/reset window
       if (isReplayingRef.current && isSyntheticTerminalReport(data)) {
         console.debug('[WebTerminal] Suppressed synthetic replay report:', JSON.stringify(data));
+        return;
+      }
+
+      // 2. Suppress unsolicited machine-generated color/device reports when at normal shell prompt
+      if (term.buffer.active.type !== 'alternate' && isUnsolicitedShellDeviceReport(data)) {
+        console.debug('[WebTerminal] Suppressed unsolicited shell device report:', JSON.stringify(data));
         return;
       }
 
