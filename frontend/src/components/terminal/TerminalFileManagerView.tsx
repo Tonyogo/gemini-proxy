@@ -23,7 +23,8 @@ import {
   Eye,
   EyeOff,
   AlertTriangle,
-  Loader2
+  Loader2,
+  Plus
 } from 'lucide-react';
 import { useTranslation } from '../../i18n/LanguageContext';
 import { useTheme } from '../../theme/ThemeContext';
@@ -37,6 +38,7 @@ export interface TerminalFileManagerHandle {
 export interface TerminalFileManagerViewProps {
   adminKey: string;
   activeHostId: string;
+  onRequestAddNode?: () => void;
 }
 
 export interface TerminalFileItem {
@@ -144,6 +146,7 @@ function formatDate(timestamp: number): string {
 const TerminalFileManagerView = React.forwardRef<TerminalFileManagerHandle, TerminalFileManagerViewProps>(function TerminalFileManagerView({
   adminKey,
   activeHostId,
+  onRequestAddNode,
 }: TerminalFileManagerViewProps, ref) {
   const { t } = useTranslation();
   const { resolvedTheme } = useTheme();
@@ -629,6 +632,16 @@ const TerminalFileManagerView = React.forwardRef<TerminalFileManagerHandle, Term
           <p className="text-xs text-[var(--text-muted)] mt-1.5 max-w-sm leading-relaxed font-sans">
             {t('webTerminal.emptyState.fileManagerDesc', '反向连接终端 Agent 节点后，即可在此实时浏览、编辑、上传和下载远程文件。')}
           </p>
+          {onRequestAddNode && (
+            <button
+              type="button"
+              onClick={onRequestAddNode}
+              className="mt-4 px-3.5 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs font-medium flex items-center space-x-1.5 transition-all active:scale-95 cursor-pointer shadow-xs"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>{t('webTerminal.hostSelector.addNode', '接入内网新节点')}</span>
+            </button>
+          )}
         </div>
       ) : (
         <>

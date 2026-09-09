@@ -46,6 +46,7 @@ export default function UnifiedTerminalView({
     isConnecting: true,
   });
   const [isSelectMode, setIsSelectMode] = useState<boolean>(false);
+  const [isAddNodeModalOpen, setIsAddNodeModalOpen] = useState<boolean>(false);
 
   // Mobile Visual Viewport tracking for virtual keyboard positioning in standalone mode
   const [viewportStyle, setViewportStyle] = useState<React.CSSProperties>({});
@@ -179,6 +180,8 @@ export default function UnifiedTerminalView({
             adminKey={adminKey}
             activeHostId={activeHostId}
             onSelectHost={handleHostChange}
+            isAddModalOpen={isAddNodeModalOpen}
+            onAddModalOpenChange={setIsAddNodeModalOpen}
           />
 
           <div className="h-4 w-px bg-[var(--border-subtle)] hidden sm:block" />
@@ -348,6 +351,7 @@ export default function UnifiedTerminalView({
           hideInnerHostSelector={true}
           onConnectionChange={setConnectionStatus}
           onSelectModeChange={setIsSelectMode}
+          onRequestAddNode={() => setIsAddNodeModalOpen(true)}
         />
       </div>
 
@@ -356,6 +360,7 @@ export default function UnifiedTerminalView({
           ref={fileManagerRef}
           adminKey={adminKey}
           activeHostId={activeHostId}
+          onRequestAddNode={() => setIsAddNodeModalOpen(true)}
         />
       </div>
     </div>

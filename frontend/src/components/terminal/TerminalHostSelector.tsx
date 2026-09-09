@@ -28,12 +28,16 @@ export interface TerminalHostSelectorProps {
   adminKey: string;
   activeHostId: string;
   onSelectHost: (hostId: string) => void;
+  isAddModalOpen?: boolean;
+  onAddModalOpenChange?: (open: boolean) => void;
 }
 
 export function TerminalHostSelector({
   adminKey,
   activeHostId,
   onSelectHost,
+  isAddModalOpen: propIsAddModalOpen,
+  onAddModalOpenChange,
 }: TerminalHostSelectorProps) {
   const { t } = useTranslation();
   const [hosts, setHosts] = useState<ManagedHostItem[]>(() => {
@@ -50,7 +54,12 @@ export function TerminalHostSelector({
   });
   const hasLoadedRef = useRef<boolean>(false);
   const [isOpen, setIsOpen] = useState<boolean>(false);
-  const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
+  const [internalAddModalOpen, setInternalAddModalOpen] = useState<boolean>(false);
+  const isAddModalOpen = propIsAddModalOpen !== undefined ? propIsAddModalOpen : internalAddModalOpen;
+  const setIsAddModalOpen = (open: boolean) => {
+    setInternalAddModalOpen(open);
+    onAddModalOpenChange?.(open);
+  };
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [copied, setCopied] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
