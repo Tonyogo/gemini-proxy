@@ -174,23 +174,6 @@ export default function UnifiedTerminalView({
             </button>
           )}
 
-          {/* macOS action dots */}
-          <div className="flex items-center space-x-1.5 mr-0.5 sm:mr-1">
-            <div
-              onClick={isStandalone ? onExitStandalone : undefined}
-              className={`w-2.5 h-2.5 rounded-full bg-[#EF4444]/90 border border-[#DC2626]/60 shadow-[0_0_6px_rgba(239,68,68,0.3)] ${
-                isStandalone ? 'cursor-pointer hover:opacity-80' : ''
-              }`}
-              title={isStandalone ? t('webTerminal.exitStandalone') : undefined}
-            />
-            <div className="w-2.5 h-2.5 rounded-full bg-[#F59E0B]/90 border border-[#D97706]/60 shadow-[0_0_6px_rgba(245,158,11,0.3)]" />
-            <div
-              onClick={handleFullscreenToggle}
-              className="w-2.5 h-2.5 rounded-full bg-[#10B981]/90 border border-[#059669]/60 shadow-[0_0_6px_rgba(16,185,129,0.3)] cursor-pointer hover:opacity-80"
-              title={isStandalone ? t('webTerminal.exitFullscreen') : t('webTerminal.fullscreen')}
-            />
-          </div>
-
           {/* Host Node Selector */}
           <TerminalHostSelector
             adminKey={adminKey}

@@ -9,9 +9,9 @@ describe('UnifiedTerminalView Layout and Header Architecture', () => {
     content = fs.readFileSync(unifiedPath, 'utf-8');
   });
 
-  it('UnifiedTerminalView should render macOS action dots in its header', () => {
-    expect(content).toContain('rounded-full bg-[#EF4444]');
-    expect(content).toContain('rounded-full bg-[#10B981]');
+  it('UnifiedTerminalView should not render redundant macOS action dots', () => {
+    expect(content).not.toContain('rounded-full bg-[#EF4444]');
+    expect(content).not.toContain('rounded-full bg-[#10B981]');
   });
 
   it('UnifiedTerminalView should host both WebTerminalView and TerminalFileManagerView without unmounting on subTab toggle', () => {

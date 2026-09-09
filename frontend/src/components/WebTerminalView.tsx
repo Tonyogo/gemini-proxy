@@ -1455,23 +1455,6 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
             </button>
           )}
 
-          {/* macOS action dots */}
-          <div className="flex items-center space-x-1.5 mr-0.5 sm:mr-1">
-            <div
-              onClick={standalone ? onExitStandalone : undefined}
-              className={`w-2.5 h-2.5 rounded-full bg-[#EF4444]/90 border border-[#DC2626]/60 shadow-[0_0_6px_rgba(239,68,68,0.3)] ${
-                standalone ? 'cursor-pointer hover:opacity-80' : ''
-              }`}
-              title={standalone ? t('webTerminal.exitStandalone') : undefined}
-            />
-            <div className="w-2.5 h-2.5 rounded-full bg-[#F59E0B]/90 border border-[#D97706]/60 shadow-[0_0_6px_rgba(245,158,11,0.3)]" />
-            <div
-              onClick={handleFullscreenToggle}
-              className="w-2.5 h-2.5 rounded-full bg-[#10B981]/90 border border-[#059669]/60 shadow-[0_0_6px_rgba(16,185,129,0.3)] cursor-pointer hover:opacity-80"
-              title={standalone ? t('webTerminal.exitFullscreen') : t('webTerminal.fullscreen')}
-            />
-          </div>
-
           {onSubTabChange ? (
             <div className="ui-tab-container p-0.5 text-[11px] font-medium shrink-0">
               <button
