@@ -21,6 +21,7 @@ import {
   Copy,
   Check,
   Eye,
+  EyeOff,
   AlertTriangle,
   Loader2
 } from 'lucide-react';
@@ -155,6 +156,23 @@ export default function TerminalFileManagerView({
   const [isEditingPath, setIsEditingPath] = useState<boolean>(false);
   const [pathInput, setPathInput] = useState<string>('');
   const [copiedPath, setCopiedPath] = useState<boolean>(false);
+  const [showHiddenFiles, setShowHiddenFiles] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('terminal_show_hidden_files') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const handleToggleHiddenFiles = useCallback(() => {
+    setShowHiddenFiles((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('terminal_show_hidden_files', String(next));
+      } catch {}
+      return next;
+    });
+  }, []);
 
   // Upload and Drag-n-drop
   const [isDragging, setIsDragging] = useState<boolean>(false);
@@ -264,10 +282,14 @@ export default function TerminalFileManagerView({
 
   // Filtered files
   const filteredFiles = React.useMemo(() => {
-    if (!searchQuery.trim()) return files;
+    let result = files;
+    if (!showHiddenFiles) {
+      result = result.filter(f => !f.name.startsWith('.'));
+    }
+    if (!searchQuery.trim()) return result;
     const query = searchQuery.toLowerCase().trim();
-    return files.filter(f => f.name.toLowerCase().includes(query));
-  }, [files, searchQuery]);
+    return result.filter(f => f.name.toLowerCase().includes(query));
+  }, [files, showHiddenFiles, searchQuery]);
 
   // Native Download
   const handleDownload = useCallback((file: TerminalFileItem) => {
@@ -693,6 +715,23 @@ export default function TerminalFileManagerView({
           </button>
 
           <button
+            type="button"
+            onClick={handleToggleHiddenFiles}
+            title={showHiddenFiles ? t('files.hideHidden', '不显示隐藏文件') : t('files.showHidden', '显示隐藏文件')}
+            className={`p-1.5 rounded-lg border transition-colors ${
+              showHiddenFiles
+                ? 'border-indigo-500/40 bg-indigo-500/15 text-indigo-400 hover:bg-indigo-500/25'
+                : 'border-[var(--border-subtle)] bg-[var(--bg-surface-sub)] hover:bg-[var(--bg-surface-hover)] text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            {showHiddenFiles ? (
+              <Eye className="w-3.5 h-3.5" />
+            ) : (
+              <EyeOff className="w-3.5 h-3.5" />
+            )}
+          </button>
+
+          <button
             onClick={() => setNewFolderOpen(true)}
             className="flex items-center space-x-1 px-2.5 py-1 rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-surface-sub)] hover:bg-[var(--bg-surface-hover)] text-xs text-slate-200 hover:text-white transition-colors"
           >
@@ -778,10 +817,14 @@ export default function TerminalFileManagerView({
                     </td>
                   </tr>
                 ) : (
-                  filteredFiles.map((item) => (
+                  filteredFiles.map((item) => {
+                    const isHidden = item.name.startsWith('.');
+                    return (
                     <tr
                       key={item.path}
-                      className="hover:bg-[var(--bg-surface-hover)] transition-colors group"
+                      className={`hover:bg-[var(--bg-surface-hover)] transition-colors group ${
+                        isHidden ? 'opacity-75' : ''
+                      }`}
                       onDoubleClick={() => {
                         if (item.isDirectory) {
                           loadFiles(item.path);
@@ -801,7 +844,9 @@ export default function TerminalFileManagerView({
                                 handleOpenFile(item);
                               }
                             }}
-                            className="text-slate-200 hover:text-indigo-400 truncate text-left font-medium transition-colors"
+                            className={`${
+                              isHidden ? 'text-slate-400' : 'text-slate-200'
+                            } hover:text-indigo-400 truncate text-left font-medium transition-colors`}
                             title={item.name}
                           >
                             {item.name}
@@ -859,8 +904,8 @@ export default function TerminalFileManagerView({
                         </div>
                       </td>
                     </tr>
-                  ))
-                )}
+                  );
+                }))}
               </tbody>
             </table>
           </div>

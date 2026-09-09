@@ -560,7 +560,9 @@ export const en = {
     close: "Close",
     loading: "Loading...",
     fileSize: "File Size",
-    searchPlaceholder: "Filter files in current directory..."
+    searchPlaceholder: "Filter files in current directory...",
+    showHidden: "Show hidden files",
+    hideHidden: "Hide hidden files"
   }
 };
 

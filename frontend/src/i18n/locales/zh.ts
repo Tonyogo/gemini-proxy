@@ -562,6 +562,8 @@ export const zh: Translations = {
     close: "关闭",
     loading: "加载中...",
     fileSize: "文件大小",
-    searchPlaceholder: "过滤当前目录文件..."
+    searchPlaceholder: "过滤当前目录文件...",
+    showHidden: "显示隐藏文件",
+    hideHidden: "不显示隐藏文件"
   }
 };
