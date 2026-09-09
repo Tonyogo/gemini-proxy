@@ -1411,7 +1411,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
   return (
     <div
       style={!hideHeader && isMobile && standalone ? viewportStyle : undefined}
-      className={`mx-auto flex flex-col bg-[var(--bg-canvas)] overflow-hidden font-mono text-xs transition-all ${
+      className={`mx-auto flex flex-col bg-[var(--bg-canvas)] overflow-hidden font-mono text-xs transition-none ${
         hideHeader
           ? 'w-full h-full flex-1 border-none shadow-none rounded-none'
           : standalone
