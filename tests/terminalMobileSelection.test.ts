@@ -19,7 +19,9 @@ describe('Terminal Mobile Selection and Copy/Paste Integration', () => {
 
     // Button should be in right fixed controls (shrink-0) and use smart onClick
     expect(content).toContain('onClick={hasSelection ? onCopy : onToggleSelectMode}');
-    expect(content).toContain('Right Fixed Controls: Selection/Copy, Snippets');
+    expect(content).toContain('Right Fixed Controls: Selection/Copy');
+    expect(content).not.toContain('onOpenSnippets');
+    expect(content).not.toContain('Sparkles');
   });
 
   it('verifies WebTerminalView implements selection, clipboard copy, and auto-reset', () => {

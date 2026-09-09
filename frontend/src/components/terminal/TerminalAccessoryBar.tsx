@@ -5,7 +5,6 @@ import {
   ArrowLeft,
   ArrowRight,
   Keyboard,
-  Sparkles,
   Check,
   Copy,
   ClipboardPaste,
@@ -27,7 +26,6 @@ interface TerminalAccessoryBarProps {
   onToggleKeyboard: () => void;
   onHideKeyboard?: () => void;
   isKeyboardOpen?: boolean;
-  onOpenSnippets: () => void;
   hasSelection?: boolean;
   isSelectMode?: boolean;
   onCopy?: () => void;
@@ -48,7 +46,6 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
   onToggleKeyboard,
   onHideKeyboard,
   isKeyboardOpen,
-  onOpenSnippets,
   hasSelection = false,
   isSelectMode = false,
   onCopy,
@@ -390,7 +387,7 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
         </button>
       </div>
 
-      {/* Right Fixed Controls: Selection/Copy, Snippets, Keyboard Toggle & Done/Checkmark Dismiss */}
+      {/* Right Fixed Controls: Selection/Copy, Keyboard Toggle & Done/Checkmark Dismiss */}
       <div className="flex items-center space-x-1 pl-1 border-l border-[var(--border-subtle)] shrink-0">
         {/* Select Mode / Copy Button (Always visible in mobile right thumb zone) */}
         <button
@@ -412,18 +409,6 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
           ) : (
             <TextSelect className="w-3.5 h-3.5" />
           )}
-        </button>
-
-        <button
-          type="button"
-          onTouchStart={(e) => e.preventDefault()}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={onOpenSnippets}
-          className="px-2 py-1 rounded-lg bg-gradient-to-r from-indigo-500/20 to-purple-500/20 hover:from-indigo-500/30 hover:to-purple-500/30 text-indigo-500 dark:text-indigo-300 border border-indigo-500/30 flex items-center space-x-1 text-xs font-medium transition-all shadow-sm active:scale-95"
-          title={t('webTerminal.snippets')}
-        >
-          <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-          <span className="hidden sm:inline">{t('webTerminal.snippets')}</span>
         </button>
 
         <button

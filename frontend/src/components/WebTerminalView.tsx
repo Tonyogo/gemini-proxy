@@ -22,7 +22,6 @@ import {
 import { useTranslation } from '../i18n/LanguageContext';
 import { useTheme } from '../theme/ThemeContext';
 import { TerminalAccessoryBar } from './terminal/TerminalAccessoryBar';
-import { TerminalSnippetsDrawer } from './terminal/TerminalSnippetsDrawer';
 import { TerminalHostSelector } from './terminal/TerminalHostSelector';
 import {
   isSyntheticTerminalReport,
@@ -138,7 +137,6 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isConnecting, setIsConnecting] = useState<boolean>(true);
   const [reconnectCountdown, setReconnectCountdown] = useState<number>(0);
-  const [isSnippetsOpen, setIsSnippetsOpen] = useState<boolean>(false);
   const [isCtrlActive, setIsCtrlActive] = useState<boolean>(false);
   const [isAltActive, setIsAltActive] = useState<boolean>(false);
   const [isShiftActive, setIsShiftActive] = useState<boolean>(false);
@@ -1069,11 +1067,6 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
     scrollToBottomSafe(xtermRef.current);
   };
 
-  const handleRunCommand = (cmd: string, execute: boolean) => {
-    const textToSend = execute ? `${cmd}\r` : cmd;
-    handleSendInput(textToSend);
-  };
-
   const handleToggleKeyboard = () => {
     const textarea = terminalContainerRef.current?.querySelector('textarea');
     if (isKeyboardOpen) {
@@ -1773,7 +1766,6 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
         onToggleKeyboard={handleToggleKeyboard}
         onHideKeyboard={handleHideKeyboard}
         isKeyboardOpen={isKeyboardOpen}
-        onOpenSnippets={() => setIsSnippetsOpen(true)}
         hasSelection={hasSelection}
         isSelectMode={isSelectMode}
         onCopy={handleCopySelection}
@@ -1781,23 +1773,6 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
         onToggleSelectMode={handleToggleSelectMode}
       />
       )}
-
-      {/* Snippet Drawer */}
-      <TerminalSnippetsDrawer
-        isOpen={isSnippetsOpen}
-        onClose={() => setIsSnippetsOpen(false)}
-        onRunCommand={(cmd, execute) => {
-          handleRunCommand(cmd, execute);
-          if (isCtrlActiveRef.current || isAltActiveRef.current || isShiftActiveRef.current) {
-            setIsCtrlActive(false);
-            setIsAltActive(false);
-            setIsShiftActive(false);
-            isCtrlActiveRef.current = false;
-            isAltActiveRef.current = false;
-            isShiftActiveRef.current = false;
-          }
-        }}
-      />
     </div>
   );
 });
