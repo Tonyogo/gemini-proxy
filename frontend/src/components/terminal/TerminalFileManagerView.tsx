@@ -27,6 +27,7 @@ import {
 import { useTranslation } from '../../i18n/LanguageContext';
 import { useTheme } from '../../theme/ThemeContext';
 import { defineGeminiProxyTheme } from '../../utils/monacoTheme';
+import { TerminalImagePreviewModal } from './TerminalImagePreviewModal';
 
 export interface TerminalFileManagerViewProps {
   adminKey: string;
@@ -1097,43 +1098,12 @@ export default function TerminalFileManagerView({
 
       {/* Modal: Image Preview */}
       {imagePreviewTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-xs p-4">
-          <div className="ui-card max-w-4xl max-h-[90vh] flex flex-col rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] shadow-2xl overflow-hidden">
-            <div className="p-3 border-b border-[var(--border-subtle)] flex items-center justify-between shrink-0 bg-[var(--bg-surface-sub)]">
-              <div className="flex items-center space-x-2">
-                <ImageIcon className="w-4 h-4 text-emerald-400" />
-                <span className="font-semibold text-xs sm:text-sm text-slate-200">
-                  {imagePreviewTarget.file.name}
-                </span>
-                <span className="text-[10px] text-slate-400 font-mono">
-                  ({formatFileSize(imagePreviewTarget.file.size)})
-                </span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => handleDownload(imagePreviewTarget.file)}
-                  className="flex items-center space-x-1 px-2.5 py-1 rounded border border-[var(--border-subtle)] text-slate-300 hover:text-white text-xs"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>{t('files.download', '下载')}</span>
-                </button>
-                <button
-                  onClick={() => setImagePreviewTarget(null)}
-                  className="p-1 rounded hover:bg-slate-700/50 text-slate-400 hover:text-white"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-            <div className="flex-1 min-h-0 flex items-center justify-center p-4 overflow-auto bg-black/40">
-              <img
-                src={imagePreviewTarget.blobUrl}
-                alt={imagePreviewTarget.file.name}
-                className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-lg"
-              />
-            </div>
-          </div>
-        </div>
+        <TerminalImagePreviewModal
+          file={imagePreviewTarget.file}
+          blobUrl={imagePreviewTarget.blobUrl}
+          onClose={() => setImagePreviewTarget(null)}
+          onDownload={handleDownload}
+        />
       )}
     </div>
   );
