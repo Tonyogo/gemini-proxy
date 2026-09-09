@@ -54,7 +54,7 @@
   - `onSelectModeChange?: (isSelect: boolean) => void`
   - `ref?: React.Ref<WebTerminalHandle>`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/terminalUnifiedHandles.test.ts`:
 ```typescript
@@ -80,12 +80,12 @@ describe('Terminal Component Handles and Props Verification', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/terminalUnifiedHandles.test.ts`
 Expected: FAIL (missing exports/props in WebTerminalView & TerminalFileManagerView).
 
-- [ ] **Step 3: Implement WebTerminalView & TerminalFileManagerView updates**
+- [x] **Step 3: Implement WebTerminalView & TerminalFileManagerView updates**
 
 1. In `frontend/src/components/WebTerminalView.tsx`:
    - Define and export `WebTerminalHandle`.
@@ -100,12 +100,12 @@ Expected: FAIL (missing exports/props in WebTerminalView & TerminalFileManagerVi
    - Wrap `TerminalFileManagerView` with `React.forwardRef<TerminalFileManagerHandle, TerminalFileManagerViewProps>`.
    - Expose `refresh: () => { fetchFiles(currentPath); }`.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/terminalUnifiedHandles.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src/components/WebTerminalView.tsx frontend/src/components/terminal/TerminalFileManagerView.tsx tests/terminalUnifiedHandles.test.ts
@@ -136,7 +136,7 @@ git commit -m "feat(terminal): add imperative handles and hideHeader prop to ter
   - Dual persistent panels with CSS `hidden` / `flex` toggle.
   - Fit xterm when switching back to `interactive` tab or resizing window.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/terminalUnifiedLayout.test.ts`:
 ```typescript
@@ -173,12 +173,12 @@ describe('UnifiedTerminalView Layout and Header Architecture', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/terminalUnifiedLayout.test.ts`
 Expected: FAIL
 
-- [ ] **Step 3: Implement UnifiedTerminalView refactor**
+- [x] **Step 3: Implement UnifiedTerminalView refactor**
 
 Rewrite `frontend/src/components/UnifiedTerminalView.tsx`:
 - Import icons: `TerminalSquare`, `FolderOpen`, `Maximize2`, `Minimize2`, `ZoomIn`, `ZoomOut`, `RefreshCw`, `Trash2`, `TextSelect`, `ArrowLeft`.
@@ -189,12 +189,12 @@ Rewrite `frontend/src/components/UnifiedTerminalView.tsx`:
 - Render the dual views with `hidden` / `flex` preserve classes.
 - Trigger `terminalRef.current?.fit()` on tab switch to `interactive`.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/terminalUnifiedLayout.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src/components/UnifiedTerminalView.tsx tests/terminalUnifiedLayout.test.ts
@@ -217,7 +217,7 @@ git commit -m "feat(terminal): unify embedded and fullscreen window layouts with
   - Reset session confirmation dialog behaves consistently.
   - Font size increments and decrements correctly call terminal ref methods and persist in storage.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/terminalUnifiedIntegration.test.ts`:
 ```typescript
@@ -243,24 +243,24 @@ describe('Unified Terminal Integration and Translations', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/terminalUnifiedIntegration.test.ts`
 Expected: FAIL
 
-- [ ] **Step 3: Update i18n and UnifiedTerminalView**
+- [x] **Step 3: Update i18n and UnifiedTerminalView**
 
 1. Verify `LanguageContext.tsx` has all necessary translation keys for terminal controls and tabs.
 2. In `UnifiedTerminalView.tsx`, wire `calculateKeyboardTranslateY` and `window.visualViewport` listener for `standalone` mode so the entire unified window container translates upward when virtual keyboard is active.
 3. Wire `handleResetSession` with `confirm(t('webTerminal.resetConfirm'))` before calling `terminalRef.current?.resetSession()`.
 4. Wire `handleToggleSelectMode` to invoke `terminalRef.current?.toggleSelectMode()`.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/terminalUnifiedIntegration.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src/i18n/LanguageContext.tsx frontend/src/components/UnifiedTerminalView.tsx tests/terminalUnifiedIntegration.test.ts
@@ -276,17 +276,17 @@ git commit -m "fix(terminal): add mobile keyboard push compensation and complete
 - Build: `npm run build`
 - Tests: `npm test`
 
-- [ ] **Step 1: Run complete test suite**
+- [x] **Step 1: Run complete test suite**
 
 Run: `npm test`
 Expected: All 78+ test suites pass with 0 failures.
 
-- [ ] **Step 2: Run frontend and backend production build**
+- [x] **Step 2: Run frontend and backend production build**
 
 Run: `npm run build`
 Expected: `dist/frontend` (Vite) and `dist/src` (tsc) compile with 0 errors.
 
-- [ ] **Step 3: Commit and Push**
+- [x] **Step 3: Commit and Push**
 
 ```bash
 git status
