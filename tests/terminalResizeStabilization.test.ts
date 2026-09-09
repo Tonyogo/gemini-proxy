@@ -28,4 +28,15 @@ describe('Terminal Fullscreen Resize Repaint Stabilization', () => {
     expect(webTerminalRootClassName).not.toMatch(/\btransition-all\b/);
     expect(webTerminalRootClassName).toContain('transition-none');
   });
+
+  it('WebTerminalView should manage isRefitting state to lock scrolling during resize refit', () => {
+    expect(webTerminalContent).toContain('isRefitting');
+    expect(webTerminalContent).toContain('isRefittingRef');
+    // term.write callback must check isRefittingRef before scrolling
+    expect(webTerminalContent).toMatch(/!isRefittingRef\.current/);
+  });
+
+  it('WebTerminalView should apply subtle visual opacity transition during refit', () => {
+    expect(webTerminalContent).toMatch(/isRefitting\s*\?\s*['"]opacity-40/);
+  });
 });

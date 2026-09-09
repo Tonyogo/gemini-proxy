@@ -153,6 +153,11 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  const [isRefitting, setIsRefitting] = useState<boolean>(false);
+  const isRefittingRef = useRef<boolean>(false);
+  const refitTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const resizeDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   const isSelectModeRef = useRef<boolean>(false);
   isSelectModeRef.current = isSelectMode;
 
@@ -345,7 +350,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
         const term = xtermRef.current;
         const wasAtBottom = isUserAtBottom(term);
         term?.write(data, () => {
-          if (shouldScrollToBottom({ isReplaying: isReplayingRef.current, wasAtBottom, bufferType: term?.buffer.active.type })) {
+          if (!isRefittingRef.current && shouldScrollToBottom({ isReplaying: isReplayingRef.current, wasAtBottom, bufferType: term?.buffer.active.type })) {
             scrollToBottomSafe(term);
           }
           if (replayTimerRef.current) {
@@ -361,7 +366,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
         const term = xtermRef.current;
         const wasAtBottom = isUserAtBottom(term);
         term?.write(new Uint8Array(data), () => {
-          if (shouldScrollToBottom({ isReplaying: isReplayingRef.current, wasAtBottom, bufferType: term?.buffer.active.type })) {
+          if (!isRefittingRef.current && shouldScrollToBottom({ isReplaying: isReplayingRef.current, wasAtBottom, bufferType: term?.buffer.active.type })) {
             scrollToBottomSafe(term);
           }
           if (replayTimerRef.current) {
@@ -987,18 +992,31 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
 
   // Re-fit and send resize when standalone mode toggles without disconnecting WS
   useEffect(() => {
-    const timer = setTimeout(() => {
+    setIsRefitting(true);
+    isRefittingRef.current = true;
+    if (refitTimerRef.current) clearTimeout(refitTimerRef.current);
+    if (resizeDebounceTimerRef.current) clearTimeout(resizeDebounceTimerRef.current);
+
+    resizeDebounceTimerRef.current = setTimeout(() => {
       if (fitAddonRef.current && xtermRef.current) {
         const term = xtermRef.current;
-        const wasAtBottom = isUserAtBottom(term);
         fitAddonRef.current.fit();
         sendResize(term.cols, term.rows);
-        if (shouldScrollToBottom({ isReplaying: isReplayingRef.current, wasAtBottom, bufferType: term.buffer.active.type })) {
-          scrollToBottomSafe(term);
-        }
       }
-    }, 60);
-    return () => clearTimeout(timer);
+    }, 80);
+
+    refitTimerRef.current = setTimeout(() => {
+      isRefittingRef.current = false;
+      setIsRefitting(false);
+      if (xtermRef.current) {
+        scrollToBottomSafe(xtermRef.current);
+      }
+    }, 120);
+
+    return () => {
+      if (refitTimerRef.current) clearTimeout(refitTimerRef.current);
+      if (resizeDebounceTimerRef.current) clearTimeout(resizeDebounceTimerRef.current);
+    };
   }, [standalone, sendResize]);
 
   // Sync font size change
@@ -1594,7 +1612,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
         }}
         className={`flex-1 p-2 bg-[var(--bg-canvas)] overflow-hidden min-h-0 relative ${
           isSelectMode ? 'cursor-crosshair select-none' : 'cursor-text'
-        }`}
+        } ${isRefitting ? 'opacity-40 select-none pointer-events-none' : 'opacity-100'} transition-opacity duration-150`}
         style={{
           touchAction: isSelectMode ? 'none' : 'pan-y',
           userSelect: isSelectMode ? 'none' : undefined,
