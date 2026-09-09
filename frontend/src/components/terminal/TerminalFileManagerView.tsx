@@ -619,21 +619,16 @@ const TerminalFileManagerView = React.forwardRef<TerminalFileManagerHandle, Term
 
       {/* Empty State Guard */}
       {!activeHostId ? (
-        <div className="flex-1 flex items-center justify-center p-4 sm:p-8 bg-[var(--bg-canvas)]">
-          <div className="max-w-md w-full rounded-2xl bg-[var(--bg-surface)]/90 border border-[var(--border-subtle)] p-6 sm:p-8 backdrop-blur-xl shadow-2xl flex flex-col items-center text-center space-y-4 animate-in fade-in zoom-in-95 font-sans">
-            <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-inner shrink-0">
-              <Folder className="w-7 h-7" />
-            </div>
-
-            <div className="space-y-1.5">
-              <h3 className="text-base sm:text-lg font-semibold text-[var(--text-primary)]">
-                {t('webTerminal.emptyState.title', '当前暂无在线终端节点')}
-              </h3>
-              <p className="text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
-                {t('webTerminal.emptyState.fileManagerDesc', '反向连接终端 Agent 节点后，即可在此实时浏览、编辑、上传和下载远程文件。')}
-              </p>
-            </div>
+        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center select-none bg-[var(--bg-canvas)]">
+          <div className="w-12 h-12 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-slate-400 mb-3">
+            <Folder className="w-6 h-6" />
           </div>
+          <p className="text-sm font-medium text-[var(--text-secondary)] font-sans">
+            {t('webTerminal.emptyState.title', '当前暂无在线终端节点')}
+          </p>
+          <p className="text-xs text-[var(--text-muted)] mt-1.5 max-w-sm leading-relaxed font-sans">
+            {t('webTerminal.emptyState.fileManagerDesc', '反向连接终端 Agent 节点后，即可在此实时浏览、编辑、上传和下载远程文件。')}
+          </p>
         </div>
       ) : (
         <>

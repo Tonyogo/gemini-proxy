@@ -149,21 +149,6 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
   const activeHostIdRef = useRef<string>(activeHostId);
   activeHostIdRef.current = activeHostId;
 
-  const [emptyStateCopied, setEmptyStateCopied] = useState<boolean>(false);
-  const emptyStateAgentCommand = useMemo(() => {
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
-    const effectiveKey = adminKey || (typeof localStorage !== 'undefined' ? localStorage.getItem('adminKey') || '' : '');
-    return `npm run terminal-agent -- --server="${origin}" --key="${effectiveKey}"`;
-  }, [adminKey]);
-
-  const handleCopyEmptyStateCommand = () => {
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(emptyStateAgentCommand);
-      setEmptyStateCopied(true);
-      setTimeout(() => setEmptyStateCopied(false), 2000);
-    }
-  };
-
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -1726,63 +1711,9 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
           </div>
         )}
 
-        {/* Empty State Card Overlay */}
-        {!activeHostId && (
-          <div className="terminal-empty-state absolute inset-0 z-30 flex items-center justify-center p-4 sm:p-8 bg-[var(--bg-canvas)] overflow-y-auto">
-            <div className="max-w-xl w-full rounded-2xl bg-[var(--bg-surface)]/90 border border-[var(--border-subtle)] p-6 sm:p-8 backdrop-blur-xl shadow-2xl flex flex-col items-center text-center space-y-5 animate-in fade-in zoom-in-95 font-sans my-auto">
-              <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-inner shrink-0">
-                <TerminalSquare className="w-7 h-7" />
-              </div>
-
-              <div className="space-y-2">
-                <h3 className="text-base sm:text-lg font-semibold text-[var(--text-primary)] font-sans">
-                  {t('webTerminal.emptyState.title', '当前暂无在线终端节点')}
-                </h3>
-                <p className="text-xs sm:text-sm text-[var(--text-secondary)] font-sans leading-relaxed max-w-md">
-                  {t('webTerminal.emptyState.desc', '系统采用纯反向 Agent 统一架构。请在宿主机或任意远程节点运行反向终端 Agent，建立安全连接后即可在此管理控制台与文件。')}
-                </p>
-              </div>
-
-              <div className="w-full space-y-2 text-left">
-                <div className="flex items-center justify-between text-xs text-[var(--text-muted)] font-sans">
-                  <span>在目标节点运行终端 Agent:</span>
-                  <span className="font-mono text-emerald-400 text-[11px]">{t('webTerminal.emptyState.requirements', 'Node.js 18+ required')}</span>
-                </div>
-
-                <div className="relative group">
-                  <pre className="p-3.5 rounded-xl bg-black/50 border border-white/[0.08] font-mono text-xs text-slate-200 overflow-x-auto whitespace-pre-wrap break-all select-all shadow-inner">
-                    {emptyStateAgentCommand}
-                  </pre>
-                  <button
-                    type="button"
-                    onClick={handleCopyEmptyStateCommand}
-                    className="absolute top-2.5 right-2.5 px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-medium text-xs flex items-center space-x-1.5 shadow-md transition-all cursor-pointer"
-                  >
-                    {emptyStateCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span className="font-sans text-[11px]">
-                      {emptyStateCopied ? t('webTerminal.emptyState.commandCopied', '命令已复制！') : t('webTerminal.emptyState.copyCmd', '复制启动命令')}
-                    </span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="pt-2 flex items-center justify-center space-x-3 w-full font-sans">
-                <button
-                  type="button"
-                  onClick={handleManualReconnect}
-                  className="px-4 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] active:scale-95 text-[var(--text-primary)] text-xs font-medium border border-white/[0.08] transition-all flex items-center space-x-2 cursor-pointer"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${isConnecting ? 'animate-spin text-indigo-400' : ''}`} />
-                  <span>{t('webTerminal.emptyState.checkAgain', '重新检测')}</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
         <div
           ref={terminalContainerRef}
-          className={`${!activeHostId ? 'hidden' : 'h-full w-full'} ${isSelectMode ? 'terminal-select-mode select-none cursor-crosshair' : 'cursor-text'}`}
+          className={`h-full w-full ${isSelectMode ? 'terminal-select-mode select-none cursor-crosshair' : 'cursor-text'}`}
           style={{
             touchAction: isSelectMode ? 'none' : undefined,
             userSelect: isSelectMode ? 'none' : undefined,

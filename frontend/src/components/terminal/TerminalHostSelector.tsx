@@ -169,7 +169,7 @@ export function TerminalHostSelector({
   };
 
   return (
-    <div className="relative inline-block" ref={dropdownRef}>
+    <div className="relative inline-flex items-center space-x-1" ref={dropdownRef}>
       {/* Node Trigger Pill Button */}
       <button
         type="button"
@@ -203,6 +203,20 @@ export function TerminalHostSelector({
         </span>
 
         <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180 text-indigo-300' : ''}`} />
+      </button>
+
+      {/* Quick Add Node Plus Button Beside Trigger */}
+      <button
+        type="button"
+        onClick={() => {
+          setIsOpen(false);
+          setIsAddModalOpen(true);
+        }}
+        className="p-1 sm:p-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] active:scale-95 text-slate-300 hover:text-white border border-white/[0.08] transition-all cursor-pointer shrink-0"
+        title={t('webTerminal.hostSelector.addNode', '接入内网新节点')}
+        aria-label={t('webTerminal.hostSelector.addNode', '接入内网新节点')}
+      >
+        <Plus className="w-3.5 h-3.5" />
       </button>
 
       {/* Host Dropdown Popover */}
@@ -359,31 +373,35 @@ export function TerminalHostSelector({
 
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-[11px] text-[var(--text-muted)]">
-                  <span>Run command on target host:</span>
-                  <span className="font-mono text-emerald-400">Node.js 18+ required</span>
+                  <span>{t('webTerminal.hostSelector.runOnTarget', '在目标节点运行终端 Agent:')}</span>
+                  <span className="font-mono text-emerald-400">{t('webTerminal.emptyState.requirements', 'Node.js 18+ required')}</span>
                 </div>
 
                 <div className="relative group">
-                  <pre className="p-3 rounded-xl bg-black/40 border border-white/[0.08] font-mono text-[11px] text-slate-200 overflow-x-auto whitespace-pre-wrap break-all select-all">
+                  <pre className="p-3 pr-10 rounded-xl bg-black/40 border border-white/[0.08] font-mono text-[11px] text-slate-200 overflow-x-auto whitespace-pre-wrap break-all select-all">
                     {agentCommand}
                   </pre>
                   <button
                     type="button"
                     onClick={handleCopyCommand}
-                    className="absolute top-2 right-2 px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-medium text-[11px] flex items-center space-x-1 shadow-md transition-all cursor-pointer"
+                    className="absolute top-2 right-2 p-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white flex items-center justify-center shadow-md transition-all cursor-pointer"
+                    title={copied ? t('webTerminal.hostSelector.commandCopied', '命令已复制！') : t('webTerminal.hostSelector.copyCommand', '复制运行命令')}
+                    aria-label={copied ? t('webTerminal.hostSelector.commandCopied', '命令已复制！') : t('webTerminal.hostSelector.copyCommand', '复制运行命令')}
                   >
-                    {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                    <span>{copied ? t('webTerminal.hostSelector.commandCopied') : t('webTerminal.hostSelector.copyCommand')}</span>
+                    {copied ? <Check className="w-3.5 h-3.5 text-emerald-300" /> : <Copy className="w-3.5 h-3.5" />}
                   </button>
                 </div>
               </div>
 
               <div className="rounded-xl bg-indigo-500/10 border border-indigo-500/20 p-3 text-[11px] text-indigo-300 space-y-1">
                 <div className="font-semibold flex items-center space-x-1">
-                  <span>💡 Direct Intranet Tunnel</span>
+                  <span>💡 {t('webTerminal.hostSelector.directTunnelTitle', '反向安全隧道')}</span>
                 </div>
                 <p className="text-indigo-300/80 leading-normal">
-                  The agent establishes an outbound WebSocket connection directly to this proxy. Once connected, it will appear in the node selector above instantly.
+                  {t(
+                    'webTerminal.hostSelector.directTunnelDesc',
+                    'Agent 启动后会直接与当前代理建立出站 WebSocket 安全长连接，无需公网 IP 和开放端口。连接成功后将立即出现在上方节点列表中。'
+                  )}
                 </p>
               </div>
             </div>
