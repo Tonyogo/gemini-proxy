@@ -14,6 +14,7 @@ describe('Terminal Agent Script', () => {
     expect(content).toContain("require('dotenv')");
     expect(content).toContain('[Agent] Loaded .env configuration');
     expect(content).toContain('isFirstSpawn');
+    expect(content).toContain('CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN');
   });
 
   test('package.json includes terminal-agent script', () => {

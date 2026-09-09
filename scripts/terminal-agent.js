@@ -118,6 +118,8 @@ function spawnPty() {
     COLORTERM: 'truecolor',
     LANG: process.env.LANG || 'en_US.UTF-8',
     TERM_PROGRAM: 'gemini-proxy-agent',
+    // Disable alternate screen by default for Claude Code CLI to ensure continuous scrollback buffer
+    CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN: process.env.CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN || '1',
   };
 
   try {

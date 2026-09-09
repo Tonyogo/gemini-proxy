@@ -731,18 +731,8 @@ export default function WebTerminalView({
         const linesToScroll = Math.trunc(accumulatedDeltaY / lineHeight);
         accumulatedDeltaY -= linesToScroll * lineHeight;
 
-        const isAlternate = term.buffer.active.type === 'alternate';
-        if (isAlternate) {
-          // In Vim / Nano / Htop, translate vertical swipe into Arrow Up/Down sequences
-          const arrowSequence = linesToScroll > 0 ? '\x1b[B' : '\x1b[A';
-          const count = Math.min(5, Math.abs(linesToScroll));
-          if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-            wsRef.current.send(arrowSequence.repeat(count));
-          }
-        } else {
-          // Standard command line scrollback buffer
-          term.scrollLines(linesToScroll);
-        }
+        // Standard terminal scrollback buffer scrolling (pure touch-based viewport scrolling)
+        term.scrollLines(linesToScroll);
       }
     };
 
