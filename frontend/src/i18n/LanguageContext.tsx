@@ -2,9 +2,10 @@ import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { en, Translations } from './locales/en';
 import { zh } from './locales/zh';
 
-type Language = 'zh' | 'en';
+export type Language = 'zh' | 'en';
+export type TerminalTranslationKey = 'interactiveTab' | 'exitFullscreen' | 'fullscreen';
 
-interface LanguageContextType {
+export interface LanguageContextType {
   lang: Language;
   setLang: (lang: Language) => void;
   t: (path: string, fallbackOrParams?: string | Record<string, any>, params?: Record<string, any>) => string;
