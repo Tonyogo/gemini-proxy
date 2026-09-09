@@ -181,18 +181,23 @@ export default function WebTerminalView({
   const lastSentRowsRef = useRef<number>(0);
   const viewportDebounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const [fontSize, setFontSize] = useState<number>(() => {
-    const saved = localStorage.getItem('terminal_font_size');
-    return saved ? parseInt(saved, 10) : 13;
-  });
-
-  // Mobile Visual Viewport tracking for virtual keyboard positioning
-  const [viewportStyle, setViewportStyle] = useState<React.CSSProperties>({});
   const [isMobile, setIsMobile] = useState<boolean>(() => {
     return typeof window !== 'undefined'
       ? window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
       : false;
   });
+
+  const [fontSize, setFontSize] = useState<number>(() => {
+    const mobile = typeof window !== 'undefined'
+      ? window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+      : false;
+    const storageKey = mobile ? 'terminal_font_size_mobile' : 'terminal_font_size';
+    const saved = typeof localStorage !== 'undefined' ? localStorage.getItem(storageKey) : null;
+    return saved ? parseInt(saved, 10) : (mobile ? 11 : 13);
+  });
+
+  // Mobile Visual Viewport tracking for virtual keyboard positioning
+  const [viewportStyle, setViewportStyle] = useState<React.CSSProperties>({});
 
   const baseHeightRef = useRef<number>(typeof window !== 'undefined' ? window.innerHeight : 0);
   const baseWidthRef = useRef<number>(typeof window !== 'undefined' ? window.innerWidth : 0);
@@ -990,14 +995,15 @@ export default function WebTerminalView({
       const term = xtermRef.current;
       const wasAtBottom = isUserAtBottom(term);
       term.options.fontSize = fontSize;
-      localStorage.setItem('terminal_font_size', fontSize.toString());
+      const storageKey = isMobile ? 'terminal_font_size_mobile' : 'terminal_font_size';
+      localStorage.setItem(storageKey, fontSize.toString());
       fitAddonRef.current.fit();
       sendResize(term.cols, term.rows);
       if (shouldScrollToBottom({ isReplaying: isReplayingRef.current, wasAtBottom, bufferType: term.buffer.active.type })) {
         scrollToBottomSafe(term);
       }
     }
-  }, [fontSize, sendResize]);
+  }, [fontSize, isMobile, sendResize]);
 
   // Dynamically update terminal palette when resolvedTheme changes
   useEffect(() => {
