@@ -42,4 +42,15 @@ describe('RemoteAgentTerminalSession Persistence & Replay', () => {
     session.reset();
     expect(session.getHistory()).toBe('');
   });
+
+  it('should compact and purge stale history when terminal scrollback clear sequence is received', () => {
+    const mockAgentWs = { readyState: 1, send: jest.fn() };
+    const session = new RemoteAgentTerminalSession('test-clear-compact-host', mockAgentWs);
+    session.handleData('stale page 1\r\nstale page 2\r\n');
+    expect(session.getHistory()).toContain('stale page 1');
+
+    session.handleData('clear\r\n\x1b[3J\x1b[H\x1b[2Jcurrent clean prompt > ');
+    expect(session.getHistory()).not.toContain('stale page 1');
+    expect(session.getHistory()).toContain('current clean prompt > ');
+  });
 });

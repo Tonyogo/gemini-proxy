@@ -111,6 +111,16 @@ export class RemoteAgentTerminalSession implements ITerminalSession {
     this.historyBuffer.push(data);
     this.totalBufferSize += data.length;
 
+    // If stream contains terminal clear scrollback sequence (\x1b[3J or \x1bc), compact buffer to purge stale screen history
+    if (data.includes('\x1b[3J') || data.includes('\x1bc')) {
+      const combined = this.historyBuffer.join('');
+      const lastClearIdx = Math.max(combined.lastIndexOf('\x1b[3J'), combined.lastIndexOf('\x1bc'));
+      if (lastClearIdx !== -1) {
+        this.historyBuffer = [combined.slice(lastClearIdx)];
+        this.totalBufferSize = this.historyBuffer[0].length;
+      }
+    }
+
     while (this.totalBufferSize > this.maxBufferSize && this.historyBuffer.length > 0) {
       const removed = this.historyBuffer.shift();
       if (removed) {
