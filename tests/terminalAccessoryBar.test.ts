@@ -15,7 +15,7 @@ describe('TerminalAccessoryBar and Anti-Keyboard-Popup Controls', () => {
     expect(content).toContain('isShiftActive = false');
   });
 
-  test('TerminalAccessoryBar renders Shift, Page Up, Page Down, Home, End, Del, and OK shortcut buttons', () => {
+  test('TerminalAccessoryBar renders categorized layout: ok with ^C, Enter with arrows, and extended keys after arrows', () => {
     const content = fs.readFileSync(accessoryBarPath, 'utf-8');
 
     // Sticky Shift button in modifier section
@@ -24,24 +24,54 @@ describe('TerminalAccessoryBar and Anti-Keyboard-Popup Controls', () => {
     expect(content).toContain('isShiftActive');
     expect(content).toContain('bg-amber-600');
 
-    // Quick OK button next to Enter
+    // Quick OK button grouped with ^C signal/action keys
     expect(content).toContain("onClick={() => onSendInput('ok\\r')}");
     expect(content).toContain("t('webTerminal.accessoryKeys.ok'");
     expect(content).toContain('bg-emerald-500/15');
 
-    // Navigation section: Home, End, Del, Page Up, Page Down
-    expect(content).toContain("t('webTerminal.accessoryKeys.home'");
-    expect(content).toContain("t('webTerminal.accessoryKeys.end'");
-    expect(content).toContain("t('webTerminal.accessoryKeys.del'");
-    expect(content).toContain("encodeNavigationKey('Home'");
-    expect(content).toContain("encodeNavigationKey('End'");
-    expect(content).toContain("encodeNavigationKey('Delete'");
+    // Relative ordering verification:
+    // 1. ^C comes before ok
+    const idxCtrlC = content.indexOf("title=\"SIGINT (Ctrl+C)\"");
+    const idxOk = content.indexOf("onClick={() => onSendInput('ok\\r')}");
+    expect(idxCtrlC).toBeGreaterThan(0);
+    expect(idxOk).toBeGreaterThan(idxCtrlC);
 
-    // Page Up & Page Down in navigation section
-    expect(content).toContain("{t('webTerminal.accessoryKeys.pgUp')}");
-    expect(content).toContain("{t('webTerminal.accessoryKeys.pgDn')}");
-    expect(content).toContain("encodeNavigationKey('PageUp'");
-    expect(content).toContain("encodeNavigationKey('PageDown'");
+    // 2. ok comes before Enter (↵)
+    const idxEnter = content.indexOf("title=\"Enter (Return)\"");
+    expect(idxEnter).toBeGreaterThan(idxOk);
+
+    // 3. Enter (↵) comes before arrows
+    const idxArrowUp = content.indexOf("encodeNavigationKey('ArrowUp'");
+    expect(idxArrowUp).toBeGreaterThan(idxEnter);
+
+    // 4. Arrow keys come before Home, End, Del, PgUp, PgDn
+    const idxArrowRight = content.indexOf("encodeNavigationKey('ArrowRight'");
+    const idxHome = content.indexOf("encodeNavigationKey('Home'");
+    const idxEnd = content.indexOf("encodeNavigationKey('End'");
+    const idxDel = content.indexOf("encodeNavigationKey('Delete'");
+    const idxPgUp = content.indexOf("encodeNavigationKey('PageUp'");
+    const idxPgDn = content.indexOf("encodeNavigationKey('PageDown'");
+
+    expect(idxHome).toBeGreaterThan(idxArrowRight);
+    expect(idxEnd).toBeGreaterThan(idxHome);
+    expect(idxDel).toBeGreaterThan(idxEnd);
+    expect(idxPgUp).toBeGreaterThan(idxDel);
+    expect(idxPgDn).toBeGreaterThan(idxPgUp);
+  });
+
+  test('TerminalAccessoryBar supports concise mode and localStorage persistence', () => {
+    const content = fs.readFileSync(accessoryBarPath, 'utf-8');
+
+    // Default concise mode from localStorage
+    expect(content).toContain("localStorage.getItem('terminal_accessory_concise_mode')");
+    expect(content).toContain("localStorage.setItem('terminal_accessory_concise_mode'");
+
+    // Toggle button renders moreKeys and conciseKeys
+    expect(content).toContain("t('webTerminal.accessoryKeys.moreKeys'");
+    expect(content).toContain("t('webTerminal.accessoryKeys.conciseKeys'");
+
+    // Non-concise keys guarded by !isConciseMode
+    expect(content).toContain('{!isConciseMode && (');
   });
 
   test('All accessory shortcut buttons prevent default on touch and mouse to prevent keyboard popup', () => {
@@ -92,7 +122,7 @@ describe('TerminalAccessoryBar and Anti-Keyboard-Popup Controls', () => {
     expect(content).toContain('onToggleShift={() => setIsShiftActive(!isShiftActive)}');
   });
 
-  test('i18n locales contain shift, pgUp, pgDn, home, end, del, and ok translations in accessoryKeys', () => {
+  test('i18n locales contain shift, pgUp, pgDn, home, end, del, ok, and mode toggle translations in accessoryKeys', () => {
     expect(en.webTerminal.accessoryKeys.shift).toBe('SHIFT');
     expect(en.webTerminal.accessoryKeys.pgUp).toBe('PgUp');
     expect(en.webTerminal.accessoryKeys.pgDn).toBe('PgDn');
@@ -100,6 +130,8 @@ describe('TerminalAccessoryBar and Anti-Keyboard-Popup Controls', () => {
     expect(en.webTerminal.accessoryKeys.end).toBe('End');
     expect(en.webTerminal.accessoryKeys.del).toBe('Del');
     expect(en.webTerminal.accessoryKeys.ok).toBe('ok');
+    expect(en.webTerminal.accessoryKeys.moreKeys).toBe('More');
+    expect(en.webTerminal.accessoryKeys.conciseKeys).toBe('Compact');
 
     expect(zh.webTerminal.accessoryKeys.shift).toBe('SHIFT');
     expect(zh.webTerminal.accessoryKeys.pgUp).toBe('PgUp');
@@ -108,5 +140,7 @@ describe('TerminalAccessoryBar and Anti-Keyboard-Popup Controls', () => {
     expect(zh.webTerminal.accessoryKeys.end).toBe('End');
     expect(zh.webTerminal.accessoryKeys.del).toBe('Del');
     expect(zh.webTerminal.accessoryKeys.ok).toBe('ok');
+    expect(zh.webTerminal.accessoryKeys.moreKeys).toBe('更多');
+    expect(zh.webTerminal.accessoryKeys.conciseKeys).toBe('简洁');
   });
 });

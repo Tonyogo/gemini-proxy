@@ -483,7 +483,11 @@ export const en = {
       ctrlD: "^D",
       ctrlL: "^L",
       ctrlB: "^B",
-      ctrlZ: "^Z"
+      ctrlZ: "^Z",
+      moreKeys: "More",
+      conciseKeys: "Compact",
+      expandFull: "Switch to full key mode",
+      collapseConcise: "Switch to compact mode"
     },
     hostSelector: {
       localhost: "Local Host",

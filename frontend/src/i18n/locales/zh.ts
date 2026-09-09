@@ -485,7 +485,11 @@ export const zh: Translations = {
       ctrlD: "^D",
       ctrlL: "^L",
       ctrlB: "^B",
-      ctrlZ: "^Z"
+      ctrlZ: "^Z",
+      moreKeys: "更多",
+      conciseKeys: "简洁",
+      expandFull: "切换至完整按键模式",
+      collapseConcise: "切换至简洁按键模式"
     },
     hostSelector: {
       localhost: "本地宿主机",

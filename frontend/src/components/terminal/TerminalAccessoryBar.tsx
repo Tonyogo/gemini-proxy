@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ArrowUp,
   ArrowDown,
@@ -9,7 +9,9 @@ import {
   Check,
   Copy,
   ClipboardPaste,
-  TextSelect
+  TextSelect,
+  MoreHorizontal,
+  SlidersHorizontal
 } from 'lucide-react';
 import { useTranslation } from '../../i18n/LanguageContext';
 import { encodeNavigationKey } from '../../utils/terminalKeyEncoder';
@@ -31,6 +33,8 @@ interface TerminalAccessoryBarProps {
   onCopy?: () => void;
   onPaste?: () => void;
   onToggleSelectMode?: () => void;
+  isConciseMode?: boolean;
+  onToggleConciseMode?: () => void;
 }
 
 export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
@@ -50,8 +54,38 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
   onCopy,
   onPaste,
   onToggleSelectMode,
+  isConciseMode: propIsConciseMode,
+  onToggleConciseMode: propOnToggleConciseMode,
 }) => {
   const { t } = useTranslation();
+
+  const [internalConciseMode, setInternalConciseMode] = useState<boolean>(() => {
+    if (typeof localStorage !== 'undefined') {
+      const saved = localStorage.getItem('terminal_accessory_concise_mode');
+      if (saved !== null) {
+        return saved === 'true';
+      }
+    }
+    return true;
+  });
+
+  const isConciseMode = propIsConciseMode !== undefined ? propIsConciseMode : internalConciseMode;
+
+  const handleToggleConciseMode = () => {
+    const next = !isConciseMode;
+    if (propOnToggleConciseMode) {
+      propOnToggleConciseMode();
+    } else {
+      setInternalConciseMode(next);
+      if (typeof localStorage !== 'undefined') {
+        try {
+          localStorage.setItem('terminal_accessory_concise_mode', String(next));
+        } catch {
+          // ignore storage errors
+        }
+      }
+    }
+  };
 
   return (
     <div className="bg-[var(--bg-surface)] border-t border-[var(--border-subtle)] px-2 py-1.5 flex items-center justify-between gap-1 select-none overflow-x-auto scrollbar-none z-20">
@@ -95,34 +129,38 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
         </button>
 
         {/* Sticky Modifier: ALT */}
-        <button
-          type="button"
-          onTouchStart={(e) => e.preventDefault()}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={onToggleAlt}
-          className={`px-2.5 py-1 rounded-lg font-mono text-xs font-semibold border transition-all shadow-sm active:scale-95 ${
-            isAltActive
-              ? 'bg-purple-600 text-white border-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.5)]'
-              : 'bg-black/[0.04] dark:bg-white/[0.05] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] text-[var(--text-primary)] border-[var(--border-subtle)]'
-          }`}
-        >
-          {t('webTerminal.accessoryKeys.alt')}
-        </button>
+        {!isConciseMode && (
+          <>
+            <button
+              type="button"
+              onTouchStart={(e) => e.preventDefault()}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={onToggleAlt}
+              className={`px-2.5 py-1 rounded-lg font-mono text-xs font-semibold border transition-all shadow-sm active:scale-95 ${
+                isAltActive
+                  ? 'bg-purple-600 text-white border-purple-400 shadow-[0_0_10px_rgba(168,85,247,0.5)]'
+                  : 'bg-black/[0.04] dark:bg-white/[0.05] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] text-[var(--text-primary)] border-[var(--border-subtle)]'
+              }`}
+            >
+              {t('webTerminal.accessoryKeys.alt')}
+            </button>
 
-        {/* Sticky Modifier: SHIFT */}
-        <button
-          type="button"
-          onTouchStart={(e) => e.preventDefault()}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={onToggleShift}
-          className={`px-2.5 py-1 rounded-lg font-mono text-xs font-semibold border transition-all shadow-sm active:scale-95 ${
-            isShiftActive
-              ? 'bg-amber-600 text-white border-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.5)]'
-              : 'bg-black/[0.04] dark:bg-white/[0.05] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] text-[var(--text-primary)] border-[var(--border-subtle)]'
-          }`}
-        >
-          {t('webTerminal.accessoryKeys.shift')}
-        </button>
+            {/* Sticky Modifier: SHIFT */}
+            <button
+              type="button"
+              onTouchStart={(e) => e.preventDefault()}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={onToggleShift}
+              className={`px-2.5 py-1 rounded-lg font-mono text-xs font-semibold border transition-all shadow-sm active:scale-95 ${
+                isShiftActive
+                  ? 'bg-amber-600 text-white border-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.5)]'
+                  : 'bg-black/[0.04] dark:bg-white/[0.05] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] text-[var(--text-primary)] border-[var(--border-subtle)]'
+              }`}
+            >
+              {t('webTerminal.accessoryKeys.shift')}
+            </button>
+          </>
+        )}
 
         <div className="h-4 w-[1px] bg-[var(--border-subtle)] mx-0.5" />
 
@@ -138,57 +176,7 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
           ^C
         </button>
 
-        {/* Action: Ctrl+D */}
-        <button
-          type="button"
-          onTouchStart={(e) => e.preventDefault()}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => onSendInput('\x04')}
-          className="px-2 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 active:scale-95 text-amber-500 dark:text-amber-400 font-mono text-xs font-semibold border border-amber-500/30 transition-all"
-          title="EOF (Ctrl+D)"
-        >
-          ^D
-        </button>
-
-        {/* Action: Ctrl+L */}
-        <button
-          type="button"
-          onTouchStart={(e) => e.preventDefault()}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => onSendInput('\x0c')}
-          className="px-2 py-1 rounded-lg bg-black/[0.04] dark:bg-white/[0.05] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] active:scale-95 text-[var(--text-primary)] font-mono text-xs font-semibold border border-[var(--border-subtle)] transition-all"
-          title="Clear Screen (Ctrl+L)"
-        >
-          ^L
-        </button>
-
-        {/* Action: Ctrl+B (tmux Prefix) */}
-        <button
-          type="button"
-          onTouchStart={(e) => e.preventDefault()}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => onSendInput('\x02')}
-          className="px-2 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 active:scale-95 text-emerald-500 dark:text-emerald-400 font-mono text-xs font-semibold border border-emerald-500/30 transition-all"
-          title="tmux Prefix (Ctrl+B)"
-        >
-          ^B
-        </button>
-
-        <div className="h-4 w-[1px] bg-[var(--border-subtle)] mx-0.5" />
-
-        {/* Quick Enter Key */}
-        <button
-          type="button"
-          onTouchStart={(e) => e.preventDefault()}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => onSendInput('\r')}
-          className="px-2.5 py-1 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 active:scale-95 text-indigo-500 dark:text-indigo-300 font-mono text-xs font-semibold border border-indigo-500/30 transition-all shadow-sm"
-          title="Enter (Return)"
-        >
-          ↵
-        </button>
-
-        {/* Quick OK Key */}
+        {/* Quick OK Key (Grouped with ^C signal/action keys) */}
         <button
           type="button"
           onTouchStart={(e) => e.preventDefault()}
@@ -200,66 +188,59 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
           {t('webTerminal.accessoryKeys.ok', 'ok')}
         </button>
 
+        {/* Full Mode Combination Keys: Ctrl+D, Ctrl+L, Ctrl+B */}
+        {!isConciseMode && (
+          <>
+            {/* Action: Ctrl+D */}
+            <button
+              type="button"
+              onTouchStart={(e) => e.preventDefault()}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => onSendInput('\x04')}
+              className="px-2 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 active:scale-95 text-amber-500 dark:text-amber-400 font-mono text-xs font-semibold border border-amber-500/30 transition-all"
+              title="EOF (Ctrl+D)"
+            >
+              ^D
+            </button>
+
+            {/* Action: Ctrl+L */}
+            <button
+              type="button"
+              onTouchStart={(e) => e.preventDefault()}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => onSendInput('\x0c')}
+              className="px-2 py-1 rounded-lg bg-black/[0.04] dark:bg-white/[0.05] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] active:scale-95 text-[var(--text-primary)] font-mono text-xs font-semibold border border-[var(--border-subtle)] transition-all"
+              title="Clear Screen (Ctrl+L)"
+            >
+              ^L
+            </button>
+
+            {/* Action: Ctrl+B (tmux Prefix) */}
+            <button
+              type="button"
+              onTouchStart={(e) => e.preventDefault()}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => onSendInput('\x02')}
+              className="px-2 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 active:scale-95 text-emerald-500 dark:text-emerald-400 font-mono text-xs font-semibold border border-emerald-500/30 transition-all"
+              title="tmux Prefix (Ctrl+B)"
+            >
+              ^B
+            </button>
+          </>
+        )}
+
         <div className="h-4 w-[1px] bg-[var(--border-subtle)] mx-0.5" />
 
-        {/* Navigation: Home */}
+        {/* Execution & Direction Group: Enter (↵) and Arrow Keys */}
         <button
           type="button"
           onTouchStart={(e) => e.preventDefault()}
           onMouseDown={(e) => e.preventDefault()}
-          onClick={() => onSendInput(encodeNavigationKey('Home', isCtrlActive, isAltActive, !!isShiftActive))}
-          className="px-2 py-1 rounded-lg bg-black/[0.04] dark:bg-white/[0.05] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] active:scale-95 text-[var(--text-primary)] font-mono text-xs font-semibold border border-[var(--border-subtle)] transition-all shadow-sm"
-          title="Home"
+          onClick={() => onSendInput('\r')}
+          className="px-2.5 py-1 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 active:scale-95 text-indigo-500 dark:text-indigo-300 font-mono text-xs font-semibold border border-indigo-500/30 transition-all shadow-sm"
+          title="Enter (Return)"
         >
-          {t('webTerminal.accessoryKeys.home', 'Home')}
-        </button>
-
-        {/* Navigation: End */}
-        <button
-          type="button"
-          onTouchStart={(e) => e.preventDefault()}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => onSendInput(encodeNavigationKey('End', isCtrlActive, isAltActive, !!isShiftActive))}
-          className="px-2 py-1 rounded-lg bg-black/[0.04] dark:bg-white/[0.05] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] active:scale-95 text-[var(--text-primary)] font-mono text-xs font-semibold border border-[var(--border-subtle)] transition-all shadow-sm"
-          title="End"
-        >
-          {t('webTerminal.accessoryKeys.end', 'End')}
-        </button>
-
-        {/* Navigation / Edit: Del (Forward Delete) */}
-        <button
-          type="button"
-          onTouchStart={(e) => e.preventDefault()}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => onSendInput(encodeNavigationKey('Delete', isCtrlActive, isAltActive, !!isShiftActive))}
-          className="px-2 py-1 rounded-lg bg-black/[0.04] dark:bg-white/[0.05] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] active:scale-95 text-[var(--text-primary)] font-mono text-xs font-semibold border border-[var(--border-subtle)] transition-all shadow-sm"
-          title="Delete (Forward Delete)"
-        >
-          {t('webTerminal.accessoryKeys.del', 'Del')}
-        </button>
-
-        {/* Navigation: Page Up */}
-        <button
-          type="button"
-          onTouchStart={(e) => e.preventDefault()}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => onSendInput(encodeNavigationKey('PageUp', isCtrlActive, isAltActive, !!isShiftActive))}
-          className="px-2 py-1 rounded-lg bg-black/[0.04] dark:bg-white/[0.05] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] active:scale-95 text-[var(--text-primary)] font-mono text-xs font-semibold border border-[var(--border-subtle)] transition-all shadow-sm"
-          title="Page Up"
-        >
-          {t('webTerminal.accessoryKeys.pgUp')}
-        </button>
-
-        {/* Navigation: Page Down */}
-        <button
-          type="button"
-          onTouchStart={(e) => e.preventDefault()}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => onSendInput(encodeNavigationKey('PageDown', isCtrlActive, isAltActive, !!isShiftActive))}
-          className="px-2 py-1 rounded-lg bg-black/[0.04] dark:bg-white/[0.05] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] active:scale-95 text-[var(--text-primary)] font-mono text-xs font-semibold border border-[var(--border-subtle)] transition-all shadow-sm"
-          title="Page Down"
-        >
-          {t('webTerminal.accessoryKeys.pgDn')}
+          ↵
         </button>
 
         {/* Arrow Keys: Up, Down, Left, Right */}
@@ -304,6 +285,73 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
           <ArrowRight className="w-3.5 h-3.5" />
         </button>
 
+        {/* Full Mode: Extended Navigation & Edit Keys (Home, End, Del, PgUp, PgDn) */}
+        {!isConciseMode && (
+          <>
+            <div className="h-4 w-[1px] bg-[var(--border-subtle)] mx-0.5" />
+
+            {/* Navigation: Home */}
+            <button
+              type="button"
+              onTouchStart={(e) => e.preventDefault()}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => onSendInput(encodeNavigationKey('Home', isCtrlActive, isAltActive, !!isShiftActive))}
+              className="px-2 py-1 rounded-lg bg-black/[0.04] dark:bg-white/[0.05] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] active:scale-95 text-[var(--text-primary)] font-mono text-xs font-semibold border border-[var(--border-subtle)] transition-all shadow-sm"
+              title="Home"
+            >
+              {t('webTerminal.accessoryKeys.home', 'Home')}
+            </button>
+
+            {/* Navigation: End */}
+            <button
+              type="button"
+              onTouchStart={(e) => e.preventDefault()}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => onSendInput(encodeNavigationKey('End', isCtrlActive, isAltActive, !!isShiftActive))}
+              className="px-2 py-1 rounded-lg bg-black/[0.04] dark:bg-white/[0.05] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] active:scale-95 text-[var(--text-primary)] font-mono text-xs font-semibold border border-[var(--border-subtle)] transition-all shadow-sm"
+              title="End"
+            >
+              {t('webTerminal.accessoryKeys.end', 'End')}
+            </button>
+
+            {/* Navigation / Edit: Del (Forward Delete) */}
+            <button
+              type="button"
+              onTouchStart={(e) => e.preventDefault()}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => onSendInput(encodeNavigationKey('Delete', isCtrlActive, isAltActive, !!isShiftActive))}
+              className="px-2 py-1 rounded-lg bg-black/[0.04] dark:bg-white/[0.05] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] active:scale-95 text-[var(--text-primary)] font-mono text-xs font-semibold border border-[var(--border-subtle)] transition-all shadow-sm"
+              title="Delete (Forward Delete)"
+            >
+              {t('webTerminal.accessoryKeys.del', 'Del')}
+            </button>
+
+            {/* Navigation: Page Up */}
+            <button
+              type="button"
+              onTouchStart={(e) => e.preventDefault()}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => onSendInput(encodeNavigationKey('PageUp', isCtrlActive, isAltActive, !!isShiftActive))}
+              className="px-2 py-1 rounded-lg bg-black/[0.04] dark:bg-white/[0.05] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] active:scale-95 text-[var(--text-primary)] font-mono text-xs font-semibold border border-[var(--border-subtle)] transition-all shadow-sm"
+              title="Page Up"
+            >
+              {t('webTerminal.accessoryKeys.pgUp')}
+            </button>
+
+            {/* Navigation: Page Down */}
+            <button
+              type="button"
+              onTouchStart={(e) => e.preventDefault()}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => onSendInput(encodeNavigationKey('PageDown', isCtrlActive, isAltActive, !!isShiftActive))}
+              className="px-2 py-1 rounded-lg bg-black/[0.04] dark:bg-white/[0.05] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] active:scale-95 text-[var(--text-primary)] font-mono text-xs font-semibold border border-[var(--border-subtle)] transition-all shadow-sm"
+              title="Page Down"
+            >
+              {t('webTerminal.accessoryKeys.pgDn')}
+            </button>
+          </>
+        )}
+
         <div className="h-4 w-[1px] bg-[var(--border-subtle)] mx-0.5" />
 
         {/* Action: Paste */}
@@ -317,6 +365,28 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
         >
           <ClipboardPaste className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
           <span className="text-[11px]">{t('webTerminal.paste')}</span>
+        </button>
+
+        {/* Mode Toggle Capsule Button */}
+        <button
+          type="button"
+          onTouchStart={(e) => e.preventDefault()}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={handleToggleConciseMode}
+          className="px-2 py-1 rounded-lg bg-black/[0.04] dark:bg-white/[0.05] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] active:scale-95 text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center space-x-1 font-sans text-xs font-medium border border-[var(--border-subtle)] transition-all shadow-sm shrink-0 cursor-pointer"
+          title={isConciseMode ? t('webTerminal.accessoryKeys.expandFull', '切换至完整按键模式') : t('webTerminal.accessoryKeys.collapseConcise', '切换至简洁按键模式')}
+        >
+          {isConciseMode ? (
+            <>
+              <MoreHorizontal className="w-3.5 h-3.5 text-indigo-400" />
+              <span className="text-[11px]">{t('webTerminal.accessoryKeys.moreKeys', '更多')}</span>
+            </>
+          ) : (
+            <>
+              <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-400" />
+              <span className="text-[11px]">{t('webTerminal.accessoryKeys.conciseKeys', '简洁')}</span>
+            </>
+          )}
         </button>
       </div>
 
