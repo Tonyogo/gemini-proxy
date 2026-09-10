@@ -1765,7 +1765,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
 
         {/* Empty State Guard (Calm, flat placeholder matching File Manager) */}
         {!activeHostId && (
-          <div className="flex-1 h-full flex flex-col items-center justify-center p-6 text-center select-none bg-[var(--bg-canvas)]">
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center p-6 text-center select-none bg-[var(--bg-canvas)]">
             <div className="w-12 h-12 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-slate-400 mb-3">
               <TerminalSquare className="w-6 h-6" />
             </div>
@@ -1790,7 +1790,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
 
         <div
           ref={terminalContainerRef}
-          className={`${!activeHostId ? 'hidden' : 'h-full w-full'} ${isSelectMode ? 'terminal-select-mode select-none cursor-crosshair' : 'cursor-text'}`}
+          className={`h-full w-full ${isSelectMode ? 'terminal-select-mode select-none cursor-crosshair' : 'cursor-text'}`}
           style={{
             touchAction: isSelectMode ? 'none' : undefined,
             userSelect: isSelectMode ? 'none' : undefined,
