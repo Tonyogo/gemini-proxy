@@ -33,7 +33,7 @@
   - Dynamic `workspaceStyle` on the dual panels container with height constrained to `visualViewport.height - headerHeight`.
   - Auto-scroll to prompt/cursor on virtual keyboard appearance.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/terminalMobileFixedHeader.test.ts`:
 ```typescript
@@ -66,12 +66,12 @@ describe('UnifiedTerminalView Mobile Fixed Header & Adaptive Viewport', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/terminalMobileFixedHeader.test.ts`
 Expected: FAIL (missing `workspaceStyle`, `headerRef`, and root container still has `viewportStyle`).
 
-- [ ] **Step 3: Implement Fixed Header & Workspace Height in UnifiedTerminalView**
+- [x] **Step 3: Implement Fixed Header & Workspace Height in UnifiedTerminalView**
 
 In `frontend/src/components/UnifiedTerminalView.tsx`:
 1. Add `headerRef = useRef<HTMLDivElement>(null)` and state `workspaceStyle: React.CSSProperties`.
@@ -103,12 +103,12 @@ In `frontend/src/components/UnifiedTerminalView.tsx`:
    </div>
    ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/terminalMobileFixedHeader.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src/components/UnifiedTerminalView.tsx tests/terminalMobileFixedHeader.test.ts
@@ -130,7 +130,7 @@ git commit -m "feat(terminal): pin top header and make workspace height adaptive
   - `TerminalAccessoryBar` stays docked at the bottom of the viewport directly above the keyboard.
   - `terminalMobileSmoothPush.test.ts` validates smooth transition curves without regressions.
 
-- [ ] **Step 1: Write test updates**
+- [x] **Step 1: Write test updates**
 
 Update `tests/terminalMobileFixedHeader.test.ts` to assert that `WebTerminalView` also pins its top header when `!hideHeader && standalone`:
 ```typescript
@@ -140,24 +140,24 @@ Update `tests/terminalMobileFixedHeader.test.ts` to assert that `WebTerminalView
   });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/terminalMobileFixedHeader.test.ts`
 Expected: FAIL
 
-- [ ] **Step 3: Implement WebTerminalView fixed header alignment**
+- [x] **Step 3: Implement WebTerminalView fixed header alignment**
 
 In `frontend/src/components/WebTerminalView.tsx`:
 1. Change Top Window Bar header from `sticky top-0 z-10` to `sticky top-0 z-30`.
 2. When `!hideHeader && standalone`, apply the `viewportStyle` height adjustment to the inner terminal workspace instead of translating the root container, keeping the top header pinned at the top.
 3. Update `terminalMobileSmoothPush.test.ts` to match the updated styling while retaining verification of `cubic-bezier(0.16, 1, 0.3, 1)` spring animation.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npx jest tests/terminalMobileFixedHeader.test.ts tests/terminalMobileSmoothPush.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src/components/WebTerminalView.tsx tests/terminalMobileSmoothPush.test.ts tests/terminalMobileFixedHeader.test.ts
@@ -173,17 +173,17 @@ git commit -m "fix(terminal): align standalone WebTerminalView fixed header and 
 - Build: `npm run build`
 - Tests: `npm test`
 
-- [ ] **Step 1: Run complete test suite**
+- [x] **Step 1: Run complete test suite**
 
 Run: `npm test`
 Expected: All 83+ test suites pass with 0 errors.
 
-- [ ] **Step 2: Run frontend and backend production build**
+- [x] **Step 2: Run frontend and backend production build**
 
 Run: `npm run build`
 Expected: `dist/frontend` (Vite) and `dist/src` (tsc) compile cleanly with 0 errors.
 
-- [ ] **Step 3: Commit and Push**
+- [x] **Step 3: Commit and Push**
 
 ```bash
 git status
