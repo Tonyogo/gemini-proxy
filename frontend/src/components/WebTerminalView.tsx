@@ -327,16 +327,18 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
         scrollToBottomSafe(xtermRef.current);
       }, 600);
 
-      if (xtermRef.current && fitAddonRef.current) {
-        fitAddonRef.current.fit();
-        lastSentColsRef.current = 0;
-        lastSentRowsRef.current = 0;
-        sendResize(xtermRef.current.cols, xtermRef.current.rows);
-        scrollToBottomSafe(xtermRef.current);
+      lastSentColsRef.current = 0;
+      lastSentRowsRef.current = 0;
+      if (!safeFit()) {
+        setTimeout(safeFit, 80);
       }
     };
 
     ws.onmessage = (event) => {
+      const term = xtermRef.current;
+      if (term && (term.cols <= 2 || term.rows <= 1)) {
+        safeFit();
+      }
       const data = event.data;
       if (typeof data === 'string') {
         if (data.startsWith('JSON:')) {
@@ -853,6 +855,14 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
     };
 
     triggerMountProbe();
+
+    if (typeof document !== 'undefined' && document.fonts?.ready) {
+      document.fonts.ready.then(() => {
+        if (isMountedRef.current) {
+          safeFit();
+        }
+      }).catch(() => {});
+    }
 
     initWebSocket();
 
@@ -1431,26 +1441,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
     reconnect: handleManualReconnect,
     resetSession: executeReset,
     toggleSelectMode: handleToggleSelectMode,
-    fit: () => {
-      if (fitAddonRef.current && xtermRef.current && terminalContainerRef.current) {
-        if (terminalContainerRef.current.clientWidth > 0 && terminalContainerRef.current.clientHeight > 0) {
-          try {
-            const term = xtermRef.current;
-            const wasAtBottom = isUserAtBottom(term);
-            fitAddonRef.current.fit();
-            const { cols, rows } = term;
-            if (cols > 0 && rows > 0) {
-              sendResize(cols, rows);
-            }
-            if (shouldScrollToBottom({ wasAtBottom, bufferType: term.buffer.active.type })) {
-              scrollToBottomSafe(term);
-            }
-          } catch (err) {
-            console.warn('[WebTerminalView] fit error:', err);
-          }
-        }
-      }
-    },
+    fit: safeFit,
     scrollToBottomSafe: () => {
       if (xtermRef.current) {
         scrollToBottomSafe(xtermRef.current);

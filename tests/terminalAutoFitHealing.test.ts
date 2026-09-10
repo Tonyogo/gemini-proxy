@@ -19,4 +19,17 @@ describe('WebTerminalView Auto-Fit Initialization & Healing', () => {
     expect(content).toMatch(/setTimeout\([^,]+,\s*150\)/);
     expect(content).toMatch(/setTimeout\([^,]+,\s*300\)/);
   });
+
+  it('heals layout on first data arrival if terminal dimensions are uninitialized', () => {
+    expect(content).toMatch(/cols\s*<=\s*2\s*\|\|\s*[^.]*\.rows\s*<=\s*1/);
+  });
+
+  it('triggers safeFit on document.fonts.ready to handle font metric loading', () => {
+    expect(content).toContain('document.fonts.ready');
+  });
+
+  it('triggers safeFit on ws.onopen with calibration fallback', () => {
+    expect(content).toContain('ws.onopen');
+    expect(content).toMatch(/onopen[\s\S]*?safeFit/);
+  });
 });
