@@ -21,7 +21,6 @@ import {
   Zap,
   Menu,
   X,
-  Maximize2,
   Languages,
   Github,
   ExternalLink
@@ -614,17 +613,6 @@ export default function App() {
 
           {/* Right Action Controls */}
           <div className="flex items-center space-x-1 sm:space-x-2 shrink-0">
-            {/* Mobile Terminal Fullscreen Trigger */}
-            {activeTab === 'discover' && discoverSubView === 'terminal' && (
-              <button
-                onClick={handleEnterStandalone}
-                title={t('webTerminal.fullscreen')}
-                className="p-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 rounded-lg text-xs text-indigo-300 hover:text-white transition-all md:hidden active:scale-95"
-              >
-                <Maximize2 className="w-3.5 h-3.5" />
-              </button>
-            )}
-
             {/* GitHub Repository Link */}
             <a
               href={GITHUB_REPO_URL}

@@ -31,4 +31,14 @@ describe('Terminal Fullscreen Connection Reuse & Lifecycle', () => {
     expect(terminalContent).not.toContain('document.documentElement.requestFullscreen');
     expect(terminalContent).not.toContain('document.exitFullscreen');
   });
+
+  test('App.tsx does not render duplicate mobile terminal fullscreen button, relying on UnifiedTerminalView', () => {
+    expect(appContent).not.toContain('Mobile Terminal Fullscreen Trigger');
+    expect(appContent).not.toMatch(/onClick=\{handleEnterStandalone\}[^>]*md:hidden/);
+
+    const unifiedPath = path.resolve(__dirname, '../frontend/src/components/UnifiedTerminalView.tsx');
+    const unifiedContent = fs.readFileSync(unifiedPath, 'utf-8');
+    expect(unifiedContent).toContain('handleFullscreenToggle');
+    expect(unifiedContent).toMatch(/isStandalone\s*\?\s*<Minimize2[^>]*\/>\s*:\s*<Maximize2[^>]*\/>/);
+  });
 });
