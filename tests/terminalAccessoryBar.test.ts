@@ -25,14 +25,14 @@ describe('TerminalAccessoryBar and Anti-Keyboard-Popup Controls', () => {
     expect(content).toContain('bg-amber-600');
 
     // Quick OK button grouped with ^C signal/action keys
-    expect(content).toContain("onClick={() => onSendInput('ok\\r')}");
+    expect(content).toContain("onClick={() => onSendInput('OK\\r')}");
     expect(content).toContain("t('webTerminal.accessoryKeys.ok'");
     expect(content).toContain('bg-emerald-500/15');
 
     // Relative ordering verification:
     // 1. ^C comes before ok
     const idxCtrlC = content.indexOf("title=\"SIGINT (Ctrl+C)\"");
-    const idxOk = content.indexOf("onClick={() => onSendInput('ok\\r')}");
+    const idxOk = content.indexOf("onClick={() => onSendInput('OK\\r')}");
     expect(idxCtrlC).toBeGreaterThan(0);
     expect(idxOk).toBeGreaterThan(idxCtrlC);
 
@@ -129,7 +129,7 @@ describe('TerminalAccessoryBar and Anti-Keyboard-Popup Controls', () => {
     expect(en.webTerminal.accessoryKeys.home).toBe('Home');
     expect(en.webTerminal.accessoryKeys.end).toBe('End');
     expect(en.webTerminal.accessoryKeys.del).toBe('Del');
-    expect(en.webTerminal.accessoryKeys.ok).toBe('ok');
+    expect(en.webTerminal.accessoryKeys.ok).toBe('OK');
     expect(en.webTerminal.accessoryKeys.moreKeys).toBe('More');
     expect(en.webTerminal.accessoryKeys.conciseKeys).toBe('Compact');
 
@@ -139,7 +139,7 @@ describe('TerminalAccessoryBar and Anti-Keyboard-Popup Controls', () => {
     expect(zh.webTerminal.accessoryKeys.home).toBe('Home');
     expect(zh.webTerminal.accessoryKeys.end).toBe('End');
     expect(zh.webTerminal.accessoryKeys.del).toBe('Del');
-    expect(zh.webTerminal.accessoryKeys.ok).toBe('ok');
+    expect(zh.webTerminal.accessoryKeys.ok).toBe('OK');
     expect(zh.webTerminal.accessoryKeys.moreKeys).toBe('更多');
     expect(zh.webTerminal.accessoryKeys.conciseKeys).toBe('简洁');
   });

@@ -178,11 +178,11 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
           type="button"
           onTouchStart={(e) => e.preventDefault()}
           onMouseDown={(e) => e.preventDefault()}
-          onClick={() => onSendInput('ok\r')}
+          onClick={() => onSendInput('OK\r')}
           className="px-2 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 active:scale-95 text-emerald-600 dark:text-emerald-400 font-mono text-xs font-semibold border border-emerald-500/30 transition-all shadow-sm"
-          title="Quick Input (ok + Enter)"
+          title="Quick Input (OK + Enter)"
         >
-          {t('webTerminal.accessoryKeys.ok', 'ok')}
+          {t('webTerminal.accessoryKeys.ok', 'OK')}
         </button>
 
         {/* Full Mode Combination Keys: Ctrl+D, Ctrl+L, Ctrl+B */}

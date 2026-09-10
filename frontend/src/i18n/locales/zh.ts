@@ -480,7 +480,7 @@ export const zh: Translations = {
       home: "Home",
       end: "End",
       del: "Del",
-      ok: "ok",
+      ok: "OK",
       ctrlC: "^C",
       ctrlD: "^D",
       ctrlL: "^L",
