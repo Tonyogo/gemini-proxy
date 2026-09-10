@@ -53,4 +53,15 @@ describe('PlaygroundView Header Controls Decoupling', () => {
   test('run test button is pinned with shrink-0 and whitespace-nowrap', () => {
     expect(content).toMatch(/handleSend[\s\S]*?shrink-0[\s\S]*?whitespace-nowrap/);
   });
+
+  test('presets dropdown defaults to basicChat and does not contain duplicate disabled placeholder', () => {
+    expect(content).toContain("useState<PresetKey>('basicChat')");
+    // Does not contain disabled placeholder option in presets select
+    expect(content).not.toMatch(/<option\s+value=""\s+disabled>\s*\{\s*t\('playground\.presets'\)\s*\}\s*<\/option>/);
+    // Contains clean 4 preset options
+    expect(content).toContain('<option value="basicChat">');
+    expect(content).toContain('<option value="toolUse">');
+    expect(content).toContain('<option value="vision">');
+    expect(content).toContain('<option value="thinkingMode">');
+  });
 });

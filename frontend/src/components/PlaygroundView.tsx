@@ -147,9 +147,7 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
   const [copiedResponse, setCopiedResponse] = useState<boolean>(false);
   const [copiedAnswer, setCopiedAnswer] = useState<boolean>(false);
   const [showConcurrentModal, setShowConcurrentModal] = useState<boolean>(false);
-  const [activePreset, setActivePreset] = useState<PresetKey | null>(null);
-  const [showPresetsDropdown, setShowPresetsDropdown] = useState<boolean>(false);
-  const presetsRef = useRef<HTMLDivElement>(null);
+  const [activePreset, setActivePreset] = useState<PresetKey>('basicChat');
 
   const memoizedParsedPayload = useMemo(() => {
     if (!requestBody.trim()) return null;
@@ -171,17 +169,6 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
       // ignore
     }
   }, [requestBody]);
-
-  // Close dropdown on outside click
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (presetsRef.current && !presetsRef.current.contains(e.target as Node)) {
-        setShowPresetsDropdown(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   const handleModelChange = (modelName: string) => {
     setSelectedModel(modelName);
@@ -219,6 +206,9 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
 
   const handleResetJson = () => {
     setRequestBody(JSON.stringify(DEFAULT_PRESETS[endpointOption], null, 2));
+    if (endpointOption === 'messages') {
+      setActivePreset('basicChat');
+    }
   };
 
   const handleSelectPreset = (key: PresetKey) => {
@@ -227,7 +217,6 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
     setRequestBody(JSON.stringify(preset, null, 2));
     setSelectedModel(preset.model || 'gemini-flash-lite-latest');
     setEndpointOption('messages');
-    setShowPresetsDropdown(false);
   };
 
   const handleApplyPreset = handleSelectPreset;
@@ -244,6 +233,9 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
     setEndpointOption(option);
     if (option === 'messages' || option === 'count_tokens') {
       setRequestBody(JSON.stringify(DEFAULT_PRESETS[option], null, 2));
+      if (option === 'messages') {
+        setActivePreset('basicChat');
+      }
     }
   };
 
@@ -550,7 +542,7 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
             {/* 3. Presets Selector (Adaptive on mobile) */}
             <div className="relative flex-1 min-w-[96px] max-w-[170px] sm:max-w-none sm:flex-none">
               <select
-                value={activePreset || ''}
+                value={activePreset}
                 onChange={(e) => {
                   if (e.target.value) {
                     handleApplyPreset(e.target.value as PresetKey);
@@ -558,7 +550,6 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
                 }}
                 className="appearance-none ui-input w-full sm:w-auto pr-6 py-1 px-2 text-xs font-medium cursor-pointer truncate"
               >
-                <option value="" disabled>{t('playground.presets')}</option>
                 <option value="basicChat">{t('playground.presetBasicChat')}</option>
                 <option value="toolUse">{t('playground.presetToolUse')}</option>
                 <option value="vision">{t('playground.presetVision')}</option>
