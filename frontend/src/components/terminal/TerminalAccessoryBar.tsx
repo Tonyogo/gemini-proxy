@@ -200,6 +200,18 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
               ^D
             </button>
 
+            {/* Action: Ctrl+Z */}
+            <button
+              type="button"
+              onTouchStart={(e) => e.preventDefault()}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => onSendInput('\x1a')}
+              className="px-2 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 active:scale-95 text-amber-500 dark:text-amber-400 font-mono text-xs font-semibold border border-amber-500/30 transition-all"
+              title="Suspend (Ctrl+Z)"
+            >
+              {t('webTerminal.accessoryKeys.ctrlZ', '^Z')}
+            </button>
+
             {/* Action: Ctrl+L */}
             <button
               type="button"

@@ -52,11 +52,14 @@ describe('TerminalAccessoryBar and Anti-Keyboard-Popup Controls', () => {
     const idxPgUp = content.indexOf("encodeNavigationKey('PageUp'");
     const idxPgDn = content.indexOf("encodeNavigationKey('PageDown'");
 
-    expect(idxHome).toBeGreaterThan(idxArrowRight);
-    expect(idxEnd).toBeGreaterThan(idxHome);
-    expect(idxDel).toBeGreaterThan(idxEnd);
-    expect(idxPgUp).toBeGreaterThan(idxDel);
-    expect(idxPgDn).toBeGreaterThan(idxPgUp);
+    // 5. Extended action keys ordering: ^D before ^Z, and ^Z before ^L
+    const idxCtrlD = content.indexOf('title="EOF (Ctrl+D)"');
+    const idxCtrlZ = content.indexOf('title="Suspend (Ctrl+Z)"');
+    const idxCtrlL = content.indexOf('title="Clear Screen (Ctrl+L)"');
+    expect(idxCtrlD).toBeGreaterThan(0);
+    expect(idxCtrlZ).toBeGreaterThan(idxCtrlD);
+    expect(idxCtrlL).toBeGreaterThan(idxCtrlZ);
+    expect(content).toContain("onClick={() => onSendInput('\\x1a')}");
   });
 
   test('TerminalAccessoryBar supports concise mode and localStorage persistence', () => {
@@ -130,6 +133,7 @@ describe('TerminalAccessoryBar and Anti-Keyboard-Popup Controls', () => {
     expect(en.webTerminal.accessoryKeys.end).toBe('End');
     expect(en.webTerminal.accessoryKeys.del).toBe('Del');
     expect(en.webTerminal.accessoryKeys.ok).toBe('OK');
+    expect(en.webTerminal.accessoryKeys.ctrlZ).toBe('^Z');
     expect(en.webTerminal.accessoryKeys.moreKeys).toBe('More');
     expect(en.webTerminal.accessoryKeys.conciseKeys).toBe('Compact');
 
@@ -140,6 +144,7 @@ describe('TerminalAccessoryBar and Anti-Keyboard-Popup Controls', () => {
     expect(zh.webTerminal.accessoryKeys.end).toBe('End');
     expect(zh.webTerminal.accessoryKeys.del).toBe('Del');
     expect(zh.webTerminal.accessoryKeys.ok).toBe('OK');
+    expect(zh.webTerminal.accessoryKeys.ctrlZ).toBe('^Z');
     expect(zh.webTerminal.accessoryKeys.moreKeys).toBe('更多');
     expect(zh.webTerminal.accessoryKeys.conciseKeys).toBe('简洁');
   });
