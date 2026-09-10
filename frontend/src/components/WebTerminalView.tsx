@@ -249,6 +249,33 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
     }
   }, []);
 
+  const safeFit = useCallback((): boolean => {
+    if (!isMountedRef.current || !fitAddonRef.current || !xtermRef.current || !terminalContainerRef.current) {
+      return false;
+    }
+    const container = terminalContainerRef.current;
+    if (container.clientWidth <= 0 || container.clientHeight <= 0) {
+      return false;
+    }
+
+    try {
+      const term = xtermRef.current;
+      const wasAtBottom = isUserAtBottom(term);
+      fitAddonRef.current.fit();
+      const { cols, rows } = term;
+      if (cols > 2 && rows > 1) {
+        sendResize(cols, rows);
+        if (shouldScrollToBottom({ isReplaying: isReplayingRef.current, wasAtBottom, bufferType: term.buffer.active.type })) {
+          scrollToBottomSafe(term);
+        }
+        return true;
+      }
+    } catch (err) {
+      console.debug('[WebTerminal] safeFit bypassed:', err);
+    }
+    return false;
+  }, [sendResize]);
+
   const clearReconnectTimers = useCallback(() => {
     if (countdownIntervalRef.current) {
       clearInterval(countdownIntervalRef.current);
@@ -805,14 +832,27 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
       console.debug('[WebTerminal] term.onKey event:', e.key, 'domEvent:', e.domEvent.key, 'code:', e.domEvent.code);
     });
 
-    let isMounted = true;
-    const fitTimer = setTimeout(() => {
-      if (isMounted && fitAddonRef.current && xtermRef.current) {
-        fitAddonRef.current.fit();
-        xtermRef.current.focus();
-        scrollToBottomSafe(xtermRef.current);
-      }
-    }, 50);
+    let cancelRaf = false;
+    const fallbackTimers: NodeJS.Timeout[] = [];
+
+    const triggerMountProbe = () => {
+      if (typeof window === 'undefined') return;
+      window.requestAnimationFrame(() => {
+        if (cancelRaf) return;
+        if (!safeFit()) {
+          window.requestAnimationFrame(() => {
+            if (cancelRaf) return;
+            if (!safeFit()) {
+              fallbackTimers.push(setTimeout(safeFit, 60));
+              fallbackTimers.push(setTimeout(safeFit, 150));
+              fallbackTimers.push(setTimeout(safeFit, 300));
+            }
+          });
+        }
+      });
+    };
+
+    triggerMountProbe();
 
     initWebSocket();
 
@@ -950,10 +990,10 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
     updateViewport();
 
     return () => {
-      isMounted = false;
+      cancelRaf = true;
+      fallbackTimers.forEach((t) => clearTimeout(t));
       isMountedRef.current = false;
       clearReconnectTimers();
-      clearTimeout(fitTimer);
       if (orientationTimer) {
         clearTimeout(orientationTimer);
       }
