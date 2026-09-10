@@ -15,6 +15,6 @@ describe('Unified Terminal Integration and Translations', () => {
   it('UnifiedTerminalView handles mobile visualViewport when in standalone mode', () => {
     const content = fs.readFileSync(unifiedPath, 'utf-8');
     expect(content).toContain('calculateKeyboardTranslateY');
-    expect(content).toContain('viewportStyle');
+    expect(content).toContain('workspaceStyle');
   });
 });
