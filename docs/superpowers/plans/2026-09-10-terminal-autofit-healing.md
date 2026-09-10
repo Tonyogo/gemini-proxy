@@ -32,7 +32,7 @@
   - `safeFit: () => boolean` in `WebTerminalView`.
   - Double `requestAnimationFrame` sequence with staged fallbacks (60ms, 150ms, 300ms) on mount.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/terminalAutoFitHealing.test.ts`:
 ```typescript
@@ -60,12 +60,12 @@ describe('WebTerminalView Auto-Fit Initialization & Healing', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/terminalAutoFitHealing.test.ts`
 Expected: FAIL (missing `safeFit` and staged fallbacks).
 
-- [ ] **Step 3: Implement safeFit and multi-stage mount probing in WebTerminalView**
+- [x] **Step 3: Implement safeFit and multi-stage mount probing in WebTerminalView**
 
 In `frontend/src/components/WebTerminalView.tsx`:
 1. Define `safeFit`:
@@ -123,12 +123,12 @@ In `frontend/src/components/WebTerminalView.tsx`:
    ```
 3. Ensure cleanup handles clearing all staged timeouts.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/terminalAutoFitHealing.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src/components/WebTerminalView.tsx tests/terminalAutoFitHealing.test.ts
@@ -149,7 +149,7 @@ git commit -m "feat(terminal): implement safeFit engine and multi-stage layout p
   - Calibration retry in `ws.onopen`.
   - `document.fonts.ready` subscription.
 
-- [ ] **Step 1: Write test additions**
+- [x] **Step 1: Write test additions**
 
 Append to `tests/terminalAutoFitHealing.test.ts`:
 ```typescript
@@ -167,12 +167,12 @@ Append to `tests/terminalAutoFitHealing.test.ts`:
   });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/terminalAutoFitHealing.test.ts`
 Expected: FAIL (missing font ready & data arrival healing checks).
 
-- [ ] **Step 3: Implement data arrival healing, onopen retry, and font-ready triggers**
+- [x] **Step 3: Implement data arrival healing, onopen retry, and font-ready triggers**
 
 In `frontend/src/components/WebTerminalView.tsx`:
 1. In `initWebSocket`:
@@ -201,12 +201,12 @@ In `frontend/src/components/WebTerminalView.tsx`:
      ```
 3. In `useImperativeHandle`: update `fit: safeFit`.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/terminalAutoFitHealing.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src/components/WebTerminalView.tsx tests/terminalAutoFitHealing.test.ts
@@ -222,17 +222,17 @@ git commit -m "feat(terminal): add first-data arrival healing and font-ready rec
 - Build: `npm run build`
 - Tests: `npm test`
 
-- [ ] **Step 1: Run complete test suite**
+- [x] **Step 1: Run complete test suite**
 
 Run: `npm test`
 Expected: All 83+ test suites pass with 0 errors.
 
-- [ ] **Step 2: Run frontend and backend production build**
+- [x] **Step 2: Run frontend and backend production build**
 
 Run: `npm run build`
 Expected: `dist/frontend` (Vite) and `dist/src` (tsc) compile cleanly with 0 errors.
 
-- [ ] **Step 3: Commit and Push**
+- [x] **Step 3: Commit and Push**
 
 ```bash
 git status
