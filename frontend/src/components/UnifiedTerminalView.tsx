@@ -48,8 +48,9 @@ export default function UnifiedTerminalView({
   const [isSelectMode, setIsSelectMode] = useState<boolean>(false);
   const [isAddNodeModalOpen, setIsAddNodeModalOpen] = useState<boolean>(false);
 
+  const headerRef = useRef<HTMLDivElement>(null);
   // Mobile Visual Viewport tracking for virtual keyboard positioning in standalone mode
-  const [viewportStyle, setViewportStyle] = useState<React.CSSProperties>({});
+  const [workspaceStyle, setWorkspaceStyle] = useState<React.CSSProperties>({});
   const baseHeightRef = useRef<number>(typeof window !== 'undefined' ? window.innerHeight : 0);
   const isMobile = typeof window !== 'undefined'
     ? window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
@@ -63,7 +64,7 @@ export default function UnifiedTerminalView({
 
   useEffect(() => {
     if (!isStandalone || !isMobile || typeof window === 'undefined' || !window.visualViewport) {
-      setViewportStyle({});
+      setWorkspaceStyle({});
       return;
     }
 
@@ -77,26 +78,21 @@ export default function UnifiedTerminalView({
         offsetTop: 0,
       });
 
+      const headerHeight = headerRef.current?.offsetHeight || 44;
+
       if (offsetResult.isKeyboardShowing) {
-        setViewportStyle({
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 'auto',
-          width: '100vw',
-          height: `${baseHeightRef.current}px`,
-          maxHeight: `${baseHeightRef.current}px`,
-          transform: `translate3d(0, -${offsetResult.translateY}px, 0)`,
-          transition: 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
-          willChange: 'transform',
-          zIndex: 50,
-          borderRadius: 0,
-          border: 'none',
+        const availableHeight = Math.max(120, vv.height - headerHeight);
+        setWorkspaceStyle({
+          height: `${availableHeight}px`,
+          maxHeight: `${availableHeight}px`,
+          flex: 'none',
+          transition: 'height 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
           overflow: 'hidden',
         });
+        terminalRef.current?.fit();
+        terminalRef.current?.scrollToBottomSafe?.();
       } else {
-        setViewportStyle({});
+        setWorkspaceStyle({});
       }
     };
 
@@ -152,7 +148,6 @@ export default function UnifiedTerminalView({
 
   return (
     <div
-      style={isMobile && isStandalone ? viewportStyle : undefined}
       className={`mx-auto flex flex-col bg-[var(--bg-canvas)] border border-[var(--border-subtle)] overflow-hidden shadow-2xl font-mono text-xs transition-none ${
         isStandalone
           ? 'fixed inset-0 z-50 rounded-none h-[100dvh] w-screen overflow-hidden overscroll-none border-none'
@@ -160,7 +155,7 @@ export default function UnifiedTerminalView({
       }`}
     >
       {/* Top Window Bar */}
-      <div className="bg-[var(--bg-surface-sub)] border-b border-[var(--border-subtle)] px-2 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between select-none shrink-0 sticky top-0 z-10">
+      <div ref={headerRef} className="bg-[var(--bg-surface-sub)] border-b border-[var(--border-subtle)] px-2 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between select-none shrink-0 sticky top-0 z-30">
         <div className="flex items-center space-x-1.5 sm:space-x-2 min-w-0">
           {/* Back to Console (Standalone Mode) */}
           {isStandalone && onExitStandalone && (
@@ -331,37 +326,43 @@ export default function UnifiedTerminalView({
         </div>
       </div>
 
-      {/* Main Dual Panels Workspace (Preserved via CSS hidden / flex toggle) */}
-      <div className={`flex-1 min-h-0 ${subTab === 'interactive' ? 'flex' : 'hidden'} flex-col`}>
-        <WebTerminalView
-          ref={terminalRef}
-          adminKey={adminKey}
-          hideHeader={true}
-          standalone={Boolean(isStandalone)}
-          onExitStandalone={onExitStandalone}
-          onToggleStandalone={(val) => {
-            if (val && onEnterStandalone) {
-              onEnterStandalone();
-            } else if (!val && onExitStandalone) {
-              onExitStandalone();
-            }
-          }}
-          controlledHostId={activeHostId}
-          onControlledHostChange={handleHostChange}
-          hideInnerHostSelector={true}
-          onConnectionChange={setConnectionStatus}
-          onSelectModeChange={setIsSelectMode}
-          onRequestAddNode={() => setIsAddNodeModalOpen(true)}
-        />
-      </div>
+      {/* Dual Panels Workspace Container */}
+      <div
+        style={isMobile && isStandalone ? workspaceStyle : undefined}
+        className="flex-1 min-h-0 flex flex-col relative overflow-hidden"
+      >
+        {/* Main Dual Panels Workspace (Preserved via CSS hidden / flex toggle) */}
+        <div className={`flex-1 min-h-0 ${subTab === 'interactive' ? 'flex' : 'hidden'} flex-col`}>
+          <WebTerminalView
+            ref={terminalRef}
+            adminKey={adminKey}
+            hideHeader={true}
+            standalone={Boolean(isStandalone)}
+            onExitStandalone={onExitStandalone}
+            onToggleStandalone={(val) => {
+              if (val && onEnterStandalone) {
+                onEnterStandalone();
+              } else if (!val && onExitStandalone) {
+                onExitStandalone();
+              }
+            }}
+            controlledHostId={activeHostId}
+            onControlledHostChange={handleHostChange}
+            hideInnerHostSelector={true}
+            onConnectionChange={setConnectionStatus}
+            onSelectModeChange={setIsSelectMode}
+            onRequestAddNode={() => setIsAddNodeModalOpen(true)}
+          />
+        </div>
 
-      <div className={`flex-1 min-h-0 ${subTab === 'files' ? 'flex' : 'hidden'} flex-col`}>
-        <TerminalFileManagerView
-          ref={fileManagerRef}
-          adminKey={adminKey}
-          activeHostId={activeHostId}
-          onRequestAddNode={() => setIsAddNodeModalOpen(true)}
-        />
+        <div className={`flex-1 min-h-0 ${subTab === 'files' ? 'flex' : 'hidden'} flex-col`}>
+          <TerminalFileManagerView
+            ref={fileManagerRef}
+            adminKey={adminKey}
+            activeHostId={activeHostId}
+            onRequestAddNode={() => setIsAddNodeModalOpen(true)}
+          />
+        </div>
       </div>
     </div>
   );

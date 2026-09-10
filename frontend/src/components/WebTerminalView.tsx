@@ -93,6 +93,7 @@ export interface WebTerminalHandle {
   resetSession: () => void;
   toggleSelectMode: () => void;
   fit: () => void;
+  scrollToBottomSafe?: () => void;
   isSelectMode: boolean;
 }
 
@@ -1411,6 +1412,11 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
             console.warn('[WebTerminalView] fit error:', err);
           }
         }
+      }
+    },
+    scrollToBottomSafe: () => {
+      if (xtermRef.current) {
+        scrollToBottomSafe(xtermRef.current);
       }
     },
     get isSelectMode() {
