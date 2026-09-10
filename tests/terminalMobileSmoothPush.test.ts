@@ -16,10 +16,9 @@ describe('WebTerminalView Mobile Smooth Push Integration', () => {
     expect(content).toContain('baseWidthRef');
   });
 
-  test('applies translate3d and spring transition in mobile standalone viewportStyle', () => {
-    expect(content).toContain('translate3d(0, -');
+  test('applies dynamic height and spring transition in mobile standalone viewportStyle', () => {
     expect(content).toContain('cubic-bezier(0.16, 1, 0.3, 1)');
-    expect(content).toContain('willChange');
+    expect(content).toContain('transition');
   });
 
   test('blocks fitAddon.fit and sendResize when keyboard is showing', () => {

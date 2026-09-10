@@ -208,6 +208,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
   });
 
   // Mobile Visual Viewport tracking for virtual keyboard positioning
+  const headerRef = useRef<HTMLDivElement>(null);
   const [viewportStyle, setViewportStyle] = useState<React.CSSProperties>({});
 
   const baseHeightRef = useRef<number>(typeof window !== 'undefined' ? window.innerHeight : 0);
@@ -865,23 +866,19 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
       isKeyboardShowingRef.current = isKeyboardShowing;
 
       if (mobile && standalone) {
-        setViewportStyle({
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 'auto',
-          width: '100vw',
-          height: `${baseHeightRef.current}px`,
-          maxHeight: `${baseHeightRef.current}px`,
-          transform: `translate3d(0, -${translateY}px, 0)`,
-          transition: 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
-          willChange: 'transform',
-          zIndex: 50,
-          borderRadius: 0,
-          border: 'none',
-          overflow: 'hidden',
-        });
+        if (isKeyboardShowing) {
+          const headerHeight = !hideHeader ? (headerRef.current?.offsetHeight || 44) : 0;
+          const availableHeight = Math.max(120, (window.visualViewport?.height || baseHeightRef.current) - headerHeight);
+          setViewportStyle({
+            height: `${availableHeight}px`,
+            maxHeight: `${availableHeight}px`,
+            flex: 'none',
+            transition: 'height 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
+            overflow: 'hidden',
+          });
+        } else {
+          setViewportStyle({});
+        }
       } else {
         setViewportStyle({});
       }
@@ -1434,7 +1431,6 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
 
   return (
     <div
-      style={!hideHeader && isMobile && standalone ? viewportStyle : undefined}
       className={`mx-auto flex flex-col bg-[var(--bg-canvas)] overflow-hidden font-mono text-xs transition-none ${
         hideHeader
           ? 'w-full h-full flex-1 border-none shadow-none rounded-none'
@@ -1445,7 +1441,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
     >
       {/* Top Window Bar */}
       {!hideHeader && (
-      <div className="bg-[var(--bg-surface-sub)] border-b border-[var(--border-subtle)] px-2 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between select-none shrink-0 sticky top-0 z-10">
+      <div ref={headerRef} className="bg-[var(--bg-surface-sub)] border-b border-[var(--border-subtle)] px-2 sm:px-4 py-1.5 sm:py-2 flex items-center justify-between select-none shrink-0 sticky top-0 z-30">
         <div className="flex items-center space-x-1.5 sm:space-x-2 min-w-0">
           {/* Back to Console (Standalone Mode) */}
           {standalone && onExitStandalone && (
@@ -1609,7 +1605,12 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
       </div>
       )}
 
-      {/* xterm.js Canvas Container */}
+      {/* Terminal Workspace Container */}
+      <div
+        style={!hideHeader && isMobile && standalone ? viewportStyle : undefined}
+        className="flex-1 min-h-0 flex flex-col relative overflow-hidden"
+      >
+        {/* xterm.js Canvas Container */}
       <div
         onClick={() => {
           if (!isSelectModeRef.current) {
@@ -1797,6 +1798,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
         onToggleSelectMode={handleToggleSelectMode}
       />
       )}
+      </div>
     </div>
   );
 });

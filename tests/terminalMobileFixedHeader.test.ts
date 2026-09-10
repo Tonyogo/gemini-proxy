@@ -24,4 +24,9 @@ describe('UnifiedTerminalView Mobile Fixed Header & Adaptive Viewport', () => {
     expect(content).toContain('cubic-bezier(0.16, 1, 0.3, 1)');
     expect(content).toMatch(/style=\{isMobile\s*&&\s*isStandalone\s*\?\s*workspaceStyle\s*:\s*undefined\}/);
   });
+
+  it('WebTerminalView header has sticky top-0 and does not translate off-screen', () => {
+    const webContent = fs.readFileSync(path.resolve(__dirname, '../frontend/src/components/WebTerminalView.tsx'), 'utf-8');
+    expect(webContent).toContain('sticky top-0 z-30');
+  });
 });
