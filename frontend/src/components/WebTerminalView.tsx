@@ -241,9 +241,9 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
     if (cols === lastSentColsRef.current && rows === lastSentRowsRef.current) {
       return;
     }
-    lastSentColsRef.current = cols;
-    lastSentRowsRef.current = rows;
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      lastSentColsRef.current = cols;
+      lastSentRowsRef.current = rows;
       console.debug(`[WebTerminal] Sending resize to backend: ${cols}x${rows}`);
       wsRef.current.send(`JSON:${JSON.stringify({ type: 'resize', cols, rows })}`);
     }
@@ -1399,6 +1399,16 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
     reconnectAttemptRef.current = 0;
     initWebSocket();
   };
+
+  useEffect(() => {
+    if (activeHostId) {
+      const timer = setTimeout(() => {
+        safeFit();
+        xtermRef.current?.refresh(0, Math.max(0, (xtermRef.current?.rows || 1) - 1));
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [activeHostId, safeFit]);
 
   useEffect(() => {
     if (controlledHostId !== undefined && controlledHostId !== activeHostId) {

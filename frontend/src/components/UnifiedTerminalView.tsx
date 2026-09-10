@@ -137,6 +137,17 @@ export default function UnifiedTerminalView({
   }, []);
 
   useEffect(() => {
+    if (subTab === 'interactive' && activeHostId) {
+      const t1 = setTimeout(() => terminalRef.current?.fit(), 60);
+      const t2 = setTimeout(() => terminalRef.current?.fit(), 200);
+      return () => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+      };
+    }
+  }, [subTab, activeHostId]);
+
+  useEffect(() => {
     const handleWindowResize = () => {
       if (subTab === 'interactive') {
         terminalRef.current?.fit();
