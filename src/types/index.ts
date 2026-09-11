@@ -80,3 +80,13 @@ export type ModelMappingValue = string | string[] | ModelMappingTargetConfig;
 
 export type ModelMappingsConfig = Record<string, ModelMappingValue>;
 
+export interface CustomWebAppItem {
+  id: string;
+  name: string;
+  url: string;
+  icon?: string;
+  color?: string;
+  useGateway?: boolean;
+  createdAt: number;
+}
+

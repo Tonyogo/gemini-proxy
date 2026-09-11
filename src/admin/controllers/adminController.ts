@@ -30,7 +30,8 @@ class AdminController {
         logRetentionDays: config.logRetentionDays,
         countTokensModel: config.countTokensModel,
         ephemeralUserMessages: config.ephemeralUserMessages,
-        ephemeralSystemMessages: config.ephemeralSystemMessages
+        ephemeralSystemMessages: config.ephemeralSystemMessages,
+        customWebApps: config.customWebApps
       }
     });
   }
@@ -101,7 +102,8 @@ class AdminController {
           logRetentionDays: config.logRetentionDays,
           countTokensModel: config.countTokensModel,
           ephemeralUserMessages: config.ephemeralUserMessages,
-          ephemeralSystemMessages: config.ephemeralSystemMessages
+          ephemeralSystemMessages: config.ephemeralSystemMessages,
+          customWebApps: config.customWebApps
         }
       });
     } catch (err: any) {

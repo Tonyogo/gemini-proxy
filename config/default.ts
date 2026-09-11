@@ -1,9 +1,32 @@
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 import { existsSync, readFileSync, promises as fs } from 'fs';
-import { ModelMappingsConfig } from '../src/types';
+import { ModelMappingsConfig, CustomWebAppItem } from '../src/types';
 
 dotenv.config();
+
+export const PRESET_CUSTOM_WEB_APPS: CustomWebAppItem[] = [
+  {
+    id: 'preset_ubuntu_ui',
+    name: 'Ubuntu Web UI',
+    url: 'https://ubuntu.yatao.cc.cd/ui/',
+    icon: 'Layout',
+    color: 'from-orange-500 to-amber-600',
+    createdAt: 1726045000000,
+  },
+];
+
+let parsedCustomWebApps: CustomWebAppItem[] = PRESET_CUSTOM_WEB_APPS;
+if (process.env.CUSTOM_WEB_APPS) {
+  try {
+    const parsed = JSON.parse(process.env.CUSTOM_WEB_APPS);
+    if (Array.isArray(parsed)) {
+      parsedCustomWebApps = parsed;
+    }
+  } catch (err) {
+    // Falls back to defaults
+  }
+}
 
 let parsedModelMappings: ModelMappingsConfig = {};
 if (process.env.MODEL_MAPPINGS) {
@@ -65,7 +88,8 @@ const getEnvConfig = () => ({
   logRetentionDays: parseInt(process.env.LOG_RETENTION_DAYS || '3', 10) as number,
   countTokensModel: (process.env.COUNT_TOKENS_MODEL || '') as string,
   mihomoApiUrl: (process.env.MIHOMO_API_URL || 'http://127.0.0.1:9090') as string,
-  mihomoSecret: (process.env.MIHOMO_SECRET || '') as string
+  mihomoSecret: (process.env.MIHOMO_SECRET || '') as string,
+  customWebApps: parsedCustomWebApps as CustomWebAppItem[]
 });
 
 export const config = {
