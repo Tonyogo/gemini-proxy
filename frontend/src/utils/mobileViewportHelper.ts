@@ -6,15 +6,18 @@ export interface KeyboardOffsetResult {
 /**
  * Calculates whether the virtual keyboard is open and how much translateY
  * needs to be applied to push content upwards like a messaging app.
+ * Requires `isInputFocused` to prevent false positives from mobile browser chrome.
  */
 export function calculateKeyboardTranslateY({
   baseHeight,
   viewportHeight,
   offsetTop = 0,
+  isInputFocused = true,
 }: {
   baseHeight: number;
   viewportHeight: number;
   offsetTop?: number;
+  isInputFocused?: boolean;
 }): KeyboardOffsetResult {
   if (baseHeight <= 0 || viewportHeight <= 0) {
     return { isKeyboardShowing: false, translateY: 0 };
@@ -23,7 +26,7 @@ export function calculateKeyboardTranslateY({
   const rawDiff = baseHeight - viewportHeight;
   // Threshold: keyboard height is typically >= 150px or >= 18% of screen height
   const threshold = Math.min(150, baseHeight * 0.18);
-  const isKeyboardShowing = rawDiff > threshold;
+  const isKeyboardShowing = isInputFocused && rawDiff > threshold;
 
   if (!isKeyboardShowing) {
     return { isKeyboardShowing: false, translateY: 0 };
@@ -46,14 +49,16 @@ export function shouldBlockPtyResize({
   isKeyboardShowing,
   isMobile,
   standalone,
+  isInputFocused = true,
 }: {
   baseWidth: number;
   currentWidth: number;
   isKeyboardShowing: boolean;
   isMobile: boolean;
   standalone: boolean;
+  isInputFocused?: boolean;
 }): boolean {
-  if (!isMobile || !standalone) {
+  if (!isMobile || !standalone || !isInputFocused) {
     return false;
   }
 
@@ -62,6 +67,6 @@ export function shouldBlockPtyResize({
     return false;
   }
 
-  // While keyboard is showing, block PTY resize completely
+  // While keyboard is showing and input is focused, block PTY resize
   return isKeyboardShowing;
 }
