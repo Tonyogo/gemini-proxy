@@ -129,4 +129,32 @@ describe('Mihomo Reverse Proxy Endpoints', () => {
     expect(res.status).toBe(200);
     expect(res.body.mode).toBe('global');
   });
+
+  it('overrides target URL and secret when x-mihomo-url and x-mihomo-secret headers are provided', async () => {
+    // Test with custom secret header
+    const res = await request(app)
+      .get('/api/admin/mihomo/status')
+      .set('x-admin-key', 'test-admin-key')
+      .set('x-mihomo-secret', 'test-secret');
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+
+    // Test failure with wrong custom secret header
+    const failRes = await request(app)
+      .get('/api/admin/mihomo/status')
+      .set('x-admin-key', 'test-admin-key')
+      .set('x-mihomo-secret', 'wrong-secret');
+    expect(failRes.status).toBe(200);
+    expect(failRes.body.ok).toBe(false);
+    expect(failRes.body.statusCode).toBe(401);
+
+    // Test failure with unreachable target URL
+    const urlFailRes = await request(app)
+      .get('/api/admin/mihomo/status')
+      .set('x-admin-key', 'test-admin-key')
+      .set('x-mihomo-url', 'http://127.0.0.1:19999');
+    expect(urlFailRes.status).toBe(200);
+    expect(urlFailRes.body.ok).toBe(false);
+    expect(urlFailRes.body.statusCode).toBe(502);
+  });
 });

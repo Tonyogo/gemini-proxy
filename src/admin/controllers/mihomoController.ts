@@ -1,10 +1,16 @@
 import { Request, Response } from 'express';
-import mihomoService from '../services/mihomoService';
+import mihomoService, { MihomoConnectionOptions } from '../services/mihomoService';
 
 class MihomoController {
+  private getConnectionOptions(req: Request): MihomoConnectionOptions {
+    const targetUrl = (req.headers['x-mihomo-url'] as string)?.trim() || undefined;
+    const targetSecret = (req.headers['x-mihomo-secret'] as string) || undefined;
+    return { targetUrl, targetSecret };
+  }
+
   public async getStatus(req: Request, res: Response): Promise<void> {
     try {
-      const result = await mihomoService.getStatus();
+      const result = await mihomoService.getStatus(this.getConnectionOptions(req));
       res.status(200).json(result);
     } catch (err: any) {
       res.status(200).json({ ok: false, message: err.message || 'Error checking status' });
@@ -13,7 +19,7 @@ class MihomoController {
 
   public async getTraffic(req: Request, res: Response): Promise<void> {
     try {
-      const result = await mihomoService.getTraffic();
+      const result = await mihomoService.getTraffic(this.getConnectionOptions(req));
       res.status(result.status).json(result.data);
     } catch (err: any) {
       res.status(502).json({ error: err.message || 'Failed to fetch traffic from Mihomo' });
@@ -22,7 +28,7 @@ class MihomoController {
 
   public async getProxies(req: Request, res: Response): Promise<void> {
     try {
-      const result = await mihomoService.getProxies();
+      const result = await mihomoService.getProxies(this.getConnectionOptions(req));
       res.status(result.status).json(result.data);
     } catch (err: any) {
       res.status(502).json({ error: err.message || 'Failed to fetch proxies from Mihomo' });
@@ -38,7 +44,7 @@ class MihomoController {
     }
 
     try {
-      const result = await mihomoService.selectProxy(group, name);
+      const result = await mihomoService.selectProxy(group, name, this.getConnectionOptions(req));
       if (result.status === 204) {
         res.status(204).end();
         return;
@@ -60,7 +66,7 @@ class MihomoController {
     }
 
     try {
-      const result = await mihomoService.getProxyDelay(name, testUrl, timeout);
+      const result = await mihomoService.getProxyDelay(name, testUrl, timeout, this.getConnectionOptions(req));
       res.status(result.status).json(result.data);
     } catch (err: any) {
       res.status(502).json({ error: err.message || 'Failed to test proxy delay' });
@@ -69,7 +75,7 @@ class MihomoController {
 
   public async getConfigs(req: Request, res: Response): Promise<void> {
     try {
-      const result = await mihomoService.getConfigs();
+      const result = await mihomoService.getConfigs(this.getConnectionOptions(req));
       res.status(result.status).json(result.data);
     } catch (err: any) {
       res.status(502).json({ error: err.message || 'Failed to fetch configs from Mihomo' });
@@ -78,7 +84,7 @@ class MihomoController {
 
   public async updateConfigs(req: Request, res: Response): Promise<void> {
     try {
-      const result = await mihomoService.updateConfigs(req.body);
+      const result = await mihomoService.updateConfigs(req.body, this.getConnectionOptions(req));
       res.status(result.status).json(result.data);
     } catch (err: any) {
       res.status(502).json({ error: err.message || 'Failed to update configs in Mihomo' });
@@ -87,7 +93,7 @@ class MihomoController {
 
   public async getConnections(req: Request, res: Response): Promise<void> {
     try {
-      const result = await mihomoService.getConnections();
+      const result = await mihomoService.getConnections(this.getConnectionOptions(req));
       res.status(result.status).json(result.data);
     } catch (err: any) {
       res.status(502).json({ error: err.message || 'Failed to fetch connections from Mihomo' });
@@ -97,7 +103,7 @@ class MihomoController {
   public async closeConnections(req: Request, res: Response): Promise<void> {
     const id = req.params.id ? (Array.isArray(req.params.id) ? req.params.id[0] : req.params.id) : undefined;
     try {
-      const result = await mihomoService.closeConnections(id);
+      const result = await mihomoService.closeConnections(id, this.getConnectionOptions(req));
       if (result.status === 204) {
         res.status(204).end();
         return;
