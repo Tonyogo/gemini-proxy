@@ -853,12 +853,14 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
             if (cancelRaf) return;
             fallbackTimers.push(setTimeout(() => safeFit(true), 60));
             fallbackTimers.push(setTimeout(() => safeFit(true), 150));
+            fallbackTimers.push(setTimeout(() => safeFit(true), 300));
             fallbackTimers.push(setTimeout(() => safeFit(true), 350));
             fallbackTimers.push(setTimeout(() => safeFit(false), 800));
           });
         } else {
           fallbackTimers.push(setTimeout(() => safeFit(true), 60));
           fallbackTimers.push(setTimeout(() => safeFit(true), 150));
+          fallbackTimers.push(setTimeout(() => safeFit(true), 300));
           fallbackTimers.push(setTimeout(() => safeFit(true), 350));
           fallbackTimers.push(setTimeout(() => safeFit(false), 800));
         }
