@@ -30,7 +30,7 @@
   - 参数：无（内部防御 SSR `typeof window === 'undefined'`）
   - 返回值：`boolean`（若为移动端环境或屏幕宽度 `< 768px` 返回 `true`）
 
-- [ ] **Step 1: 在 `tests/mobileViewportHelper.test.ts` 中编写 `isMobileScreenOrDevice` 判定测试用例**
+- [x] **Step 1: 在 `tests/mobileViewportHelper.test.ts` 中编写 `isMobileScreenOrDevice` 判定测试用例**
 
 ```typescript
 // tests/mobileViewportHelper.test.ts
@@ -64,12 +64,12 @@ describe('isMobileScreenOrDevice Helper', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试验证其失败**
+- [x] **Step 2: 运行测试验证其失败**
 
 Run: `npx jest tests/mobileViewportHelper.test.ts`
 Expected: FAIL - "isMobileScreenOrDevice is not a function"
 
-- [ ] **Step 3: 在 `frontend/src/utils/mobileViewportHelper.ts` 中实现 `isMobileScreenOrDevice`**
+- [x] **Step 3: 在 `frontend/src/utils/mobileViewportHelper.ts` 中实现 `isMobileScreenOrDevice`**
 
 ```typescript
 /**
@@ -87,12 +87,12 @@ export function isMobileScreenOrDevice(): boolean {
 }
 ```
 
-- [ ] **Step 4: 重新运行测试验证其通过**
+- [x] **Step 4: 重新运行测试验证其通过**
 
 Run: `npx jest tests/mobileViewportHelper.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: 提交更改**
+- [x] **Step 5: 提交更改**
 
 ```bash
 git add frontend/src/utils/mobileViewportHelper.ts tests/mobileViewportHelper.test.ts
@@ -115,7 +115,7 @@ git commit -m "feat(terminal): add isMobileScreenOrDevice helper function"
   - `handleExitStandalone()`: 若当前处于移动端，退出全屏后直接将 `discoverSubView` 重置为 `'hub'`
   - `popstate` / `hashchange`: 当离开 `#/terminal` 时，若为移动端将 `discoverSubView` 同步重置为 `'hub'`
 
-- [ ] **Step 1: 编写 `tests/terminalMobileDirectFullscreen.test.ts` 源码逻辑断言测试**
+- [x] **Step 1: 编写 `tests/terminalMobileDirectFullscreen.test.ts` 源码逻辑断言测试**
 
 ```typescript
 import * as fs from 'fs';
@@ -151,12 +151,12 @@ describe('Terminal Mobile Direct Fullscreen Routing & Logic', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试验证失败**
+- [x] **Step 2: 运行测试验证失败**
 
 Run: `npx jest tests/terminalMobileDirectFullscreen.test.ts`
 Expected: FAIL - 匹配项未命中
 
-- [ ] **Step 3: 更新 `frontend/src/App.tsx` 中的路由与全屏联动代码**
+- [x] **Step 3: 更新 `frontend/src/App.tsx` 中的路由与全屏联动代码**
 
 在 `frontend/src/App.tsx` 引入 `isMobileScreenOrDevice`：
 ```typescript
@@ -204,12 +204,12 @@ import { isMobileScreenOrDevice } from './utils/mobileViewportHelper';
   };
 ```
 
-- [ ] **Step 4: 重新运行测试验证通过**
+- [x] **Step 4: 重新运行测试验证通过**
 
 Run: `npx jest tests/terminalMobileDirectFullscreen.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: 提交更改**
+- [x] **Step 5: 提交更改**
 
 ```bash
 git add frontend/src/App.tsx tests/terminalMobileDirectFullscreen.test.ts
@@ -229,7 +229,7 @@ git commit -m "feat(terminal): direct enter fullscreen on mobile and step back t
 - Consumes: `isMobile` from `UnifiedTerminalView.tsx`
 - Behavior: 当 `isMobile` 为真时，无论是否 `isStandalone`，都不渲染全屏切换按钮（Maximize2 / Minimize2），完全防止在移动端切到非全屏；仅在桌面端 (`!isMobile`) 展示全屏/小窗切换按钮。
 
-- [ ] **Step 1: 在 `tests/terminalMobileDirectFullscreen.test.ts` 中增加对顶部栏缩放按钮隐藏的检查**
+- [x] **Step 1: 在 `tests/terminalMobileDirectFullscreen.test.ts` 中增加对顶部栏缩放按钮隐藏的检查**
 
 ```typescript
   it('UnifiedTerminalView hides Fullscreen toggle button completely on mobile', () => {
@@ -238,12 +238,12 @@ git commit -m "feat(terminal): direct enter fullscreen on mobile and step back t
   });
 ```
 
-- [ ] **Step 2: 运行测试验证其失败**
+- [x] **Step 2: 运行测试验证其失败**
 
 Run: `npx jest tests/terminalMobileDirectFullscreen.test.ts`
 Expected: FAIL - `unifiedContent` 尚未包含 `{!isMobile && (` 保护
 
-- [ ] **Step 3: 修改 `UnifiedTerminalView.tsx` 中的 Fullscreen Toggle 按钮渲染**
+- [x] **Step 3: 修改 `UnifiedTerminalView.tsx` 中的 Fullscreen Toggle 按钮渲染**
 
 将：
 ```tsx
@@ -280,7 +280,7 @@ Expected: FAIL - `unifiedContent` 尚未包含 `{!isMobile && (` 保护
           )}
 ```
 
-- [ ] **Step 4: 检查并修复相关联的现有测试用例**
+- [x] **Step 4: 检查并修复相关联的现有测试用例**
 
 在 `tests/terminalMobileFullscreenHeader.test.ts` 中：
 现有测试检查了：
@@ -293,12 +293,12 @@ Expected: FAIL - `unifiedContent` 尚未包含 `{!isMobile && (` 保护
   });
 ```
 
-- [ ] **Step 5: 运行全量终端相关测试**
+- [x] **Step 5: 运行全量终端相关测试**
 
 Run: `npx jest tests/terminalMobileFullscreenHeader.test.ts tests/terminalMobileDirectFullscreen.test.ts tests/terminalUnifiedLayout.test.ts`
 Expected: PASS (全部通过)
 
-- [ ] **Step 6: 提交更改**
+- [x] **Step 6: 提交更改**
 
 ```bash
 git add frontend/src/components/UnifiedTerminalView.tsx tests/terminalMobileFullscreenHeader.test.ts tests/terminalMobileDirectFullscreen.test.ts
@@ -312,17 +312,17 @@ git commit -m "fix(terminal): hide fullscreen toggle button on mobile in Unified
 **Files:**
 - None (Build & verify only)
 
-- [ ] **Step 1: 运行前端构建检查**
+- [x] **Step 1: 运行前端构建检查**
 
 Run: `npm run build:frontend`
 Expected: Vite 编译打包顺利成功，输出到 `dist/frontend`，0 错误
 
-- [ ] **Step 2: 运行全量 Jest 测试套件**
+- [x] **Step 2: 运行全量 Jest 测试套件**
 
 Run: `npm test`
 Expected: 所有测试文件全部通过通过（如遇特定断点运行可使用 `npx jest --runInBand`）
 
-- [ ] **Step 3: 验证 git 状态干净无多余文件**
+- [x] **Step 3: 验证 git 状态干净无多余文件**
 
 Run: `git status`
 Expected: Working tree clean
