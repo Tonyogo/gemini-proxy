@@ -720,6 +720,9 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
           <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center space-x-2.5">
             <Users className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
             <span>{t('accounts.title')}</span>
+            <span className="inline-flex sm:hidden items-center px-2 py-0.5 rounded-full text-xs font-mono font-semibold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+              {totalCount}
+            </span>
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             {t('accounts.sub', 'Manage multi-account credentials, automatic context rotation, and per-account usage quotas.')}
@@ -727,7 +730,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
         </div>
 
         {/* Stats Chips */}
-        <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-6 gap-1.5 sm:gap-2.5">
+        <div className="hidden sm:grid sm:grid-cols-3 lg:grid-cols-6 gap-1.5 sm:gap-2.5">
           {/* Total Accounts */}
           <div className="ui-card-sub p-1.5 sm:px-4 sm:py-3 flex items-center space-x-2 sm:space-x-3">
             <div className="p-1 sm:p-1.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] text-slate-500 dark:text-slate-400 shrink-0">
