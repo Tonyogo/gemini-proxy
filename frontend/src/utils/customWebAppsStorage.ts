@@ -57,11 +57,46 @@ export function loadCustomWebApps(): CustomWebAppItem[] {
   }
 }
 
+export function syncCustomWebAppsFromRemote(remoteApps?: CustomWebAppItem[]): CustomWebAppItem[] {
+  if (Array.isArray(remoteApps) && remoteApps.length > 0) {
+    try {
+      localStorage.setItem(CUSTOM_WEB_APPS_STORAGE_KEY, JSON.stringify(remoteApps));
+    } catch {
+      // ignore storage quota error
+    }
+    return remoteApps;
+  }
+  return loadCustomWebApps();
+}
+
+export async function syncCustomWebAppsToRemote(
+  apps: CustomWebAppItem[],
+  adminKey?: string
+): Promise<boolean> {
+  if (!adminKey) return false;
+  try {
+    const res = await fetch('/api/admin/config', {
+      method: 'POST',
+      headers: {
+        'x-admin-key': adminKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ customWebApps: apps }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 export function saveCustomWebApp(
-  app: Omit<CustomWebAppItem, 'id' | 'createdAt'> & { id?: string; createdAt?: number }
+  app: Omit<CustomWebAppItem, 'id' | 'createdAt'> & { id?: string; createdAt?: number },
+  adminKey?: string
 ): CustomWebAppItem {
   const normalizedUrl = normalizeWebAppUrl(app.url);
   const existingList = loadCustomWebApps();
+
+  let targetItem: CustomWebAppItem;
 
   if (app.id) {
     const index = existingList.findIndex((item) => item.id === app.id);
@@ -73,28 +108,47 @@ export function saveCustomWebApp(
         url: normalizedUrl,
       };
       existingList[index] = updatedItem;
-      localStorage.setItem(CUSTOM_WEB_APPS_STORAGE_KEY, JSON.stringify(existingList));
-      return updatedItem;
+      targetItem = updatedItem;
+    } else {
+      targetItem = {
+        id: app.id,
+        name: app.name.trim(),
+        url: normalizedUrl,
+        icon: app.icon || 'Globe',
+        color: app.color || 'from-orange-500 to-amber-600',
+        useGateway: !!app.useGateway,
+        createdAt: app.createdAt || Date.now(),
+      };
+      existingList.push(targetItem);
     }
+  } else {
+    targetItem = {
+      id: `app_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      name: app.name.trim(),
+      url: normalizedUrl,
+      icon: app.icon || 'Globe',
+      color: app.color || 'from-orange-500 to-amber-600',
+      useGateway: !!app.useGateway,
+      createdAt: app.createdAt || Date.now(),
+    };
+    existingList.push(targetItem);
   }
 
-  const newItem: CustomWebAppItem = {
-    id: `app_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-    name: app.name.trim(),
-    url: normalizedUrl,
-    icon: app.icon || 'Globe',
-    color: app.color || 'from-orange-500 to-amber-600',
-    useGateway: !!app.useGateway,
-    createdAt: app.createdAt || Date.now(),
-  };
-
-  existingList.push(newItem);
   localStorage.setItem(CUSTOM_WEB_APPS_STORAGE_KEY, JSON.stringify(existingList));
-  return newItem;
+
+  if (adminKey) {
+    syncCustomWebAppsToRemote(existingList, adminKey).catch(() => {});
+  }
+
+  return targetItem;
 }
 
-export function deleteCustomWebApp(id: string): void {
+export function deleteCustomWebApp(id: string, adminKey?: string): void {
   const existingList = loadCustomWebApps();
   const filtered = existingList.filter((item) => item.id !== id);
   localStorage.setItem(CUSTOM_WEB_APPS_STORAGE_KEY, JSON.stringify(filtered));
+
+  if (adminKey) {
+    syncCustomWebAppsToRemote(filtered, adminKey).catch(() => {});
+  }
 }
