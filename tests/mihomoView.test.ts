@@ -19,4 +19,13 @@ describe('MihomoView Component Structure', () => {
     expect(content).toMatch(/handleTestDelay|testGroupDelay/);
     expect(content).toMatch(/handleSelectNode|switchProxy/);
   });
+
+  it('MihomoView supports manual URL and secret configuration', () => {
+    const content = fs.readFileSync(compPath, 'utf-8');
+    expect(content).toContain('x-mihomo-url');
+    expect(content).toContain('x-mihomo-secret');
+    expect(content).toContain("localStorage.getItem('mihomo_api_url')");
+    expect(content).toContain("localStorage.getItem('mihomo_api_secret')");
+    expect(content).toContain('isSettingsOpen');
+  });
 });

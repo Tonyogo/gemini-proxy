@@ -17,7 +17,11 @@ import {
   Zap,
   SlidersHorizontal,
   ChevronRight,
-  Sparkles
+  Sparkles,
+  X,
+  Eye,
+  EyeOff,
+  CheckCircle2
 } from 'lucide-react';
 import { useTranslation } from '../i18n/LanguageContext';
 
@@ -72,6 +76,22 @@ function formatSpeed(bytesPerSec: number): string {
 export const MihomoView: React.FC<MihomoViewProps> = ({ adminKey }) => {
   const { t } = useTranslation();
 
+  // Manual URL & Secret config with localStorage persistence
+  const [apiUrl, setApiUrl] = useState<string>(() => {
+    return localStorage.getItem('mihomo_api_url') || 'http://127.0.0.1:9090';
+  });
+  const [apiSecret, setApiSecret] = useState<string>(() => {
+    return localStorage.getItem('mihomo_api_secret') || '';
+  });
+
+  // Settings modal state
+  const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
+  const [inputUrl, setInputUrl] = useState<string>('');
+  const [inputSecret, setInputSecret] = useState<string>('');
+  const [showSecret, setShowSecret] = useState<boolean>(false);
+  const [isTesting, setIsTesting] = useState<boolean>(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+
   // Connection & core status
   const [coreStatus, setCoreStatus] = useState<'checking' | 'online' | 'offline' | 'unauthorized'>('checking');
   const [coreVersion, setCoreVersion] = useState<string>('');
@@ -104,15 +124,71 @@ export const MihomoView: React.FC<MihomoViewProps> = ({ adminKey }) => {
     toastTimerRef.current = setTimeout(() => setToastMsg(null), 2500);
   }, []);
 
-  const getHeaders = useCallback(() => {
+  const getHeaders = useCallback((overrideUrl?: string, overrideSecret?: string) => {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json'
     };
     if (adminKey) {
       headers['x-admin-key'] = adminKey;
     }
+    const effectiveUrl = overrideUrl !== undefined ? overrideUrl : apiUrl;
+    const effectiveSecret = overrideSecret !== undefined ? overrideSecret : apiSecret;
+    if (effectiveUrl) {
+      headers['x-mihomo-url'] = effectiveUrl;
+    }
+    if (effectiveSecret) {
+      headers['x-mihomo-secret'] = effectiveSecret;
+    }
     return headers;
-  }, [adminKey]);
+  }, [adminKey, apiUrl, apiSecret]);
+
+  const openSettings = useCallback(() => {
+    setInputUrl(apiUrl);
+    setInputSecret(apiSecret);
+    setShowSecret(false);
+    setTestResult(null);
+    setIsSettingsOpen(true);
+  }, [apiUrl, apiSecret]);
+
+  const handleTestConnection = async () => {
+    setIsTesting(true);
+    setTestResult(null);
+    try {
+      const trimmedUrl = inputUrl.trim();
+      const res = await fetch('/api/admin/mihomo/status', {
+        headers: getHeaders(trimmedUrl, inputSecret)
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        setTestResult({
+          ok: true,
+          message: t('mihomo.testSuccess', { version: data.version || 'Mihomo Core' })
+        });
+      } else {
+        setTestResult({
+          ok: false,
+          message: t('mihomo.testFailed', { message: data.message || `HTTP ${res.status}` })
+        });
+      }
+    } catch (err: any) {
+      setTestResult({
+        ok: false,
+        message: t('mihomo.testFailed', { message: err.message || 'Connection failed' })
+      });
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
+  const handleSaveSettings = () => {
+    const trimmedUrl = inputUrl.trim() || 'http://127.0.0.1:9090';
+    setApiUrl(trimmedUrl);
+    setApiSecret(inputSecret);
+    localStorage.setItem('mihomo_api_url', trimmedUrl);
+    localStorage.setItem('mihomo_api_secret', inputSecret);
+    setIsSettingsOpen(false);
+    showToast(t('mihomo.configSaved'));
+  };
 
   // 1. Fetch Core Status
   const fetchStatus = useCallback(async (): Promise<boolean> => {
@@ -462,28 +538,42 @@ export const MihomoView: React.FC<MihomoViewProps> = ({ adminKey }) => {
             </div>
           </div>
 
-          {/* Mode Switcher Buttons */}
-          <div className="flex items-center space-x-1.5 self-start sm:self-auto bg-black/[0.03] dark:bg-white/[0.04] p-1 rounded-xl border border-[var(--border-subtle)]">
-            {(['rule', 'global', 'direct'] as const).map((m) => {
-              const active = configs.mode?.toLowerCase() === m;
-              return (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => handleSwitchMode(m)}
-                  disabled={isUpdatingMode}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                    active
-                      ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/30 font-semibold'
-                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/[0.03] dark:hover:bg-white/[0.05]'
-                  }`}
-                >
-                  {m === 'rule' && t('mihomo.modeRule')}
-                  {m === 'global' && t('mihomo.modeGlobal')}
-                  {m === 'direct' && t('mihomo.modeDirect')}
-                </button>
-              );
-            })}
+          {/* Top Actions: Mode Switcher & Connection Settings */}
+          <div className="flex items-center space-x-2 self-start sm:self-auto flex-wrap gap-y-2">
+            {/* Mode Switcher Buttons */}
+            <div className="flex items-center space-x-1.5 bg-black/[0.03] dark:bg-white/[0.04] p-1 rounded-xl border border-[var(--border-subtle)]">
+              {(['rule', 'global', 'direct'] as const).map((m) => {
+                const active = configs.mode?.toLowerCase() === m;
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => handleSwitchMode(m)}
+                    disabled={isUpdatingMode}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                      active
+                        ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/30 font-semibold'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/[0.03] dark:hover:bg-white/[0.05]'
+                    }`}
+                  >
+                    {m === 'rule' && t('mihomo.modeRule')}
+                    {m === 'global' && t('mihomo.modeGlobal')}
+                    {m === 'direct' && t('mihomo.modeDirect')}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Connection Settings Button */}
+            <button
+              type="button"
+              onClick={openSettings}
+              title={t('mihomo.configBtn')}
+              className="p-2 rounded-xl bg-black/[0.03] dark:bg-white/[0.04] hover:bg-purple-500/10 border border-[var(--border-subtle)] hover:border-purple-500/30 text-xs font-medium text-[var(--text-secondary)] hover:text-purple-400 transition-all flex items-center space-x-1.5"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5 text-purple-400" />
+              <span className="hidden sm:inline text-xs">{t('mihomo.configBtn')}</span>
+            </button>
           </div>
         </div>
 
@@ -554,15 +644,25 @@ export const MihomoView: React.FC<MihomoViewProps> = ({ adminKey }) => {
               <div>* MIHOMO_SECRET: external-controller secret</div>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={refreshAll}
-            disabled={isRefreshing}
-            className="inline-flex items-center space-x-2 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-md shadow-purple-600/20 transition-all active:scale-95"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-            <span>{t('mihomo.retry')}</span>
-          </button>
+          <div className="flex items-center justify-center space-x-3 pt-2">
+            <button
+              type="button"
+              onClick={refreshAll}
+              disabled={isRefreshing}
+              className="inline-flex items-center space-x-2 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-md shadow-purple-600/20 transition-all active:scale-95"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span>{t('mihomo.retry')}</span>
+            </button>
+            <button
+              type="button"
+              onClick={openSettings}
+              className="inline-flex items-center space-x-2 px-4 py-2 rounded-xl bg-black/[0.03] dark:bg-white/[0.05] hover:bg-black/[0.06] dark:hover:bg-white/[0.08] border border-[var(--border-subtle)] text-[var(--text-primary)] text-xs font-semibold transition-all active:scale-95"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5 text-purple-400" />
+              <span>{t('mihomo.configureNow')}</span>
+            </button>
+          </div>
         </div>
       ) : (
         /* Main Dashboard: Policy Groups & Nodes Grid */
@@ -637,6 +737,16 @@ export const MihomoView: React.FC<MihomoViewProps> = ({ adminKey }) => {
                 className="p-1.5 rounded-lg bg-black/[0.02] dark:bg-white/[0.03] hover:bg-black/[0.05] dark:hover:bg-white/[0.06] border border-[var(--border-subtle)] text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all shrink-0"
               >
                 <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              </button>
+
+              {/* Settings Button */}
+              <button
+                type="button"
+                onClick={openSettings}
+                title={t('mihomo.configBtn')}
+                className="p-1.5 rounded-lg bg-black/[0.02] dark:bg-white/[0.03] hover:bg-purple-500/10 border border-[var(--border-subtle)] hover:border-purple-500/30 text-xs text-[var(--text-secondary)] hover:text-purple-400 transition-all shrink-0"
+              >
+                <SlidersHorizontal className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -741,6 +851,131 @@ export const MihomoView: React.FC<MihomoViewProps> = ({ adminKey }) => {
               })}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Connection Settings Modal */}
+      {isSettingsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div
+            className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-2xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col animate-scaleUp"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="px-5 py-4 border-b border-[var(--border-subtle)] flex items-center justify-between">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-8 h-8 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-500">
+                  <SlidersHorizontal className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-[var(--text-primary)]">
+                    {t('mihomo.settingsTitle')}
+                  </h3>
+                  <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
+                    {t('mihomo.settingsDesc')}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsSettingsOpen(false)}
+                className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-black/[0.05] dark:hover:bg-white/[0.05] transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-5 space-y-4 text-xs">
+              {/* API Endpoint Input */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium text-[var(--text-secondary)]">
+                  {t('mihomo.apiUrlLabel')}
+                </label>
+                <input
+                  type="text"
+                  value={inputUrl}
+                  onChange={(e) => setInputUrl(e.target.value)}
+                  placeholder={t('mihomo.apiUrlPlaceholder')}
+                  className="w-full px-3 py-2 bg-black/[0.02] dark:bg-white/[0.03] border border-[var(--border-subtle)] rounded-xl text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-purple-500 font-mono transition-colors"
+                />
+                <p className="text-[10px] text-[var(--text-muted)]">
+                  {t('mihomo.apiUrlPlaceholder')}
+                </p>
+              </div>
+
+              {/* Secret Key Input */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium text-[var(--text-secondary)]">
+                  {t('mihomo.secretLabel')}
+                </label>
+                <div className="relative">
+                  <input
+                    type={showSecret ? 'text' : 'password'}
+                    value={inputSecret}
+                    onChange={(e) => setInputSecret(e.target.value)}
+                    placeholder={t('mihomo.secretPlaceholder')}
+                    className="w-full pl-3 pr-9 py-2 bg-black/[0.02] dark:bg-white/[0.03] border border-[var(--border-subtle)] rounded-xl text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-purple-500 font-mono transition-colors"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowSecret(!showSecret)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
+                  >
+                    {showSecret ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Diagnostic Test Result Alert */}
+              {testResult && (
+                <div
+                  className={`p-3 rounded-xl border text-xs flex items-start space-x-2 animate-fadeIn ${
+                    testResult.ok
+                      ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                      : 'bg-rose-500/10 border-rose-500/20 text-rose-400'
+                  }`}
+                >
+                  {testResult.ok ? (
+                    <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  )}
+                  <span className="leading-tight">{testResult.message}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-5 py-3.5 bg-black/[0.02] dark:bg-white/[0.02] border-t border-[var(--border-subtle)] flex items-center justify-between">
+              <button
+                type="button"
+                onClick={handleTestConnection}
+                disabled={isTesting}
+                className="px-3 py-1.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.05] hover:bg-purple-500/10 border border-[var(--border-subtle)] hover:border-purple-500/30 text-xs font-medium text-[var(--text-secondary)] hover:text-purple-400 transition-all flex items-center space-x-1.5 disabled:opacity-50"
+              >
+                <Zap className={`w-3.5 h-3.5 text-purple-400 ${isTesting ? 'animate-bounce' : ''}`} />
+                <span>{isTesting ? t('mihomo.testing') : t('mihomo.testConnection')}</span>
+              </button>
+
+              <div className="flex items-center space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setIsSettingsOpen(false)}
+                  className="px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] hover:bg-black/[0.05] dark:hover:bg-white/[0.05] text-xs font-medium text-[var(--text-secondary)] transition-colors"
+                >
+                  {t('files.cancel') || 'Cancel'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveSettings}
+                  className="px-3.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-md shadow-purple-600/20 transition-all active:scale-95"
+                >
+                  {t('mihomo.saveSettings')}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
