@@ -95,6 +95,7 @@ export interface WebTerminalHandle {
   fit: () => void;
   scrollToBottomSafe?: () => void;
   isAtBottom?: () => boolean;
+  updateCursorShift?: () => void;
   isSelectMode: boolean;
 }
 
@@ -230,6 +231,8 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
     }
     (document.activeElement as HTMLElement)?.blur();
     setIsKeyboardOpen(false);
+    cursorShiftYRef.current = 0;
+    setCursorShiftY(0);
     const isWidthStable = Math.abs(window.innerWidth - baseWidthRef.current) <= 20;
     if (!isMobile || !standalone || !isWidthStable) {
       setTimeout(() => {
@@ -242,6 +245,85 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
 
   const fontSizeRef = useRef<number>(fontSize);
   fontSizeRef.current = fontSize;
+
+  const [cursorShiftY, setCursorShiftY] = useState<number>(0);
+  const cursorShiftYRef = useRef<number>(0);
+  const updateCursorShiftRef = useRef<() => void>(() => {});
+
+  const updateCursorShift = useCallback(() => {
+    if (!isMountedRef.current || !xtermRef.current || !terminalContainerRef.current) return;
+    const term = xtermRef.current;
+    const container = terminalContainerRef.current;
+
+    const isMobileDevice = isMobile || (typeof window !== 'undefined' && (window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)));
+    const isKeyboardActive = isKeyboardShowingRef.current || isKeyboardOpen || (
+      isMobileDevice && typeof window !== 'undefined' && window.visualViewport && (
+        window.visualViewport.height < (baseHeightRef.current || window.innerHeight) * 0.85
+      )
+    );
+
+    if (!isMobileDevice || !isKeyboardActive) {
+      if (cursorShiftYRef.current !== 0) {
+        cursorShiftYRef.current = 0;
+        setCursorShiftY(0);
+      }
+      return;
+    }
+
+    const actualCellHeight = (term as any)._core?._renderService?.dimensions?.actualCellHeight;
+    const screenEl = (term as any).element?.querySelector('.xterm-screen') as HTMLElement | null;
+    const cellHeight = (typeof actualCellHeight === 'number' && actualCellHeight > 0)
+      ? actualCellHeight
+      : (screenEl && term.rows > 0 ? screenEl.clientHeight / term.rows : 0)
+      || Math.max(12, fontSizeRef.current * 1.3);
+
+    const totalScreenHeight = screenEl?.clientHeight || (term.rows * cellHeight);
+
+    // Visible viewport height above the keyboard and accessory bar
+    let visibleHeight = container.parentElement?.clientHeight || container.clientHeight;
+    if (typeof window !== 'undefined' && window.visualViewport) {
+      // Header height ~44, Accessory bar ~44, container padding ~16
+      const estimatedVisible = Math.max(100, window.visualViewport.height - 44 - 44 - 16);
+      if (visibleHeight > estimatedVisible && isKeyboardActive) {
+        visibleHeight = estimatedVisible;
+      }
+    }
+
+    if (visibleHeight <= 0 || totalScreenHeight <= visibleHeight) {
+      if (cursorShiftYRef.current !== 0) {
+        cursorShiftYRef.current = 0;
+        setCursorShiftY(0);
+      }
+      return;
+    }
+
+    // Cursor position within the active screen buffer (0-indexed)
+    const cursorY = term.buffer?.active?.cursorY ?? (term.rows - 1);
+    const cursorBottom = (cursorY + 1) * cellHeight;
+
+    if (cursorBottom <= visibleHeight) {
+      if (cursorShiftYRef.current !== 0) {
+        cursorShiftYRef.current = 0;
+        setCursorShiftY(0);
+      }
+      return;
+    }
+
+    const maxShift = Math.max(0, totalScreenHeight - visibleHeight);
+    // Align cursor line with bottom of visible container, leaving 4px breathing room
+    const targetShift = Math.max(0, cursorBottom - visibleHeight + 4);
+    const shift = Math.min(maxShift, targetShift);
+    const roundedShift = Math.round(shift);
+
+    if (cursorShiftYRef.current !== roundedShift) {
+      cursorShiftYRef.current = roundedShift;
+      setCursorShiftY(roundedShift);
+    }
+  }, [isMobile, isKeyboardOpen]);
+
+  useEffect(() => {
+    updateCursorShiftRef.current = updateCursorShift;
+  }, [updateCursorShift]);
 
 
   const sendResize = useCallback((cols: number, rows: number, force: boolean = false) => {
@@ -577,6 +659,13 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
     xtermRef.current = term;
     fitAddonRef.current = fitAddon;
 
+    const cursorMoveDisposable = term.onCursorMove(() => {
+      updateCursorShiftRef.current?.();
+    });
+    const renderDisposable = term.onRender(() => {
+      updateCursorShiftRef.current?.();
+    });
+
     // Virtual modifier keyboard event handler (CTRL/ALT key combination interception & auto-release)
     term.attachCustomKeyEventHandler((domEvent: KeyboardEvent) => {
       if (domEvent.type !== 'keydown') {
@@ -651,6 +740,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
 
         // Suppress fitting when mobile keyboard is open to avoid shrinking terminal rows
         if (isKeyboardShowingRef.current) {
+          updateCursorShiftRef.current?.();
           return;
         }
 
@@ -663,6 +753,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
             (baseHeightRef.current > 0 && height < baseHeightRef.current - 80)
           );
           if (isWidthStable && (isKeyboardActive || isKeyboardShowingRef.current)) {
+            updateCursorShiftRef.current?.();
             return;
           }
         }
@@ -1018,6 +1109,8 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
       const isWidthStable = Math.abs(window.innerWidth - baseWidthRef.current) <= 20;
 
       if (wasKeyboardShowing && !isKeyboardShowing) {
+        cursorShiftYRef.current = 0;
+        setCursorShiftY(0);
         // When keyboard closes on mobile standalone with stable width, rows was never shrunk,
         // so skip safeFit(true) to avoid triggering SIGWINCH and history buffer reflow.
         if (!mobile || !standalone || !isWidthStable) {
@@ -1058,11 +1151,10 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
 
       if (blockResize) {
         if (!wasKeyboardShowing && xtermRef.current) {
-          // Always keep viewport anchored to bottom cursor when keyboard opens only if already at bottom
-          if (isUserAtBottom(xtermRef.current)) {
-            scrollToBottomSafe(xtermRef.current);
-          }
+          // Always keep viewport anchored to bottom cursor when keyboard opens
+          scrollToBottomSafe(xtermRef.current);
         }
+        updateCursorShiftRef.current?.();
       } else {
         // On mobile, never resize terminal rows on viewport changes unless width changes (screen rotation)
         const isWidthChanged = Math.abs(window.innerWidth - baseWidthRef.current) > 20;
@@ -1148,6 +1240,8 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
         container.removeEventListener('mouseup', handleMouseUp);
       }
       selectionDisposable.dispose();
+      cursorMoveDisposable.dispose();
+      renderDisposable.dispose();
       window.removeEventListener('resize', handleViewportChange);
       window.removeEventListener('orientationchange', handleOrientationChange);
       if (window.visualViewport) {
@@ -1599,10 +1693,13 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
       if (!xtermRef.current) return true;
       return isUserAtBottom(xtermRef.current);
     },
+    updateCursorShift: () => {
+      updateCursorShift();
+    },
     get isSelectMode() {
       return isSelectModeRef.current;
     },
-  }), [handleManualReconnect, executeReset, handleToggleSelectMode, sendResize]);
+  }), [handleManualReconnect, executeReset, handleToggleSelectMode, sendResize, updateCursorShift]);
 
   const handleFullscreenToggle = () => {
     if (standalone) {
@@ -1948,6 +2045,8 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
             touchAction: isSelectMode ? 'none' : undefined,
             userSelect: isSelectMode ? 'none' : undefined,
             WebkitUserSelect: isSelectMode ? 'none' : undefined,
+            transform: cursorShiftY > 0 ? `translateY(-${cursorShiftY}px)` : undefined,
+            transition: 'none',
           }}
         />
       </div>

@@ -110,10 +110,15 @@ export default function UnifiedTerminalView({
         baseHeightRef.current = Math.max(baseHeightRef.current, currentHeight);
       }
 
+      // Keep window scroll at top to avoid browser auto-scroll misalignment on mobile
+      if (typeof window !== 'undefined' && window.scrollY !== 0) {
+        window.scrollTo(0, 0);
+      }
+
       const offsetResult = calculateKeyboardTranslateY({
         baseHeight: baseHeightRef.current,
         viewportHeight: vv.height,
-        offsetTop: 0,
+        offsetTop: vv.offsetTop || 0,
       });
 
       const wasKeyboardShowing = isKeyboardShowingRef.current;
@@ -130,14 +135,15 @@ export default function UnifiedTerminalView({
           transition: 'none',
           overflow: 'hidden',
         });
-        // Only anchor to bottom when keyboard transitions from closed to open and user is at bottom
+        // Anchor to bottom and align cursor on keyboard open transition
         if (!wasKeyboardShowing) {
-          if (terminalRef.current?.isAtBottom ? terminalRef.current.isAtBottom() : false) {
-            terminalRef.current?.scrollToBottomSafe?.();
-          }
+          const _wasAtBottom = terminalRef.current?.isAtBottom ? terminalRef.current.isAtBottom() : false;
+          terminalRef.current?.scrollToBottomSafe?.();
         }
+        terminalRef.current?.updateCursorShift?.();
       } else {
         setWorkspaceStyle({});
+        terminalRef.current?.updateCursorShift?.();
       }
     };
 
