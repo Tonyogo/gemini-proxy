@@ -63,7 +63,9 @@ const getEnvConfig = () => ({
   upstreamTimeoutMs: parseInt(process.env.UPSTREAM_TIMEOUT_MS || '180000', 10) as number,
   timeZone: (process.env.TIME_ZONE || process.env.TZ || 'Asia/Shanghai') as string,
   logRetentionDays: parseInt(process.env.LOG_RETENTION_DAYS || '3', 10) as number,
-  countTokensModel: (process.env.COUNT_TOKENS_MODEL || '') as string
+  countTokensModel: (process.env.COUNT_TOKENS_MODEL || '') as string,
+  mihomoApiUrl: (process.env.MIHOMO_API_URL || 'http://127.0.0.1:9090') as string,
+  mihomoSecret: (process.env.MIHOMO_SECRET || '') as string
 });
 
 export const config = {

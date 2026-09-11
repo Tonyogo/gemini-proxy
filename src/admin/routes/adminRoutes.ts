@@ -2,6 +2,7 @@ import { Router } from 'express';
 import adminController from '../controllers/adminController';
 import accountController from '../controllers/accountController';
 import terminalFileController from '../controllers/terminalFileController';
+import mihomoController from '../controllers/mihomoController';
 import adminAuthMiddleware from '../middlewares/adminAuth';
 
 const router = Router();
@@ -38,5 +39,17 @@ router.post('/accounts/deduplicate', (req, res) => accountController.deduplicate
 router.put('/accounts/current', (req, res) => accountController.switchCurrent(req, res));
 router.get('/accounts/files/:filename', (req, res) => accountController.downloadFile(req, res));
 router.post('/accounts/batch-download', (req, res) => accountController.batchDownload(req, res));
+
+// Mihomo Management Routes
+router.get('/mihomo/status', (req, res) => mihomoController.getStatus(req, res));
+router.get('/mihomo/traffic', (req, res) => mihomoController.getTraffic(req, res));
+router.get('/mihomo/proxies', (req, res) => mihomoController.getProxies(req, res));
+router.put('/mihomo/proxies/:group', (req, res) => mihomoController.selectProxy(req, res));
+router.get('/mihomo/proxies/:name/delay', (req, res) => mihomoController.getProxyDelay(req, res));
+router.get('/mihomo/configs', (req, res) => mihomoController.getConfigs(req, res));
+router.patch('/mihomo/configs', (req, res) => mihomoController.updateConfigs(req, res));
+router.get('/mihomo/connections', (req, res) => mihomoController.getConnections(req, res));
+router.delete('/mihomo/connections', (req, res) => mihomoController.closeConnections(req, res));
+router.delete('/mihomo/connections/:id', (req, res) => mihomoController.closeConnections(req, res));
 
 export default router;
