@@ -21,6 +21,7 @@ import {
 export interface CustomWebAppModalProps {
   isOpen: boolean;
   appToEdit?: CustomWebAppItem | null;
+  adminKey?: string;
   onClose: () => void;
   onSave: (savedApp: CustomWebAppItem) => void;
   onDelete?: (appId: string) => void;
@@ -38,6 +39,7 @@ const THEME_COLORS = [
 export const CustomWebAppModal: React.FC<CustomWebAppModalProps> = ({
   isOpen,
   appToEdit,
+  adminKey,
   onClose,
   onSave,
   onDelete,
@@ -95,6 +97,7 @@ export const CustomWebAppModal: React.FC<CustomWebAppModalProps> = ({
     }
 
     try {
+      const effectiveKey = adminKey || (typeof localStorage !== 'undefined' ? localStorage.getItem('adminKey') || '' : '');
       const saved = saveCustomWebApp({
         id: appToEdit ? appToEdit.id : undefined,
         name: trimmedName,
@@ -103,7 +106,7 @@ export const CustomWebAppModal: React.FC<CustomWebAppModalProps> = ({
         color,
         useGateway,
         createdAt: appToEdit?.createdAt,
-      });
+      }, effectiveKey);
 
       onSave(saved);
       onClose();
@@ -119,7 +122,8 @@ export const CustomWebAppModal: React.FC<CustomWebAppModalProps> = ({
       : true;
 
     if (confirmed) {
-      deleteCustomWebApp(appToEdit.id);
+      const effectiveKey = adminKey || (typeof localStorage !== 'undefined' ? localStorage.getItem('adminKey') || '' : '');
+      deleteCustomWebApp(appToEdit.id, effectiveKey);
       if (onDelete) {
         onDelete(appToEdit.id);
       }

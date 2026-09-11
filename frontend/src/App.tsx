@@ -23,7 +23,11 @@ import {
   X,
   Languages,
   Github,
-  ExternalLink
+  ExternalLink,
+  AlertTriangle,
+  Maximize2,
+  Minimize2,
+  Edit3
 } from 'lucide-react';
 import DashboardView from './components/DashboardView';
 import AccountsView from './components/AccountsView';
@@ -37,6 +41,7 @@ import DiscoverHubView, { DiscoverToolId } from './components/DiscoverHubView';
 import EmbeddedWebView from './components/EmbeddedWebView';
 import CustomWebAppModal from './components/CustomWebAppModal';
 import { CustomWebAppItem } from './types/customWebApps';
+import { syncCustomWebAppsFromRemote } from './utils/customWebAppsStorage';
 import ConfigModal from './components/ConfigModal';
 import { useTranslation } from './i18n/LanguageContext';
 import { ThemeSwitcher } from './components/ThemeSwitcher';
@@ -168,8 +173,29 @@ export default function App() {
 
   const [activeEmbeddedApp, setActiveEmbeddedApp] = useState<CustomWebAppItem | null>(null);
   const [isEditEmbeddedAppModalOpen, setIsEditEmbeddedAppModalOpen] = useState<boolean>(false);
+  const [embeddedReloadKey, setEmbeddedReloadKey] = useState<number>(0);
+  const [isEmbeddedFullscreen, setIsEmbeddedFullscreen] = useState<boolean>(false);
+
+  const getEmbeddedHostname = (rawUrl: string) => {
+    try {
+      return new URL(rawUrl).hostname;
+    } catch {
+      return rawUrl;
+    }
+  };
+
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isEmbeddedFullscreen) {
+        setIsEmbeddedFullscreen(false);
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [isEmbeddedFullscreen]);
 
   const handleSelectDiscoverTool = (tool: DiscoverToolId) => {
+    setIsEmbeddedFullscreen(false);
     setDiscoverSubView(tool);
   };
 
@@ -204,6 +230,10 @@ export default function App() {
       const res = await fetch('/api/admin/status', { headers });
 
       if (res.ok) {
+        const data = await res.json().catch(() => ({}));
+        if (data?.config?.customWebApps) {
+          syncCustomWebAppsFromRemote(data.config.customWebApps);
+        }
         setIsAuthenticated(true);
         setAdminKey(keyToTest);
         localStorage.setItem('adminKey', keyToTest);
@@ -400,7 +430,7 @@ export default function App() {
       {/* Collapsible Sidebar (Desktop only) */}
       <aside
         className={`fixed top-0 bottom-0 left-0 z-40 hidden md:flex flex-col bg-[var(--bg-surface)] border-r border-[var(--border-subtle)] transition-all duration-300 ease-in-out ${
-          isSidebarCollapsed ? 'w-16' : 'w-60'
+          isEmbeddedFullscreen ? '!hidden' : isSidebarCollapsed ? 'w-16' : 'w-60'
         }`}
       >
         {/* Brand Logo Header */}
@@ -557,153 +587,258 @@ export default function App() {
       {/* Main Content Area */}
       <div
         className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out ${
-          isSidebarCollapsed ? 'md:pl-16' : 'md:pl-60'
+          isEmbeddedFullscreen ? 'md:pl-0' : isSidebarCollapsed ? 'md:pl-16' : 'md:pl-60'
         } pl-0 h-full min-h-0 overflow-hidden`}
       >
         {/* Minimal Glass Top Bar */}
         <header className="h-12 sm:h-14 backdrop-blur-md bg-[var(--bg-surface)]/95 border-b border-[var(--border-subtle)] px-3 sm:px-6 flex items-center justify-between sticky top-0 z-40 shrink-0 select-none shadow-xs">
-          {/* Left Breadcrumbs & Brand / Sidebar Toggle */}
-          <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
-            {/* Mobile Brand Logo Icon or Immersive Detail Back Button */}
-            {isMobileDetailActive ? (
+          {/* Left Controls: Embedded Web Mode vs Standard Mode */}
+          {activeTab === 'discover' && discoverSubView === 'embeddedWeb' && activeEmbeddedApp ? (
+            <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
               <button
                 type="button"
-                onClick={handleMobileBack}
-                className="flex items-center space-x-1.5 py-1 px-2.5 -ml-1 rounded-lg text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/15 border border-indigo-500/20 font-semibold text-xs active:scale-95 transition-all md:hidden shrink-0 shadow-xs"
+                data-testid="embed-back-btn"
+                onClick={() => {
+                  setDiscoverSubView('hub');
+                  setIsEmbeddedFullscreen(false);
+                }}
+                className="flex items-center space-x-1.5 py-1 px-2.5 rounded-lg text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/15 border border-indigo-500/20 font-semibold text-xs active:scale-95 transition-all shrink-0 shadow-xs"
+                title={t('discover.backToDiscover', '返回发现')}
               >
                 <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
-                <span>{activeTab === 'logs' ? t('logs.title', '日志') : t('discover.back', '发现')}</span>
+                <span className="hidden sm:inline">{t('discover.backToDiscover', '返回发现')}</span>
               </button>
-            ) : (
-              <img
-                src="/favicon.svg"
-                alt="Gemini Proxy Logo"
-                className="w-7 h-7 shrink-0 md:hidden drop-shadow-[0_0_10px_rgba(99,102,241,0.4)] select-none"
-              />
-            )}
 
-            {/* Desktop Sidebar Toggle */}
-            <button
-              onClick={toggleSidebar}
-              title={isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
-              className="hidden md:inline-flex p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-white/[0.05] transition-colors border border-transparent hover:border-white/[0.06]"
-            >
-              {isSidebarCollapsed ? (
-                <PanelLeftOpen className="w-4 h-4" />
-              ) : (
-                <PanelLeftClose className="w-4 h-4" />
-              )}
-            </button>
+              <div className="h-4 w-px bg-[var(--border-subtle)] hidden sm:block shrink-0" />
 
-            <div className="h-4 w-px bg-[var(--border-subtle)] hidden sm:block shrink-0" />
-
-            <div className="flex items-center space-x-1.5 sm:space-x-2 text-xs font-medium min-w-0">
-              <span className="hidden sm:inline text-slate-500 shrink-0">Gemini Proxy</span>
-              <ChevronRight className="hidden sm:inline w-3.5 h-3.5 text-slate-600 shrink-0" />
-              {activeTab === 'discover' && discoverSubView !== 'hub' ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => setDiscoverSubView('hub')}
-                    className="text-slate-400 hover:text-indigo-400 transition-colors hidden sm:inline"
-                  >
-                    {t('nav.discover')}
-                  </button>
-                  <ChevronRight className="hidden sm:inline w-3.5 h-3.5 text-slate-600 shrink-0" />
-                  <span className="text-[var(--text-primary)] font-semibold truncate max-w-[130px] sm:max-w-none">
-                    {discoverSubView === 'terminal' && t('discover.terminalTitle')}
-                    {discoverSubView === 'systemLogs' && t('discover.systemLogsTitle')}
-                    {discoverSubView === 'playground' && t('discover.playgroundTitle')}
-                    {discoverSubView === 'translate' && t('discover.translateTitle')}
-                    {discoverSubView === 'mihomo' && t('discover.mihomoTitle')}
-                    {discoverSubView === 'embeddedWeb' && (activeEmbeddedApp?.name || t('discover.customAppsTitle'))}
-                  </span>
-                </>
-              ) : (
-                <span className="text-[var(--text-primary)] font-semibold truncate max-w-[130px] sm:max-w-none">{getActiveTabTitle()}</span>
-              )}
-            </div>
-          </div>
-
-          {/* Right Action Controls */}
-          <div className="flex items-center space-x-1 sm:space-x-2 shrink-0">
-            {/* GitHub Repository Link */}
-            <a
-              href={GITHUB_REPO_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              title={t('nav.github')}
-              className={`${isMobileDetailActive ? 'hidden sm:flex' : 'flex'} px-2 sm:px-2.5 py-1.5 bg-black/[0.02] dark:bg-white/[0.03] hover:bg-black/[0.06] dark:hover:bg-white/[0.08] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] rounded-lg text-xs text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all items-center space-x-1.5 shadow-sm active:scale-95`}
-            >
-              <Github className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
-              <span className="hidden sm:inline text-[11px] font-medium">GitHub</span>
-            </a>
-
-            {/* Refresh Button */}
-            <button
-              onClick={handleRefresh}
-              title={lang === 'zh' ? '刷新当前视图' : 'Refresh Active View'}
-              className={`${isMobileDetailActive ? 'hidden sm:flex' : 'flex'} px-2 sm:px-2.5 py-1.5 bg-black/[0.02] dark:bg-white/[0.03] hover:bg-black/[0.06] dark:hover:bg-white/[0.08] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] rounded-lg text-xs text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all items-center space-x-1.5 shadow-sm active:scale-95`}
-            >
-              <RefreshCw className={`w-3.5 h-3.5 text-slate-400 ${isRefreshing ? 'animate-spin text-indigo-400' : ''}`} />
-              <span className="hidden sm:inline text-[11px]">{lang === 'zh' ? '刷新' : 'Refresh'}</span>
-            </button>
-
-            {/* Mobile Settings Button */}
-            {!isMobileDetailActive && (
-              <button
-                onClick={() => setIsConfigModalOpen(true)}
-                title={t('nav.configTitle')}
-                className="p-1.5 bg-black/[0.02] dark:bg-white/[0.03] hover:bg-black/[0.06] dark:hover:bg-white/[0.08] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] rounded-lg text-xs text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all md:hidden active:scale-95"
-              >
-                <Settings className="w-3.5 h-3.5 text-slate-400" />
-              </button>
-            )}
-
-            {/* Theme Switcher (Mobile) */}
-            {!isMobileDetailActive && (
-              <div className="md:hidden flex items-center">
-                <ThemeSwitcher variant="header" />
+              <div className="flex items-center space-x-2.5 min-w-0">
+                <div
+                  className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-br ${
+                    activeEmbeddedApp.color || 'from-orange-500 to-amber-600'
+                  } flex items-center justify-center text-white shrink-0 shadow-sm`}
+                >
+                  <Globe className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center space-x-1.5">
+                    <span className="text-xs sm:text-sm font-semibold text-[var(--text-primary)] truncate">
+                      {activeEmbeddedApp.name}
+                    </span>
+                    {activeEmbeddedApp.useGateway && (
+                      <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shrink-0">
+                        GW
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center space-x-1 text-[10px] text-[var(--text-muted)] truncate">
+                    {activeEmbeddedApp.url.startsWith('https://') ? (
+                      <Lock className="w-2.5 h-2.5 text-emerald-500 shrink-0" />
+                    ) : (
+                      <AlertTriangle className="w-2.5 h-2.5 text-amber-500 shrink-0" />
+                    )}
+                    <span className="font-mono truncate">{getEmbeddedHostname(activeEmbeddedApp.url)}</span>
+                  </div>
+                </div>
               </div>
-            )}
-
-            {/* Mobile Language Switcher */}
-            {!isMobileDetailActive && (
-              <button
-                onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
-                title={lang === 'zh' ? 'Switch to English' : '切换至中文'}
-                className="p-1.5 bg-black/[0.02] dark:bg-white/[0.03] hover:bg-black/[0.06] dark:hover:bg-white/[0.08] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] rounded-lg text-xs text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all md:hidden active:scale-95 font-mono text-[10px]"
-              >
-                <Globe className="w-3.5 h-3.5 text-slate-400" />
-              </button>
-            )}
-
-            {/* Mobile Logout Button */}
-            {!isMobileDetailActive && (
-              <button
-                onClick={handleLogout}
-                title={t('nav.logout')}
-                className="p-1.5 bg-black/[0.02] dark:bg-white/[0.03] hover:bg-rose-500/20 border border-[var(--border-subtle)] hover:border-rose-500/30 rounded-lg text-xs text-slate-500 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-300 transition-all md:hidden active:scale-95"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-              </button>
-            )}
-
-            {/* Status Online Badge (Desktop) */}
-            <div className="hidden sm:flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-mono">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span>{lang === 'zh' ? '在线' : 'Online'}</span>
             </div>
-          </div>
+          ) : (
+            /* Left Breadcrumbs & Brand / Sidebar Toggle */
+            <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
+              {/* Mobile Brand Logo Icon or Immersive Detail Back Button */}
+              {isMobileDetailActive ? (
+                <button
+                  type="button"
+                  onClick={handleMobileBack}
+                  className="flex items-center space-x-1.5 py-1 px-2.5 -ml-1 rounded-lg text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/15 border border-indigo-500/20 font-semibold text-xs active:scale-95 transition-all md:hidden shrink-0 shadow-xs"
+                >
+                  <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
+                  <span>{activeTab === 'logs' ? t('logs.title', '日志') : t('discover.back', '发现')}</span>
+                </button>
+              ) : (
+                <img
+                  src="/favicon.svg"
+                  alt="Gemini Proxy Logo"
+                  className="w-7 h-7 shrink-0 md:hidden drop-shadow-[0_0_10px_rgba(99,102,241,0.4)] select-none"
+                />
+              )}
+
+              {/* Desktop Sidebar Toggle */}
+              <button
+                onClick={toggleSidebar}
+                title={isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+                className="hidden md:inline-flex p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-white/[0.05] transition-colors border border-transparent hover:border-white/[0.06]"
+              >
+                {isSidebarCollapsed ? (
+                  <PanelLeftOpen className="w-4 h-4" />
+                ) : (
+                  <PanelLeftClose className="w-4 h-4" />
+                )}
+              </button>
+
+              <div className="h-4 w-px bg-[var(--border-subtle)] hidden sm:block shrink-0" />
+
+              <div className="flex items-center space-x-1.5 sm:space-x-2 text-xs font-medium min-w-0">
+                <span className="hidden sm:inline text-slate-500 shrink-0">Gemini Proxy</span>
+                <ChevronRight className="hidden sm:inline w-3.5 h-3.5 text-slate-600 shrink-0" />
+                {activeTab === 'discover' && discoverSubView !== 'hub' ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setDiscoverSubView('hub')}
+                      className="text-slate-400 hover:text-indigo-400 transition-colors hidden sm:inline"
+                    >
+                      {t('nav.discover')}
+                    </button>
+                    <ChevronRight className="hidden sm:inline w-3.5 h-3.5 text-slate-600 shrink-0" />
+                    <span className="text-[var(--text-primary)] font-semibold truncate max-w-[130px] sm:max-w-none">
+                      {discoverSubView === 'terminal' && t('discover.terminalTitle')}
+                      {discoverSubView === 'systemLogs' && t('discover.systemLogsTitle')}
+                      {discoverSubView === 'playground' && t('discover.playgroundTitle')}
+                      {discoverSubView === 'translate' && t('discover.translateTitle')}
+                      {discoverSubView === 'mihomo' && t('discover.mihomoTitle')}
+                      {discoverSubView === 'embeddedWeb' && (activeEmbeddedApp?.name || t('discover.customAppsTitle'))}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-[var(--text-primary)] font-semibold truncate max-w-[130px] sm:max-w-none">{getActiveTabTitle()}</span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Right Action Controls: Embedded Web Actions vs Standard Actions */}
+          {activeTab === 'discover' && discoverSubView === 'embeddedWeb' && activeEmbeddedApp ? (
+            <div className="flex items-center space-x-1 sm:space-x-1.5 shrink-0">
+              <button
+                type="button"
+                data-testid="embed-refresh-btn"
+                onClick={() => setEmbeddedReloadKey(prev => prev + 1)}
+                className="p-1.5 sm:p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"
+                title={t('discover.refresh', '刷新')}
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
+
+              <button
+                type="button"
+                data-testid="embed-open-external-btn"
+                onClick={() => {
+                  if (typeof window !== 'undefined') {
+                    window.open(activeEmbeddedApp.url, '_blank');
+                  }
+                }}
+                className="p-1.5 sm:p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"
+                title={t('discover.openExternal', '在新窗口打开')}
+              >
+                <ExternalLink className="w-4 h-4" />
+              </button>
+
+              <button
+                type="button"
+                data-testid="embed-fullscreen-btn"
+                onClick={() => setIsEmbeddedFullscreen(prev => !prev)}
+                className="p-1.5 sm:p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"
+                title={
+                  isEmbeddedFullscreen
+                    ? t('discover.exitFullscreen', '退出全屏')
+                    : t('discover.fullscreen', '全屏沉浸')
+                }
+              >
+                {isEmbeddedFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              </button>
+
+              <button
+                type="button"
+                data-testid="embed-edit-btn"
+                onClick={() => setIsEditEmbeddedAppModalOpen(true)}
+                className="p-1.5 sm:p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors"
+                title={t('discover.editCustomApp', '编辑应用')}
+              >
+                <Edit3 className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center space-x-1 sm:space-x-2 shrink-0">
+              {/* GitHub Repository Link */}
+              <a
+                href={GITHUB_REPO_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={t('nav.github')}
+                className={`${isMobileDetailActive ? 'hidden sm:flex' : 'flex'} px-2 sm:px-2.5 py-1.5 bg-black/[0.02] dark:bg-white/[0.03] hover:bg-black/[0.06] dark:hover:bg-white/[0.08] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] rounded-lg text-xs text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all items-center space-x-1.5 shadow-sm active:scale-95`}
+              >
+                <Github className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                <span className="hidden sm:inline text-[11px] font-medium">GitHub</span>
+              </a>
+
+              {/* Refresh Button */}
+              <button
+                onClick={handleRefresh}
+                title={lang === 'zh' ? '刷新当前视图' : 'Refresh Active View'}
+                className={`${isMobileDetailActive ? 'hidden sm:flex' : 'flex'} px-2 sm:px-2.5 py-1.5 bg-black/[0.02] dark:bg-white/[0.03] hover:bg-black/[0.06] dark:hover:bg-white/[0.08] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] rounded-lg text-xs text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all items-center space-x-1.5 shadow-sm active:scale-95`}
+              >
+                <RefreshCw className={`w-3.5 h-3.5 text-slate-400 ${isRefreshing ? 'animate-spin text-indigo-400' : ''}`} />
+                <span className="hidden sm:inline text-[11px]">{lang === 'zh' ? '刷新' : 'Refresh'}</span>
+              </button>
+
+              {/* Mobile Settings Button */}
+              {!isMobileDetailActive && (
+                <button
+                  onClick={() => setIsConfigModalOpen(true)}
+                  title={t('nav.configTitle')}
+                  className="p-1.5 bg-black/[0.02] dark:bg-white/[0.03] hover:bg-black/[0.06] dark:hover:bg-white/[0.08] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] rounded-lg text-xs text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all md:hidden active:scale-95"
+                >
+                  <Settings className="w-3.5 h-3.5 text-slate-400" />
+                </button>
+              )}
+
+              {/* Theme Switcher (Mobile) */}
+              {!isMobileDetailActive && (
+                <div className="md:hidden flex items-center">
+                  <ThemeSwitcher variant="header" />
+                </div>
+              )}
+
+              {/* Mobile Language Switcher */}
+              {!isMobileDetailActive && (
+                <button
+                  onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
+                  title={lang === 'zh' ? 'Switch to English' : '切换至中文'}
+                  className="p-1.5 bg-black/[0.02] dark:bg-white/[0.03] hover:bg-black/[0.06] dark:hover:bg-white/[0.08] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] rounded-lg text-xs text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all md:hidden active:scale-95 font-mono text-[10px]"
+                >
+                  <Globe className="w-3.5 h-3.5 text-slate-400" />
+                </button>
+              )}
+
+              {/* Mobile Logout Button */}
+              {!isMobileDetailActive && (
+                <button
+                  onClick={handleLogout}
+                  title={t('nav.logout')}
+                  className="p-1.5 bg-black/[0.02] dark:bg-white/[0.03] hover:bg-rose-500/20 border border-[var(--border-subtle)] hover:border-rose-500/30 rounded-lg text-xs text-slate-500 dark:text-slate-400 hover:text-rose-500 dark:hover:text-rose-300 transition-all md:hidden active:scale-95"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
+              )}
+
+              {/* Status Online Badge (Desktop) */}
+              <div className="hidden sm:flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-mono">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span>{lang === 'zh' ? '在线' : 'Online'}</span>
+              </div>
+            </div>
+          )}
         </header>
 
         {/* Main View Workspace */}
         <main className={`flex-1 min-h-0 overflow-hidden ${
-          isMobileDetailActive
-            ? 'p-0 md:p-6 pb-0 md:pb-6 flex flex-col h-full'
-            : isWorkbenchTab
-              ? 'p-2 sm:p-4 md:p-6 pb-[calc(3.75rem+env(safe-area-inset-bottom,0px))] md:pb-6 flex flex-col h-full'
-              : 'p-2.5 sm:p-4 md:p-6 pb-20 md:pb-6 overflow-y-auto'
+          isEmbeddedFullscreen
+            ? 'p-0 pb-0 flex flex-col h-full'
+            : isMobileDetailActive
+              ? 'p-0 md:p-6 pb-0 md:pb-6 flex flex-col h-full'
+              : isWorkbenchTab
+                ? 'p-2 sm:p-4 md:p-6 pb-[calc(3.75rem+env(safe-area-inset-bottom,0px))] md:pb-6 flex flex-col h-full'
+                : 'p-2.5 sm:p-4 md:p-6 pb-20 md:pb-6 overflow-y-auto'
         }`}>
           {activeTab === 'dashboard' && (
             <DashboardView
@@ -769,9 +904,14 @@ export default function App() {
               )}
               {discoverSubView === 'embeddedWeb' && activeEmbeddedApp && (
                 <EmbeddedWebView
-                  key={`${activeEmbeddedApp.id}_${refreshTrigger}`}
+                  key={`${activeEmbeddedApp.id}_${embeddedReloadKey}`}
                   app={activeEmbeddedApp}
-                  onBack={() => setDiscoverSubView('hub')}
+                  reloadKey={embeddedReloadKey}
+                  isFullscreen={isEmbeddedFullscreen}
+                  onBack={() => {
+                    setDiscoverSubView('hub');
+                    setIsEmbeddedFullscreen(false);
+                  }}
                   onEditApp={(app) => {
                     setActiveEmbeddedApp(app);
                     setIsEditEmbeddedAppModalOpen(true);
@@ -783,7 +923,7 @@ export default function App() {
         </main>
 
         {/* Fixed Mobile Bottom Navigation Bar */}
-        {!isMobileDetailActive && <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[var(--bg-surface)]/95 backdrop-blur-xl border-t border-[var(--border-subtle)] px-2 py-1 flex items-center justify-around md:hidden shadow-[0_-4px_20px_rgba(0,0,0,0.1)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.6)]">
+        {!isMobileDetailActive && !isEmbeddedFullscreen && <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[var(--bg-surface)]/95 backdrop-blur-xl border-t border-[var(--border-subtle)] px-2 py-1 flex items-center justify-around md:hidden shadow-[0_-4px_20px_rgba(0,0,0,0.1)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.6)]">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
               const isActive = activeTab === item.id;
@@ -829,6 +969,7 @@ export default function App() {
         <CustomWebAppModal
           isOpen={isEditEmbeddedAppModalOpen}
           appToEdit={activeEmbeddedApp}
+          adminKey={adminKey}
           onClose={() => setIsEditEmbeddedAppModalOpen(false)}
           onSave={(saved) => {
             setActiveEmbeddedApp(saved);
@@ -839,6 +980,7 @@ export default function App() {
             setIsEditEmbeddedAppModalOpen(false);
             setActiveEmbeddedApp(null);
             setDiscoverSubView('hub');
+            setIsEmbeddedFullscreen(false);
             setRefreshTrigger(prev => prev + 1);
           }}
         />

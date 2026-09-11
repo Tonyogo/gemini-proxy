@@ -518,6 +518,7 @@ export const DiscoverHubView: React.FC<DiscoverHubViewProps> = ({
       <CustomWebAppModal
         isOpen={isModalOpen}
         appToEdit={appToEdit}
+        adminKey={adminKey}
         onClose={() => setIsModalOpen(false)}
         onSave={() => refreshApps()}
         onDelete={() => refreshApps()}

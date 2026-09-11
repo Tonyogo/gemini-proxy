@@ -8,13 +8,13 @@ describe('EmbeddedWebView Component Structure & Features', () => {
     expect(fs.existsSync(compPath)).toBe(true);
   });
 
-  it('contains top navigation controls with required data-testid attributes', () => {
+  it('eliminates duplicate top navigation bar from internal component', () => {
     const content = fs.readFileSync(compPath, 'utf-8');
-    expect(content).toContain('data-testid="embed-back-btn"');
-    expect(content).toContain('data-testid="embed-refresh-btn"');
-    expect(content).toContain('data-testid="embed-open-external-btn"');
-    expect(content).toContain('data-testid="embed-fullscreen-btn"');
-    expect(content).toContain('data-testid="embed-edit-btn"');
+    expect(content).not.toContain('data-testid="embed-back-btn"');
+    expect(content).not.toContain('data-testid="embed-refresh-btn"');
+    expect(content).not.toContain('data-testid="embed-open-external-btn"');
+    expect(content).not.toContain('data-testid="embed-fullscreen-btn"');
+    expect(content).not.toContain('data-testid="embed-edit-btn"');
   });
 
   it('renders iframe container with proper permissions and data-testid', () => {
@@ -26,10 +26,12 @@ describe('EmbeddedWebView Component Structure & Features', () => {
     expect(content).toContain('clipboard-write');
   });
 
-  it('supports app title, hostname badge, and open external handler', () => {
+  it('supports app title, reloadKey, isFullscreen, and open external handler', () => {
     const content = fs.readFileSync(compPath, 'utf-8');
     expect(content).toContain('app.name');
     expect(content).toContain('app.url');
+    expect(content).toContain('reloadKey');
+    expect(content).toContain('isFullscreen');
     expect(content).toContain('window.open');
     expect(content).toContain('_blank');
   });
