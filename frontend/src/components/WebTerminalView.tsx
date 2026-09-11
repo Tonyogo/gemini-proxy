@@ -230,6 +230,11 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
     (document.activeElement as HTMLElement)?.blur();
     setIsKeyboardOpen(false);
     isKeyboardShowingRef.current = false;
+    setTimeout(() => {
+      if (isMountedRef.current) {
+        safeFit(true);
+      }
+    }, 260);
   };
 
   const fontSizeRef = useRef<number>(fontSize);
@@ -843,15 +848,19 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
       if (typeof window === 'undefined') return;
       window.requestAnimationFrame(() => {
         if (cancelRaf) return;
-        if (!safeFit()) {
+        if (!safeFit(true)) {
           window.requestAnimationFrame(() => {
             if (cancelRaf) return;
-            if (!safeFit()) {
-              fallbackTimers.push(setTimeout(safeFit, 60));
-              fallbackTimers.push(setTimeout(safeFit, 150));
-              fallbackTimers.push(setTimeout(safeFit, 300));
-            }
+            fallbackTimers.push(setTimeout(() => safeFit(true), 60));
+            fallbackTimers.push(setTimeout(() => safeFit(true), 150));
+            fallbackTimers.push(setTimeout(() => safeFit(true), 350));
+            fallbackTimers.push(setTimeout(() => safeFit(false), 800));
           });
+        } else {
+          fallbackTimers.push(setTimeout(() => safeFit(true), 60));
+          fallbackTimers.push(setTimeout(() => safeFit(true), 150));
+          fallbackTimers.push(setTimeout(() => safeFit(true), 350));
+          fallbackTimers.push(setTimeout(() => safeFit(false), 800));
         }
       });
     };
@@ -916,7 +925,16 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
         }
       }
 
+      const wasKeyboardShowing = isKeyboardShowingRef.current;
       isKeyboardShowingRef.current = isKeyboardShowing;
+
+      if (wasKeyboardShowing && !isKeyboardShowing) {
+        setTimeout(() => {
+          if (isMountedRef.current) {
+            safeFit(true);
+          }
+        }, 260);
+      }
 
       if (mobile && standalone) {
         if (isKeyboardShowing) {
@@ -1408,11 +1426,15 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
 
   useEffect(() => {
     if (activeHostId) {
-      const timer = setTimeout(() => {
-        safeFit();
-        xtermRef.current?.refresh(0, Math.max(0, (xtermRef.current?.rows || 1) - 1));
-      }, 50);
-      return () => clearTimeout(timer);
+      const timers = [
+        setTimeout(() => {
+          safeFit(true);
+          xtermRef.current?.refresh(0, Math.max(0, (xtermRef.current?.rows || 1) - 1));
+        }, 60),
+        setTimeout(() => { safeFit(true); }, 200),
+        setTimeout(() => { safeFit(false); }, 500),
+      ];
+      return () => timers.forEach(clearTimeout);
     }
   }, [activeHostId, safeFit]);
 

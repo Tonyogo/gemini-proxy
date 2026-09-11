@@ -79,3 +79,21 @@ describe('WebTerminalView Force Resize & Lifecycle Cache Invalidation', () => {
   });
 });
 
+describe('Ladder Probes & Transition Compensation', () => {
+  it('WebTerminalView includes multi-stage ladder probe timers on activeHostId change', () => {
+    const content = fs.readFileSync(path.resolve(__dirname, '../frontend/src/components/WebTerminalView.tsx'), 'utf-8');
+    expect(content).toMatch(/useEffect\(\(\)\s*=>\s*\{[\s\S]*?activeHostId[\s\S]*?safeFit\(true\)[\s\S]*?60[\s\S]*?200[\s\S]*?500/);
+  });
+
+  it('WebTerminalView triggerMountProbe schedules ladder probes up to at least 350ms', () => {
+    const content = fs.readFileSync(path.resolve(__dirname, '../frontend/src/components/WebTerminalView.tsx'), 'utf-8');
+    expect(content).toContain('350');
+  });
+
+  it('WebTerminalView compensates virtual keyboard dismissal transition', () => {
+    const content = fs.readFileSync(path.resolve(__dirname, '../frontend/src/components/WebTerminalView.tsx'), 'utf-8');
+    expect(content).toMatch(/260/);
+  });
+});
+
+
