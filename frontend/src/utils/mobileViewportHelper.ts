@@ -48,14 +48,14 @@ export function shouldBlockPtyResize({
   currentWidth,
   isKeyboardShowing,
   isMobile,
-  standalone,
+  standalone = true,
   isInputFocused = true,
 }: {
   baseWidth: number;
   currentWidth: number;
   isKeyboardShowing: boolean;
   isMobile: boolean;
-  standalone: boolean;
+  standalone?: boolean;
   isInputFocused?: boolean;
 }): boolean {
   if (!isMobile || !standalone || !isInputFocused) {
@@ -67,6 +67,6 @@ export function shouldBlockPtyResize({
     return false;
   }
 
-  // While keyboard is showing and input is focused, block PTY resize
+  // While keyboard is showing on mobile, block PTY resize
   return isKeyboardShowing;
 }

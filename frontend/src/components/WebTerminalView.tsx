@@ -249,13 +249,27 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
     if (!force && cols === lastSentColsRef.current && rows === lastSentRowsRef.current) {
       return;
     }
+
+    const isMobileDevice = isMobile || (typeof window !== 'undefined' && (window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)));
+    if (isMobileDevice && !force && lastSentRowsRef.current > 0) {
+      const isWidthUnchanged = Math.abs(cols - lastSentColsRef.current) <= 2;
+      const isHeightShrunk = rows < lastSentRowsRef.current;
+      const isKeyboardActive = isKeyboardShowingRef.current || (
+        typeof window !== 'undefined' && window.visualViewport && window.visualViewport.height < (baseHeightRef.current || window.innerHeight) * 0.85
+      );
+      if (isWidthUnchanged && (isHeightShrunk || isKeyboardActive)) {
+        console.debug(`[WebTerminal] Blocked mobile keyboard resize leak: ${cols}x${rows} (cached: ${lastSentColsRef.current}x${lastSentRowsRef.current})`);
+        return;
+      }
+    }
+
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       lastSentColsRef.current = cols;
       lastSentRowsRef.current = rows;
       console.debug(`[WebTerminal] Sending resize to backend: ${cols}x${rows}`);
       wsRef.current.send(`JSON:${JSON.stringify({ type: 'resize', cols, rows })}`);
     }
-  }, []);
+  }, [isMobile]);
 
   const safeFit = useCallback((forceResize: boolean = false): boolean => {
     if (!isMountedRef.current || !fitAddonRef.current || !xtermRef.current || !terminalContainerRef.current) {
@@ -266,19 +280,29 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
       return false;
     }
 
+    const isMobileDevice = isMobile || (typeof window !== 'undefined' && (window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)));
+
     if (!forceResize && isMobile && standalone && isKeyboardShowingRef.current) {
       return false;
     }
 
     const isKeyboardActive = isKeyboardShowingRef.current || (
-      isMobile && standalone && (
+      isMobileDevice && (
         (typeof window !== 'undefined' && window.visualViewport && window.visualViewport.height < (baseHeightRef.current || window.innerHeight) * 0.85) ||
-        (baseHeightRef.current > 0 && container.clientHeight < baseHeightRef.current - 100)
+        (baseHeightRef.current > 0 && container.clientHeight < baseHeightRef.current - 80)
       )
     );
 
-    if (!forceResize && isMobile && standalone && isKeyboardActive) {
+    if (!forceResize && isMobileDevice && isKeyboardActive) {
       return false;
+    }
+
+    if (!forceResize && isMobileDevice && lastSentRowsRef.current > 0) {
+      const isWidthUnchanged = Math.abs(container.clientWidth - baseWidthRef.current) <= 25;
+      const isHeightShrunk = container.clientHeight < baseHeightRef.current - 80;
+      if (isWidthUnchanged && isHeightShrunk) {
+        return false;
+      }
     }
 
     try {
@@ -630,14 +654,15 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
           return;
         }
 
-        // Direct mobile standalone virtual keyboard check to eliminate any race condition with updateViewport
-        if (isMobile && standalone) {
-          const isWidthStable = Math.abs(width - baseWidthRef.current) <= 20;
+        // Direct mobile virtual keyboard check to eliminate any race condition with updateViewport
+        const isMobileDevice = isMobile || (typeof window !== 'undefined' && (window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)));
+        if (isMobileDevice) {
+          const isWidthStable = Math.abs(width - baseWidthRef.current) <= 25;
           const isKeyboardActive = (
             (typeof window !== 'undefined' && window.visualViewport && window.visualViewport.height < (baseHeightRef.current || window.innerHeight) * 0.85) ||
-            (baseHeightRef.current > 0 && height < baseHeightRef.current - 100)
+            (baseHeightRef.current > 0 && height < baseHeightRef.current - 80)
           );
-          if (isWidthStable && isKeyboardActive) {
+          if (isWidthStable && (isKeyboardActive || isKeyboardShowingRef.current)) {
             return;
           }
         }
@@ -1039,8 +1064,9 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
           }
         }
       } else {
-        // Only run resize when not transitioning from keyboard
-        if (!wasKeyboardShowing && fitAddonRef.current && xtermRef.current) {
+        // On mobile, never resize terminal rows on viewport changes unless width changes (screen rotation)
+        const isWidthChanged = Math.abs(window.innerWidth - baseWidthRef.current) > 20;
+        if ((!mobile || isWidthChanged) && !wasKeyboardShowing && fitAddonRef.current && xtermRef.current) {
           const term = xtermRef.current;
           const wasAtBottom = isUserAtBottom(term);
           fitAddonRef.current.fit();

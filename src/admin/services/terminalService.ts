@@ -62,6 +62,7 @@ export function spawnTerminalSession(options: TerminalSessionOptions = {}): pty.
     LC_ALL: process.env.LC_ALL || process.env.LANG || 'en_US.UTF-8',
     TERM_PROGRAM: 'gemini-proxy-terminal',
     PROMPT_EOL_MARK: '',
+    CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN: process.env.CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN || '1',
     COLUMNS: String(cols),
     LINES: String(rows),
     ...options.env,

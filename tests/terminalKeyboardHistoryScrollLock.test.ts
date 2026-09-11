@@ -59,8 +59,8 @@ describe('Terminal Mobile Keyboard History Scroll Lock Tests', () => {
     expect(webTerminalContent).toContain('!isInputFocused && isNearFullHeight');
   });
 
-  it('verifies UnifiedTerminalView window resize listener guards mobile standalone mode', () => {
-    expect(unifiedContent).toContain('if (subTab === \'interactive\' && (!isMobile || !isStandalone))');
+  it('verifies UnifiedTerminalView window resize listener guards mobile devices entirely', () => {
+    expect(unifiedContent).toContain("if (subTab === 'interactive' && !isMobile)");
   });
 
   it('verifies UnifiedTerminalView anchors to bottom only on transition and guards baseHeightRef with isNearFullHeight', () => {
@@ -82,6 +82,16 @@ describe('Terminal Mobile Keyboard History Scroll Lock Tests', () => {
 
   it('verifies WebTerminalView safeFit and ResizeObserver check isKeyboardActive directly to prevent race conditions', () => {
     expect(webTerminalContent).toContain('isKeyboardActive');
-    expect(webTerminalContent).toContain('if (isWidthStable && isKeyboardActive)');
+    expect(webTerminalContent).toContain('if (isWidthStable && (isKeyboardActive || isKeyboardShowingRef.current))');
+  });
+
+  it('verifies sendResize directly intercepts and blocks mobile keyboard row reduction leaks', () => {
+    expect(webTerminalContent).toContain('Blocked mobile keyboard resize leak');
+    expect(webTerminalContent).toContain('isHeightShrunk || isKeyboardActive');
+  });
+
+  it('verifies updateViewport does not resize rows on mobile unless width changes', () => {
+    expect(webTerminalContent).toContain('const isWidthChanged = Math.abs(window.innerWidth - baseWidthRef.current) > 20;');
+    expect(webTerminalContent).toContain('if ((!mobile || isWidthChanged) && !wasKeyboardShowing && fitAddonRef.current && xtermRef.current)');
   });
 });

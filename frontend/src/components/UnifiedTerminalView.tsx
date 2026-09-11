@@ -194,13 +194,13 @@ export default function UnifiedTerminalView({
 
   useEffect(() => {
     const handleWindowResize = () => {
-      if (subTab === 'interactive' && (!isMobile || !isStandalone)) {
+      if (subTab === 'interactive' && !isMobile) {
         terminalRef.current?.fit();
       }
     };
     window.addEventListener('resize', handleWindowResize);
     return () => window.removeEventListener('resize', handleWindowResize);
-  }, [subTab, isMobile, isStandalone]);
+  }, [subTab, isMobile]);
 
   return (
     <div
