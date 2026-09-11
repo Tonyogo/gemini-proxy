@@ -45,6 +45,7 @@ import { syncCustomWebAppsFromRemote } from './utils/customWebAppsStorage';
 import ConfigModal from './components/ConfigModal';
 import { useTranslation } from './i18n/LanguageContext';
 import { ThemeSwitcher } from './components/ThemeSwitcher';
+import { isMobileScreenOrDevice } from './utils/mobileViewportHelper';
 
 type TabType = 'dashboard' | 'accounts' | 'logs' | 'discover';
 export type DiscoverSubView = 'hub' | 'terminal' | 'systemLogs' | 'playground' | 'translate' | 'mihomo' | 'embeddedWeb';
@@ -114,6 +115,9 @@ export default function App() {
         setActiveTab('discover');
         setDiscoverSubView('terminal');
       }
+      if (!isTerm && isMobileScreenOrDevice()) {
+        setDiscoverSubView('hub');
+      }
     };
     window.addEventListener('popstate', handlePopState);
     window.addEventListener('hashchange', handlePopState);
@@ -125,6 +129,9 @@ export default function App() {
 
   const handleExitStandalone = () => {
     setIsStandaloneTerminal(false);
+    if (isMobileScreenOrDevice()) {
+      setDiscoverSubView('hub');
+    }
     if (window.location.pathname === '/terminal' || window.location.pathname.startsWith('/terminal/')) {
       window.history.pushState(null, '', '/');
     } else if (window.location.hash === '#/terminal' || window.location.hash === '#terminal') {
@@ -196,6 +203,10 @@ export default function App() {
 
   const handleSelectDiscoverTool = (tool: DiscoverToolId) => {
     setIsEmbeddedFullscreen(false);
+    if (tool === 'terminal' && isMobileScreenOrDevice()) {
+      handleEnterStandalone();
+      return;
+    }
     setDiscoverSubView(tool);
   };
 
