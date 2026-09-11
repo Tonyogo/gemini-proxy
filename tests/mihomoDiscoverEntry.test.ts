@@ -24,4 +24,15 @@ describe('Discover Hub Mihomo Entry Integration', () => {
     expect(zh).toContain('mihomoTitle');
     expect(en).toContain('mihomoTitle');
   });
+
+  it('translations include mihomo connection settings keys', () => {
+    const zh = fs.readFileSync(zhPath, 'utf-8');
+    const en = fs.readFileSync(enPath, 'utf-8');
+    expect(zh).toContain('settingsTitle');
+    expect(zh).toContain('apiUrlLabel');
+    expect(zh).toContain('secretLabel');
+    expect(en).toContain('settingsTitle');
+    expect(en).toContain('apiUrlLabel');
+    expect(en).toContain('secretLabel');
+  });
 });

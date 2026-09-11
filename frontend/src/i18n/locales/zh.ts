@@ -575,7 +575,21 @@ export const zh: Translations = {
     now: "当前选中",
     group: "策略组",
     switchSuccess: "已切换节点至 {name}",
-    closeConnSuccess: "已清空所有网络连接"
+    closeConnSuccess: "已清空所有网络连接",
+    settingsTitle: "Mihomo 连接配置",
+    settingsDesc: "自定义 Mihomo 控制器 API 地址与访问密钥",
+    apiUrlLabel: "API 地址",
+    apiUrlPlaceholder: "http://127.0.0.1:9090",
+    secretLabel: "访问密钥 (Secret)",
+    secretPlaceholder: "留空或输入 Secret...",
+    testConnection: "测试连通性",
+    testing: "正在测试...",
+    testSuccess: "连接成功！版本: {version}",
+    testFailed: "连接失败: {message}",
+    saveSettings: "保存并生效",
+    configSaved: "连接配置已保存并生效",
+    configBtn: "连接设置",
+    configureNow: "配置连接参数"
   },
   files: {
     title: "文件管理",

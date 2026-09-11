@@ -573,7 +573,21 @@ export const en = {
     now: "Current Active",
     group: "Proxy Group",
     switchSuccess: "Switched proxy to {name}",
-    closeConnSuccess: "Closed all connections"
+    closeConnSuccess: "Closed all connections",
+    settingsTitle: "Mihomo Connection Settings",
+    settingsDesc: "Customize Mihomo Controller API endpoint and secret",
+    apiUrlLabel: "API Endpoint",
+    apiUrlPlaceholder: "http://127.0.0.1:9090",
+    secretLabel: "Secret Key",
+    secretPlaceholder: "Optional Secret...",
+    testConnection: "Test Connection",
+    testing: "Testing...",
+    testSuccess: "Connection successful! Version: {version}",
+    testFailed: "Connection failed: {message}",
+    saveSettings: "Save & Apply",
+    configSaved: "Connection settings saved",
+    configBtn: "Settings",
+    configureNow: "Configure Connection"
   },
   files: {
     title: "File Manager",
