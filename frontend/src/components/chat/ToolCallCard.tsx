@@ -30,7 +30,7 @@ export default function ToolCallCard({ type, name, id, content, isError = false 
   };
 
   return (
-    <div className={`my-2 rounded-xl border overflow-hidden font-mono text-xs transition-all shadow-xs ${
+    <div className={`my-2 rounded-xl border overflow-hidden font-mono text-xs transition-all shadow-xs w-full min-w-0 ${
       isCall
         ? 'border-indigo-200/80 dark:border-indigo-500/25 bg-indigo-50/40 dark:bg-indigo-950/15'
         : isError
@@ -71,8 +71,8 @@ export default function ToolCallCard({ type, name, id, content, isError = false 
       </div>
 
       {expanded && (
-        <div className="p-3 bg-[var(--code-bg)] border-t border-[var(--border-subtle)] max-h-80 overflow-y-auto">
-          <pre className="text-[11px] leading-relaxed text-[var(--code-text)] font-mono whitespace-pre-wrap m-0 selection:bg-indigo-500/30">
+        <div className="p-3 bg-[var(--code-bg)] border-t border-[var(--border-subtle)] max-h-80 overflow-y-auto overflow-x-auto overscroll-x-contain">
+          <pre className="text-[11px] leading-relaxed text-[var(--code-text)] font-mono whitespace-pre m-0 selection:bg-indigo-500/30">
             <code>{formattedContent}</code>
           </pre>
         </div>

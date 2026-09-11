@@ -75,6 +75,6 @@ describe('LogsView & Preview Modes Theme Cleanliness Test', () => {
     const code = read('LogsView.tsx');
     expect(code).toContain('gap-2.5 shrink-0');
     expect(code).toContain('font-mono shrink-0');
-    expect(code).toContain("activeTab === 'chat' ? 'overflow-y-auto space-y-4' : 'overflow-hidden'");
+    expect(code).toContain("activeTab === 'chat' ? 'overflow-y-auto overflow-x-hidden space-y-4' : 'overflow-hidden'");
   });
 });

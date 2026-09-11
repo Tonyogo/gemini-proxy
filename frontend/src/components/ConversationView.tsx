@@ -108,26 +108,26 @@ export default function ConversationView({ log }: ConversationViewProps) {
   }
 
   return (
-    <div ref={containerRef} className="flex flex-col space-y-4 pb-8 max-w-5xl mx-auto w-full relative">
+    <div ref={containerRef} className="flex flex-col space-y-4 pb-8 max-w-5xl mx-auto w-full min-w-0 relative">
       {/* System Prompt Collapsible Card */}
       {systemPrompt && (
-        <div className="rounded-2xl border border-indigo-200/80 dark:border-indigo-500/25 bg-indigo-50/40 dark:bg-indigo-950/15 overflow-hidden font-mono text-xs transition-all shadow-xs">
+        <div className="rounded-2xl border border-indigo-200/80 dark:border-indigo-500/25 bg-indigo-50/40 dark:bg-indigo-950/15 overflow-hidden font-mono text-xs transition-all shadow-xs min-w-0">
           <div
             onClick={() => setSystemExpanded(!systemExpanded)}
             className="flex items-center justify-between px-3.5 py-2.5 bg-indigo-100/40 dark:bg-indigo-500/10 cursor-pointer hover:bg-indigo-100/70 dark:hover:bg-indigo-500/15 transition-colors select-none text-indigo-700 dark:text-indigo-300"
           >
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 min-w-0">
               {systemExpanded ? <ChevronDown className="w-4 h-4 shrink-0" /> : <ChevronRight className="w-4 h-4 shrink-0" />}
               <Shield className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
-              <span className="font-semibold tracking-wide">{t('logs.systemPrompt', 'System Prompt')}</span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-200/50 dark:bg-indigo-500/20 text-indigo-800 dark:text-indigo-200 border border-indigo-300/60 dark:border-indigo-500/30 font-mono">
+              <span className="font-semibold tracking-wide truncate">{t('logs.systemPrompt', 'System Prompt')}</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-200/50 dark:bg-indigo-500/20 text-indigo-800 dark:text-indigo-200 border border-indigo-300/60 dark:border-indigo-500/30 font-mono shrink-0">
                 {systemPrompt.length.toLocaleString()} chars
               </span>
             </div>
 
             <button
               onClick={handleCopySystem}
-              className="flex items-center space-x-1 text-indigo-700/80 dark:text-indigo-300/80 hover:text-indigo-900 dark:hover:text-indigo-100 text-[10px] px-2 py-1 rounded-md bg-indigo-200/50 dark:bg-indigo-500/15 hover:bg-indigo-200/80 dark:hover:bg-indigo-500/25 transition-colors"
+              className="flex items-center space-x-1 text-indigo-700/80 dark:text-indigo-300/80 hover:text-indigo-900 dark:hover:text-indigo-100 text-[10px] px-2 py-1 rounded-md bg-indigo-200/50 dark:bg-indigo-500/15 hover:bg-indigo-200/80 dark:hover:bg-indigo-500/25 transition-colors shrink-0 ml-2"
               title="Copy system prompt"
             >
               {copiedSystem ? <Check className="w-3 h-3 text-emerald-600 dark:text-emerald-400" /> : <Copy className="w-3 h-3" />}
@@ -136,7 +136,7 @@ export default function ConversationView({ log }: ConversationViewProps) {
           </div>
 
           {systemExpanded && (
-            <div className="p-4 bg-[var(--code-bg)] border-t border-[var(--border-subtle)] text-[var(--code-text)] max-h-96 overflow-y-auto leading-relaxed">
+            <div className="p-4 bg-[var(--code-bg)] border-t border-[var(--border-subtle)] text-[var(--code-text)] max-h-96 overflow-y-auto leading-relaxed min-w-0">
               <MarkdownContent content={systemPrompt} />
             </div>
           )}
@@ -144,7 +144,7 @@ export default function ConversationView({ log }: ConversationViewProps) {
       )}
 
       {/* Messages Timeline */}
-      <div className="space-y-4 pb-6">
+      <div className="space-y-4 pb-6 min-w-0 w-full">
         {conversationMessages.map((msg, idx) => (
           <MessageBubble key={idx} message={msg} />
         ))}

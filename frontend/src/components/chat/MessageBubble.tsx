@@ -53,7 +53,7 @@ export default function MessageBubble({ message }: { message: ChatMessage }) {
   };
 
   return (
-    <div className={`flex flex-col mb-5 w-full group ${isUser ? 'items-end' : 'items-start'}`}>
+    <div className={`flex flex-col mb-5 w-full min-w-0 group ${isUser ? 'items-end' : 'items-start'}`}>
       {/* Role Header */}
       <div className={`flex items-center space-x-2 text-xs font-mono select-none mb-1.5 ${
         isUser ? 'flex-row-reverse space-x-reverse' : ''
@@ -79,12 +79,12 @@ export default function MessageBubble({ message }: { message: ChatMessage }) {
       </div>
 
       {/* Bubble Container */}
-      <div className={`rounded-2xl p-4 sm:p-5 border transition-all ${
+      <div className={`rounded-2xl p-4 sm:p-5 border transition-all min-w-0 ${
         isUser
           ? 'w-fit max-w-[92%] sm:max-w-[85%] bg-indigo-50/90 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-500/25 rounded-tr-xs text-[var(--text-primary)] dark:text-slate-100 shadow-xs backdrop-blur-xs selection:bg-indigo-500 selection:text-white'
-          : 'w-full max-w-[98%] sm:max-w-[94%] bg-[var(--bg-surface)] dark:bg-[var(--bg-surface)]/95 border-[var(--border-subtle)] hover:border-[var(--border-hover)] rounded-tl-xs text-[var(--text-primary)] dark:text-slate-200 shadow-xs'
+          : 'w-full bg-[var(--bg-surface)] dark:bg-[var(--bg-surface)]/95 border-[var(--border-subtle)] hover:border-[var(--border-hover)] rounded-tl-xs text-[var(--text-primary)] dark:text-slate-200 shadow-xs'
       }`}>
-        <div className="space-y-3">
+        <div className="space-y-3 min-w-0">
           {message.blocks.map((block, idx) => {
             switch (block.type) {
               case 'thinking':
@@ -141,8 +141,8 @@ export default function MessageBubble({ message }: { message: ChatMessage }) {
 
               default:
                 return (
-                  <div key={idx} className="text-xs font-mono text-[var(--code-text)] bg-[var(--code-bg)] border border-[var(--border-subtle)] p-2 rounded-lg">
-                    <pre className="overflow-x-auto">{JSON.stringify(block, null, 2)}</pre>
+                  <div key={idx} className="text-xs font-mono text-[var(--code-text)] bg-[var(--code-bg)] border border-[var(--border-subtle)] p-2 rounded-lg w-full min-w-0">
+                    <pre className="overflow-x-auto overscroll-x-contain m-0">{JSON.stringify(block, null, 2)}</pre>
                   </div>
                 );
             }

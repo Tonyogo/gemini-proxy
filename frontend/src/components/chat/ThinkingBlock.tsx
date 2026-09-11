@@ -25,7 +25,7 @@ export default function ThinkingBlock({ thinking, defaultExpanded = false }: Thi
   };
 
   return (
-    <div className="my-2 rounded-xl border border-amber-500/25 bg-amber-500/[0.04] dark:bg-amber-500/[0.03] overflow-hidden transition-all text-xs font-mono shadow-xs">
+    <div className="my-2 rounded-xl border border-amber-500/25 bg-amber-500/[0.04] dark:bg-amber-500/[0.03] overflow-hidden transition-all text-xs font-mono shadow-xs w-full min-w-0">
       <div
         onClick={() => setExpanded(!expanded)}
         className="flex items-center justify-between px-3 py-2 bg-amber-500/10 hover:bg-amber-500/15 cursor-pointer transition-colors select-none text-amber-700 dark:text-amber-300"
@@ -50,7 +50,7 @@ export default function ThinkingBlock({ thinking, defaultExpanded = false }: Thi
       </div>
 
       {expanded && (
-        <div className="p-3.5 bg-amber-500/[0.03] dark:bg-slate-950/70 border-t border-amber-500/20 text-[var(--text-secondary)] dark:text-slate-300 text-[11px] font-mono leading-relaxed whitespace-pre-wrap max-h-96 overflow-y-auto selection:bg-amber-500/30">
+        <div className="p-3.5 bg-amber-500/[0.03] dark:bg-slate-950/70 border-t border-amber-500/20 text-[var(--text-secondary)] dark:text-slate-300 text-[11px] font-mono leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] max-h-96 overflow-y-auto selection:bg-amber-500/30 min-w-0">
           {thinking}
         </div>
       )}

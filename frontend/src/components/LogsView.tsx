@@ -889,7 +889,7 @@ export default function LogsView({
           </div>
         ) : selectedLog ? (
           <div className={`flex-1 min-h-0 flex flex-col pr-1 ${
-            activeTab === 'chat' ? 'overflow-y-auto space-y-4' : 'overflow-hidden'
+            activeTab === 'chat' ? 'overflow-y-auto overflow-x-hidden space-y-4' : 'overflow-hidden'
           }`}>
             {activeTab === 'payload' && (
               <div className="flex-1 min-h-0 h-full flex flex-col overflow-hidden">
