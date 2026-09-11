@@ -1,6 +1,6 @@
 # Mihomo Web Panel Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Implement a native, lightweight, and responsive Mihomo (Clash.Meta) Web Management Panel inside the Discover page, connected to the local Mihomo API (`http://127.0.0.1:9090`) via a secure authenticated backend reverse proxy with traffic monitoring, node switching, latency testing, and mode toggling.
 
@@ -42,7 +42,7 @@
   - `GET /api/admin/mihomo/connections` -> `{ downloadTotal, uploadTotal, connections }`
   - `DELETE /api/admin/mihomo/connections` -> `{ success: boolean }`
 
-- [ ] **Step 1: Write the failing test for Mihomo backend proxy**
+- [x] **Step 1: Write the failing test for Mihomo backend proxy**
 
 Create `tests/mihomoProxy.test.ts`:
 ```typescript
@@ -180,12 +180,12 @@ describe('Mihomo Reverse Proxy Endpoints', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/mihomoProxy.test.ts`
 Expected: FAIL with 404 or missing route handlers.
 
-- [ ] **Step 3: Implement config extension and Mihomo service & controller**
+- [x] **Step 3: Implement config extension and Mihomo service & controller**
 
 1. Update `config/default.ts`:
    Add `mihomoApiUrl` and `mihomoSecret` getters to `getEnvConfig()`:
@@ -200,12 +200,12 @@ Expected: FAIL with 404 or missing route handlers.
 4. Update `src/admin/routes/adminRoutes.ts`:
    Mount the `/mihomo/*` routes under `adminRoutes`.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/mihomoProxy.test.ts`
 Expected: PASS (all 6 tests pass)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add config/default.ts src/admin/services/mihomoService.ts src/admin/controllers/mihomoController.ts src/admin/routes/adminRoutes.ts tests/mihomoProxy.test.ts
@@ -227,7 +227,7 @@ git commit -m "feat(mihomo): implement authenticated backend reverse proxy servi
 - `DiscoverToolId`: `'terminal' | 'systemLogs' | 'playground' | 'translate' | 'mihomo'`
 - i18n keys: `discover.mihomoTitle`, `discover.mihomoDesc`
 
-- [ ] **Step 1: Write the test for Discover Hub integration**
+- [x] **Step 1: Write the test for Discover Hub integration**
 
 Create `tests/mihomoDiscoverEntry.test.ts`:
 ```typescript
@@ -260,12 +260,12 @@ describe('Discover Hub Mihomo Entry Integration', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/mihomoDiscoverEntry.test.ts`
 Expected: FAIL due to missing entries.
 
-- [ ] **Step 3: Update i18n, DiscoverHubView, and App.tsx**
+- [x] **Step 3: Update i18n, DiscoverHubView, and App.tsx**
 
 1. In `en.ts` & `zh.ts`:
    - Add `mihomoTitle` ("Mihomo 控制台" / "Mihomo Dashboard")
@@ -278,12 +278,12 @@ Expected: FAIL due to missing entries.
 3. In `App.tsx`:
    - Add `discoverSubView === 'mihomo'` rendering `<MihomoView adminKey={adminKey} />`.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/mihomoDiscoverEntry.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src/i18n/locales/en.ts frontend/src/i18n/locales/zh.ts frontend/src/components/DiscoverHubView.tsx frontend/src/App.tsx tests/mihomoDiscoverEntry.test.ts
@@ -315,7 +315,7 @@ git commit -m "feat(discover): add mihomo entry to discover hub and route handle
 - **Offline / Unauthorized Empty State**:
   - If Mihomo server is unreachable or reports 401 Unauthorized, displays diagnostic card with prompt to check `.env` or input temporary secret.
 
-- [ ] **Step 1: Write structural and functionality test for `MihomoView.tsx`**
+- [x] **Step 1: Write structural and functionality test for `MihomoView.tsx`**
 
 Create `tests/mihomoView.test.ts`:
 ```typescript
@@ -343,21 +343,21 @@ describe('MihomoView Component Structure', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/mihomoView.test.ts`
 Expected: FAIL (file does not exist yet).
 
-- [ ] **Step 3: Implement `frontend/src/components/MihomoView.tsx`**
+- [x] **Step 3: Implement `frontend/src/components/MihomoView.tsx`**
 
 Create full implementation with responsive styling, polling, theme integration, mode switching, node cards, and latency testing.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/mihomoView.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src/components/MihomoView.tsx tests/mihomoView.test.ts
@@ -372,22 +372,22 @@ git commit -m "feat(mihomo): implement native light Mihomo dashboard view"
 - Test: all test suites
 - Build: `npm run build:frontend` & `npm run build`
 
-- [ ] **Step 1: Run all unit & integration tests**
+- [x] **Step 1: Run all unit & integration tests**
 
 Run: `npm test`
 Expected: PASS with 0 failures across all test suites.
 
-- [ ] **Step 2: Run frontend build**
+- [x] **Step 2: Run frontend build**
 
 Run: `npm run build:frontend`
 Expected: Vite builds cleanly without TypeScript or CSS errors.
 
-- [ ] **Step 3: Run full production build**
+- [x] **Step 3: Run full production build**
 
 Run: `npm run build`
 Expected: Full compile to `dist/` succeeds cleanly.
 
-- [ ] **Step 4: Commit any final polishing changes**
+- [x] **Step 4: Commit any final polishing changes**
 
 ```bash
 git commit -am "chore(mihomo): verify end-to-end builds and test passing"
