@@ -94,6 +94,7 @@ export interface WebTerminalHandle {
   toggleSelectMode: () => void;
   fit: () => void;
   scrollToBottomSafe?: () => void;
+  isAtBottom?: () => boolean;
   isSelectMode: boolean;
 }
 
@@ -229,12 +230,14 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
     }
     (document.activeElement as HTMLElement)?.blur();
     setIsKeyboardOpen(false);
-    isKeyboardShowingRef.current = false;
-    setTimeout(() => {
-      if (isMountedRef.current) {
-        safeFit(true);
-      }
-    }, 260);
+    const isWidthStable = Math.abs(window.innerWidth - baseWidthRef.current) <= 20;
+    if (!isMobile || !standalone || !isWidthStable) {
+      setTimeout(() => {
+        if (isMountedRef.current) {
+          safeFit(true);
+        }
+      }, 260);
+    }
   };
 
   const fontSizeRef = useRef<number>(fontSize);
@@ -267,6 +270,17 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
       return false;
     }
 
+    const isKeyboardActive = isKeyboardShowingRef.current || (
+      isMobile && standalone && (
+        (typeof window !== 'undefined' && window.visualViewport && window.visualViewport.height < (baseHeightRef.current || window.innerHeight) * 0.85) ||
+        (baseHeightRef.current > 0 && container.clientHeight < baseHeightRef.current - 100)
+      )
+    );
+
+    if (!forceResize && isMobile && standalone && isKeyboardActive) {
+      return false;
+    }
+
     try {
       const term = xtermRef.current;
       const wasAtBottom = isUserAtBottom(term);
@@ -284,6 +298,9 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
     }
     return false;
   }, [sendResize, isMobile, standalone]);
+
+  const safeFitRef = useRef(safeFit);
+  safeFitRef.current = safeFit;
 
   const clearReconnectTimers = useCallback(() => {
     if (countdownIntervalRef.current) {
@@ -585,26 +602,48 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
       }
     });
 
-    // Observe container resize
+    // Observe container resize with RAF debouncing and mobile keyboard suppression
+    let resizeRaf: number | null = null;
+    let lastContainerWidth = 0;
+    let lastContainerHeight = 0;
+
     const resizeObserver = new ResizeObserver(() => {
-      if (fitAddonRef.current && xtermRef.current && terminalContainerRef.current) {
-        if (terminalContainerRef.current.clientWidth > 0 && terminalContainerRef.current.clientHeight > 0) {
-          try {
-            const term = xtermRef.current;
-            const wasAtBottom = isUserAtBottom(term);
-            fitAddonRef.current.fit();
-            const { cols, rows } = term;
-            if (cols > 0 && rows > 0) {
-              sendResize(cols, rows);
-            }
-            if (shouldScrollToBottom({ isReplaying: isReplayingRef.current, wasAtBottom, bufferType: term.buffer.active.type })) {
-              scrollToBottomSafe(term);
-            }
-          } catch {
-            // Ignore
+      if (resizeRaf !== null) {
+        cancelAnimationFrame(resizeRaf);
+      }
+      resizeRaf = requestAnimationFrame(() => {
+        resizeRaf = null;
+        if (!isMountedRef.current || !terminalContainerRef.current) return;
+        const width = terminalContainerRef.current.clientWidth;
+        const height = terminalContainerRef.current.clientHeight;
+        if (width <= 0 || height <= 0) return;
+
+        // Skip if dimensions have not changed
+        if (width === lastContainerWidth && height === lastContainerHeight) {
+          return;
+        }
+        lastContainerWidth = width;
+        lastContainerHeight = height;
+
+        // Suppress fitting when mobile keyboard is open to avoid shrinking terminal rows
+        if (isKeyboardShowingRef.current) {
+          return;
+        }
+
+        // Direct mobile standalone virtual keyboard check to eliminate any race condition with updateViewport
+        if (isMobile && standalone) {
+          const isWidthStable = Math.abs(width - baseWidthRef.current) <= 20;
+          const isKeyboardActive = (
+            (typeof window !== 'undefined' && window.visualViewport && window.visualViewport.height < (baseHeightRef.current || window.innerHeight) * 0.85) ||
+            (baseHeightRef.current > 0 && height < baseHeightRef.current - 100)
+          );
+          if (isWidthStable && isKeyboardActive) {
+            return;
           }
         }
-      }
+
+        safeFitRef.current?.(false);
+      });
     });
 
     if (terminalContainerRef.current) {
@@ -807,10 +846,13 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
 
       if (!isDragging && elapsed < 350) {
         // Pure single tap -> Focus terminal & wake on-screen virtual keyboard synchronously
+        if (isMobile && standalone) {
+          isKeyboardShowingRef.current = true;
+        }
         term.focus();
         const textarea = container?.querySelector('textarea');
         if (textarea) {
-          textarea.focus();
+          textarea.focus({ preventScroll: true });
         }
       }
     };
@@ -899,12 +941,21 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
       const textarea = terminalContainerRef.current?.querySelector('textarea');
       const isInputFocused = document.activeElement === textarea;
 
+      const screenHeight = typeof window !== 'undefined' && window.screen ? window.screen.height : 0;
+
       if (window.visualViewport) {
         const vv = window.visualViewport;
+        const currentHeight = Math.max(window.innerHeight, vv?.height || window.innerHeight);
 
-        // If not typing and keyboard is definitely not showing, sync base dimensions
-        if (!isInputFocused) {
-          baseHeightRef.current = Math.max(window.innerHeight, vv?.height || window.innerHeight);
+        // Only record baseHeightRef when height is near full physical viewport height.
+        // Avoids pollution on Android Chrome when keyboard opens or focus leaves textarea.
+        const isNearFullHeight = (
+          (screenHeight > 0 ? currentHeight >= screenHeight * 0.72 : true) &&
+          (baseHeightRef.current <= 0 || currentHeight >= baseHeightRef.current - 100)
+        );
+
+        if (!isInputFocused && isNearFullHeight) {
+          baseHeightRef.current = Math.max(baseHeightRef.current, currentHeight);
           baseWidthRef.current = window.innerWidth;
         }
 
@@ -912,7 +963,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
           baseHeight: baseHeightRef.current,
           viewportHeight: vv.height,
           offsetTop: 0,
-          isInputFocused,
+          isInputFocused: isInputFocused || isKeyboardShowingRef.current,
         });
         isKeyboardShowing = offsetResult.isKeyboardShowing;
         translateY = offsetResult.translateY;
@@ -925,8 +976,13 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
           }
         }
       } else {
-        if (!isInputFocused) {
-          baseHeightRef.current = window.innerHeight;
+        const currentHeight = window.innerHeight;
+        const isNearFullHeight = (
+          (screenHeight > 0 ? currentHeight >= screenHeight * 0.72 : true) &&
+          (baseHeightRef.current <= 0 || currentHeight >= baseHeightRef.current - 100)
+        );
+        if (!isInputFocused && isNearFullHeight) {
+          baseHeightRef.current = Math.max(baseHeightRef.current, currentHeight);
           baseWidthRef.current = window.innerWidth;
         }
       }
@@ -956,7 +1012,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
             height: `${availableHeight}px`,
             maxHeight: `${availableHeight}px`,
             flex: 'none',
-            transition: 'height 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
+            transition: 'none',
             overflow: 'hidden',
           });
         } else {
@@ -972,13 +1028,15 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
         isKeyboardShowing,
         isMobile: mobile,
         standalone,
-        isInputFocused,
+        isInputFocused: isInputFocused || isKeyboardShowingRef.current,
       });
 
       if (blockResize) {
-        if (xtermRef.current) {
-          // Always keep viewport anchored to bottom cursor when keyboard opens
-          scrollToBottomSafe(xtermRef.current);
+        if (!wasKeyboardShowing && xtermRef.current) {
+          // Always keep viewport anchored to bottom cursor when keyboard opens only if already at bottom
+          if (isUserAtBottom(xtermRef.current)) {
+            scrollToBottomSafe(xtermRef.current);
+          }
         }
       } else {
         // Only run resize when not transitioning from keyboard
@@ -1047,6 +1105,10 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
       }
       if (replayTimerRef.current) {
         clearTimeout(replayTimerRef.current);
+      }
+      if (resizeRaf !== null) {
+        cancelAnimationFrame(resizeRaf);
+        resizeRaf = null;
       }
       resizeObserver.disconnect();
       if (helperTextarea) {
@@ -1173,10 +1235,15 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
     if (isKeyboardOpen) {
       handleHideKeyboard();
     } else {
+      if (isMobile && standalone) {
+        isKeyboardShowingRef.current = true;
+      }
       if (xtermRef.current) {
         xtermRef.current.focus();
-        textarea?.focus();
-        scrollToBottomSafe(xtermRef.current);
+        textarea?.focus({ preventScroll: true });
+        if (isUserAtBottom(xtermRef.current)) {
+          scrollToBottomSafe(xtermRef.current);
+        }
       }
       setIsKeyboardOpen(true);
     }
@@ -1501,6 +1568,10 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
       if (xtermRef.current) {
         scrollToBottomSafe(xtermRef.current);
       }
+    },
+    isAtBottom: () => {
+      if (!xtermRef.current) return true;
+      return isUserAtBottom(xtermRef.current);
     },
     get isSelectMode() {
       return isSelectModeRef.current;

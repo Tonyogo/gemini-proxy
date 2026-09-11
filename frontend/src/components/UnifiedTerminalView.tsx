@@ -56,11 +56,39 @@ export default function UnifiedTerminalView({
     ? window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
     : false;
 
+  const isKeyboardShowingRef = useRef<boolean>(false);
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      baseHeightRef.current = Math.max(baseHeightRef.current, window.innerHeight);
+      const screenHeight = window.screen ? window.screen.height : 0;
+      const currentHeight = window.innerHeight;
+      const isNearFullHeight = (
+        (screenHeight > 0 ? currentHeight >= screenHeight * 0.72 : true) &&
+        (baseHeightRef.current <= 0 || currentHeight >= baseHeightRef.current - 100)
+      );
+      if (isNearFullHeight) {
+        baseHeightRef.current = Math.max(baseHeightRef.current, currentHeight);
+      }
     }
   }, [isStandalone]);
+
+  useEffect(() => {
+    const handleOrientation = () => {
+      if (typeof window !== 'undefined') {
+        const screenHeight = window.screen ? window.screen.height : 0;
+        const currentHeight = window.innerHeight;
+        const isNearFullHeight = (
+          (screenHeight > 0 ? currentHeight >= screenHeight * 0.72 : true) &&
+          (baseHeightRef.current <= 0 || currentHeight >= baseHeightRef.current - 100)
+        );
+        if (isNearFullHeight) {
+          baseHeightRef.current = currentHeight;
+        }
+      }
+    };
+    window.addEventListener('orientationchange', handleOrientation);
+    return () => window.removeEventListener('orientationchange', handleOrientation);
+  }, []);
 
   useEffect(() => {
     if (!isStandalone || !isMobile || typeof window === 'undefined' || !window.visualViewport) {
@@ -72,11 +100,24 @@ export default function UnifiedTerminalView({
       const vv = window.visualViewport;
       if (!vv) return;
 
+      const screenHeight = typeof window !== 'undefined' && window.screen ? window.screen.height : 0;
+      const currentHeight = Math.max(window.innerHeight, vv.height);
+      const isNearFullHeight = (
+        (screenHeight > 0 ? currentHeight >= screenHeight * 0.72 : true) &&
+        (baseHeightRef.current <= 0 || currentHeight >= baseHeightRef.current - 100)
+      );
+      if (isNearFullHeight) {
+        baseHeightRef.current = Math.max(baseHeightRef.current, currentHeight);
+      }
+
       const offsetResult = calculateKeyboardTranslateY({
         baseHeight: baseHeightRef.current,
         viewportHeight: vv.height,
         offsetTop: 0,
       });
+
+      const wasKeyboardShowing = isKeyboardShowingRef.current;
+      isKeyboardShowingRef.current = offsetResult.isKeyboardShowing;
 
       const headerHeight = headerRef.current?.offsetHeight || 44;
 
@@ -86,10 +127,15 @@ export default function UnifiedTerminalView({
           height: `${availableHeight}px`,
           maxHeight: `${availableHeight}px`,
           flex: 'none',
-          transition: 'height 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
+          transition: 'none',
           overflow: 'hidden',
         });
-        terminalRef.current?.scrollToBottomSafe?.();
+        // Only anchor to bottom when keyboard transitions from closed to open and user is at bottom
+        if (!wasKeyboardShowing) {
+          if (terminalRef.current?.isAtBottom ? terminalRef.current.isAtBottom() : false) {
+            terminalRef.current?.scrollToBottomSafe?.();
+          }
+        }
       } else {
         setWorkspaceStyle({});
       }
@@ -148,13 +194,13 @@ export default function UnifiedTerminalView({
 
   useEffect(() => {
     const handleWindowResize = () => {
-      if (subTab === 'interactive') {
+      if (subTab === 'interactive' && (!isMobile || !isStandalone)) {
         terminalRef.current?.fit();
       }
     };
     window.addEventListener('resize', handleWindowResize);
     return () => window.removeEventListener('resize', handleWindowResize);
-  }, [subTab]);
+  }, [subTab, isMobile, isStandalone]);
 
   return (
     <div

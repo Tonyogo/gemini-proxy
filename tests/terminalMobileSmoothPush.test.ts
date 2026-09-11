@@ -16,8 +16,8 @@ describe('WebTerminalView Mobile Smooth Push Integration', () => {
     expect(content).toContain('baseWidthRef');
   });
 
-  test('applies dynamic height and spring transition in mobile standalone viewportStyle', () => {
-    expect(content).toContain('cubic-bezier(0.16, 1, 0.3, 1)');
+  test('disables transition in mobile standalone viewportStyle to prevent multi-frame resize jitter', () => {
+    expect(content).toContain("transition: 'none'");
     expect(content).toContain('transition');
   });
 

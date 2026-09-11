@@ -20,8 +20,8 @@ describe('UnifiedTerminalView Mobile Fixed Header & Adaptive Viewport', () => {
     expect(content).toMatch(/sticky\s+top-0\s+z-30/);
   });
 
-  it('workspace container applies dynamic height adaptation with transition', () => {
-    expect(content).toContain('cubic-bezier(0.16, 1, 0.3, 1)');
+  it('workspace container applies dynamic height adaptation without intermediate transition reflow', () => {
+    expect(content).toContain("transition: 'none'");
     expect(content).toMatch(/style=\{isMobile\s*&&\s*isStandalone\s*\?\s*workspaceStyle\s*:\s*undefined\}/);
   });
 

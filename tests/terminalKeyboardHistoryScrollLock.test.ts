@@ -30,4 +30,58 @@ describe('Terminal Mobile Keyboard History Scroll Lock Tests', () => {
     expect(webTerminalContent).toContain('if (blockResize)');
     expect(webTerminalContent).toContain('scrollToBottomSafe(xtermRef.current);');
   });
+
+  it('verifies CSS height transition is disabled (transition: none) in both views', () => {
+    expect(unifiedContent).toContain("transition: 'none'");
+    expect(webTerminalContent).toContain("transition: 'none'");
+    expect(unifiedContent).not.toContain("transition: 'height 0.22s");
+    expect(webTerminalContent).not.toContain("transition: 'height 0.22s");
+  });
+
+  it('verifies ResizeObserver uses requestAnimationFrame and respects isKeyboardShowingRef', () => {
+    expect(webTerminalContent).toContain('let resizeRaf: number | null = null;');
+    expect(webTerminalContent).toContain('if (isKeyboardShowingRef.current)');
+    expect(webTerminalContent).toContain('safeFitRef.current?.(false);');
+  });
+
+  it('verifies textarea.focus uses { preventScroll: true }', () => {
+    expect(webTerminalContent).toContain('textarea.focus({ preventScroll: true });');
+  });
+
+  it('verifies WebTerminalHandle exposes isAtBottom and UnifiedTerminalView uses it', () => {
+    expect(webTerminalContent).toContain('isAtBottom?: () => boolean;');
+    expect(webTerminalContent).toContain('isAtBottom: () => {');
+    expect(unifiedContent).toContain('terminalRef.current?.isAtBottom');
+  });
+
+  it('verifies baseHeightRef is guarded against Android Chrome keyboard pollution', () => {
+    expect(webTerminalContent).toContain('isNearFullHeight');
+    expect(webTerminalContent).toContain('!isInputFocused && isNearFullHeight');
+  });
+
+  it('verifies UnifiedTerminalView window resize listener guards mobile standalone mode', () => {
+    expect(unifiedContent).toContain('if (subTab === \'interactive\' && (!isMobile || !isStandalone))');
+  });
+
+  it('verifies UnifiedTerminalView anchors to bottom only on transition and guards baseHeightRef with isNearFullHeight', () => {
+    expect(unifiedContent).toContain('const wasKeyboardShowing = isKeyboardShowingRef.current;');
+    expect(unifiedContent).toContain('if (!wasKeyboardShowing)');
+    expect(unifiedContent).toContain('isNearFullHeight');
+  });
+
+  it('verifies WebTerminalView handleHideKeyboard skips safeFit(true) on mobile standalone with stable width', () => {
+    const hideFnStart = webTerminalContent.indexOf('const handleHideKeyboard = () => {');
+    const hideFnEnd = webTerminalContent.indexOf('const fontSizeRef =', hideFnStart);
+    const hideFnBlock = webTerminalContent.slice(hideFnStart, hideFnEnd);
+    expect(hideFnBlock).toContain('if (!isMobile || !standalone || !isWidthStable)');
+  });
+
+  it('verifies WebTerminalView blockResize anchors to bottom only on initial keyboard opening transition', () => {
+    expect(webTerminalContent).toContain('if (!wasKeyboardShowing && xtermRef.current)');
+  });
+
+  it('verifies WebTerminalView safeFit and ResizeObserver check isKeyboardActive directly to prevent race conditions', () => {
+    expect(webTerminalContent).toContain('isKeyboardActive');
+    expect(webTerminalContent).toContain('if (isWidthStable && isKeyboardActive)');
+  });
 });
