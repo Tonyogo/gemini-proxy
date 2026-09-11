@@ -38,7 +38,7 @@ export interface MihomoConnectionOptions {
 }
 ```
 
-- [ ] **Step 1: Write failing test for header overrides in `tests/mihomoProxy.test.ts`**
+- [x] **Step 1: Write failing test for header overrides in `tests/mihomoProxy.test.ts`**
 
 Add test cases in `tests/mihomoProxy.test.ts`:
 ```typescript
@@ -62,12 +62,12 @@ it('overrides target URL and secret when x-mihomo-url and x-mihomo-secret header
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/mihomoProxy.test.ts`
 Expected: FAIL (custom secret headers not yet processed).
 
-- [ ] **Step 3: Update `mihomoService.ts` and `mihomoController.ts`**
+- [x] **Step 3: Update `mihomoService.ts` and `mihomoController.ts`**
 
 1. In `src/admin/services/mihomoService.ts`:
    - Export `MihomoConnectionOptions`.
@@ -86,12 +86,12 @@ Expected: FAIL (custom secret headers not yet processed).
      ```
    - Pass `this.getConnectionOptions(req)` to all service invocations.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/mihomoProxy.test.ts`
 Expected: PASS (all tests pass).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/admin/services/mihomoService.ts src/admin/controllers/mihomoController.ts tests/mihomoProxy.test.ts
@@ -107,7 +107,7 @@ git commit -m "feat(mihomo): support per-request x-mihomo-url and x-mihomo-secre
 - Modify: `frontend/src/i18n/locales/en.ts`
 - Test: `tests/mihomoDiscoverEntry.test.ts`
 
-- [ ] **Step 1: Write test checking i18n keys**
+- [x] **Step 1: Write test checking i18n keys**
 
 Add assertions to `tests/mihomoDiscoverEntry.test.ts`:
 ```typescript
@@ -123,12 +123,12 @@ it('translations include mihomo connection settings keys', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/mihomoDiscoverEntry.test.ts`
 Expected: FAIL due to missing keys.
 
-- [ ] **Step 3: Update `zh.ts` and `en.ts`**
+- [x] **Step 3: Update `zh.ts` and `en.ts`**
 
 Add keys under `mihomo`:
 - `settingsTitle`: "Mihomo 连接配置" / "Mihomo Connection Settings"
@@ -146,12 +146,12 @@ Add keys under `mihomo`:
 - `configBtn`: "连接设置" / "Settings"
 - `configureNow`: "配置连接参数" / "Configure Connection"
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/mihomoDiscoverEntry.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src/i18n/locales/zh.ts frontend/src/i18n/locales/en.ts tests/mihomoDiscoverEntry.test.ts
@@ -180,7 +180,7 @@ git commit -m "feat(i18n): add mihomo connection settings translations"
 4. Add Settings button (`SlidersHorizontal` / `Settings`) in the top action toolbar.
 5. Add "配置连接参数" button in the offline and unauthorized empty states.
 
-- [ ] **Step 1: Write test assertions for settings modal in `tests/mihomoView.test.ts`**
+- [x] **Step 1: Write test assertions for settings modal in `tests/mihomoView.test.ts`**
 
 Update `tests/mihomoView.test.ts`:
 ```typescript
@@ -194,21 +194,21 @@ it('MihomoView supports manual URL and secret configuration', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/mihomoView.test.ts`
 Expected: FAIL due to missing settings modal code.
 
-- [ ] **Step 3: Update `MihomoView.tsx`**
+- [x] **Step 3: Update `MihomoView.tsx`**
 
 Implement state, localStorage synchronization, settings modal with testing/saving actions, and integration into the top action bar and empty state.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/mihomoView.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src/components/MihomoView.tsx tests/mihomoView.test.ts
@@ -223,19 +223,19 @@ git commit -m "feat(mihomo): implement connection settings modal with localStora
 - Test: all test suites (`npm test`)
 - Build: `npm run build:frontend` & `npm run build`
 
-- [ ] **Step 1: Run all unit and integration tests**
+- [x] **Step 1: Run all unit and integration tests**
 
 Run: `npm test`
 Expected: PASS with 0 failures across all 89+ test suites.
 
-- [ ] **Step 2: Run frontend production build**
+- [x] **Step 2: Run frontend production build**
 
 Run: `npm run build:frontend`
 Expected: Vite builds bundle cleanly into `dist/frontend`.
 
-- [ ] **Step 3: Run full backend and frontend build**
+- [x] **Step 3: Run full backend and frontend build**
 
 Run: `npm run build`
 Expected: Compiles cleanly with exit code 0.
 
-- [ ] **Step 4: Final verification commit if needed**
+- [x] **Step 4: Final verification commit if needed**
