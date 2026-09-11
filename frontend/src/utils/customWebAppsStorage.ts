@@ -28,10 +28,28 @@ export function normalizeWebAppUrl(rawUrl: string): string {
   }
 }
 
+export const PRESET_CUSTOM_WEB_APPS: CustomWebAppItem[] = [
+  {
+    id: 'preset_ubuntu_ui',
+    name: 'Ubuntu Web UI',
+    url: 'https://ubuntu.yatao.cc.cd/ui/',
+    icon: 'Layout',
+    color: 'from-orange-500 to-amber-600',
+    createdAt: 1726045000000,
+  },
+];
+
 export function loadCustomWebApps(): CustomWebAppItem[] {
   try {
     const raw = localStorage.getItem(CUSTOM_WEB_APPS_STORAGE_KEY);
-    if (!raw) return [];
+    if (raw === null) {
+      try {
+        localStorage.setItem(CUSTOM_WEB_APPS_STORAGE_KEY, JSON.stringify(PRESET_CUSTOM_WEB_APPS));
+      } catch {
+        // ignore potential quota error
+      }
+      return [...PRESET_CUSTOM_WEB_APPS];
+    }
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
   } catch {

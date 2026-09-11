@@ -5,6 +5,7 @@ import {
   saveCustomWebApp,
   deleteCustomWebApp,
   CUSTOM_WEB_APPS_STORAGE_KEY,
+  PRESET_CUSTOM_WEB_APPS,
 } from '../frontend/src/utils/customWebAppsStorage';
 import { CustomWebAppItem } from '../frontend/src/types/customWebApps';
 
@@ -54,20 +55,33 @@ describe('customWebAppsStorage', () => {
   });
 
   describe('CRUD operations', () => {
-    it('should return empty list when no apps exist', () => {
+    it('should seed preset Ubuntu Web UI on brand new first launch when key is null', () => {
+      expect(localStorage.getItem(CUSTOM_WEB_APPS_STORAGE_KEY)).toBeNull();
+      const apps = loadCustomWebApps();
+      expect(apps).toHaveLength(1);
+      expect(apps[0].id).toBe('preset_ubuntu_ui');
+      expect(apps[0].name).toBe('Ubuntu Web UI');
+      expect(apps[0].url).toBe('https://ubuntu.yatao.cc.cd/ui/');
+      // Should now be saved in localStorage
+      expect(localStorage.getItem(CUSTOM_WEB_APPS_STORAGE_KEY)).not.toBeNull();
+    });
+
+    it('should return empty list when storage is explicitly empty', () => {
+      localStorage.setItem(CUSTOM_WEB_APPS_STORAGE_KEY, JSON.stringify([]));
       expect(loadCustomWebApps()).toEqual([]);
     });
 
     it('should save a new custom web app with generated id and normalized url', () => {
+      localStorage.setItem(CUSTOM_WEB_APPS_STORAGE_KEY, JSON.stringify([]));
       const saved = saveCustomWebApp({
-        name: 'Ubuntu Web UI',
-        url: 'ubuntu.yatao.cc.cd/ui/',
-        color: 'from-orange-500 to-amber-600',
+        name: 'Another Web UI',
+        url: 'another.yatao.cc.cd/ui/',
+        color: 'from-blue-500 to-cyan-600',
       });
 
       expect(saved.id).toBeDefined();
-      expect(saved.name).toBe('Ubuntu Web UI');
-      expect(saved.url).toBe('https://ubuntu.yatao.cc.cd/ui/');
+      expect(saved.name).toBe('Another Web UI');
+      expect(saved.url).toBe('https://another.yatao.cc.cd/ui/');
       expect(saved.createdAt).toBeGreaterThan(0);
 
       const list = loadCustomWebApps();
@@ -76,6 +90,7 @@ describe('customWebAppsStorage', () => {
     });
 
     it('should update an existing custom web app when id is provided', () => {
+      localStorage.setItem(CUSTOM_WEB_APPS_STORAGE_KEY, JSON.stringify([]));
       const initial = saveCustomWebApp({
         name: 'Initial',
         url: 'https://initial.com',
@@ -97,6 +112,7 @@ describe('customWebAppsStorage', () => {
     });
 
     it('should delete an app by id', () => {
+      localStorage.setItem(CUSTOM_WEB_APPS_STORAGE_KEY, JSON.stringify([]));
       const app1 = saveCustomWebApp({ name: 'App 1', url: 'https://1.com' });
       const app2 = saveCustomWebApp({ name: 'App 2', url: 'https://2.com' });
 
