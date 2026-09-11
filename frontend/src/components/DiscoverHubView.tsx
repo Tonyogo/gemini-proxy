@@ -6,11 +6,12 @@ import {
   Languages,
   ChevronRight,
   Sparkles,
-  ArrowUpRight
+  ArrowUpRight,
+  Radio
 } from 'lucide-react';
 import { useTranslation } from '../i18n/LanguageContext';
 
-export type DiscoverToolId = 'terminal' | 'systemLogs' | 'playground' | 'translate';
+export type DiscoverToolId = 'terminal' | 'systemLogs' | 'playground' | 'translate' | 'mihomo';
 
 export interface DiscoverHubViewProps {
   adminKey: string;
@@ -66,6 +67,28 @@ export const DiscoverHubView: React.FC<DiscoverHubViewProps> = ({ onSelectTool }
                 </div>
                 <p className="text-[11px] text-[var(--text-muted)] truncate mt-0.5">
                   {t('discover.systemLogsDesc')}
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-slate-400 shrink-0 ml-2 group-active:translate-x-0.5 transition-transform" />
+          </button>
+
+          {/* Item: Mihomo Dashboard */}
+          <button
+            type="button"
+            onClick={() => onSelectTool('mihomo')}
+            className="w-full flex items-center justify-between p-3.5 text-left active:bg-black/[0.04] dark:active:bg-white/[0.05] transition-colors group"
+          >
+            <div className="flex items-center space-x-3.5 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white shrink-0 shadow-sm shadow-purple-500/20 group-active:scale-95 transition-transform">
+                <Radio className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-[var(--text-primary)] flex items-center space-x-1.5">
+                  <span>{t('discover.mihomoTitle')}</span>
+                </div>
+                <p className="text-[11px] text-[var(--text-muted)] truncate mt-0.5">
+                  {t('discover.mihomoDesc')}
                 </p>
               </div>
             </div>
@@ -140,8 +163,8 @@ export const DiscoverHubView: React.FC<DiscoverHubViewProps> = ({ onSelectTool }
           </p>
         </div>
 
-        {/* Tools 4-Column Card Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        {/* Tools Card Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
           {/* Card 1: Web Terminal */}
           <div
             onClick={() => onSelectTool('terminal')}
@@ -246,6 +269,33 @@ export const DiscoverHubView: React.FC<DiscoverHubViewProps> = ({ onSelectTool }
             </div>
             <div className="pt-5 mt-4 border-t border-[var(--border-subtle)] flex items-center justify-between text-xs font-medium text-indigo-500 dark:text-indigo-400">
               <span>{t('discover.launch')}</span>
+              <ArrowUpRight className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+            </div>
+          </div>
+
+          {/* Card 5: Mihomo Dashboard */}
+          <div
+            onClick={() => onSelectTool('mihomo')}
+            className="ui-card p-5 flex flex-col justify-between hover:border-purple-500/40 hover:shadow-lg hover:shadow-purple-500/5 transition-all group cursor-pointer"
+          >
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white shadow-md shadow-purple-500/20 group-hover:scale-105 transition-transform">
+                  <Radio className="w-6 h-6" />
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 font-medium">
+                  CORE PROXY
+                </span>
+              </div>
+              <h3 className="text-sm font-semibold text-[var(--text-primary)] group-hover:text-purple-400 transition-colors">
+                {t('discover.mihomoTitle')}
+              </h3>
+              <p className="text-xs text-[var(--text-secondary)] mt-1.5 leading-relaxed line-clamp-2">
+                {t('discover.mihomoDesc')}
+              </p>
+            </div>
+            <div className="pt-5 mt-4 border-t border-[var(--border-subtle)] flex items-center justify-between text-xs font-medium text-purple-500 dark:text-purple-400">
+              <span>{t('discover.openMihomo', '打开控制台')}</span>
               <ArrowUpRight className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
             </div>
           </div>
