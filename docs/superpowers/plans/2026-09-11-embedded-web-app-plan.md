@@ -36,7 +36,7 @@
   - `deleteCustomWebApp(id: string): void`
   - `normalizeWebAppUrl(rawUrl: string): string`
 
-- [ ] **Step 1: Write the failing unit tests for storage utility & URL normalizer**
+- [x] **Step 1: Write the failing unit tests for storage utility & URL normalizer**
 
 ```typescript
 // tests/customWebAppsStorage.test.ts
@@ -129,12 +129,12 @@ describe('customWebAppsStorage', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/customWebAppsStorage.test.ts`
 Expected: FAIL with module not found / function not defined.
 
-- [ ] **Step 3: Implement `frontend/src/types/customWebApps.ts` & `frontend/src/utils/customWebAppsStorage.ts`**
+- [x] **Step 3: Implement `frontend/src/types/customWebApps.ts` & `frontend/src/utils/customWebAppsStorage.ts`**
 
 ```typescript
 // frontend/src/types/customWebApps.ts
@@ -235,12 +235,12 @@ export function deleteCustomWebApp(id: string): void {
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npx jest tests/customWebAppsStorage.test.ts`
 Expected: PASS with 100% assertions satisfied.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src/types/customWebApps.ts frontend/src/utils/customWebAppsStorage.ts tests/customWebAppsStorage.test.ts
@@ -278,7 +278,7 @@ git commit -m "feat(web-apps): add data structures and storage utility for custo
   - `loadingApp`: "正在加载应用..." / "Loading application..."
   - `mixedContentWarn`: "如果无法内嵌显示，请尝试在新窗口打开或启用网关代理。" / "If content fails to load in iframe, try opening externally or enable Gateway Proxy."
 
-- [ ] **Step 1: Write failing i18n test**
+- [x] **Step 1: Write failing i18n test**
 
 ```typescript
 // tests/i18nCustomWebApps.test.ts
@@ -328,21 +328,21 @@ describe('i18n Custom Web Apps Keys', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/i18nCustomWebApps.test.ts`
 Expected: FAIL with missing keys.
 
-- [ ] **Step 3: Update `zh.ts` and `en.ts`**
+- [x] **Step 3: Update `zh.ts` and `en.ts`**
 
 Add keys to `frontend/src/i18n/locales/zh.ts` and `frontend/src/i18n/locales/en.ts` within the `discover` object.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/i18nCustomWebApps.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src/i18n/locales/zh.ts frontend/src/i18n/locales/en.ts tests/i18nCustomWebApps.test.ts
@@ -369,7 +369,7 @@ git commit -m "feat(i18n): add custom web apps and embedded view translations"
   }
   ```
 
-- [ ] **Step 1: Write component tests for CustomWebAppModal**
+- [x] **Step 1: Write component tests for CustomWebAppModal**
 
 ```typescript
 // tests/customWebAppModal.test.ts
@@ -459,12 +459,12 @@ describe('CustomWebAppModal', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/customWebAppModal.test.ts`
 Expected: FAIL.
 
-- [ ] **Step 3: Implement `frontend/src/components/CustomWebAppModal.tsx`**
+- [x] **Step 3: Implement `frontend/src/components/CustomWebAppModal.tsx`**
 
 Implement the modal with:
 - Form fields: Name, URL, Theme Color Picker, Gateway Toggle.
@@ -472,12 +472,12 @@ Implement the modal with:
 - Cancel, Save, and Delete buttons.
 - `data-testid` attributes matching test expectations.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/customWebAppModal.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src/components/CustomWebAppModal.tsx tests/customWebAppModal.test.ts
@@ -502,7 +502,7 @@ git commit -m "feat(ui): add CustomWebAppModal for adding and editing custom web
   }
   ```
 
-- [ ] **Step 1: Write unit tests for EmbeddedWebView**
+- [x] **Step 1: Write unit tests for EmbeddedWebView**
 
 ```typescript
 // tests/embeddedWebView.test.ts
@@ -595,12 +595,12 @@ describe('EmbeddedWebView', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/embeddedWebView.test.ts`
 Expected: FAIL.
 
-- [ ] **Step 3: Implement `frontend/src/components/EmbeddedWebView.tsx`**
+- [x] **Step 3: Implement `frontend/src/components/EmbeddedWebView.tsx`**
 
 Implement `EmbeddedWebView` with:
 - Top sticky toolbar with back navigation, icon & title, URL badge with hostname and padlock icon.
@@ -609,12 +609,12 @@ Implement `EmbeddedWebView` with:
 - Loading spinner animation that fades out once `iframe.onLoad` triggers.
 - Responsive height computation (`calc(100vh - 120px)` on desktop, full mobile viewport).
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/embeddedWebView.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src/components/EmbeddedWebView.tsx tests/embeddedWebView.test.ts
@@ -636,7 +636,7 @@ git commit -m "feat(ui): add EmbeddedWebView container with navigation toolbar a
   - `DiscoverHubViewProps`: supports `onSelectCustomApp: (app: CustomWebAppItem) => void`
   - `App.tsx`: routing to `EmbeddedWebView` when `discoverSubView === 'embeddedWeb'`
 
-- [ ] **Step 1: Write integration tests for DiscoverHubView custom apps**
+- [x] **Step 1: Write integration tests for DiscoverHubView custom apps**
 
 ```typescript
 // tests/discoverHubCustomApps.test.ts
@@ -691,12 +691,12 @@ describe('DiscoverHubView Custom Apps Integration', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/discoverHubCustomApps.test.ts`
 Expected: FAIL.
 
-- [ ] **Step 3: Update `DiscoverHubView.tsx` and `App.tsx`**
+- [x] **Step 3: Update `DiscoverHubView.tsx` and `App.tsx`**
 
 - In `DiscoverHubView.tsx`:
   - Read custom apps from `loadCustomWebApps()` on mount and state changes.
@@ -708,12 +708,12 @@ Expected: FAIL.
   - Add `activeEmbeddedApp: CustomWebAppItem | null` state.
   - Render `<EmbeddedWebView app={activeEmbeddedApp} onBack={() => setDiscoverSubView('hub')} onEditApp={...} />` when `activeTab === 'discover' && discoverSubView === 'embeddedWeb'`.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/discoverHubCustomApps.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src/components/DiscoverHubView.tsx frontend/src/App.tsx tests/discoverHubCustomApps.test.ts
@@ -728,7 +728,7 @@ git commit -m "feat(discover): integrate custom web apps grid and embedded web r
 - Modify: `frontend/src/utils/customWebAppsStorage.ts` (Ensure default seed includes `Ubuntu Web UI` if storage is brand new/empty)
 - Test: All suites (`npm test`)
 
-- [ ] **Step 1: Verify default seeding logic in `customWebAppsStorage.ts`**
+- [x] **Step 1: Verify default seeding logic in `customWebAppsStorage.ts`**
 
 When `localStorage.getItem(CUSTOM_WEB_APPS_STORAGE_KEY)` is null on first launch, initialize with preset item:
 ```typescript
@@ -742,17 +742,17 @@ When `localStorage.getItem(CUSTOM_WEB_APPS_STORAGE_KEY)` is null on first launch
 }
 ```
 
-- [ ] **Step 2: Run complete Jest test suite**
+- [x] **Step 2: Run complete Jest test suite**
 
 Run: `npm test`
 Expected: All test suites (90+ suites) PASS with 0 failures.
 
-- [ ] **Step 3: Run full production build**
+- [x] **Step 3: Run full production build**
 
 Run: `npm run build`
 Expected: Clean build of Vite React frontend to `dist/frontend` and TypeScript backend to `dist/src`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add frontend/src/utils/customWebAppsStorage.ts
