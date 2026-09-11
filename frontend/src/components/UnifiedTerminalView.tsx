@@ -188,6 +188,7 @@ export default function UnifiedTerminalView({
             onSelectHost={handleHostChange}
             isAddModalOpen={isAddNodeModalOpen}
             onAddModalOpenChange={setIsAddNodeModalOpen}
+            connectionStatus={connectionStatus}
           />
 
           <div className="h-4 w-px bg-[var(--border-subtle)] hidden sm:block" />
@@ -220,9 +221,9 @@ export default function UnifiedTerminalView({
             </button>
           </div>
 
-          {/* Connection Status Badge (when in interactive tab) */}
+          {/* Connection Status Badge (when in interactive tab, desktop only) */}
           {subTab === 'interactive' && (
-            <div className="flex items-center space-x-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg bg-black/30 border border-white/[0.06] text-slate-300 font-mono text-[11px] shrink-0">
+            <div className="hidden sm:flex items-center space-x-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg bg-black/30 border border-white/[0.06] text-slate-300 font-mono text-[11px] shrink-0">
               <div
                 className={`w-1.5 h-1.5 rounded-full ${
                   !activeHostId
@@ -327,7 +328,7 @@ export default function UnifiedTerminalView({
             onClick={handleFullscreenToggle}
             className={`p-1 sm:p-1.5 rounded-lg border transition-all ${
               isStandalone
-                ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
+                ? 'hidden sm:inline-flex bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
                 : 'bg-white/[0.04] hover:bg-white/[0.08] text-slate-400 hover:text-white border border-white/[0.06]'
             }`}
             title={isStandalone ? t('webTerminal.exitFullscreen') : t('webTerminal.fullscreen')}

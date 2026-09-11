@@ -1566,12 +1566,13 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
               adminKey={adminKey}
               activeHostId={activeHostId}
               onSelectHost={handleHostChange}
+              connectionStatus={{ isConnected, isConnecting }}
             />
           )}
 
-          {/* Connection Status Badge */}
+          {/* Connection Status Badge (desktop only) */}
           <div
-            className={`flex items-center space-x-1 sm:space-x-1.5 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-medium border shrink-0 ${
+            className={`hidden sm:flex items-center space-x-1 sm:space-x-1.5 px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-medium border shrink-0 ${
               !activeHostId
                 ? 'bg-slate-500/10 text-slate-400 border-slate-500/20'
                 : isConnected
@@ -1669,7 +1670,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
             onClick={handleFullscreenToggle}
             className={`p-1 sm:p-1.5 rounded-lg border transition-all ${
               standalone
-                ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
+                ? 'hidden sm:inline-flex bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
                 : 'bg-white/[0.04] hover:bg-white/[0.08] text-slate-400 hover:text-white border border-white/[0.06]'
             }`}
             title={standalone ? t('webTerminal.exitFullscreen') : t('webTerminal.fullscreen')}

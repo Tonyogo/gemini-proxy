@@ -30,6 +30,10 @@ export interface TerminalHostSelectorProps {
   onSelectHost: (hostId: string) => void;
   isAddModalOpen?: boolean;
   onAddModalOpenChange?: (open: boolean) => void;
+  connectionStatus?: {
+    isConnected: boolean;
+    isConnecting: boolean;
+  };
 }
 
 export function TerminalHostSelector({
@@ -38,6 +42,7 @@ export function TerminalHostSelector({
   onSelectHost,
   isAddModalOpen: propIsAddModalOpen,
   onAddModalOpenChange,
+  connectionStatus,
 }: TerminalHostSelectorProps) {
   const { t } = useTranslation();
   const [hosts, setHosts] = useState<ManagedHostItem[]>(() => {
@@ -195,13 +200,29 @@ export function TerminalHostSelector({
       >
         <Server className={`w-3.5 h-3.5 shrink-0 ${activeHost && activeHost.status === 'online' ? 'text-emerald-400' : 'text-slate-400'}`} />
 
-        <span className="font-medium text-[11px] max-w-[90px] sm:max-w-[130px] truncate">
+        <span className="font-medium text-[11px] max-w-[72px] sm:max-w-[130px] truncate">
           {activeHost ? activeHost.name : t('webTerminal.emptyState.noOnlineHosts', '无在线节点')}
         </span>
 
-        {/* Online/Offline Status Dot */}
+        {/* Online/Connection Status Dot */}
         <span className="relative flex items-center justify-center w-2 h-2 shrink-0">
-          {activeHost && activeHost.status === 'online' ? (
+          {!activeHost ? (
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
+          ) : connectionStatus ? (
+            connectionStatus.isConnected ? (
+              <>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span className="absolute w-2 h-2 rounded-full bg-emerald-400 animate-ping opacity-60" />
+              </>
+            ) : connectionStatus.isConnecting ? (
+              <>
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                <span className="absolute w-2 h-2 rounded-full bg-amber-400 animate-ping opacity-60" />
+              </>
+            ) : (
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+            )
+          ) : activeHost.status === 'online' ? (
             <>
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
               <span className="absolute w-2 h-2 rounded-full bg-emerald-400 animate-ping opacity-60" />
@@ -214,14 +235,14 @@ export function TerminalHostSelector({
         <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180 text-indigo-300' : ''}`} />
       </button>
 
-      {/* Quick Add Node Plus Button Beside Trigger */}
+      {/* Quick Add Node Plus Button Beside Trigger (hidden on mobile to prevent header overcrowding) */}
       <button
         type="button"
         onClick={() => {
           setIsOpen(false);
           setIsAddModalOpen(true);
         }}
-        className="p-1 sm:p-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] active:scale-95 text-slate-300 hover:text-white border border-white/[0.08] transition-all cursor-pointer shrink-0"
+        className="hidden sm:inline-flex p-1 sm:p-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] active:scale-95 text-slate-300 hover:text-white border border-white/[0.08] transition-all cursor-pointer shrink-0"
         title={t('webTerminal.hostSelector.addNode', '接入内网新节点')}
         aria-label={t('webTerminal.hostSelector.addNode', '接入内网新节点')}
       >
