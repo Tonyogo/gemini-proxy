@@ -34,12 +34,15 @@ import TerminalLogsView from './components/TerminalLogsView';
 import TranslateView from './components/TranslateView';
 import MihomoView from './components/MihomoView';
 import DiscoverHubView, { DiscoverToolId } from './components/DiscoverHubView';
+import EmbeddedWebView from './components/EmbeddedWebView';
+import CustomWebAppModal from './components/CustomWebAppModal';
+import { CustomWebAppItem } from './types/customWebApps';
 import ConfigModal from './components/ConfigModal';
 import { useTranslation } from './i18n/LanguageContext';
 import { ThemeSwitcher } from './components/ThemeSwitcher';
 
 type TabType = 'dashboard' | 'accounts' | 'logs' | 'discover';
-export type DiscoverSubView = 'hub' | 'terminal' | 'systemLogs' | 'playground' | 'translate' | 'mihomo';
+export type DiscoverSubView = 'hub' | 'terminal' | 'systemLogs' | 'playground' | 'translate' | 'mihomo' | 'embeddedWeb';
 
 interface NavItem {
   id: TabType;
@@ -163,8 +166,16 @@ export default function App() {
     localStorage.setItem('admin_active_tab', tabId);
   };
 
+  const [activeEmbeddedApp, setActiveEmbeddedApp] = useState<CustomWebAppItem | null>(null);
+  const [isEditEmbeddedAppModalOpen, setIsEditEmbeddedAppModalOpen] = useState<boolean>(false);
+
   const handleSelectDiscoverTool = (tool: DiscoverToolId) => {
     setDiscoverSubView(tool);
+  };
+
+  const handleSelectCustomApp = (app: CustomWebAppItem) => {
+    setActiveEmbeddedApp(app);
+    setDiscoverSubView('embeddedWeb');
   };
 
   // Modal State
@@ -605,6 +616,7 @@ export default function App() {
                     {discoverSubView === 'playground' && t('discover.playgroundTitle')}
                     {discoverSubView === 'translate' && t('discover.translateTitle')}
                     {discoverSubView === 'mihomo' && t('discover.mihomoTitle')}
+                    {discoverSubView === 'embeddedWeb' && (activeEmbeddedApp?.name || t('discover.customAppsTitle'))}
                   </span>
                 </>
               ) : (
@@ -719,6 +731,7 @@ export default function App() {
                 <DiscoverHubView
                   adminKey={adminKey}
                   onSelectTool={handleSelectDiscoverTool}
+                  onSelectCustomApp={handleSelectCustomApp}
                 />
               )}
               {discoverSubView === 'terminal' && (
@@ -752,6 +765,17 @@ export default function App() {
                 <MihomoView
                   key={refreshTrigger}
                   adminKey={adminKey}
+                />
+              )}
+              {discoverSubView === 'embeddedWeb' && activeEmbeddedApp && (
+                <EmbeddedWebView
+                  key={`${activeEmbeddedApp.id}_${refreshTrigger}`}
+                  app={activeEmbeddedApp}
+                  onBack={() => setDiscoverSubView('hub')}
+                  onEditApp={(app) => {
+                    setActiveEmbeddedApp(app);
+                    setIsEditEmbeddedAppModalOpen(true);
+                  }}
                 />
               )}
             </>
@@ -799,6 +823,26 @@ export default function App() {
         adminKey={adminKey}
         onSaved={() => setRefreshTrigger(prev => prev + 1)}
       />
+
+      {/* Edit Embedded App Modal */}
+      {isEditEmbeddedAppModalOpen && activeEmbeddedApp && (
+        <CustomWebAppModal
+          isOpen={isEditEmbeddedAppModalOpen}
+          appToEdit={activeEmbeddedApp}
+          onClose={() => setIsEditEmbeddedAppModalOpen(false)}
+          onSave={(saved) => {
+            setActiveEmbeddedApp(saved);
+            setIsEditEmbeddedAppModalOpen(false);
+            setRefreshTrigger(prev => prev + 1);
+          }}
+          onDelete={() => {
+            setIsEditEmbeddedAppModalOpen(false);
+            setActiveEmbeddedApp(null);
+            setDiscoverSubView('hub');
+            setRefreshTrigger(prev => prev + 1);
+          }}
+        />
+      )}
     </div>
   );
 }
