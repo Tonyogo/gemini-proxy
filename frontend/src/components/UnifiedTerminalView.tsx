@@ -89,7 +89,6 @@ export default function UnifiedTerminalView({
           transition: 'height 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
           overflow: 'hidden',
         });
-        terminalRef.current?.fit();
         terminalRef.current?.scrollToBottomSafe?.();
       } else {
         setWorkspaceStyle({});

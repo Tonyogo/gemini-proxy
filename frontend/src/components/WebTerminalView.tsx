@@ -263,6 +263,10 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
       return false;
     }
 
+    if (!forceResize && isMobile && standalone && isKeyboardShowingRef.current) {
+      return false;
+    }
+
     try {
       const term = xtermRef.current;
       const wasAtBottom = isUserAtBottom(term);
@@ -279,7 +283,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
       console.debug('[WebTerminal] safeFit bypassed:', err);
     }
     return false;
-  }, [sendResize]);
+  }, [sendResize, isMobile, standalone]);
 
   const clearReconnectTimers = useCallback(() => {
     if (countdownIntervalRef.current) {
@@ -930,12 +934,18 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
       const wasKeyboardShowing = isKeyboardShowingRef.current;
       isKeyboardShowingRef.current = isKeyboardShowing;
 
+      const isWidthStable = Math.abs(window.innerWidth - baseWidthRef.current) <= 20;
+
       if (wasKeyboardShowing && !isKeyboardShowing) {
-        setTimeout(() => {
-          if (isMountedRef.current) {
-            safeFit(true);
-          }
-        }, 260);
+        // When keyboard closes on mobile standalone with stable width, rows was never shrunk,
+        // so skip safeFit(true) to avoid triggering SIGWINCH and history buffer reflow.
+        if (!mobile || !standalone || !isWidthStable) {
+          setTimeout(() => {
+            if (isMountedRef.current) {
+              safeFit(true);
+            }
+          }, 260);
+        }
       }
 
       if (mobile && standalone) {
@@ -966,12 +976,13 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
       });
 
       if (blockResize) {
-        if (xtermRef.current && shouldScrollToBottom({ isReplaying: isReplayingRef.current, wasAtBottom: isUserAtBottom(xtermRef.current), bufferType: xtermRef.current.buffer.active.type })) {
-          // Keep viewport anchored to bottom cursor via scrollToBottom()
+        if (xtermRef.current) {
+          // Always keep viewport anchored to bottom cursor when keyboard opens
           scrollToBottomSafe(xtermRef.current);
         }
       } else {
-        if (fitAddonRef.current && xtermRef.current) {
+        // Only run resize when not transitioning from keyboard
+        if (!wasKeyboardShowing && fitAddonRef.current && xtermRef.current) {
           const term = xtermRef.current;
           const wasAtBottom = isUserAtBottom(term);
           fitAddonRef.current.fit();
