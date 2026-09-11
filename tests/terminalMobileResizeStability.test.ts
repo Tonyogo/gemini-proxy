@@ -1,4 +1,6 @@
 import { calculateKeyboardTranslateY, shouldBlockPtyResize } from '../frontend/src/utils/mobileViewportHelper';
+import * as fs from 'fs';
+import * as path from 'path';
 
 describe('Mobile Viewport Helper - Strict Input Focus Guard', () => {
   it('does not detect keyboard as showing if isInputFocused is false even with large height difference', () => {
@@ -45,3 +47,35 @@ describe('Mobile Viewport Helper - Strict Input Focus Guard', () => {
     expect(blocked).toBe(true);
   });
 });
+
+describe('WebTerminalView Force Resize & Lifecycle Cache Invalidation', () => {
+  const webTerminalPath = path.resolve(__dirname, '../frontend/src/components/WebTerminalView.tsx');
+  let webTerminalContent: string;
+
+  beforeAll(() => {
+    webTerminalContent = fs.readFileSync(webTerminalPath, 'utf-8');
+  });
+
+  it('sendResize accepts a force parameter to bypass cached dimensions check', () => {
+    expect(webTerminalContent).toMatch(/const sendResize = useCallback\(\(cols:\s*number,\s*rows:\s*number,\s*force:\s*boolean\s*=\s*false\)/);
+    expect(webTerminalContent).toMatch(/!force\s*&&\s*cols\s*===\s*lastSentColsRef\.current/);
+  });
+
+  it('safeFit accepts forceResize parameter and passes it to sendResize', () => {
+    expect(webTerminalContent).toMatch(/const safeFit = useCallback\(\(forceResize:\s*boolean\s*=\s*false\)/);
+    expect(webTerminalContent).toMatch(/sendResize\(cols,\s*rows,\s*forceResize\)/);
+  });
+
+  it('handleHostChange resets lastSentColsRef and lastSentRowsRef to 0', () => {
+    expect(webTerminalContent).toMatch(/const handleHostChange = \([\s\S]*?lastSentColsRef\.current\s*=\s*0;[\s\S]*?lastSentRowsRef\.current\s*=\s*0;/);
+  });
+
+  it('executeReset resets lastSentColsRef and lastSentRowsRef to 0', () => {
+    expect(webTerminalContent).toMatch(/const executeReset = useCallback\(\(\) => \{[\s\S]*?lastSentColsRef\.current\s*=\s*0;[\s\S]*?lastSentRowsRef\.current\s*=\s*0;/);
+  });
+
+  it('updateViewport checks physical input focus on textarea', () => {
+    expect(webTerminalContent).toMatch(/const isInputFocused = document\.activeElement === textarea/);
+  });
+});
+

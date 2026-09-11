@@ -236,9 +236,9 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
   fontSizeRef.current = fontSize;
 
 
-  const sendResize = useCallback((cols: number, rows: number) => {
+  const sendResize = useCallback((cols: number, rows: number, force: boolean = false) => {
     if (cols <= 0 || rows <= 0) return;
-    if (cols === lastSentColsRef.current && rows === lastSentRowsRef.current) {
+    if (!force && cols === lastSentColsRef.current && rows === lastSentRowsRef.current) {
       return;
     }
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
@@ -249,7 +249,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
     }
   }, []);
 
-  const safeFit = useCallback((): boolean => {
+  const safeFit = useCallback((forceResize: boolean = false): boolean => {
     if (!isMountedRef.current || !fitAddonRef.current || !xtermRef.current || !terminalContainerRef.current) {
       return false;
     }
@@ -264,7 +264,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
       fitAddonRef.current.fit();
       const { cols, rows } = term;
       if (cols > 2 && rows > 1) {
-        sendResize(cols, rows);
+        sendResize(cols, rows, forceResize);
         if (shouldScrollToBottom({ isReplaying: isReplayingRef.current, wasAtBottom, bufferType: term.buffer.active.type })) {
           scrollToBottomSafe(term);
         }
@@ -288,6 +288,8 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
     clearReconnectTimers();
     isProcessExitedRef.current = false;
     isReplayingRef.current = true;
+    lastSentColsRef.current = 0;
+    lastSentRowsRef.current = 0;
 
     if (wsRef.current) {
       wsRef.current.close();
@@ -329,8 +331,8 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
 
       lastSentColsRef.current = 0;
       lastSentRowsRef.current = 0;
-      if (!safeFit()) {
-        setTimeout(safeFit, 80);
+      if (!safeFit(true)) {
+        setTimeout(() => safeFit(true), 80);
       }
     };
 
@@ -886,8 +888,8 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
         const vv = window.visualViewport;
 
         // If not typing and keyboard is definitely not showing, sync base dimensions
-        if (!isInputFocused && !isKeyboardShowingRef.current && vv.height >= baseHeightRef.current * 0.85) {
-          baseHeightRef.current = Math.max(window.innerHeight, vv.height);
+        if (!isInputFocused) {
+          baseHeightRef.current = Math.max(window.innerHeight, vv?.height || window.innerHeight);
           baseWidthRef.current = window.innerWidth;
         }
 
@@ -895,6 +897,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
           baseHeight: baseHeightRef.current,
           viewportHeight: vv.height,
           offsetTop: 0,
+          isInputFocused,
         });
         isKeyboardShowing = offsetResult.isKeyboardShowing;
         translateY = offsetResult.translateY;
@@ -907,7 +910,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
           }
         }
       } else {
-        if (!isInputFocused && !isKeyboardShowingRef.current) {
+        if (!isInputFocused) {
           baseHeightRef.current = window.innerHeight;
           baseWidthRef.current = window.innerWidth;
         }
@@ -939,6 +942,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
         isKeyboardShowing,
         isMobile: mobile,
         standalone,
+        isInputFocused,
       });
 
       if (blockResize) {
@@ -1383,6 +1387,8 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
   };
 
   const handleHostChange = (newHostId: string) => {
+    lastSentColsRef.current = 0;
+    lastSentRowsRef.current = 0;
     if (newHostId === activeHostIdRef.current && (wsRef.current?.readyState === WebSocket.OPEN || wsRef.current?.readyState === WebSocket.CONNECTING)) {
       return;
     }
@@ -1412,6 +1418,8 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
 
   useEffect(() => {
     if (controlledHostId !== undefined && controlledHostId !== activeHostId) {
+      lastSentColsRef.current = 0;
+      lastSentRowsRef.current = 0;
       setActiveHostId(controlledHostId);
       activeHostIdRef.current = controlledHostId;
       if (xtermRef.current) {
@@ -1424,6 +1432,8 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
   }, [controlledHostId, activeHostId, initWebSocket]);
 
   const executeReset = useCallback(() => {
+    lastSentColsRef.current = 0;
+    lastSentRowsRef.current = 0;
     reconnectAttemptRef.current = 0;
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(`JSON:${JSON.stringify({ type: 'reset' })}`);
