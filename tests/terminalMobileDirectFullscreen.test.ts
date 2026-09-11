@@ -28,4 +28,9 @@ describe('Terminal Mobile Direct Fullscreen Routing & Logic', () => {
   it('App.tsx popstate/hashchange listener returns to hub on mobile when leaving terminal', () => {
     expect(appContent).toMatch(/handlePopState[\s\S]*?if\s*\(!isTerm\s*&&\s*isMobileScreenOrDevice\(\)\)\s*\{[\s\S]*?setDiscoverSubView\('hub'\);/);
   });
+
+  it('UnifiedTerminalView hides Fullscreen toggle button completely on mobile', () => {
+    expect(unifiedContent).toContain('{!isMobile && (');
+    expect(unifiedContent).toMatch(/\{!isMobile\s*&&\s*\([\s\S]*?<Maximize2/);
+  });
 });

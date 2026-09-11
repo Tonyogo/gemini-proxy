@@ -26,8 +26,9 @@ describe('Terminal Mobile Fullscreen Header Optimization Tests', () => {
     expect(unifiedContent).toContain('hidden sm:flex items-center space-x-1');
   });
 
-  it('verifies UnifiedTerminalView hides redundant Minimize2 button on mobile when in standalone mode', () => {
-    expect(unifiedContent).toContain("isStandalone\n                ? 'hidden sm:inline-flex bg-indigo-500/20 text-indigo-300 border-indigo-500/30'");
+  it('verifies UnifiedTerminalView renders Minimize2 button only on desktop when in standalone mode', () => {
+    expect(unifiedContent).toContain('!isMobile');
+    expect(unifiedContent).toContain('Minimize2');
   });
 
   it('verifies WebTerminalView hides redundant mobile badge and Minimize2 button when in standalone mode', () => {

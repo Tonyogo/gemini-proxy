@@ -373,19 +373,21 @@ export default function UnifiedTerminalView({
             </button>
           )}
 
-          {/* Fullscreen / Standalone Toggle */}
-          <button
-            type="button"
-            onClick={handleFullscreenToggle}
-            className={`p-1 sm:p-1.5 rounded-lg border transition-all ${
-              isStandalone
-                ? 'hidden sm:inline-flex bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
-                : 'bg-white/[0.04] hover:bg-white/[0.08] text-slate-400 hover:text-white border border-white/[0.06]'
-            }`}
-            title={isStandalone ? t('webTerminal.exitFullscreen') : t('webTerminal.fullscreen')}
-          >
-            {isStandalone ? <Minimize2 className="w-3.5 h-3.5 text-indigo-400" /> : <Maximize2 className="w-3.5 h-3.5" />}
-          </button>
+          {/* Fullscreen / Standalone Toggle (Desktop only) */}
+          {!isMobile && (
+            <button
+              type="button"
+              onClick={handleFullscreenToggle}
+              className={`p-1 sm:p-1.5 rounded-lg border transition-all ${
+                isStandalone
+                  ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
+                  : 'bg-white/[0.04] hover:bg-white/[0.08] text-slate-400 hover:text-white border border-white/[0.06]'
+              }`}
+              title={isStandalone ? t('webTerminal.exitFullscreen') : t('webTerminal.fullscreen')}
+            >
+              {isStandalone ? <Minimize2 className="w-3.5 h-3.5 text-indigo-400" /> : <Maximize2 className="w-3.5 h-3.5" />}
+            </button>
+          )}
         </div>
       </div>
 
