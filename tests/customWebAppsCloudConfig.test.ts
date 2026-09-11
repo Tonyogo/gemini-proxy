@@ -3,15 +3,32 @@ import express from 'express';
 import adminRoutes from '../src/admin/routes/adminRoutes';
 import config, { updateConfig } from '../config/default';
 
+import { promises as fs } from 'fs';
+import * as path from 'path';
+
 const app = express();
 app.use(express.json());
 app.use('/api/admin', adminRoutes);
 
 describe('Backend Custom Web Apps Cloud Config', () => {
   const adminKey = config.adminSecretKey || 'test-admin-key';
+  const runtimeJsonPath = path.join(process.cwd(), 'config', 'runtime.test.json');
 
   beforeAll(() => {
     config.adminSecretKey = adminKey;
+  });
+
+  beforeEach(async () => {
+    await updateConfig({}, { resetToEnv: true });
+  });
+
+  afterAll(async () => {
+    await updateConfig({}, { resetToEnv: true });
+    try {
+      await fs.unlink(runtimeJsonPath);
+    } catch {
+      // ignore
+    }
   });
 
   it('should expose customWebApps in GET /api/admin/status', async () => {

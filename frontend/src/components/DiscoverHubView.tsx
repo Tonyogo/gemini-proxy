@@ -26,6 +26,7 @@ export interface DiscoverHubViewProps {
 }
 
 export const DiscoverHubView: React.FC<DiscoverHubViewProps> = ({
+  adminKey,
   onSelectTool,
   onSelectCustomApp,
 }) => {
