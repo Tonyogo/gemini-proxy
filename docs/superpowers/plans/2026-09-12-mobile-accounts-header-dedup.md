@@ -30,7 +30,7 @@
   - 页面头部容器：`hidden sm:flex flex-col md:flex-row md:items-center md:justify-between gap-4`
   - 移除：`<span className="inline-flex sm:hidden items-center px-2 py-0.5 rounded-full text-xs font-mono font-semibold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">{totalCount}</span>`
 
-- [ ] **Step 1: 在 `tests/accountsViewMobileOptimization.test.ts` 中更新针对头部隐藏与徽标移除的断言**
+- [x] **Step 1: 在 `tests/accountsViewMobileOptimization.test.ts` 中更新针对头部隐藏与徽标移除的断言**
 
 ```typescript
 import fs from 'fs';
@@ -62,12 +62,12 @@ describe('AccountsView Mobile Optimization Test', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试验证其失败**
+- [x] **Step 2: 运行测试验证其失败**
 
 Run: `npx jest tests/accountsViewMobileOptimization.test.ts`
 Expected: FAIL - 匹配 `hidden sm:flex flex-col md:flex-row` 失败且仍含有 `inline-flex sm:hidden items-center`
 
-- [ ] **Step 3: 修改 `frontend/src/components/AccountsView.tsx`**
+- [x] **Step 3: 修改 `frontend/src/components/AccountsView.tsx`**
 
 1. 修改根容器间距：
 ```tsx
@@ -92,12 +92,12 @@ Expected: FAIL - 匹配 `hidden sm:flex flex-col md:flex-row` 失败且仍含有
         <div className="hidden sm:grid sm:grid-cols-3 lg:grid-cols-6 gap-1.5 sm:gap-2.5">
 ```
 
-- [ ] **Step 4: 重新运行测试验证其通过**
+- [x] **Step 4: 重新运行测试验证其通过**
 
 Run: `npx jest tests/accountsViewMobileOptimization.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: 提交更改**
+- [x] **Step 5: 提交更改**
 
 ```bash
 git add frontend/src/components/AccountsView.tsx tests/accountsViewMobileOptimization.test.ts
@@ -111,17 +111,17 @@ git commit -m "feat(accounts): hide duplicate page header and compact spacing on
 **Files:**
 - None (Build & Verification only)
 
-- [ ] **Step 1: 运行前端构建检查**
+- [x] **Step 1: 运行前端构建检查**
 
 Run: `npm run build:frontend`
 Expected: Vite 编译打包顺利成功，输出正常，0 错误
 
-- [ ] **Step 2: 运行全量 Jest 测试套件**
+- [x] **Step 2: 运行全量 Jest 测试套件**
 
 Run: `npm test`
 Expected: 105 个测试套件全部通过（包括 `tests/accountsViewMobileOptimization.test.ts`）
 
-- [ ] **Step 3: 检查 git 状态干净**
+- [x] **Step 3: 检查 git 状态干净**
 
 Run: `git status`
 Expected: working tree clean
