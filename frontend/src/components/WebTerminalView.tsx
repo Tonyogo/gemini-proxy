@@ -1419,28 +1419,37 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
     }
   }, [showToast, t]);
 
-  const handlePasteClipboard = useCallback(() => {
-    if (navigator.clipboard && navigator.clipboard.readText) {
-      navigator.clipboard.readText().then((clipText) => {
-        if (!clipText) {
-          showToast(t('webTerminal.pasteEmptyToast'));
-          return;
-        }
-        // Send pasted text to terminal
-        if (xtermRef.current) {
-          xtermRef.current.paste(clipText);
-          xtermRef.current.focus();
-        } else {
-          handleSendInput(clipText);
-        }
-      }).catch((err) => {
-        console.warn('[WebTerminal] Clipboard read error:', err);
-        showToast(t('webTerminal.pasteDeniedToast'));
-      });
-    } else {
-      showToast(t('webTerminal.pasteDeniedToast'));
+  const handlePasteClipboard = useCallback(async () => {
+    let clipText = '';
+
+    // 1. Attempt modern asynchronous Clipboard API
+    if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.readText) {
+      try {
+        clipText = await navigator.clipboard.readText();
+      } catch (err) {
+        console.warn('[WebTerminal] Clipboard readText failed, falling back to prompt:', err);
+      }
     }
-  }, [handleSendInput, showToast, t]);
+
+    // 2. Fallback: prompt for user input in insecure HTTP context or when permission denied
+    if (!clipText && typeof window !== 'undefined') {
+      const manualInput = window.prompt(t('webTerminal.pastePromptTip', '请长按粘贴文字：'));
+      if (manualInput) {
+        clipText = manualInput;
+      }
+    }
+
+    // 3. If cancelled or still empty, safely return
+    if (!clipText) {
+      return;
+    }
+
+    // 4. Send directly to terminal via WebSocket pipeline & keep focus
+    handleSendInput(clipText, false);
+    if (xtermRef.current) {
+      xtermRef.current.focus();
+    }
+  }, [handleSendInput, t]);
 
   const handleToggleSelectMode = useCallback(() => {
     setIsSelectMode((prev) => {
