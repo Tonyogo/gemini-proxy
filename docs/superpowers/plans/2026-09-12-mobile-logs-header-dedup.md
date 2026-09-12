@@ -30,7 +30,7 @@
   - 移动端控制条：`flex md:hidden items-center justify-between gap-1 mb-2 pb-2 border-b border-white/[0.08] shrink-0`
   - 状态：`isMobileSearchOpen` 控制常态单行与内联全宽搜索输入框的切换
 
-- [ ] **Step 1: 在 `tests/logsViewHeaderOptimization.test.ts` 中编写针对移动端内部标题隐藏与单行控制栏整合的断言测试**
+- [x] **Step 1: 在 `tests/logsViewHeaderOptimization.test.ts` 中编写针对移动端内部标题隐藏与单行控制栏整合的断言测试**
 
 ```typescript
   test('should hide internal duplicate header on mobile and provide all-in-one single-row bar', () => {
@@ -41,12 +41,12 @@
   });
 ```
 
-- [ ] **Step 2: 运行测试验证其失败**
+- [x] **Step 2: 运行测试验证其失败**
 
 Run: `npx jest tests/logsViewHeaderOptimization.test.ts`
 Expected: FAIL - 匹配 `hidden md:flex items-center justify-between pb-2.5 mb-2 border-b` 失败
 
-- [ ] **Step 3: 修改 `frontend/src/components/LogsView.tsx` 实现**
+- [x] **Step 3: 修改 `frontend/src/components/LogsView.tsx` 实现**
 
 1. 将内部 Header Bar 设为桌面专属：
 ```tsx
@@ -200,12 +200,12 @@ Expected: FAIL - 匹配 `hidden md:flex items-center justify-between pb-2.5 mb-2
           </div>
 ```
 
-- [ ] **Step 4: 重新运行测试验证其通过**
+- [x] **Step 4: 重新运行测试验证其通过**
 
 Run: `npx jest tests/logsViewHeaderOptimization.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: 提交更改**
+- [x] **Step 5: 提交更改**
 
 ```bash
 git add frontend/src/components/LogsView.tsx tests/logsViewHeaderOptimization.test.ts
@@ -219,17 +219,17 @@ git commit -m "feat(logs): hide duplicate header and integrate all-in-one single
 **Files:**
 - None (Build & Verification only)
 
-- [ ] **Step 1: 运行前端构建检查**
+- [x] **Step 1: 运行前端构建检查**
 
 Run: `npm run build:frontend`
 Expected: Vite 编译打包顺利成功，输出正常，0 错误
 
-- [ ] **Step 2: 运行全量 Jest 测试套件**
+- [x] **Step 2: 运行全量 Jest 测试套件**
 
 Run: `npm test`
 Expected: 105 个测试套件全部通过（包含 `tests/logsViewHeaderOptimization.test.ts`）
 
-- [ ] **Step 3: 检查 git 状态干净**
+- [x] **Step 3: 检查 git 状态干净**
 
 Run: `git status`
 Expected: working tree clean
