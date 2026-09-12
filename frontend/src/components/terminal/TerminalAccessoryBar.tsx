@@ -366,8 +366,6 @@ export const TerminalAccessoryBar: React.FC<TerminalAccessoryBarProps> = ({
         {/* Action: Paste */}
         <button
           type="button"
-          onTouchStart={(e) => e.preventDefault()}
-          onMouseDown={(e) => e.preventDefault()}
           onClick={onPaste}
           className="px-2 py-1 rounded-lg bg-black/[0.04] dark:bg-white/[0.05] hover:bg-black/[0.08] dark:hover:bg-white/[0.12] active:scale-95 text-[var(--text-primary)] flex items-center space-x-1 font-mono text-xs font-semibold border border-[var(--border-subtle)] transition-all shadow-sm"
           title={t('webTerminal.paste')}

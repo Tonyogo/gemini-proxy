@@ -453,6 +453,7 @@ export const zh: Translations = {
     done: "完成",
     copy: "复制",
     paste: "粘贴",
+    pastePromptTip: "请长按粘贴文字：",
     copySelection: "复制已选",
     copiedToast: "已复制 {count} 个字符",
     copiedEmptyToast: "已复制到剪贴板",

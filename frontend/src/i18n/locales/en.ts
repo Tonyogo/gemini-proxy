@@ -451,6 +451,7 @@ export const en = {
     done: "Done",
     copy: "Copy",
     paste: "Paste",
+    pastePromptTip: "Paste text to terminal:",
     copySelection: "Copy Selection",
     copiedToast: "Copied {count} characters",
     copiedEmptyToast: "Copied to clipboard",
