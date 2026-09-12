@@ -47,4 +47,12 @@ describe('LogsView Header & Metadata Optimization', () => {
     expect(content).not.toMatch(/>\s*Model:\s*\{selectedLog\.model\}/);
     expect(content).not.toMatch(/>\s*Latency:\s*\{selectedLog\.duration\}ms/);
   });
+
+  test('should support collapsible search and streamlined date/status row on mobile', () => {
+    expect(content).toContain('isMobileSearchOpen');
+    expect(content).toContain('setIsMobileSearchOpen');
+    // Mobile search button in top bar
+    expect(content).toMatch(/md:hidden[\s\S]*?setIsMobileSearchOpen/);
+  });
 });
+

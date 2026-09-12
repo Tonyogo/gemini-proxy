@@ -60,6 +60,7 @@ export default function LogsView({
   // Status Filter: 'all' | '2xx' | '4xx' | '5xx'
   const [statusFilter, setStatusFilter] = useState<'all' | '2xx' | '4xx' | '5xx'>('all');
   const [searchFilter, setSearchFilter] = useState<string>('');
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState<boolean>(false);
 
   const [activeTab, setActiveTab] = useState<'payload' | 'response' | 'chat'>('payload');
   const [mobilePayloadSubtab, setMobilePayloadSubtab] = useState<'client' | 'upstream'>('client');
@@ -390,7 +391,7 @@ export default function LogsView({
           mobileDetailOpen ? 'hidden md:flex' : 'flex'
         }`}>
           {/* Header Bar */}
-          <div className="flex items-center justify-between pb-3 mb-2.5 border-b border-white/[0.08] shrink-0">
+          <div className="flex items-center justify-between pb-2.5 mb-2 border-b border-white/[0.08] shrink-0">
             <div className="flex items-center space-x-2">
               <div className="w-6 h-6 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
                 <FileText className="w-3.5 h-3.5" />
@@ -405,21 +406,111 @@ export default function LogsView({
               )}
             </div>
 
-            <button
-              onClick={() => {
-                detailCacheRef.current.clear();
-                fetchLogs(true);
-              }}
-              className="text-[11px] ui-btn-secondary px-2.5 py-1 flex items-center space-x-1.5"
-              title="Refresh logs list"
-            >
-              <RefreshCw className="w-3 h-3" />
-              <span>{t('logs.refresh')}</span>
-            </button>
+            <div className="flex items-center space-x-1.5">
+              {/* Mobile Search Toggle Button */}
+              <button
+                type="button"
+                className={`p-1.5 rounded-lg border transition-all md:hidden ${
+                  searchFilter || isMobileSearchOpen
+                    ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
+                    : 'bg-black/[0.04] dark:bg-white/[0.05] text-slate-400 hover:text-white border-white/[0.06]'
+                }`}
+                onClick={() => setIsMobileSearchOpen(prev => !prev)}
+                title={t('logs.searchPlaceholder', '搜索')}
+              >
+                <Search className="w-3.5 h-3.5" />
+              </button>
+
+              <button
+                onClick={() => {
+                  detailCacheRef.current.clear();
+                  fetchLogs(true);
+                }}
+                className="text-[11px] ui-btn-secondary px-2.5 py-1 flex items-center space-x-1.5"
+                title="Refresh logs list"
+              >
+                <RefreshCw className="w-3 h-3" />
+                <span className="hidden sm:inline">{t('logs.refresh')}</span>
+              </button>
+            </div>
           </div>
 
-          {/* Date & Hour Dropdown Pickers */}
-          <div className="grid grid-cols-2 gap-2 mb-2.5 shrink-0" aria-label="Date & Hour Dropdown Pickers">
+          {/* Mobile Collapsible Search Input */}
+          {isMobileSearchOpen && (
+            <div className="relative mb-2 shrink-0 md:hidden animate-in fade-in duration-150">
+              <input
+                type="text"
+                autoFocus
+                placeholder={t('logs.searchPlaceholder', 'Filter model / path / filename...')}
+                value={searchFilter}
+                onChange={(e) => setSearchFilter(e.target.value)}
+                className="w-full ui-input pl-7 pr-7 py-1 text-xs"
+              />
+              <Search className="w-3 h-3 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              {searchFilter && (
+                <button
+                  onClick={() => setSearchFilter('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 text-xs"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Mobile Compact Single-Row Controls (Date/Hour + Status Pills) */}
+          <div className="flex md:hidden items-center justify-between gap-1.5 mb-2 pb-2 border-b border-white/[0.08] shrink-0">
+            <div className="flex items-center space-x-1 min-w-0">
+              <select
+                value={selectedDate}
+                onChange={(e) => handleDateChange(e.target.value)}
+                className="ui-input px-1.5 py-1 text-[11px] appearance-none cursor-pointer max-w-[105px]"
+              >
+                {Object.keys(tree).sort((a, b) => b.localeCompare(a)).map(d => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
+              <select
+                value={selectedHour}
+                onChange={(e) => handleHourChange(e.target.value)}
+                className="ui-input px-1.5 py-1 text-[11px] appearance-none cursor-pointer max-w-[65px]"
+              >
+                {availableHours.map(h => (
+                  <option key={h} value={h}>{h}:00</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="ui-tab-container p-0.5 text-[10px] font-medium space-x-0.5 shrink-0">
+              <button
+                onClick={() => setStatusFilter('all')}
+                className={`ui-tab-pill px-1.5 py-0.5 text-center ${statusFilter === 'all' ? 'ui-tab-pill-active font-semibold' : ''}`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setStatusFilter('2xx')}
+                className={`ui-tab-pill px-1.5 py-0.5 text-center ${statusFilter === '2xx' ? 'bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/40 shadow-sm' : 'hover:text-emerald-300'}`}
+              >
+                2xx
+              </button>
+              <button
+                onClick={() => setStatusFilter('4xx')}
+                className={`ui-tab-pill px-1.5 py-0.5 text-center ${statusFilter === '4xx' ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40 shadow-sm' : 'hover:text-amber-300'}`}
+              >
+                4xx
+              </button>
+              <button
+                onClick={() => setStatusFilter('5xx')}
+                className={`ui-tab-pill px-1.5 py-0.5 text-center ${statusFilter === '5xx' ? 'bg-rose-500/20 text-rose-300 font-semibold border border-rose-500/40 shadow-sm' : 'hover:text-rose-300'}`}
+              >
+                5xx
+              </button>
+            </div>
+          </div>
+
+          {/* Desktop Controls (Date & Hour Dropdown Pickers) */}
+          <div className="hidden md:grid grid-cols-2 gap-2 mb-2.5 shrink-0" aria-label="Date & Hour Dropdown Pickers">
             <div>
               <label className="text-[10px] font-semibold text-slate-400 block mb-1 flex items-center space-x-1">
                 <Calendar className="w-2.5 h-2.5 text-slate-500" />
@@ -453,53 +544,35 @@ export default function LogsView({
             </div>
           </div>
 
-          {/* Status Filter Pills & Quick Search */}
-          <div className="space-y-2 mb-2.5 pb-2.5 border-b border-white/[0.08] shrink-0">
-            {/* Filter Pills */}
+          {/* Desktop Status Filter Pills & Quick Search */}
+          <div className="hidden md:block space-y-2 mb-2.5 pb-2.5 border-b border-white/[0.08] shrink-0">
             <div className="ui-tab-container p-0.5 text-[10px] font-medium space-x-0.5">
               <button
                 onClick={() => setStatusFilter('all')}
-                className={`ui-tab-pill flex-1 py-1 text-center ${
-                  statusFilter === 'all'
-                    ? 'ui-tab-pill-active font-semibold'
-                    : ''
-                }`}
+                className={`ui-tab-pill flex-1 py-1 text-center ${statusFilter === 'all' ? 'ui-tab-pill-active font-semibold' : ''}`}
               >
                 All
               </button>
               <button
                 onClick={() => setStatusFilter('2xx')}
-                className={`ui-tab-pill flex-1 py-1 text-center ${
-                  statusFilter === '2xx'
-                    ? 'bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/40 shadow-sm'
-                    : 'hover:text-emerald-300'
-                }`}
+                className={`ui-tab-pill flex-1 py-1 text-center ${statusFilter === '2xx' ? 'bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/40 shadow-sm' : 'hover:text-emerald-300'}`}
               >
                 2xx
               </button>
               <button
                 onClick={() => setStatusFilter('4xx')}
-                className={`ui-tab-pill flex-1 py-1 text-center ${
-                  statusFilter === '4xx'
-                    ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40 shadow-sm'
-                    : 'hover:text-amber-300'
-                }`}
+                className={`ui-tab-pill flex-1 py-1 text-center ${statusFilter === '4xx' ? 'bg-amber-500/20 text-amber-300 font-semibold border border-amber-500/40 shadow-sm' : 'hover:text-amber-300'}`}
               >
                 4xx
               </button>
               <button
                 onClick={() => setStatusFilter('5xx')}
-                className={`ui-tab-pill flex-1 py-1 text-center ${
-                  statusFilter === '5xx'
-                    ? 'bg-rose-500/20 text-rose-300 font-semibold border border-rose-500/40 shadow-sm'
-                    : 'hover:text-rose-300'
-                }`}
+                className={`ui-tab-pill flex-1 py-1 text-center ${statusFilter === '5xx' ? 'bg-rose-500/20 text-rose-300 font-semibold border border-rose-500/40 shadow-sm' : 'hover:text-rose-300'}`}
               >
                 5xx
               </button>
             </div>
 
-            {/* Quick Search Box */}
             <div className="relative">
               <input
                 type="text"
