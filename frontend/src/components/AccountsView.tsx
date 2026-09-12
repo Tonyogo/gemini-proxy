@@ -697,7 +697,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-6">
+    <div className="space-y-2.5 sm:space-y-6 max-w-7xl mx-auto font-sans pb-12">
       {/* Toast */}
       {toastMessage && (
         <div
@@ -716,15 +716,12 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
         </div>
       )}
 
-      {/* Modern Page Header & Stats Banner */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      {/* Modern Page Header & Stats Banner (Desktop/Tablet only, hidden on mobile to avoid duplicate header with App bar) */}
+      <div className="hidden sm:flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center space-x-2.5">
             <Users className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
             <span>{t('accounts.title')}</span>
-            <span className="inline-flex sm:hidden items-center px-2 py-0.5 rounded-full text-xs font-mono font-semibold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
-              {totalCount}
-            </span>
           </h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             {t('accounts.sub', 'Manage multi-account credentials, automatic context rotation, and per-account usage quotas.')}
