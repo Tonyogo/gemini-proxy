@@ -32,7 +32,7 @@
   - 移动端展开态：单行渲染 `[SearchIcon] [AutoFocusInput] [CloseBtn]`
   - 桌面端（`sm:flex`）：保持原有宽屏双侧排布 `[SearchInput] [StatusSelect] | [ImportBtn] [DedupBtn]`
 
-- [ ] **Step 1: 在 `tests/accountsViewMobileOptimization.test.ts` 中编写移动端单行折叠搜索断言测试**
+- [x] **Step 1: 在 `tests/accountsViewMobileOptimization.test.ts` 中编写移动端单行折叠搜索断言测试**
 
 ```typescript
   it('verifies AccountsView toolbar contains mobile compact single-row and collapsible search', () => {
@@ -43,12 +43,12 @@
   });
 ```
 
-- [ ] **Step 2: 运行测试验证其失败**
+- [x] **Step 2: 运行测试验证其失败**
 
 Run: `npx jest tests/accountsViewMobileOptimization.test.ts`
 Expected: FAIL - `isMobileSearchOpen` 尚未定义
 
-- [ ] **Step 3: 更新 `frontend/src/components/AccountsView.tsx` 操作栏实现**
+- [x] **Step 3: 更新 `frontend/src/components/AccountsView.tsx` 操作栏实现**
 
 在 `AccountsView.tsx` 状态声明区添加：
 ```typescript
@@ -222,12 +222,12 @@ Expected: FAIL - `isMobileSearchOpen` 尚未定义
       </div>
 ```
 
-- [ ] **Step 4: 重新运行测试验证其通过**
+- [x] **Step 4: 重新运行测试验证其通过**
 
 Run: `npx jest tests/accountsViewMobileOptimization.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: 提交更改**
+- [x] **Step 5: 提交更改**
 
 ```bash
 git add frontend/src/components/AccountsView.tsx tests/accountsViewMobileOptimization.test.ts
@@ -250,7 +250,7 @@ git commit -m "feat(accounts): streamline mobile toolbar with single-row layout 
   - 移动端日期与小时选择器去除占行的大标题标签，与状态筛选 Pills 合并在同一极窄行；
   - 桌面端（`md:flex` / `md:grid`）维持现有多栏排布不变。
 
-- [ ] **Step 1: 在 `tests/logsViewHeaderOptimization.test.ts` 中增加移动端搜索按钮与紧凑布局断言**
+- [x] **Step 1: 在 `tests/logsViewHeaderOptimization.test.ts` 中增加移动端搜索按钮与紧凑布局断言**
 
 ```typescript
   test('should support collapsible search and streamlined date/status row on mobile', () => {
@@ -261,12 +261,12 @@ git commit -m "feat(accounts): streamline mobile toolbar with single-row layout 
   });
 ```
 
-- [ ] **Step 2: 运行测试验证其失败**
+- [x] **Step 2: 运行测试验证其失败**
 
 Run: `npx jest tests/logsViewHeaderOptimization.test.ts`
 Expected: FAIL - `isMobileSearchOpen` 尚未定义
 
-- [ ] **Step 3: 更新 `frontend/src/components/LogsView.tsx` 移动端搜索与筛选布局**
+- [x] **Step 3: 更新 `frontend/src/components/LogsView.tsx` 移动端搜索与筛选布局**
 
 在 `LogsView.tsx` 状态声明区添加：
 ```typescript
@@ -485,12 +485,12 @@ Expected: FAIL - `isMobileSearchOpen` 尚未定义
           </div>
 ```
 
-- [ ] **Step 4: 重新运行测试验证其通过**
+- [x] **Step 4: 重新运行测试验证其通过**
 
 Run: `npx jest tests/logsViewHeaderOptimization.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: 提交更改**
+- [x] **Step 5: 提交更改**
 
 ```bash
 git add frontend/src/components/LogsView.tsx tests/logsViewHeaderOptimization.test.ts
@@ -504,17 +504,17 @@ git commit -m "feat(logs): collapse search into header button and streamline dat
 **Files:**
 - None (Build & Verification only)
 
-- [ ] **Step 1: 运行前端构建检查**
+- [x] **Step 1: 运行前端构建检查**
 
 Run: `npm run build:frontend`
 Expected: Vite 编译顺利通过，输出正常，0 错误
 
-- [ ] **Step 2: 运行全量 Jest 测试套件**
+- [x] **Step 2: 运行全量 Jest 测试套件**
 
 Run: `npm test`
 Expected: 105 个测试套件全部通过
 
-- [ ] **Step 3: 检查 git 状态**
+- [x] **Step 3: 检查 git 状态**
 
 Run: `git status`
 Expected: working tree clean
