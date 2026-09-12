@@ -44,7 +44,7 @@
   }
   ```
 
-- [ ] **Step 1: 编写 `tests/terminalMobileMagnifier.test.ts` 单元测试**
+- [x] **Step 1: 编写 `tests/terminalMobileMagnifier.test.ts` 单元测试**
 
 ```typescript
 import {
@@ -106,12 +106,12 @@ describe('terminalMagnifierHelper tests', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试验证其失败**
+- [x] **Step 2: 运行测试验证其失败**
 
 Run: `npx jest tests/terminalMobileMagnifier.test.ts`
 Expected: FAIL - Cannot find module `../frontend/src/utils/terminalMagnifierHelper`
 
-- [ ] **Step 3: 创建并实现 `frontend/src/utils/terminalMagnifierHelper.ts`**
+- [x] **Step 3: 创建并实现 `frontend/src/utils/terminalMagnifierHelper.ts`**
 
 ```typescript
 export interface MagnifierPosition {
@@ -177,12 +177,12 @@ export function extractMagnifierSlice(
 }
 ```
 
-- [ ] **Step 4: 重新运行测试验证其通过**
+- [x] **Step 4: 重新运行测试验证其通过**
 
 Run: `npx jest tests/terminalMobileMagnifier.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: 提交更改**
+- [x] **Step 5: 提交更改**
 
 ```bash
 git add frontend/src/utils/terminalMagnifierHelper.ts tests/terminalMobileMagnifier.test.ts
@@ -208,7 +208,7 @@ git commit -m "feat(terminal): add terminal magnifier position and slice helper"
   - 在 `handleOverlayTouchEnd` 和 `handleExitSelectMode` 时重置 `magnifier.visible = false`；
   - 在 DOM 中渲染带有 `pointer-events-none`、磨砂玻璃与高亮文字块的放大镜气泡。
 
-- [ ] **Step 1: 在 `tests/terminalMobileMagnifier.test.ts` 中增加组件代码结构断言**
+- [x] **Step 1: 在 `tests/terminalMobileMagnifier.test.ts` 中增加组件代码结构断言**
 
 ```typescript
 import * as fs from 'fs';
@@ -244,12 +244,12 @@ describe('WebTerminalView Magnifier Integration Tests', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试验证其失败**
+- [x] **Step 2: 运行测试验证其失败**
 
 Run: `npx jest tests/terminalMobileMagnifier.test.ts`
 Expected: FAIL - WebTerminalView 尚未引入 magnifier 及对应 state
 
-- [ ] **Step 3: 修改 `frontend/src/components/WebTerminalView.tsx` 集成放大镜**
+- [x] **Step 3: 修改 `frontend/src/components/WebTerminalView.tsx` 集成放大镜**
 
 在文件顶部引入 helper：
 ```typescript
@@ -388,12 +388,12 @@ import {
         )}
 ```
 
-- [ ] **Step 4: 重新运行测试验证其通过**
+- [x] **Step 4: 重新运行测试验证其通过**
 
 Run: `npx jest tests/terminalMobileMagnifier.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: 提交更改**
+- [x] **Step 5: 提交更改**
 
 ```bash
 git add frontend/src/components/WebTerminalView.tsx tests/terminalMobileMagnifier.test.ts
@@ -407,17 +407,17 @@ git commit -m "feat(terminal): integrate touch selection magnifier bubble into W
 **Files:**
 - None (Build & Verification only)
 
-- [ ] **Step 1: 运行前端构建检查**
+- [x] **Step 1: 运行前端构建检查**
 
 Run: `npm run build:frontend`
 Expected: Vite 编译打包顺利成功，输出正常，0 错误
 
-- [ ] **Step 2: 运行全量 Jest 测试套件**
+- [x] **Step 2: 运行全量 Jest 测试套件**
 
 Run: `npm test`
 Expected: 105 个测试套件（包括所有 terminal 相关测试）全部通过
 
-- [ ] **Step 3: 检查 git 状态**
+- [x] **Step 3: 检查 git 状态**
 
 Run: `git status`
 Expected: working tree clean
