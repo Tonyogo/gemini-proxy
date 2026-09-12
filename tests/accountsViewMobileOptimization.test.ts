@@ -12,4 +12,12 @@ describe('AccountsView Mobile Optimization Test', () => {
     expect(code).toContain('inline-flex sm:hidden items-center');
     expect(code).toContain('{totalCount}');
   });
+
+  it('verifies AccountsView toolbar contains mobile compact single-row and collapsible search', () => {
+    expect(code).toContain('isMobileSearchOpen');
+    expect(code).toContain('setIsMobileSearchOpen');
+    // Mobile search button and toggle
+    expect(code).toMatch(/sm:hidden[\s\S]*?setIsMobileSearchOpen/);
+  });
 });
+

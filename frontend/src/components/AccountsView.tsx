@@ -28,7 +28,8 @@ import {
   X,
   ExternalLink,
   ArrowDownCircle,
-  Info
+  Info,
+  CopyCheck
 } from 'lucide-react';
 import { useTranslation } from '../i18n/LanguageContext';
 
@@ -90,6 +91,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
   // Filters & Search
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState<boolean>(false);
 
   // Modals & Popovers state
   const [deleteConfirm, setDeleteConfirm] = useState<{ index: number; email: string; isCurrent: boolean } | null>(null);
@@ -812,91 +814,185 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
       </div>
 
       {/* Action Toolbar */}
-      <div className="ui-card p-2.5 sm:p-3.5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-        {/* Left: Search & Filter */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1 min-w-0">
-          {/* Search Input */}
-          <div className="relative flex-1 min-w-0">
-            <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder={t('accounts.searchPlaceholder', '按序号或邮箱/标识搜索...')}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full ui-input pl-8 pr-7 py-1.5"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 text-xs"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
+      <div className="ui-card p-2 sm:p-3.5 shrink-0">
+        {/* File Upload Hidden Input */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileUpload}
+          multiple
+          accept=".json"
+          className="hidden"
+        />
 
-          {/* Status Filter */}
-          <div className="relative shrink-0">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full sm:w-auto ui-input pl-3 pr-8 py-1.5 appearance-none cursor-pointer"
-            >
-              <option value="ALL">{t('accounts.filterAll', '全部状态')} ({totalCount})</option>
-              <option value="ACTIVATED">{t('accounts.filterActivated', '已激活')} ({activatedCount})</option>
-              <option value="ACTIVATING">{t('accounts.filterActivating', '激活中')} ({activatingCount})</option>
-              <option value="RETIRED">{t('accounts.filterRetired', '已下线')} ({retiredCount})</option>
-              <option value="INACTIVE">{t('accounts.filterInactive', '未激活')} ({inactiveCount})</option>
-              <option value="DISABLED">{t('accounts.filterDisabled', '已禁用')} ({disabledCount})</option>
-              <option value="ISSUES">{t('accounts.filterIssues', '凭据异常 / 已过期')}</option>
-            </select>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-          </div>
+        {/* Mobile View: Collapsible Search & Single-Row Compact Bar */}
+        <div className="flex sm:hidden items-center justify-between gap-1.5 min-w-0">
+          {isMobileSearchOpen ? (
+            <div className="flex items-center gap-1.5 w-full animate-in fade-in duration-150">
+              <div className="relative flex-1 min-w-0">
+                <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder={t('accounts.searchPlaceholder', '按序号或邮箱/标识搜索...')}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full ui-input pl-7 pr-7 py-1 text-xs"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 text-xs"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery('');
+                  setIsMobileSearchOpen(false);
+                }}
+                className="px-2 py-1 text-xs text-slate-400 hover:text-white shrink-0"
+              >
+                {t('common.cancel', '取消')}
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between gap-1.5 w-full">
+              {/* Left: Search Trigger & Compact Status Dropdown */}
+              <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                <button
+                  type="button"
+                  onClick={() => setIsMobileSearchOpen(true)}
+                  className={`p-1.5 rounded-lg border transition-all shrink-0 ${
+                    searchQuery
+                      ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30'
+                      : 'bg-black/[0.04] dark:bg-white/[0.05] text-slate-400 hover:text-slate-200 border-[var(--border-subtle)]'
+                  }`}
+                  title={t('accounts.searchPlaceholder')}
+                >
+                  <Search className="w-3.5 h-3.5" />
+                </button>
+
+                <div className="relative flex-1 min-w-0 max-w-[170px]">
+                  <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    className="w-full ui-input pl-2 pr-6 py-1 text-xs appearance-none cursor-pointer truncate"
+                  >
+                    <option value="ALL">{t('accounts.filterAll', '全部')} ({totalCount})</option>
+                    <option value="ACTIVATED">{t('accounts.filterActivated', '已激活')} ({activatedCount})</option>
+                    <option value="ACTIVATING">{t('accounts.filterActivating', '激活中')} ({activatingCount})</option>
+                    <option value="RETIRED">{t('accounts.filterRetired', '已下线')} ({retiredCount})</option>
+                    <option value="INACTIVE">{t('accounts.filterInactive', '未激活')} ({inactiveCount})</option>
+                    <option value="DISABLED">{t('accounts.filterDisabled', '已禁用')} ({disabledCount})</option>
+                    <option value="ISSUES">{t('accounts.filterIssues', '异常')}</option>
+                  </select>
+                  <ChevronDown className="w-3 h-3 text-slate-500 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              </div>
+
+              {/* Right: Compact Actions */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setDedupConfirm(true)}
+                  disabled={actionLoading || accounts.length === 0}
+                  className="p-1.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.05] border border-[var(--border-subtle)] text-amber-400 hover:bg-black/[0.08] active:scale-95 disabled:opacity-40"
+                  title={t('accounts.dedup', '去重')}
+                >
+                  <CopyCheck className="w-3.5 h-3.5" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={actionLoading}
+                  className="px-2.5 py-1 ui-btn-primary flex items-center space-x-1 text-xs active:scale-95"
+                  title={t('accounts.importFiles')}
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span className="text-[11px]">{t('accounts.importFiles', '导入')}</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Right: Actions */}
-        <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
-          {/* File Upload Hidden Input */}
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileUpload}
-            multiple
-            accept=".json"
-            className="hidden"
-          />
+        {/* Desktop View: Standard Multi-Column Bar */}
+        <div className="hidden sm:flex items-center justify-between gap-3">
+          {/* Left: Search & Filter */}
+          <div className="flex items-center gap-2.5 flex-1 min-w-0">
+            <div className="relative flex-1 min-w-0">
+              <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder={t('accounts.searchPlaceholder', '按序号或邮箱/标识搜索...')}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full ui-input pl-8 pr-7 py-1.5"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 text-xs"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
 
-          {/* Upload Button */}
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={actionLoading}
-            className="flex-1 sm:flex-none justify-center px-3 py-1.5 ui-btn-primary flex items-center space-x-1.5"
-            title={t('accounts.importFiles')}
-          >
-            <Upload className="w-3.5 h-3.5" />
-            <span>{t('accounts.importFiles')}</span>
-          </button>
+            <div className="relative shrink-0">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-auto ui-input pl-3 pr-8 py-1.5 appearance-none cursor-pointer"
+              >
+                <option value="ALL">{t('accounts.filterAll', '全部状态')} ({totalCount})</option>
+                <option value="ACTIVATED">{t('accounts.filterActivated', '已激活')} ({activatedCount})</option>
+                <option value="ACTIVATING">{t('accounts.filterActivating', '激活中')} ({activatingCount})</option>
+                <option value="RETIRED">{t('accounts.filterRetired', '已下线')} ({retiredCount})</option>
+                <option value="INACTIVE">{t('accounts.filterInactive', '未激活')} ({inactiveCount})</option>
+                <option value="DISABLED">{t('accounts.filterDisabled', '已禁用')} ({disabledCount})</option>
+                <option value="ISSUES">{t('accounts.filterIssues', '凭据异常 / 已过期')}</option>
+              </select>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+          </div>
 
-          {/* Deduplicate Button */}
-          <button
-            onClick={() => setDedupConfirm(true)}
-            disabled={actionLoading || accounts.length === 0}
-            className="flex-1 sm:flex-none justify-center px-3 py-1.5 ui-btn-secondary disabled:opacity-40 flex items-center space-x-1.5 text-amber-300"
-            title={t('accounts.deduplicate')}
-          >
-            <Layers className="w-3.5 h-3.5 text-amber-400" />
-            <span>{t('accounts.deduplicate')}</span>
-          </button>
+          {/* Right: Actions */}
+          <div className="flex items-center justify-end gap-2 shrink-0">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={actionLoading}
+              className="px-3 py-1.5 ui-btn-primary flex items-center space-x-1.5"
+              title={t('accounts.importFiles')}
+            >
+              <Upload className="w-3.5 h-3.5" />
+              <span>{t('accounts.importFiles')}</span>
+            </button>
 
-          {/* Refresh */}
-          <button
-            onClick={() => fetchStatus(false)}
-            disabled={loading || actionLoading}
-            className="p-1.5 ui-btn-secondary shrink-0"
-            title={t('accounts.refresh')}
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-indigo-400' : 'text-slate-400'}`} />
-          </button>
+            <button
+              onClick={() => setDedupConfirm(true)}
+              disabled={actionLoading || accounts.length === 0}
+              className="px-3 py-1.5 ui-btn-secondary disabled:opacity-40 flex items-center space-x-1.5 text-amber-300"
+              title={t('accounts.dedupTooltip', '扫描并清理重复的 refresh_token / 凭据')}
+            >
+              <CopyCheck className="w-3.5 h-3.5 text-amber-400" />
+              <span>{t('accounts.dedup', '去重')}</span>
+            </button>
+
+            <button
+              onClick={() => fetchStatus(false)}
+              disabled={loading || actionLoading}
+              className="p-1.5 ui-btn-secondary shrink-0"
+              title={t('accounts.refresh')}
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-indigo-400' : 'text-slate-400'}`} />
+            </button>
+          </div>
         </div>
       </div>
 
