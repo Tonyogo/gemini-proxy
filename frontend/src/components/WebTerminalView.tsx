@@ -37,6 +37,10 @@ import {
   shouldScrollToBottom,
   scrollToBottomSafe,
 } from '../utils/terminalScrollHelper';
+import {
+  calculateMagnifierPosition,
+  extractMagnifierSlice,
+} from '../utils/terminalMagnifierHelper';
 
 const DARK_TERMINAL_THEME = {
   background: '#090A0F',
@@ -147,6 +151,23 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
   const [hasSelection, setHasSelection] = useState<boolean>(false);
   const [selectedCharCount, setSelectedCharCount] = useState<number>(0);
   const [isSelectMode, setIsSelectMode] = useState<boolean>(false);
+  const [magnifier, setMagnifier] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    textBefore: string;
+    focusChar: string;
+    textAfter: string;
+    isFlippedBelow: boolean;
+  }>({
+    visible: false,
+    x: 0,
+    y: 0,
+    textBefore: '',
+    focusChar: ' ',
+    textAfter: '',
+    isFlippedBelow: false,
+  });
   const [activeHostId, setActiveHostId] = useState<string>(() => {
     return controlledHostId !== undefined ? controlledHostId : (localStorage.getItem('terminal_active_host') || '');
   });
@@ -1377,6 +1398,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
         showToast(t('webTerminal.copiedToClipboard'));
         setIsSelectMode(false);
         isSelectModeRef.current = false;
+        setMagnifier(prev => ({ ...prev, visible: false }));
         xtermRef.current?.clearSelection();
         setHasSelection(false);
         setSelectedCharCount(0);
@@ -1493,6 +1515,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
   const handleExitSelectMode = useCallback(() => {
     setIsSelectMode(false);
     isSelectModeRef.current = false;
+    setMagnifier(prev => ({ ...prev, visible: false }));
     handleClearSelection();
   }, [handleClearSelection]);
 
@@ -1522,6 +1545,40 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
 
     return { col, viewportRow, bufferRow };
   }, []);
+
+  const updateMagnifierFromTouch = useCallback((clientX: number, clientY: number) => {
+    const term = xtermRef.current;
+    if (!term) return;
+
+    const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 375;
+    const pos = calculateMagnifierPosition(clientX, clientY, screenWidth);
+    const cell = getOverlayCellCoords(clientX, clientY);
+
+    let textBefore = '';
+    let focusChar = ' ';
+    let textAfter = '';
+
+    if (cell) {
+      const line = term.buffer.active.getLine(cell.bufferRow);
+      if (line) {
+        const lineText = line.translateToString(true);
+        const slice = extractMagnifierSlice(lineText, cell.col, 6);
+        textBefore = slice.textBefore;
+        focusChar = slice.focusChar;
+        textAfter = slice.textAfter;
+      }
+    }
+
+    setMagnifier({
+      visible: true,
+      x: pos.x,
+      y: pos.y,
+      textBefore,
+      focusChar,
+      textAfter,
+      isFlippedBelow: pos.isFlippedBelow,
+    });
+  }, [getOverlayCellCoords]);
 
   const applyOverlaySelection = useCallback((
     start: { col: number; bufferRow: number },
@@ -1560,6 +1617,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
       if (cell) {
         overlaySelectionStartRef.current = cell;
         applyOverlaySelection(cell, cell);
+        updateMagnifierFromTouch(touch.clientX, touch.clientY);
       }
     }
   };
@@ -1570,12 +1628,14 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
       const currentCell = getOverlayCellCoords(touch.clientX, touch.clientY);
       if (currentCell) {
         applyOverlaySelection(overlaySelectionStartRef.current, currentCell);
+        updateMagnifierFromTouch(touch.clientX, touch.clientY);
       }
     }
   };
 
   const handleOverlayTouchEnd = () => {
     overlaySelectionStartRef.current = null;
+    setMagnifier(prev => ({ ...prev, visible: false }));
   };
 
   const handleOverlayMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -1944,10 +2004,38 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
             onTouchStart={handleOverlayTouchStart}
             onTouchMove={handleOverlayTouchMove}
             onTouchEnd={handleOverlayTouchEnd}
+            onTouchCancel={handleOverlayTouchEnd}
             onMouseDown={handleOverlayMouseDown}
             onMouseMove={handleOverlayMouseMove}
             onMouseUp={handleOverlayMouseUp}
           />
+        )}
+
+        {/* Mobile Touch Selection Magnifier Bubble */}
+        {isSelectMode && magnifier.visible && (
+          <div
+            style={{ left: `${magnifier.x}px`, top: `${magnifier.y}px` }}
+            className="fixed -translate-x-1/2 -translate-y-1/2 z-40 pointer-events-none select-none flex flex-col items-center animate-in fade-in zoom-in-95 duration-75"
+          >
+            {/* Inverted Pointer (Pointing up when flipped below finger) */}
+            {magnifier.isFlippedBelow && (
+              <div className="w-0 h-0 border-x-4 border-x-transparent border-b-4 border-b-indigo-500/60 mb-[-1px]" />
+            )}
+
+            {/* Magnifier Bubble Body */}
+            <div className="px-2.5 py-1 rounded-xl bg-slate-900/95 dark:bg-slate-950/95 border border-indigo-500/40 shadow-2xl backdrop-blur-xl flex items-center font-mono text-xs sm:text-sm font-semibold tracking-wide whitespace-pre text-slate-400 ring-1 ring-white/10">
+              <span>{magnifier.textBefore}</span>
+              <span className="bg-indigo-600 text-white px-1 py-0.5 rounded shadow-sm scale-110 mx-0.5">
+                {magnifier.focusChar === ' ' ? '␣' : magnifier.focusChar}
+              </span>
+              <span>{magnifier.textAfter}</span>
+            </div>
+
+            {/* Normal Pointer (Pointing down when positioned above finger) */}
+            {!magnifier.isFlippedBelow && (
+              <div className="w-0 h-0 border-x-4 border-x-transparent border-t-4 border-t-indigo-500/60 mt-[-1px]" />
+            )}
+          </div>
         )}
 
         {/* Floating Selection Mode Bar (Compact iOS-style Single-Line Capsule) */}

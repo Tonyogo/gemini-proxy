@@ -1,3 +1,5 @@
+import * as fs from 'fs';
+import * as path from 'path';
 import {
   calculateMagnifierPosition,
   extractMagnifierSlice,
@@ -53,5 +55,34 @@ describe('terminalMagnifierHelper tests', () => {
       expect(slice.textBefore).toBe('');
       expect(slice.textAfter).toBe('');
     });
+  });
+});
+
+describe('WebTerminalView Magnifier Integration Tests', () => {
+  const webTerminalPath = path.resolve(__dirname, '../frontend/src/components/WebTerminalView.tsx');
+  let content: string;
+
+  beforeAll(() => {
+    content = fs.readFileSync(webTerminalPath, 'utf-8');
+  });
+
+  it('imports terminalMagnifierHelper functions in WebTerminalView', () => {
+    expect(content).toContain('calculateMagnifierPosition');
+    expect(content).toContain('extractMagnifierSlice');
+    expect(content).toContain('../utils/terminalMagnifierHelper');
+  });
+
+  it('WebTerminalView contains magnifier state and touch handlers integration', () => {
+    expect(content).toContain('const [magnifier, setMagnifier] = useState');
+    expect(content).toContain('handleOverlayTouchStart');
+    expect(content).toContain('handleOverlayTouchMove');
+    expect(content).toContain('handleOverlayTouchEnd');
+  });
+
+  it('renders magnifier bubble with pointer-events-none and inverted pointer support', () => {
+    expect(content).toContain('magnifier.visible');
+    expect(content).toContain('pointer-events-none');
+    expect(content).toContain('magnifier.isFlippedBelow');
+    expect(content).toContain('magnifier.focusChar');
   });
 });
