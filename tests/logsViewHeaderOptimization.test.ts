@@ -48,11 +48,11 @@ describe('LogsView Header & Metadata Optimization', () => {
     expect(content).not.toMatch(/>\s*Latency:\s*\{selectedLog\.duration\}ms/);
   });
 
-  test('should support collapsible search and streamlined date/status row on mobile', () => {
-    expect(content).toContain('isMobileSearchOpen');
-    expect(content).toContain('setIsMobileSearchOpen');
-    // Mobile search button in top bar
-    expect(content).toMatch(/md:hidden[\s\S]*?setIsMobileSearchOpen/);
+  test('should hide internal duplicate header on mobile and provide all-in-one single-row bar', () => {
+    // Header bar is hidden on mobile to avoid duplicate header with App global bar
+    expect(content).toContain('hidden md:flex items-center justify-between pb-2.5 mb-2 border-b');
+    // Mobile single-row controls include search trigger and refresh buttons
+    expect(content).toMatch(/flex md:hidden[\s\S]*?setIsMobileSearchOpen[\s\S]*?fetchLogs\(true\)/);
   });
 });
 
