@@ -55,22 +55,29 @@ describe('Terminal Synthetic Echo Protection (OSC 11 / DA / CPR)', () => {
   });
 
   describe('stripTerminalQuerySequences', () => {
+    it('prepends soft style reset prefix to prevent color bleed or broken escapes from previous chunks', () => {
+      const input = 'hello world';
+      const output = stripTerminalQuerySequences(input);
+      expect(output.startsWith('\x1b[0m\x1b[?25h')).toBe(true);
+      expect(output).toContain('hello world');
+    });
+
     it('strips OSC 10/11 color queries from replayed stream', () => {
       const input = 'prompt$ \x1b]11;?\x1b\\line2';
-      expect(stripTerminalQuerySequences(input)).toBe('prompt$ line2');
+      expect(stripTerminalQuerySequences(input)).toBe('\x1b[0m\x1b[?25hprompt$ line2');
 
       const belInput = 'prompt$ \x1b]10;?\x07line2';
-      expect(stripTerminalQuerySequences(belInput)).toBe('prompt$ line2');
+      expect(stripTerminalQuerySequences(belInput)).toBe('\x1b[0m\x1b[?25hprompt$ line2');
     });
 
     it('strips DA and CPR queries from replayed stream', () => {
       const input = 'prompt$ \x1b[c\x1b[>c\x1b[6nline2';
-      expect(stripTerminalQuerySequences(input)).toBe('prompt$ line2');
+      expect(stripTerminalQuerySequences(input)).toBe('\x1b[0m\x1b[?25hprompt$ line2');
     });
 
     it('preserves visual ANSI color codes, text, and screen clear sequences', () => {
       const visualInput = '\x1b[2J\x1b[H\x1b[32muser@host\x1b[0m:\x1b[34m~/dir\x1b[0m$ ls\r\n';
-      expect(stripTerminalQuerySequences(visualInput)).toBe(visualInput);
+      expect(stripTerminalQuerySequences(visualInput)).toBe('\x1b[0m\x1b[?25h' + visualInput);
     });
 
     it('handles empty or non-string inputs safely', () => {

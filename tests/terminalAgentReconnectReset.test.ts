@@ -8,11 +8,10 @@ describe('Terminal Agent Reconnect and Replay Loop Prevention Tests', () => {
     terminalHostManager.unregisterAgent(testHostId);
   });
 
-  test('registerAgent cleans up historyBuffer and resets session on agent re-registration', () => {
+  test('registerAgent preserves historyBuffer on agent re-registration (soft reconnect)', () => {
     const mockAgentWs1 = { readyState: 1, send: jest.fn() };
     const mockClientWs = { readyState: 1, send: jest.fn() };
 
-    // 1. Initial registration
     terminalHostManager.registerAgent({
       hostId: testHostId,
       name: 'Test Node',
@@ -20,14 +19,11 @@ describe('Terminal Agent Reconnect and Replay Loop Prevention Tests', () => {
     });
 
     const session = terminalHostManager.getSession(testHostId) as RemoteAgentTerminalSession;
-    expect(session).toBeDefined();
-
-    // Attach client and simulate dirty history with ANSI query sequences
     session.attach(mockClientWs);
-    session.handleData('\x1b[6n\x1b[>c\x1b]11;?\x07echo "DIRTY_OLD_SESSION"\r\n');
-    expect(session.getHistory()).toContain('DIRTY_OLD_SESSION');
+    session.handleData('PRESERVED_TERMINAL_OUTPUT\r\n');
+    expect(session.getHistory()).toContain('PRESERVED_TERMINAL_OUTPUT');
 
-    // 2. Agent restarts and reconnects with a new WebSocket
+    // Agent reconnects
     const mockAgentWs2 = { readyState: 1, send: jest.fn() };
     terminalHostManager.registerAgent({
       hostId: testHostId,
@@ -35,16 +31,16 @@ describe('Terminal Agent Reconnect and Replay Loop Prevention Tests', () => {
       agentWs: mockAgentWs2,
     });
 
-    // Verify historyBuffer is wiped clean so new PTY won't receive echo floods
-    expect(session.getHistory()).toBe('');
+    // History must be preserved, not wiped!
+    expect(session.getHistory()).toContain('PRESERVED_TERMINAL_OUTPUT');
 
-    // Verify client received clean reset sequence
+    // Client must NOT receive reset or clear screen signals on soft reconnect
     const sentToClient = mockClientWs.send.mock.calls.map(call => call[0]);
     const hasResetSignal = sentToClient.some(msg =>
       (typeof msg === 'string' && msg.includes('JSON:{"type":"reset"}')) ||
       (typeof msg === 'string' && msg.includes('\x1b[2J\x1b[H'))
     );
-    expect(hasResetSignal).toBe(true);
+    expect(hasResetSignal).toBe(false);
 
     // CRITICAL: Agent WebSocket must NOT receive a reset command on re-registration (must not kill agent pty)
     const sentToAgent2 = mockAgentWs2.send.mock.calls.map(call => call[0]);

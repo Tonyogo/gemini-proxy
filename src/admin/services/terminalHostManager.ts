@@ -27,10 +27,13 @@ export interface ITerminalSession {
  */
 export function stripTerminalQuerySequences(stream: string): string {
   if (!stream || typeof stream !== 'string') return '';
-  return stream.replace(
+  const stripped = stream.replace(
     /\x1b(?:\](?:4|10|11|12);\?(?:\x1b\\|\x07)|\[[>?=]?(?:0)?c|\[\??6n|\[\??\d+\$p|\[>0?q|\[(?:14|18|19|20|21)t)/g,
     ''
   );
+  if (!stripped) return '';
+  // Prepend soft style reset and show cursor to ensure pristine state after replay
+  return '\x1b[0m\x1b[?25h' + stripped;
 }
 
 export class RemoteAgentTerminalSession implements ITerminalSession {
@@ -222,9 +225,8 @@ export class TerminalHostManager {
       session = new RemoteAgentTerminalSession(id, metadata.agentWs);
       this.sessions.set(id, session);
     } else {
-      // Agent reconnecting / re-registering -> Reset dirty history and notify web clients, without killing agent PTY
+      // Agent reconnecting -> Soft update agent WebSocket without wiping history or interrupting client screens
       session.updateAgentWs(metadata.agentWs);
-      session.reset(true, false);
       this.clearPendingRpcForHost(id);
     }
 
