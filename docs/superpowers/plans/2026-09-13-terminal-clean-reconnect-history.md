@@ -33,7 +33,7 @@
   - `RemoteAgentTerminalSession.attach`: 发送经过完整清洗与前缀包裹的历史流。
   - `TerminalHostManager.registerAgent`: 对已存在的会话仅更新 `agentWs` 与清理 RPC，不再清空 `historyBuffer`。
 
-- [ ] **Step 1: 在 `tests/terminalSyntheticEchoProtection.test.ts` 与 `tests/terminalAgentReconnectReset.test.ts` 中编写保留历史与软重置前缀断言**
+- [x] **Step 1: 在 `tests/terminalSyntheticEchoProtection.test.ts` 与 `tests/terminalAgentReconnectReset.test.ts` 中编写保留历史与软重置前缀断言**
 
 ```typescript
 // tests/terminalSyntheticEchoProtection.test.ts
@@ -73,12 +73,12 @@
   });
 ```
 
-- [ ] **Step 2: 运行测试验证其失败**
+- [x] **Step 2: 运行测试验证其失败**
 
 Run: `npx jest tests/terminalAgentReconnectReset.test.ts`
 Expected: FAIL - 原逻辑会 `session.reset()` 导致历史被清空。
 
-- [ ] **Step 3: 修改 `src/admin/services/terminalHostManager.ts`**
+- [x] **Step 3: 修改 `src/admin/services/terminalHostManager.ts`**
 
 1. 更新 `stripTerminalQuerySequences`：
 ```typescript
@@ -107,12 +107,12 @@ export function stripTerminalQuerySequences(stream: string): string {
     }
 ```
 
-- [ ] **Step 4: 运行测试验证通过**
+- [x] **Step 4: 运行测试验证通过**
 
 Run: `npx jest tests/terminalSyntheticEchoProtection.test.ts tests/terminalAgentReconnectReset.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: 提交更改**
+- [x] **Step 5: 提交更改**
 
 ```bash
 git add src/admin/services/terminalHostManager.ts tests/terminalSyntheticEchoProtection.test.ts tests/terminalAgentReconnectReset.test.ts
@@ -130,11 +130,11 @@ git commit -m "fix(terminal): preserve history on reconnect with sanitized soft 
 **Interfaces:**
 - Behavior: `terminal-agent.js` 在网络断开重连恢复时，如果已存在运行中的 `ptyProcess`，只同步当前的窗口尺寸 `resize`，绝不再向服务端发送 `reset` 控制包，避免触发清屏。
 
-- [ ] **Step 1: 检查 `tests/terminalAgent.test.ts`**
+- [x] **Step 1: 检查 `tests/terminalAgent.test.ts`**
 
 查看现有测试确保无语义冲突。
 
-- [ ] **Step 2: 修改 `scripts/terminal-agent.js` 连接成功回调**
+- [x] **Step 2: 修改 `scripts/terminal-agent.js` 连接成功回调**
 
 在 `ws.on('open')` 中调整：
 ```javascript
@@ -159,12 +159,12 @@ git commit -m "fix(terminal): preserve history on reconnect with sanitized soft 
   });
 ```
 
-- [ ] **Step 3: 运行相关测试验证**
+- [x] **Step 3: 运行相关测试验证**
 
 Run: `npx jest tests/terminalAgent.test.ts`
 Expected: PASS
 
-- [ ] **Step 4: 提交更改**
+- [x] **Step 4: 提交更改**
 
 ```bash
 git add scripts/terminal-agent.js
@@ -178,17 +178,17 @@ git commit -m "fix(agent): avoid sending reset on tunnel reconnect when PTY proc
 **Files:**
 - None (Build & Verification only)
 
-- [ ] **Step 1: 运行前端与后端编译构建检查**
+- [x] **Step 1: 运行前端与后端编译构建检查**
 
 Run: `npm run build`
 Expected: 前端 Vite 打包与后端 TypeScript 编译 0 错误通过
 
-- [ ] **Step 2: 运行全量 Jest 测试套件**
+- [x] **Step 2: 运行全量 Jest 测试套件**
 
 Run: `npm test`
 Expected: 105 个测试套件全部通过
 
-- [ ] **Step 3: 验证 git 状态干净**
+- [x] **Step 3: 验证 git 状态干净**
 
 Run: `git status`
 Expected: working tree clean
