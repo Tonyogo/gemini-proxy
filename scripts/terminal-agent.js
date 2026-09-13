@@ -294,7 +294,7 @@ function connect() {
       spawnPty();
     }
 
-    // Only send reset on initial fresh PTY spawn to clear any stale hub buffers
+    // Only send reset on absolute first spawn of a fresh process, never on reconnect of existing PTY
     try {
       if (isFirstSpawn) {
         ws.send(`JSON:${JSON.stringify({ type: 'reset' })}`);
