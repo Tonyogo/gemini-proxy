@@ -701,16 +701,52 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                       : 'ui-card-sub'
                                   }`}
                                 >
-                                  <div className="space-y-2 sm:space-y-0 sm:flex sm:items-center sm:gap-1.5">
-                                    {/* Index */}
-                                    <div className="flex items-center space-x-1 shrink-0 self-start sm:self-center">
+                                  <div className="flex flex-wrap sm:flex-nowrap items-center justify-between sm:justify-start gap-y-2 sm:gap-y-0 sm:gap-x-1.5">
+                                    {/* Index Badge: Order 1 on mobile and desktop */}
+                                    <div className="order-1 flex items-center space-x-1 shrink-0">
                                       <span className="text-[10px] font-mono font-bold text-slate-400 bg-white/[0.04] px-1.5 py-0.5 rounded border border-white/[0.06]">
                                         #{index + 1}
                                       </span>
                                     </div>
 
-                                    {/* Source -> Target Input Fields */}
-                                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5 flex-1 min-w-0">
+                                    {/* Compact Action Buttons: Order 2 on mobile (aligned right in header), Order 3 on desktop */}
+                                    <div className="order-2 sm:order-3 flex items-center gap-1.5 sm:gap-1 shrink-0 ml-auto sm:ml-0">
+                                      <select
+                                        value={entry.strategy || ''}
+                                        onChange={(e) => handleEntryChange(entry.id, 'strategy', e.target.value)}
+                                        className="w-[88px] sm:w-[94px] h-7 sm:h-8 ui-input p-1 sm:p-2 text-[10px] sm:text-[11px] shrink-0 appearance-none cursor-pointer"
+                                        title={t('config.strategy')}
+                                      >
+                                        <option value="">{t('config.strategyDefault')}</option>
+                                        <option value="least-used">{t('config.strategyLeastUsed')}</option>
+                                        <option value="round-robin">{t('config.strategyRoundRobin')}</option>
+                                        <option value="weighted">{t('config.strategyWeighted')}</option>
+                                      </select>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleToggleHigh(entry.id, entry.target)}
+                                        className={`h-7 sm:h-8 px-2 sm:px-1.5 py-0.5 sm:py-1.5 text-[9px] sm:text-[10px] font-bold rounded-lg transition-all border shrink-0 flex items-center space-x-0.5 active:scale-95 ${
+                                          entry.target.trim().endsWith('-high')
+                                            ? 'bg-amber-500/15 border-amber-500/40 text-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.15)]'
+                                            : 'ui-btn-secondary'
+                                        }`}
+                                        title={t('config.highToggleTooltip')}
+                                      >
+                                        <Zap className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                                        <span>HIGH</span>
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRemoveMapping(entry.id)}
+                                        className="h-7 w-7 sm:h-8 sm:w-8 flex items-center justify-center text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition-colors text-xs shrink-0 active:scale-95"
+                                        title="Remove mapping"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+
+                                    {/* Source -> Target Input Fields: Order 3 on mobile (full width row 2 & 3), Order 2 on desktop (middle) */}
+                                    <div className="order-3 sm:order-2 w-full sm:w-auto flex-1 min-w-0 flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5">
                                       <div className="flex-[2] min-w-0">
                                         <label className="text-[10px] text-slate-400 block sm:hidden mb-0.5 font-semibold">
                                           {t('config.sourceModelShort', '源模型')}
@@ -752,42 +788,6 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                           )}
                                         </div>
                                       </div>
-                                    </div>
-
-                                    {/* Compact Action Buttons */}
-                                    <div className="flex items-center justify-between sm:justify-end gap-1.5 sm:gap-1 pt-1.5 sm:pt-0 border-t border-white/[0.04] sm:border-0 shrink-0">
-                                      <select
-                                        value={entry.strategy || ''}
-                                        onChange={(e) => handleEntryChange(entry.id, 'strategy', e.target.value)}
-                                        className="w-28 sm:w-[94px] h-8 ui-input p-1.5 sm:p-2 text-[10px] sm:text-[11px] shrink-0 appearance-none cursor-pointer"
-                                        title={t('config.strategy')}
-                                      >
-                                        <option value="">{t('config.strategyDefault')}</option>
-                                        <option value="least-used">{t('config.strategyLeastUsed')}</option>
-                                        <option value="round-robin">{t('config.strategyRoundRobin')}</option>
-                                        <option value="weighted">{t('config.strategyWeighted')}</option>
-                                      </select>
-                                      <button
-                                        type="button"
-                                        onClick={() => handleToggleHigh(entry.id, entry.target)}
-                                        className={`h-8 px-2 sm:px-1.5 py-1 sm:py-1.5 text-[9px] sm:text-[10px] font-bold rounded-lg transition-all border shrink-0 flex items-center space-x-0.5 active:scale-95 ${
-                                          entry.target.trim().endsWith('-high')
-                                            ? 'bg-amber-500/15 border-amber-500/40 text-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.15)]'
-                                            : 'ui-btn-secondary'
-                                        }`}
-                                        title={t('config.highToggleTooltip')}
-                                      >
-                                        <Zap className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                                        <span>HIGH</span>
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => handleRemoveMapping(entry.id)}
-                                        className="h-8 w-8 flex items-center justify-center text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 rounded-lg transition-colors text-xs shrink-0 active:scale-95"
-                                        title="Remove mapping"
-                                      >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                      </button>
                                     </div>
                                   </div>
                                 </div>
