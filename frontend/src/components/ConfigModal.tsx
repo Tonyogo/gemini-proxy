@@ -746,7 +746,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                     </div>
 
                                     {/* Source -> Target Input Fields: Order 3 on mobile (full width row 2 & 3), Order 2 on desktop (middle) */}
-                                    <div className="order-3 sm:order-2 w-full sm:w-auto flex-1 min-w-0 flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5">
+                                    <div className="order-3 sm:order-2 w-full basis-full sm:basis-auto sm:w-auto sm:flex-1 min-w-0 flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5">
                                       <div className="flex-[2] min-w-0">
                                         <label className="text-[10px] text-slate-400 block sm:hidden mb-0.5 font-semibold">
                                           {t('config.sourceModelShort', '源模型')}

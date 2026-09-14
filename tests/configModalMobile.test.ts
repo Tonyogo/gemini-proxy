@@ -27,6 +27,7 @@ describe('ConfigModal Mobile Enhancements', () => {
     expect(content).toContain('order-1');
     expect(content).toContain('order-2 sm:order-3');
     expect(content).toContain('order-3 sm:order-2');
+    expect(content).toContain('basis-full sm:basis-auto');
     expect(content).toContain('h-7 sm:h-8');
   });
 
