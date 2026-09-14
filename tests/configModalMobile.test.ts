@@ -22,4 +22,16 @@ describe('ConfigModal Mobile Enhancements', () => {
     expect(content).toContain('dvh');
     expect(content).toContain('safe-area-inset-bottom');
   });
+
+  test('should layout model mapping with mobile top action bar and desktop single-line flow', () => {
+    expect(content).toContain('order-1');
+    expect(content).toContain('order-2 sm:order-3');
+    expect(content).toContain('order-3 sm:order-2');
+    expect(content).toContain('h-7 sm:h-8');
+  });
+
+  test('should remove bottom action separator in mobile mapping card', () => {
+    // Verifies that the previous pt-1.5 border-t separator inside mapping item actions is eliminated
+    expect(content).not.toContain('pt-1.5 sm:pt-0 border-t border-white/[0.04]');
+  });
 });
