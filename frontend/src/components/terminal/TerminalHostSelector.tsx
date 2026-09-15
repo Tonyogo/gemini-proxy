@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Server,
@@ -10,8 +10,10 @@ import {
   Search,
   RefreshCw,
   Terminal,
+  Trash2,
 } from 'lucide-react';
 import { useTranslation } from '../../i18n/LanguageContext';
+import { formatRelativeTime } from '../../utils/timeHelpers';
 
 export interface ManagedHostItem {
   id: string;
@@ -44,7 +46,7 @@ export function TerminalHostSelector({
   onAddModalOpenChange,
   connectionStatus,
 }: TerminalHostSelectorProps) {
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
   const [hosts, setHosts] = useState<ManagedHostItem[]>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -68,7 +70,47 @@ export function TerminalHostSelector({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [copied, setCopied] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [isClearingOffline, setIsClearingOffline] = useState<boolean>(false);
+
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const [dropdownPos, setDropdownPos] = useState<{
+    top: number;
+    left: number;
+    width?: number;
+    maxHeight?: number;
+  }>({ top: 0, left: 0 });
+
+  const updateDropdownPosition = useCallback(() => {
+    if (!triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const dropdownWidth = 320; // sm:w-80 default approx
+    const margin = 8;
+
+    // Horizontal boundary clamping
+    let left = rect.left;
+    if (typeof window !== 'undefined') {
+      left = Math.max(margin, Math.min(rect.left, window.innerWidth - dropdownWidth - margin));
+    }
+
+    // Vertical boundary checking & flipping
+    let top = rect.bottom + 6;
+    const popoverHeight = 360;
+    if (typeof window !== 'undefined') {
+      if (window.innerHeight - rect.bottom < 280 && rect.top > 280) {
+        top = Math.max(margin, rect.top - popoverHeight - 6);
+      }
+    }
+
+    const maxHeight = typeof window !== 'undefined' ? Math.min(380, window.innerHeight - 32) : 380;
+
+    setDropdownPos({
+      top,
+      left,
+      width: dropdownWidth,
+      maxHeight,
+    });
+  }, []);
 
   const fetchHosts = async () => {
     try {
@@ -91,6 +133,28 @@ export function TerminalHostSelector({
     } finally {
       setIsLoading(false);
       hasLoadedRef.current = true;
+    }
+  };
+
+  const handleClearOfflineHosts = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!window.confirm(t('webTerminal.hostSelector.clearOfflineConfirm', '确定清除所有离线节点吗？'))) {
+      return;
+    }
+    try {
+      setIsClearingOffline(true);
+      const effectiveKey = adminKey || (typeof localStorage !== 'undefined' ? localStorage.getItem('adminKey') || '' : '');
+      const res = await fetch('/api/admin/terminal/hosts/offline', {
+        method: 'DELETE',
+        headers: effectiveKey ? { 'x-admin-key': effectiveKey } : {},
+      });
+      if (res.ok) {
+        await fetchHosts();
+      }
+    } catch {
+      // Ignore error
+    } finally {
+      setIsClearingOffline(false);
     }
   };
 
@@ -128,16 +192,35 @@ export function TerminalHostSelector({
   }, [hosts, activeHostId, onSelectHost]);
 
   useEffect(() => {
+    if (!isOpen) return;
+    updateDropdownPosition();
+
     const handleOutsideClick = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (
+        triggerRef.current &&
+        !triggerRef.current.contains(target) &&
+        popoverRef.current &&
+        !popoverRef.current.contains(target)
+      ) {
         setIsOpen(false);
       }
     };
-    if (isOpen) {
-      document.addEventListener('mousedown', handleOutsideClick);
-    }
-    return () => document.removeEventListener('mousedown', handleOutsideClick);
-  }, [isOpen]);
+
+    const handleWindowChange = () => {
+      updateDropdownPosition();
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    window.addEventListener('resize', handleWindowChange);
+    window.addEventListener('scroll', handleWindowChange, true);
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      window.removeEventListener('resize', handleWindowChange);
+      window.removeEventListener('scroll', handleWindowChange, true);
+    };
+  }, [isOpen, updateDropdownPosition]);
 
   useEffect(() => {
     if (!isAddModalOpen) return;
@@ -167,6 +250,7 @@ export function TerminalHostSelector({
   }, [hosts, searchQuery]);
 
   const onlineCount = useMemo(() => hosts.filter((h) => h.status === 'online').length, [hosts]);
+  const hasOfflineHosts = useMemo(() => hosts.some((h) => h.status === 'offline'), [hosts]);
 
   const agentCommand = useMemo(() => {
     const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
@@ -182,14 +266,163 @@ export function TerminalHostSelector({
     }
   };
 
+  const popoverContent = isOpen && typeof document !== 'undefined' ? (
+    <div
+      ref={popoverRef}
+      style={{
+        position: 'fixed',
+        top: `${dropdownPos.top}px`,
+        left: `${dropdownPos.left}px`,
+        maxHeight: dropdownPos.maxHeight ? `${dropdownPos.maxHeight}px` : undefined,
+      }}
+      className="w-72 sm:w-80 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-2xl z-[9999] overflow-hidden animate-in fade-in zoom-in-95 font-sans flex flex-col"
+    >
+      {/* Header with Search, Add Node Button & Clear Offline */}
+      <div className="p-2 border-b border-[var(--border-subtle)] bg-[var(--bg-surface-sub)]/50 space-y-2 shrink-0">
+        <div className="flex items-center justify-between text-xs px-1">
+          <span className="font-semibold text-[var(--text-secondary)] flex items-center space-x-1.5">
+            <Server className="w-3.5 h-3.5 text-indigo-400" />
+            <span>
+              {t('webTerminal.hostSelector.hostsCount', {
+                online: onlineCount.toString(),
+                total: hosts.length.toString(),
+              })
+                .replace('{online}', onlineCount.toString())
+                .replace('{total}', hosts.length.toString())}
+            </span>
+          </span>
+
+          <div className="flex items-center space-x-1.5">
+            {hasOfflineHosts && (
+              <button
+                type="button"
+                onClick={handleClearOfflineHosts}
+                disabled={isClearingOffline}
+                className="flex items-center space-x-1 px-1.5 py-0.5 rounded-md bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-[11px] font-medium transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                title={t('webTerminal.hostSelector.clearOfflineTooltip', '清除当前所有已离线的主机节点')}
+              >
+                <Trash2 className="w-3 h-3" />
+                <span>{t('webTerminal.hostSelector.clearOffline', '清理离线')}</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => {
+                setIsOpen(false);
+                setIsAddModalOpen(true);
+              }}
+              className="flex items-center space-x-1 px-2 py-0.5 rounded-md bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-[11px] font-medium transition-all active:scale-95 cursor-pointer"
+            >
+              <Plus className="w-3 h-3" />
+              <span>{t('webTerminal.hostSelector.addNode')}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Filter Input */}
+        <div className="relative">
+          <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={t('webTerminal.hostSelector.filterPlaceholder')}
+            className="w-full pl-8 pr-2.5 py-1 bg-black/[0.04] dark:bg-white/[0.06] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-primary)] placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          />
+        </div>
+      </div>
+
+      {/* Host Item List */}
+      <div className="max-h-64 sm:max-h-80 overflow-y-auto overscroll-contain p-1 pb-2 divide-y divide-[var(--border-subtle)]/40">
+        {filteredHosts.map((h) => {
+          const isSelected = h.id === activeHostId;
+          const isOnline = h.status === 'online';
+          const offlineTooltip = !isOnline && h.lastSeen ? `${t('webTerminal.hostSelector.offlineAt', '最后离线时间: ')}${new Date(h.lastSeen).toLocaleString()}` : undefined;
+
+          return (
+            <button
+              key={h.id}
+              type="button"
+              onClick={() => {
+                onSelectHost(h.id);
+                setIsOpen(false);
+              }}
+              title={offlineTooltip}
+              className={`w-full p-2 rounded-lg flex items-center justify-between text-left transition-all ${
+                isSelected
+                  ? 'bg-indigo-600/15 text-indigo-300 font-medium'
+                  : 'hover:bg-black/[0.03] dark:hover:bg-white/[0.05] text-[var(--text-primary)]'
+              }`}
+            >
+              <div className="flex items-center space-x-2.5 min-w-0">
+                <div
+                  className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                    isSelected
+                      ? 'bg-indigo-500/20 text-indigo-400'
+                      : isOnline
+                      ? 'bg-emerald-500/10 text-emerald-400'
+                      : 'bg-slate-500/10 text-slate-400'
+                  }`}
+                >
+                  <Server className="w-4 h-4" />
+                </div>
+
+                <div className="min-w-0">
+                  <div className="flex items-center space-x-1.5">
+                    <span className="text-xs truncate font-mono">
+                      {h.name}
+                    </span>
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                        isOnline ? 'bg-emerald-400' : 'bg-slate-500'
+                      }`}
+                    />
+                  </div>
+                  <div className="text-[10px] text-[var(--text-muted)] truncate font-mono">
+                    {isOnline ? `${h.ip} · ${h.platform}` : `${h.ip} · ${formatRelativeTime(h.lastSeen, lang)}`}
+                  </div>
+                </div>
+              </div>
+
+              {isSelected && <Check className="w-4 h-4 text-indigo-400 shrink-0 ml-2" />}
+            </button>
+          );
+        })}
+
+        {filteredHosts.length === 0 && (
+          <div className="p-4 text-center text-xs text-[var(--text-muted)] font-sans">
+            {isLoading ? <RefreshCw className="w-4 h-4 animate-spin mx-auto mb-1 text-indigo-400" /> : null}
+            <span>{t('webTerminal.hostSelector.noHosts', '未找到匹配的主机节点')}</span>
+          </div>
+        )}
+
+        {/* Helper tip when no hosts exist */}
+        {hosts.length === 0 && !searchQuery.trim() && (
+          <div className="p-2.5 bg-indigo-500/5 rounded-lg m-1 border border-indigo-500/10 text-[11px] text-slate-400 font-sans leading-relaxed">
+            {t(
+              'webTerminal.hostSelector.onlyLocalTip',
+              '当前暂无在线主机。点击上方「接入内网新节点」即可通过反向隧道将服务器接入此终端。'
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  ) : null;
+
   return (
-    <div className="relative inline-flex items-center space-x-1" ref={dropdownRef}>
+    <div className="relative inline-flex items-center space-x-1">
       {/* Node Trigger Pill Button */}
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => {
-          setIsOpen(!isOpen);
-          if (!isOpen) fetchHosts();
+          const nextOpen = !isOpen;
+          setIsOpen(nextOpen);
+          if (nextOpen) {
+            updateDropdownPosition();
+            fetchHosts();
+          }
         }}
         className={`flex items-center space-x-1.5 px-2 py-1 rounded-lg border text-xs font-mono transition-all select-none active:scale-95 ${
           isOpen
@@ -249,124 +482,11 @@ export function TerminalHostSelector({
         <Plus className="w-3.5 h-3.5" />
       </button>
 
-      {/* Host Dropdown Popover */}
-      {isOpen && (
-        <div className="absolute left-0 mt-1.5 w-72 sm:w-80 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 font-sans">
-          {/* Header with Search & Add Node Button */}
-          <div className="p-2 border-b border-[var(--border-subtle)] bg-[var(--bg-surface-sub)]/50 space-y-2">
-            <div className="flex items-center justify-between text-xs px-1">
-              <span className="font-semibold text-[var(--text-secondary)] flex items-center space-x-1.5">
-                <Server className="w-3.5 h-3.5 text-indigo-400" />
-                <span>
-                  {t('webTerminal.hostSelector.hostsCount', {
-                    online: onlineCount.toString(),
-                    total: hosts.length.toString(),
-                  })
-                    .replace('{online}', onlineCount.toString())
-                    .replace('{total}', hosts.length.toString())}
-                </span>
-              </span>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setIsOpen(false);
-                  setIsAddModalOpen(true);
-                }}
-                className="flex items-center space-x-1 px-2 py-0.5 rounded-md bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-[11px] font-medium transition-all active:scale-95 cursor-pointer"
-              >
-                <Plus className="w-3 h-3" />
-                <span>{t('webTerminal.hostSelector.addNode')}</span>
-              </button>
-            </div>
-
-            {/* Filter Input */}
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={t('webTerminal.hostSelector.filterPlaceholder')}
-                className="w-full pl-8 pr-2.5 py-1 bg-black/[0.04] dark:bg-white/[0.06] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-primary)] placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              />
-            </div>
-          </div>
-
-          {/* Host Item List */}
-          <div className="max-h-60 overflow-y-auto p-1 divide-y divide-[var(--border-subtle)]/40">
-            {filteredHosts.map((h) => {
-              const isSelected = h.id === activeHostId;
-              const isOnline = h.status === 'online';
-
-              return (
-                <button
-                  key={h.id}
-                  type="button"
-                  onClick={() => {
-                    onSelectHost(h.id);
-                    setIsOpen(false);
-                  }}
-                  className={`w-full p-2 rounded-lg flex items-center justify-between text-left transition-all ${
-                    isSelected
-                      ? 'bg-indigo-600/15 text-indigo-300 font-medium'
-                      : 'hover:bg-black/[0.03] dark:hover:bg-white/[0.05] text-[var(--text-primary)]'
-                  }`}
-                >
-                  <div className="flex items-center space-x-2.5 min-w-0">
-                    <div
-                      className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                        isSelected
-                          ? 'bg-indigo-500/20 text-indigo-400'
-                          : isOnline
-                          ? 'bg-emerald-500/10 text-emerald-400'
-                          : 'bg-slate-500/10 text-slate-400'
-                      }`}
-                    >
-                      <Server className="w-4 h-4" />
-                    </div>
-
-                    <div className="min-w-0">
-                      <div className="flex items-center space-x-1.5">
-                        <span className="text-xs truncate font-mono">
-                          {h.name}
-                        </span>
-                        <span
-                          className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                            isOnline ? 'bg-emerald-400' : 'bg-slate-500'
-                          }`}
-                        />
-                      </div>
-                      <div className="text-[10px] text-[var(--text-muted)] truncate font-mono">
-                        {h.ip} · {h.platform}
-                      </div>
-                    </div>
-                  </div>
-
-                  {isSelected && <Check className="w-4 h-4 text-indigo-400 shrink-0 ml-2" />}
-                </button>
-              );
-            })}
-
-            {filteredHosts.length === 0 && (
-              <div className="p-4 text-center text-xs text-[var(--text-muted)] font-sans">
-                {isLoading ? <RefreshCw className="w-4 h-4 animate-spin mx-auto mb-1 text-indigo-400" /> : null}
-                <span>{t('webTerminal.hostSelector.noHosts', '未找到匹配的主机节点')}</span>
-              </div>
-            )}
-
-            {/* Helper tip when no hosts exist */}
-            {hosts.length === 0 && !searchQuery.trim() && (
-              <div className="p-2.5 bg-indigo-500/5 rounded-lg m-1 border border-indigo-500/10 text-[11px] text-slate-400 font-sans leading-relaxed">
-                {t(
-                  'webTerminal.hostSelector.onlyLocalTip',
-                  '当前暂无在线主机。点击上方「接入内网新节点」即可通过反向隧道将服务器接入此终端。'
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Host Dropdown Popover via Portal */}
+      {typeof document !== 'undefined' && popoverContent && (() => {
+        const dropdownPortal = createPortal(popoverContent, document.body);
+        return dropdownPortal;
+      })()}
 
       {/* Add Intranet Node Guide Modal */}
       {isAddModalOpen && typeof document !== 'undefined' && createPortal(
@@ -453,3 +573,4 @@ export function TerminalHostSelector({
     </div>
   );
 }
+

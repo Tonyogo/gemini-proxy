@@ -32,4 +32,19 @@ describe('TerminalHostSelector Pure Agent Tests', () => {
     expect(content).toContain('hasLoadedRef');
     expect(content).toContain('cached_terminal_hosts');
   });
+
+  test('uses createPortal to mount host dropdown popover to document.body preventing overflow clipping', () => {
+    expect(content).toContain('dropdownPortal');
+    // Ensure dropdown popover itself is mounted via createPortal
+    expect(content).toMatch(/createPortal\s*\(\s*[\s\S]*popoverContent[\s\S]*document\.body\s*\)/);
+  });
+
+  test('renders clear offline hosts button when offline hosts exist', () => {
+    expect(content).toContain('/api/admin/terminal/hosts/offline');
+    expect(content).toContain('hasOfflineHosts');
+  });
+
+  test('formats and displays offline relative time for offline hosts', () => {
+    expect(content).toContain('formatRelativeTime');
+  });
 });
