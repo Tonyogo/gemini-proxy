@@ -36,7 +36,6 @@ import PlaygroundView from './components/PlaygroundView';
 import UnifiedTerminalView from './components/UnifiedTerminalView';
 import TerminalLogsView from './components/TerminalLogsView';
 import TranslateView from './components/TranslateView';
-import MihomoView from './components/MihomoView';
 import DiscoverHubView, { DiscoverToolId } from './components/DiscoverHubView';
 import EmbeddedWebView from './components/EmbeddedWebView';
 import CustomWebAppModal from './components/CustomWebAppModal';
@@ -48,7 +47,7 @@ import { ThemeSwitcher } from './components/ThemeSwitcher';
 import { isMobileScreenOrDevice } from './utils/mobileViewportHelper';
 
 type TabType = 'dashboard' | 'accounts' | 'logs' | 'discover';
-export type DiscoverSubView = 'hub' | 'terminal' | 'systemLogs' | 'playground' | 'translate' | 'mihomo' | 'embeddedWeb';
+export type DiscoverSubView = 'hub' | 'terminal' | 'systemLogs' | 'playground' | 'translate' | 'embeddedWeb';
 
 interface NavItem {
   id: TabType;
@@ -83,7 +82,7 @@ export default function App() {
       return 'discover';
     }
     const rawSaved = localStorage.getItem('admin_active_tab');
-    if (rawSaved === 'terminal' || rawSaved === 'systemLogs' || rawSaved === 'playground' || rawSaved === 'translate' || rawSaved === 'mihomo') {
+    if (rawSaved === 'terminal' || rawSaved === 'systemLogs' || rawSaved === 'playground' || rawSaved === 'translate') {
       return 'discover';
     }
     const saved = rawSaved === 'webTerminal' ? 'discover' : (rawSaved as TabType);
@@ -94,7 +93,7 @@ export default function App() {
       return 'terminal';
     }
     const rawSaved = localStorage.getItem('admin_active_tab');
-    if (rawSaved === 'terminal' || rawSaved === 'systemLogs' || rawSaved === 'playground' || rawSaved === 'translate' || rawSaved === 'mihomo') {
+    if (rawSaved === 'terminal' || rawSaved === 'systemLogs' || rawSaved === 'playground' || rawSaved === 'translate') {
       return rawSaved as DiscoverSubView;
     }
     return 'hub';
@@ -706,7 +705,6 @@ export default function App() {
                       {discoverSubView === 'systemLogs' && t('discover.systemLogsTitle')}
                       {discoverSubView === 'playground' && t('discover.playgroundTitle')}
                       {discoverSubView === 'translate' && t('discover.translateTitle')}
-                      {discoverSubView === 'mihomo' && t('discover.mihomoTitle')}
                       {discoverSubView === 'embeddedWeb' && (activeEmbeddedApp?.name || t('discover.customAppsTitle'))}
                     </span>
                   </>
@@ -903,12 +901,6 @@ export default function App() {
               )}
               {discoverSubView === 'translate' && (
                 <TranslateView
-                  key={refreshTrigger}
-                  adminKey={adminKey}
-                />
-              )}
-              {discoverSubView === 'mihomo' && (
-                <MihomoView
                   key={refreshTrigger}
                   adminKey={adminKey}
                 />
