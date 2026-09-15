@@ -11,6 +11,7 @@ import {
   RefreshCw,
   Terminal,
   Trash2,
+  Wifi,
 } from 'lucide-react';
 import { useTranslation } from '../../i18n/LanguageContext';
 import { formatRelativeTime } from '../../utils/timeHelpers';
@@ -68,6 +69,24 @@ export function TerminalHostSelector({
     onAddModalOpenChange?.(open);
   };
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [hideOffline, setHideOffline] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        return localStorage.getItem('terminal_hide_offline_hosts') === 'true';
+      } catch {}
+    }
+    return false;
+  });
+
+  const toggleHideOffline = () => {
+    setHideOffline((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('terminal_hide_offline_hosts', String(next));
+      } catch {}
+      return next;
+    });
+  };
   const [copied, setCopied] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isClearingOffline, setIsClearingOffline] = useState<boolean>(false);
@@ -238,16 +257,27 @@ export function TerminalHostSelector({
   }, [hosts, activeHostId]);
 
   const filteredHosts = useMemo(() => {
-    if (!searchQuery.trim()) return hosts;
-    const q = searchQuery.toLowerCase();
-    return hosts.filter(
-      (h) =>
-        h.name.toLowerCase().includes(q) ||
-        h.id.toLowerCase().includes(q) ||
-        h.ip.toLowerCase().includes(q) ||
-        h.platform.toLowerCase().includes(q)
-    );
-  }, [hosts, searchQuery]);
+    let list = hosts;
+    if (hideOffline) {
+      list = list.filter((h) => h.status === 'online');
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(
+        (h) =>
+          h.name.toLowerCase().includes(q) ||
+          h.id.toLowerCase().includes(q) ||
+          h.ip.toLowerCase().includes(q) ||
+          h.platform.toLowerCase().includes(q)
+      );
+    }
+    return [...list].sort((a, b) => {
+      if (a.status !== b.status) {
+        return a.status === 'online' ? -1 : 1;
+      }
+      return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+    });
+  }, [hosts, searchQuery, hideOffline]);
 
   const onlineCount = useMemo(() => hosts.filter((h) => h.status === 'online').length, [hosts]);
   const hasOfflineHosts = useMemo(() => hosts.some((h) => h.status === 'offline'), [hosts]);
@@ -328,8 +358,20 @@ export function TerminalHostSelector({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t('webTerminal.hostSelector.filterPlaceholder')}
-            className="w-full pl-8 pr-2.5 py-1 bg-black/[0.04] dark:bg-white/[0.06] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-primary)] placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="w-full pl-8 pr-8 py-1 bg-black/[0.04] dark:bg-white/[0.06] border border-[var(--border-subtle)] rounded-lg text-xs text-[var(--text-primary)] placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           />
+          <button
+            type="button"
+            onClick={toggleHideOffline}
+            className={`absolute right-1.5 top-1/2 -translate-y-1/2 p-1 rounded-md transition-all ${
+              hideOffline
+                ? 'text-emerald-400 bg-emerald-500/15 border border-emerald-500/30'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+            title={hideOffline ? t('webTerminal.hostSelector.showAllHosts') : t('webTerminal.hostSelector.showOnlyOnline')}
+          >
+            <Wifi className="w-3 h-3" />
+          </button>
         </div>
       </div>
 
@@ -391,9 +433,23 @@ export function TerminalHostSelector({
         })}
 
         {filteredHosts.length === 0 && (
-          <div className="p-4 text-center text-xs text-[var(--text-muted)] font-sans">
+          <div className="p-4 text-center text-xs text-[var(--text-muted)] font-sans space-y-1.5">
             {isLoading ? <RefreshCw className="w-4 h-4 animate-spin mx-auto mb-1 text-indigo-400" /> : null}
-            <span>{t('webTerminal.hostSelector.noHosts', '未找到匹配的主机节点')}</span>
+            <div>{t('webTerminal.hostSelector.noHosts', '未找到匹配的主机节点')}</div>
+            {hideOffline && hasOfflineHosts && (
+              <button
+                type="button"
+                onClick={() => {
+                  setHideOffline(false);
+                  try {
+                    localStorage.setItem('terminal_hide_offline_hosts', 'false');
+                  } catch {}
+                }}
+                className="text-[11px] text-indigo-400 hover:underline inline-flex items-center space-x-1"
+              >
+                <span>{t('webTerminal.hostSelector.clickToShowAll', '显示全部')}</span>
+              </button>
+            )}
           </div>
         )}
 

@@ -47,4 +47,20 @@ describe('TerminalHostSelector Pure Agent Tests', () => {
   test('formats and displays offline relative time for offline hosts', () => {
     expect(content).toContain('formatRelativeTime');
   });
+
+  test('supports filtering offline hosts and persists state in localStorage', () => {
+    expect(content).toContain('terminal_hide_offline_hosts');
+    expect(content).toContain('hideOffline');
+  });
+
+  test('sorts filtered hosts with online first and alphabetical order', () => {
+    expect(content).toContain('localeCompare');
+  });
+
+  test('i18n locales contain offline filter translations', () => {
+    expect((zh as any).webTerminal.hostSelector.showOnlyOnline).toBeDefined();
+    expect((en as any).webTerminal.hostSelector.showOnlyOnline).toBeDefined();
+    expect((zh as any).webTerminal.hostSelector.showAllHosts).toBeDefined();
+    expect((en as any).webTerminal.hostSelector.showAllHosts).toBeDefined();
+  });
 });
