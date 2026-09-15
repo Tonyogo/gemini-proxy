@@ -165,12 +165,47 @@ export class RemoteAgentTerminalSession implements ITerminalSession {
 }
 
 export class TerminalHostManager {
+  public static readonly OFFLINE_HOST_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
   private hosts: Map<string, ManagedHost> = new Map();
   private sessions: Map<string, RemoteAgentTerminalSession> = new Map();
+  private pruneTimer: NodeJS.Timeout | null = null;
 
-  constructor() {}
+  constructor() {
+    // Schedule periodic sweep every hour (unref so it doesn't block process exit)
+    this.pruneTimer = setInterval(() => {
+      this.pruneOfflineHosts(TerminalHostManager.OFFLINE_HOST_TTL_MS);
+    }, 60 * 60 * 1000);
+    if (this.pruneTimer && typeof this.pruneTimer.unref === 'function') {
+      this.pruneTimer.unref();
+    }
+  }
+
+  public pruneOfflineHosts(maxAgeMs: number = TerminalHostManager.OFFLINE_HOST_TTL_MS): string[] {
+    const now = Date.now();
+    const prunedIds: string[] = [];
+
+    for (const [id, host] of this.hosts.entries()) {
+      if (host.status === 'offline') {
+        const age = now - (host.lastSeen || 0);
+        if (maxAgeMs <= 0 || age >= maxAgeMs) {
+          prunedIds.push(id);
+          const session = this.sessions.get(id);
+          if (session) {
+            session.destroy();
+            this.sessions.delete(id);
+          }
+          this.clearPendingRpcForHost(id);
+          this.hosts.delete(id);
+          logger.info(`[TerminalHostManager] Pruned offline host: ${id} (lastSeen: ${new Date(host.lastSeen).toISOString()})`);
+        }
+      }
+    }
+
+    return prunedIds;
+  }
 
   public getHosts(): ManagedHost[] {
+    this.pruneOfflineHosts(TerminalHostManager.OFFLINE_HOST_TTL_MS);
     return Array.from(this.hosts.values());
   }
 
