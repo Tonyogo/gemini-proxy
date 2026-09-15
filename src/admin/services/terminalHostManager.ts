@@ -206,7 +206,13 @@ export class TerminalHostManager {
 
   public getHosts(): ManagedHost[] {
     this.pruneOfflineHosts(TerminalHostManager.OFFLINE_HOST_TTL_MS);
-    return Array.from(this.hosts.values());
+    const list = Array.from(this.hosts.values());
+    return list.sort((a, b) => {
+      if (a.status !== b.status) {
+        return a.status === 'online' ? -1 : 1;
+      }
+      return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+    });
   }
 
   public getHost(hostId: string): ManagedHost | null {

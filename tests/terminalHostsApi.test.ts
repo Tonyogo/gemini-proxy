@@ -132,4 +132,51 @@ describe('Admin Terminal Hosts API', () => {
     });
     expect(terminalHostManager.getHost('node-to-delete-1')).toBeNull();
   });
+
+  test('returns hosts sorted with online hosts first and sorted by name A-Z', () => {
+    const mockWs = { readyState: 1, send: jest.fn() };
+    // Clear and register out of order
+    terminalHostManager.registerAgent({
+      hostId: 'sort-offline-z',
+      name: 'Zeta Node',
+      ip: '10.0.0.10',
+      agentWs: mockWs,
+    });
+    terminalHostManager.unregisterAgent('sort-offline-z');
+
+    terminalHostManager.registerAgent({
+      hostId: 'sort-online-b',
+      name: 'Beta Node',
+      ip: '10.0.0.11',
+      agentWs: mockWs,
+    });
+
+    terminalHostManager.registerAgent({
+      hostId: 'sort-offline-a',
+      name: 'Alpha Offline Node',
+      ip: '10.0.0.12',
+      agentWs: mockWs,
+    });
+    terminalHostManager.unregisterAgent('sort-offline-a');
+
+    terminalHostManager.registerAgent({
+      hostId: 'sort-online-a',
+      name: 'Alpha Online Node',
+      ip: '10.0.0.13',
+      agentWs: mockWs,
+    });
+
+    const hosts = terminalHostManager.getHosts();
+    const testHostIds = hosts
+      .map(h => h.id)
+      .filter(id => id.startsWith('sort-'));
+
+    // Expected order: online hosts sorted (Alpha Online, Beta), then offline hosts sorted (Alpha Offline, Zeta)
+    expect(testHostIds).toEqual([
+      'sort-online-a',
+      'sort-online-b',
+      'sort-offline-a',
+      'sort-offline-z',
+    ]);
+  });
 });
