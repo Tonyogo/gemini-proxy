@@ -16,6 +16,7 @@ router.get('/logs/:date/:hour/:filename', (req, res) => adminController.getLogDe
 router.get('/stats', (req, res) => adminController.getStats(req, res));
 router.get('/terminal-logs', (req, res) => adminController.getTerminalLogs(req, res));
 router.get('/terminal/hosts', (req, res) => adminController.getTerminalHosts(req, res));
+router.delete('/terminal/hosts/offline', (req, res) => adminController.pruneOfflineTerminalHosts(req, res));
 router.post('/config', (req, res) => adminController.updateConfig(req, res));
 
 // Terminal File Management Routes

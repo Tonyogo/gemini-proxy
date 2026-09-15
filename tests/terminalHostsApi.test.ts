@@ -101,4 +101,35 @@ describe('Admin Terminal Hosts API', () => {
     expect(terminalHostManager.getHost('manual-offline-node')).toBeNull();
     expect(terminalHostManager.getHost('still-online-node')).not.toBeNull();
   });
+
+  test('DELETE /api/admin/terminal/hosts/offline rejects requests without admin key', async () => {
+    const res = await request(app).delete('/api/admin/terminal/hosts/offline');
+    expect(res.status).toBe(401);
+  });
+
+  test('DELETE /api/admin/terminal/hosts/offline prunes all offline hosts and returns prunedIds', async () => {
+    const key = config.adminSecretKey || 'test-key';
+    const mockWs = { readyState: 1, send: jest.fn() };
+
+    terminalHostManager.registerAgent({
+      hostId: 'node-to-delete-1',
+      name: 'Delete Node 1',
+      ip: '10.0.0.91',
+      platform: 'linux',
+      agentWs: mockWs,
+    });
+    terminalHostManager.unregisterAgent('node-to-delete-1');
+
+    const res = await request(app)
+      .delete('/api/admin/terminal/hosts/offline')
+      .set('x-admin-key', key);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      success: true,
+      prunedCount: expect.any(Number),
+      prunedIds: expect.arrayContaining(['node-to-delete-1']),
+    });
+    expect(terminalHostManager.getHost('node-to-delete-1')).toBeNull();
+  });
 });

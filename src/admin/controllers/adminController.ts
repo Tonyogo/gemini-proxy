@@ -12,6 +12,15 @@ class AdminController {
     res.json({ hosts });
   }
 
+  public async pruneOfflineTerminalHosts(req: Request, res: Response): Promise<void> {
+    const prunedIds = terminalHostManager.pruneOfflineHosts(0);
+    res.json({
+      success: true,
+      prunedCount: prunedIds.length,
+      prunedIds,
+    });
+  }
+
   public async getStatus(req: Request, res: Response): Promise<void> {
     res.json({
       status: 'ok',
