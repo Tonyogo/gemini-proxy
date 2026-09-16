@@ -37,6 +37,11 @@ for (const arg of args) {
   }
 }
 
+// Tunable keepalive constants
+const HANDSHAKE_TIMEOUT_MS = 4000;
+const HEARTBEAT_INTERVAL_MS = 10000;
+const HEARTBEAT_TIMEOUT_MS = 3000;
+
 const serverArg = options.server || process.env.TERMINAL_SERVER || 'http://localhost:3000';
 const adminKey = options.key || process.env.ADMIN_SECRET_KEY || '';
 const hostname = os.hostname();
@@ -84,6 +89,28 @@ function resolveWebSocketUrl(serverUrl) {
   return `${wsUrl}/api/admin/terminal/agent-ws?${query.toString()}`;
 }
 
+function parseControlMessage(msgStr) {
+  if (typeof msgStr !== 'string') return null;
+  const trimmed = msgStr.trim();
+  if (trimmed.startsWith('JSON:')) {
+    try {
+      return JSON.parse(trimmed.slice(5));
+    } catch {
+      return null;
+    }
+  }
+  // Tolerate bare JSON control frames to prevent leaking into shell stdin
+  if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (parsed && typeof parsed.type === 'string') {
+        return parsed;
+      }
+    } catch {}
+  }
+  return null;
+}
+
 if (envLoaded) {
   console.log('[Agent] Loaded .env configuration');
 }
@@ -99,6 +126,50 @@ let ptyProcess = null;
 let ws = null;
 let reconnectAttempts = 0;
 let isExiting = false;
+let connectTimeoutTimer = null;
+let heartbeatTimer = null;
+let heartbeatTimeoutTimer = null;
+
+function stopHeartbeat() {
+  if (heartbeatTimer) {
+    clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
+  }
+  if (heartbeatTimeoutTimer) {
+    clearTimeout(heartbeatTimeoutTimer);
+    heartbeatTimeoutTimer = null;
+  }
+}
+
+function startHeartbeat() {
+  stopHeartbeat();
+  heartbeatTimer = setInterval(() => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      try {
+        ws.send(`JSON:${JSON.stringify({ type: 'ping' })}`);
+      } catch {}
+
+      if (heartbeatTimeoutTimer) clearTimeout(heartbeatTimeoutTimer);
+      heartbeatTimeoutTimer = setTimeout(() => {
+        console.warn(
+          `[Agent] Heartbeat timeout (${HEARTBEAT_TIMEOUT_MS / 1000}s) on ${serverArg}. Terminating dead connection...`
+        );
+        if (ws) {
+          try {
+            ws.terminate();
+          } catch {}
+        }
+      }, HEARTBEAT_TIMEOUT_MS);
+    }
+  }, HEARTBEAT_INTERVAL_MS);
+}
+
+function onHeartbeatActivity() {
+  if (heartbeatTimeoutTimer) {
+    clearTimeout(heartbeatTimeoutTimer);
+    heartbeatTimeoutTimer = null;
+  }
+}
 
 function spawnPty() {
   if (ptyProcess) {
@@ -118,7 +189,6 @@ function spawnPty() {
     COLORTERM: 'truecolor',
     LANG: process.env.LANG || 'en_US.UTF-8',
     TERM_PROGRAM: 'gemini-proxy-agent',
-    // Disable alternate screen by default for Claude Code CLI to ensure continuous scrollback buffer
     CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN: process.env.CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN || '1',
   };
 
@@ -147,7 +217,6 @@ function spawnPty() {
       console.log(`[PTY] Shell exited with code: ${exitCode}`);
       ptyProcess = null;
       if (!isExiting) {
-        // Respawn shell if exited unexpectedly
         setTimeout(spawnPty, 500);
       }
     });
@@ -279,22 +348,41 @@ function connect() {
   const targetWsUrl = resolveWebSocketUrl(serverArg);
   console.log(`[Agent] Connecting to ${targetWsUrl.split('?')[0]}...`);
 
+  if (connectTimeoutTimer) clearTimeout(connectTimeoutTimer);
+  connectTimeoutTimer = setTimeout(() => {
+    console.warn(`[Agent] Connection to ${serverArg} timed out (${HANDSHAKE_TIMEOUT_MS / 1000}s)`);
+    if (ws) {
+      try {
+        ws.terminate();
+      } catch {}
+    }
+  }, HANDSHAKE_TIMEOUT_MS);
+
   ws = new WebSocket(targetWsUrl, {
     headers: {
       'x-admin-key': adminKey,
     },
   });
 
+  // Enable TCP KeepAlive on socket once connected
+  ws.on('upgrade', (response) => {
+    if (ws._socket && typeof ws._socket.setKeepAlive === 'function') {
+      ws._socket.setKeepAlive(true, 10000);
+    }
+  });
+
   ws.on('open', () => {
+    if (connectTimeoutTimer) clearTimeout(connectTimeoutTimer);
     reconnectAttempts = 0;
     console.log(`[Agent] Connected and registered successfully! Reverse tunnel is active.`);
+
+    startHeartbeat();
 
     const isFirstSpawn = !ptyProcess;
     if (!ptyProcess) {
       spawnPty();
     }
 
-    // Only send reset on absolute first spawn of a fresh process, never on reconnect of existing PTY
     try {
       if (isFirstSpawn) {
         ws.send(`JSON:${JSON.stringify({ type: 'reset' })}`);
@@ -306,10 +394,11 @@ function connect() {
   });
 
   ws.on('message', (data) => {
+    onHeartbeatActivity();
     try {
       const msgStr = data.toString();
-      if (msgStr.startsWith('JSON:')) {
-        const control = JSON.parse(msgStr.slice(5));
+      const control = parseControlMessage(msgStr);
+      if (control) {
         if (control.type === 'file_rpc') {
           handleFileRpc(control);
           return;
@@ -329,15 +418,18 @@ function connect() {
         }
         if (control.type === 'ping') {
           if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: 'pong' }));
+            ws.send(`JSON:${JSON.stringify({ type: 'pong' })}`);
           }
+          return;
+        }
+        if (control.type === 'pong') {
+          // Heartbeat pong received and consumed
           return;
         }
         if (control.type === 'registered') {
           console.log(`[Agent] Registered confirmed: hostId=${control.hostId}, status=${control.status}`);
           return;
         }
-        // Any other control frame starting with JSON: is consumed and not written to PTY
         return;
       }
 
@@ -352,47 +444,61 @@ function connect() {
   });
 
   ws.on('close', (code, reason) => {
+    if (connectTimeoutTimer) clearTimeout(connectTimeoutTimer);
+    stopHeartbeat();
     console.warn(`[Agent] Connection closed (code: ${code}, reason: ${reason || 'none'})`);
     ws = null;
     scheduleReconnect();
   });
 
   ws.on('error', (err) => {
+    if (connectTimeoutTimer) clearTimeout(connectTimeoutTimer);
+    stopHeartbeat();
     console.error(`[Agent] Connection error: ${err.message}`);
   });
 }
 
 function scheduleReconnect() {
   if (isExiting) return;
+  stopHeartbeat();
   reconnectAttempts++;
   const delay = Math.min(30000, 1000 * Math.pow(1.5, Math.min(reconnectAttempts, 8)));
   console.log(`[Agent] Reconnecting in ${(delay / 1000).toFixed(1)}s (attempt #${reconnectAttempts})...`);
   setTimeout(connect, delay);
 }
 
-// Initial run
-spawnPty();
-connect();
+// Initial run (only when executed directly as CLI)
+if (require.main === module) {
+  spawnPty();
+  connect();
+}
 
 function cleanup() {
   isExiting = true;
+  stopHeartbeat();
   console.log('\n[Agent] Shutting down agent...');
   if (ws) {
     try {
       ws.close();
-    } catch {
-      // Ignore
-    }
+    } catch {}
   }
   if (ptyProcess) {
     try {
       ptyProcess.kill();
-    } catch {
-      // Ignore
-    }
+    } catch {}
   }
   process.exit(0);
 }
 
 process.on('SIGINT', cleanup);
 process.on('SIGTERM', cleanup);
+
+if (typeof module !== 'undefined') {
+  module.exports = {
+    parseControlMessage,
+    resolveWebSocketUrl,
+    HANDSHAKE_TIMEOUT_MS,
+    HEARTBEAT_INTERVAL_MS,
+    HEARTBEAT_TIMEOUT_MS,
+  };
+}
