@@ -94,5 +94,42 @@ describe('Mobile Keyboard Dismissal and Checkmark Controls', () => {
     expect(handlerBlock).toContain('terminalRef.current?.scrollToBottomSafe?.()');
     expect(handlerBlock).toContain('window.scrollTo(0, 0)');
   });
+
+  test('ensures safeFit does not use flawed container.clientHeight < baseHeightRef.current - 80 check', () => {
+    const webTerminalContent = fs.readFileSync(webTerminalPath, 'utf-8');
+    // container.clientHeight is naturally 100-180px less than window.innerHeight on mobile due to headers/accessory bars
+    // Using baseHeightRef - 80 caused false-positive keyboard detection on normal page loads
+    expect(webTerminalContent).not.toContain('container.clientHeight < baseHeightRef.current - 80');
+    expect(webTerminalContent).not.toContain('height < baseHeightRef.current - 80');
+  });
+
+  test('validates proposed dimensions in safeFit before applying resize to prevent default 80x24 leakage', () => {
+    const webTerminalContent = fs.readFileSync(webTerminalPath, 'utf-8');
+    expect(webTerminalContent).toMatch(/const proposed = fitAddonRef\.current\.proposeDimensions\(\);/);
+    expect(webTerminalContent).toMatch(/if \(!proposed \|\| proposed\.cols <= 2 \|\| proposed\.rows <= 1\)\s*\{\s*return false;\s*\}/);
+  });
+
+  test('schedules progressive ladder fits on ws.onopen to ensure mobile dimensions reach the remote PTY', () => {
+    const webTerminalContent = fs.readFileSync(webTerminalPath, 'utf-8');
+    const onOpenStart = webTerminalContent.indexOf('ws.onopen = () => {');
+    const onOpenEnd = webTerminalContent.indexOf('ws.onmessage =', onOpenStart);
+    const onOpenBlock = webTerminalContent.slice(onOpenStart, onOpenEnd);
+
+    expect(onOpenBlock).toContain('safeFit(true)');
+    expect(onOpenBlock).toContain('80');
+    expect(onOpenBlock).toContain('250');
+    expect(onOpenBlock).toContain('600');
+  });
+
+  test('forces dimension synchronization on activeHostId transition at 500ms and on fonts ready', () => {
+    const webTerminalContent = fs.readFileSync(webTerminalPath, 'utf-8');
+    const hostEffectStart = webTerminalContent.indexOf('useEffect(() => {\n    if (activeHostId) {');
+    const hostEffectEnd = webTerminalContent.indexOf('}, [activeHostId, safeFit]);', hostEffectStart);
+    const hostEffectBlock = webTerminalContent.slice(hostEffectStart, hostEffectEnd);
+
+    expect(hostEffectBlock).toContain('setTimeout(() => { safeFit(true); }, 500)');
+    expect(webTerminalContent).toMatch(/document\.fonts\.ready[\s\S]*?safeFit\(true\)/);
+  });
 });
+
 

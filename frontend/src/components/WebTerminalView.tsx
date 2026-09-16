@@ -96,7 +96,7 @@ export interface WebTerminalHandle {
   reconnect: () => void;
   resetSession: () => void;
   toggleSelectMode: () => void;
-  fit: () => void;
+  fit: (force?: boolean) => void;
   scrollToBottomSafe?: () => void;
   isAtBottom?: () => boolean;
   updateCursorShift?: () => void;
@@ -424,9 +424,8 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
     }
 
     const isKeyboardActive = isKeyboardShowingRef.current || (
-      isMobileDevice && (
-        (typeof window !== 'undefined' && window.visualViewport && window.visualViewport.height < (baseHeightRef.current || window.innerHeight) * 0.85) ||
-        (baseHeightRef.current > 0 && container.clientHeight < baseHeightRef.current - 80)
+      isMobileDevice && typeof window !== 'undefined' && window.visualViewport && (
+        window.visualViewport.height < (baseHeightRef.current || window.innerHeight) * 0.85
       )
     );
 
@@ -436,8 +435,10 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
 
     if (!forceResize && isMobileDevice && lastSentRowsRef.current > 0) {
       const isWidthUnchanged = Math.abs(container.clientWidth - baseWidthRef.current) <= 25;
-      const isHeightShrunk = container.clientHeight < baseHeightRef.current - 80;
-      if (isWidthUnchanged && isHeightShrunk) {
+      const isHeightShrunk = typeof window !== 'undefined' && window.visualViewport && (
+        window.visualViewport.height < (baseHeightRef.current || window.innerHeight) * 0.85
+      );
+      if (isWidthUnchanged && (isHeightShrunk || isKeyboardActive)) {
         return false;
       }
     }
@@ -445,6 +446,10 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
     try {
       const term = xtermRef.current;
       const wasAtBottom = isUserAtBottom(term);
+      const proposed = fitAddonRef.current.proposeDimensions();
+      if (!proposed || proposed.cols <= 2 || proposed.rows <= 1) {
+        return false;
+      }
       fitAddonRef.current.fit();
       const { cols, rows } = term;
       if (cols > 2 && rows > 1) {
@@ -521,6 +526,8 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
       if (!safeFit(true)) {
         setTimeout(() => safeFit(true), 80);
       }
+      setTimeout(() => safeFit(true), 250);
+      setTimeout(() => safeFit(true), 600);
     };
 
     ws.onmessage = (event) => {
@@ -838,7 +845,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
           const isWidthStable = Math.abs(width - baseWidthRef.current) <= 25;
           const isKeyboardActive = (
             (typeof window !== 'undefined' && window.visualViewport && window.visualViewport.height < (baseHeightRef.current || window.innerHeight) * 0.85) ||
-            (baseHeightRef.current > 0 && height < baseHeightRef.current - 80)
+            isKeyboardShowingRef.current
           );
           if (isWidthStable && (isKeyboardActive || isKeyboardShowingRef.current)) {
             updateCursorShiftRef.current?.();
@@ -1122,7 +1129,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
     if (typeof document !== 'undefined' && document.fonts?.ready) {
       document.fonts.ready.then(() => {
         if (isMountedRef.current) {
-          safeFit();
+          safeFit(true);
         }
       }).catch(() => {});
     }
@@ -1799,7 +1806,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
           xtermRef.current?.refresh(0, Math.max(0, (xtermRef.current?.rows || 1) - 1));
         }, 60),
         setTimeout(() => { safeFit(true); }, 200),
-        setTimeout(() => { safeFit(false); }, 500),
+        setTimeout(() => { safeFit(true); }, 500),
       ];
       return () => timers.forEach(clearTimeout);
     }

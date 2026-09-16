@@ -211,9 +211,11 @@ export default function UnifiedTerminalView({
     if (subTab === 'interactive' && activeHostId) {
       const t1 = setTimeout(() => terminalRef.current?.fit(), 60);
       const t2 = setTimeout(() => terminalRef.current?.fit(), 200);
+      const t3 = setTimeout(() => terminalRef.current?.fit(), 500);
       return () => {
         clearTimeout(t1);
         clearTimeout(t2);
+        clearTimeout(t3);
       };
     }
   }, [subTab, activeHostId]);
