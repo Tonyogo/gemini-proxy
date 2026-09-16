@@ -61,4 +61,38 @@ describe('Mobile Keyboard Dismissal and Checkmark Controls', () => {
     expect(en.translate.done).toBe('Done');
     expect(zh.translate.done).toBe('完成');
   });
+
+  test('WebTerminalView and UnifiedTerminalView implement iOS Safari multi-phase scroll reset and bottom anchoring', () => {
+    const webTerminalContent = fs.readFileSync(webTerminalPath, 'utf-8');
+    const unifiedPath = path.resolve(__dirname, '../frontend/src/components/UnifiedTerminalView.tsx');
+    const unifiedContent = fs.readFileSync(unifiedPath, 'utf-8');
+
+    // WebTerminalView handleHideKeyboard
+    expect(webTerminalContent).toContain('window.scrollTo(0, 0)');
+    expect(webTerminalContent).toContain('scrollToBottomSafe(xtermRef.current)');
+
+    // WebTerminalView handleBlur
+    const blurStart = webTerminalContent.indexOf('handleBlur = () => {');
+    const blurEnd = webTerminalContent.indexOf('helperTextarea.addEventListener', blurStart);
+    const blurBlock = webTerminalContent.slice(blurStart, blurEnd);
+    expect(blurBlock).toContain('cursorShiftYRef.current = 0;');
+    expect(blurBlock).toContain('setCursorShiftY(0);');
+    expect(blurBlock).toContain('scrollToBottomSafe(xtermRef.current)');
+
+    // WebTerminalView updateViewport
+    const closeBlockStart = webTerminalContent.indexOf('if (wasKeyboardShowing && !isKeyboardShowing) {');
+    const closeBlockEnd = webTerminalContent.indexOf('if (mobile && standalone) {', closeBlockStart);
+    const closeBlock = webTerminalContent.slice(closeBlockStart, closeBlockEnd);
+    expect(closeBlock).toContain('scrollToBottomSafe(xtermRef.current)');
+    expect(closeBlock).toContain('window.scrollTo(0, 0)');
+
+    // UnifiedTerminalView keyboard dismissal anchor
+    const handlerStart = unifiedContent.indexOf('const handleViewportChange = () => {');
+    const handlerEnd = unifiedContent.indexOf('window.visualViewport.addEventListener', handlerStart);
+    const handlerBlock = unifiedContent.slice(handlerStart, handlerEnd);
+    expect(handlerBlock).toContain('if (wasKeyboardShowing)');
+    expect(handlerBlock).toContain('terminalRef.current?.scrollToBottomSafe?.()');
+    expect(handlerBlock).toContain('window.scrollTo(0, 0)');
+  });
 });
+

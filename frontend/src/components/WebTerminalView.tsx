@@ -252,8 +252,42 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
     }
     (document.activeElement as HTMLElement)?.blur();
     setIsKeyboardOpen(false);
+    isKeyboardShowingRef.current = false;
     cursorShiftYRef.current = 0;
     setCursorShiftY(0);
+
+    // Multi-phase scroll reset for iOS Safari (immediate + 100ms + 320ms)
+    if (typeof window !== 'undefined') {
+      if (window.scrollY !== 0) {
+        window.scrollTo(0, 0);
+      }
+      setTimeout(() => {
+        if (typeof window !== 'undefined' && window.scrollY !== 0) {
+          window.scrollTo(0, 0);
+        }
+      }, 100);
+      setTimeout(() => {
+        if (typeof window !== 'undefined' && window.scrollY !== 0) {
+          window.scrollTo(0, 0);
+        }
+      }, 320);
+    }
+
+    // Always scroll xterm to bottom cursor line upon keyboard collapse
+    if (xtermRef.current) {
+      scrollToBottomSafe(xtermRef.current);
+      setTimeout(() => {
+        if (xtermRef.current) {
+          scrollToBottomSafe(xtermRef.current);
+        }
+      }, 100);
+      setTimeout(() => {
+        if (xtermRef.current) {
+          scrollToBottomSafe(xtermRef.current);
+        }
+      }, 320);
+    }
+
     const isWidthStable = Math.abs(window.innerWidth - baseWidthRef.current) <= 20;
     if (!isMobile || !standalone || !isWidthStable) {
       setTimeout(() => {
@@ -672,7 +706,40 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
         setIsKeyboardOpen(true);
         setTimeout(() => updateViewport(), 50);
       };
-      handleBlur = () => setIsKeyboardOpen(false);
+      handleBlur = () => {
+        setIsKeyboardOpen(false);
+        isKeyboardShowingRef.current = false;
+        cursorShiftYRef.current = 0;
+        setCursorShiftY(0);
+        if (typeof window !== 'undefined') {
+          if (window.scrollY !== 0) {
+            window.scrollTo(0, 0);
+          }
+          setTimeout(() => {
+            if (typeof window !== 'undefined' && window.scrollY !== 0) {
+              window.scrollTo(0, 0);
+            }
+          }, 100);
+          setTimeout(() => {
+            if (typeof window !== 'undefined' && window.scrollY !== 0) {
+              window.scrollTo(0, 0);
+            }
+          }, 320);
+        }
+        if (xtermRef.current) {
+          scrollToBottomSafe(xtermRef.current);
+          setTimeout(() => {
+            if (xtermRef.current) {
+              scrollToBottomSafe(xtermRef.current);
+            }
+          }, 100);
+          setTimeout(() => {
+            if (xtermRef.current) {
+              scrollToBottomSafe(xtermRef.current);
+            }
+          }, 320);
+        }
+      };
       helperTextarea.addEventListener('focus', handleFocus);
       helperTextarea.addEventListener('blur', handleBlur);
     }
@@ -1108,9 +1175,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
         if (isKeyboardShowing) {
           setIsKeyboardOpen(true);
         } else {
-          if (!isInputFocused) {
-            setIsKeyboardOpen(false);
-          }
+          setIsKeyboardOpen(false);
         }
       } else {
         const currentHeight = window.innerHeight;
@@ -1132,6 +1197,39 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
       if (wasKeyboardShowing && !isKeyboardShowing) {
         cursorShiftYRef.current = 0;
         setCursorShiftY(0);
+
+        // Multi-phase scroll reset for iOS Safari (immediate + 100ms + 320ms)
+        if (typeof window !== 'undefined') {
+          if (window.scrollY !== 0) {
+            window.scrollTo(0, 0);
+          }
+          setTimeout(() => {
+            if (typeof window !== 'undefined' && window.scrollY !== 0) {
+              window.scrollTo(0, 0);
+            }
+          }, 100);
+          setTimeout(() => {
+            if (typeof window !== 'undefined' && window.scrollY !== 0) {
+              window.scrollTo(0, 0);
+            }
+          }, 320);
+        }
+
+        // Always scroll to bottom when keyboard closes
+        if (xtermRef.current) {
+          scrollToBottomSafe(xtermRef.current);
+          setTimeout(() => {
+            if (xtermRef.current) {
+              scrollToBottomSafe(xtermRef.current);
+            }
+          }, 100);
+          setTimeout(() => {
+            if (xtermRef.current) {
+              scrollToBottomSafe(xtermRef.current);
+            }
+          }, 320);
+        }
+
         // When keyboard closes on mobile standalone with stable width, rows was never shrunk,
         // so skip safeFit(true) to avoid triggering SIGWINCH and history buffer reflow.
         if (!mobile || !standalone || !isWidthStable) {

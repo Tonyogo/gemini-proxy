@@ -144,6 +144,26 @@ export default function UnifiedTerminalView({
       } else {
         setWorkspaceStyle({});
         terminalRef.current?.updateCursorShift?.();
+        if (wasKeyboardShowing) {
+          terminalRef.current?.scrollToBottomSafe?.();
+          if (typeof window !== 'undefined') {
+            if (window.scrollY !== 0) {
+              window.scrollTo(0, 0);
+            }
+            setTimeout(() => {
+              if (typeof window !== 'undefined' && window.scrollY !== 0) {
+                window.scrollTo(0, 0);
+              }
+              terminalRef.current?.scrollToBottomSafe?.();
+            }, 100);
+            setTimeout(() => {
+              if (typeof window !== 'undefined' && window.scrollY !== 0) {
+                window.scrollTo(0, 0);
+              }
+              terminalRef.current?.scrollToBottomSafe?.();
+            }, 320);
+          }
+        }
       }
     };
 
