@@ -128,4 +128,31 @@ describe('Terminal WebSocket Gateway', () => {
       });
     });
   }, 10000);
+
+  it('should respond with prefixed JSON:{"type":"pong"} when agent sends ping', (done) => {
+    const originalKey = config.adminSecretKey;
+    config.adminSecretKey = 'valid-key';
+    const testHostId = 'agent-ping-test';
+
+    const agentWs = new WebSocket(
+      `ws://127.0.0.1:${port}/api/admin/terminal/agent-ws?hostId=${testHostId}&name=PingNode&key=valid-key`
+    );
+
+    agentWs.on('open', () => {
+      agentWs.send(`JSON:${JSON.stringify({ type: 'ping' })}`);
+    });
+
+    agentWs.on('message', (msg) => {
+      const text = msg.toString();
+      if (text.startsWith('JSON:')) {
+        const payload = JSON.parse(text.slice(5));
+        if (payload.type === 'pong') {
+          expect(text).toBe('JSON:{"type":"pong"}');
+          agentWs.close();
+          config.adminSecretKey = originalKey;
+          done();
+        }
+      }
+    });
+  });
 });

@@ -85,7 +85,7 @@ export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
         if (msgStr.startsWith('JSON:')) {
           const control = JSON.parse(msgStr.slice(5));
           if (control.type === 'ping') {
-            ws.send(JSON.stringify({ type: 'pong' }));
+            ws.send(`JSON:${JSON.stringify({ type: 'pong' })}`);
             return;
           }
           if (control.type === 'meta') {
@@ -178,7 +178,7 @@ export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
             return;
           }
           if (control.type === 'ping') {
-            ws.send(JSON.stringify({ type: 'pong' }));
+            ws.send(`JSON:${JSON.stringify({ type: 'pong' })}`);
             return;
           }
         }
