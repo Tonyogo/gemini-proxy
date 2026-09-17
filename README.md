@@ -6,6 +6,9 @@
 
 ## 🌟 核心特性
 
+- **全协议双向代理与直传**：
+  - **Claude 协议转译模式**：接收 Anthropic Claude 协议请求（`/v1/messages`、`/v1/models`、`/v1/messages/count_tokens`），转译为 Gemini 协议并把结果还原为 Claude SSE 流式/非流式响应。
+  - **原生 Gemini 协议透传模式**：完整支持官方 Google Gemini 协议路径（`/v1beta/*` 与 `/v1/models/*:*`），可作为官方 API 代理直连，自带模型别名映射（`MODEL_MAPPINGS`）、负载均衡策略、客户端断连中止管理与全量审计日志记录。
 - **TypeScript 强类型支持**：全盘采用严格模式（strict）的 TypeScript 开发，提供极致的安全性和健壮性，杜绝因 JSON Schema 繁琐键值定位引发的运行时崩溃。
 - **轻量且无状态**：无任何数据库、浏览器实例（Playwright/Puppeteer）或账户轮询队列，所有请求完全在内存中高效处理。
 - **纯透传定位 (无配置密钥泄露风险)**：服务器本身**不保存任何官方 API 密钥**。客户端请求必须在 Header 中携带 `x-api-key`、`Authorization: Bearer <key>` 或 `x-goog-api-key` 作为官方 Gemini 密钥。代理端在翻译完参数后直接透传并访问下游 Google 接口，完全零运营与配额消耗。
@@ -55,9 +58,11 @@ gemini-proxy/
 │   ├── types/
 │   │   └── index.ts           # 强类型定义声明 (Claude 与 Gemini API REST 协议载荷接口)
 │   ├── routes/
-│   │   └── claudeRoutes.ts    # 路由层：/v1/messages, /v1/models, /v1/messages/count_tokens
+│   │   ├── claudeRoutes.ts    # 路由层：Claude 协议接口 (/v1/messages, /v1/models, /v1/messages/count_tokens)
+│   │   └── geminiRoutes.ts    # 路由层：原生 Gemini 协议接口 (/v1beta/*)
 │   ├── controllers/
-│   │   └── claudeController.ts# 控制器层：Express 请求与响应逻辑、双向映射 info 日志等
+│   │   ├── claudeController.ts# 控制器层：Claude 转译请求与响应逻辑
+│   │   └── geminiController.ts# 控制器层：原生 Gemini 代理���传、流式接管与模型重定向
 │   ├── services/
 │   │   ├── claudeTranslator.ts# 服务层：核心翻译适配器 (Claude <-> Gemini 核心协议转换)
 │   │   └── payloadLogger.ts   # 服务层：异步、非阻塞式交易日志文件保存器
@@ -366,6 +371,44 @@ curl -X POST http://localhost:3000/v1/messages \
          {"role": "user", "content": "写一首赞美晴天的四言绝句。"}
        ]
      }'
+```
+
+---
+
+### 4. 原生 Gemini 协议调用 (免转译直连)
+
+客户端（Google Gen AI SDK、Python `google-generativeai` 或 cURL）可将 `baseUrl` 直接指定为本服务：
+
+#### a. 非流式内容生成
+**接口：** `POST /v1beta/models/:model:generateContent`
+
+```bash
+curl -X POST "http://localhost:3000/v1beta/models/gemini-2.0-flash:generateContent" \
+     -H "Content-Type: application/json" \
+     -H "x-goog-api-key: YOUR_GEMINI_API_KEY" \
+     -d '{
+       "contents": [{ "parts": [{ "text": "你好，Gemini！" }] }]
+     }'
+```
+
+#### b. SSE 流式内容生成
+**接口：** `POST /v1beta/models/:model:streamGenerateContent?alt=sse`
+
+```bash
+curl -N -X POST "http://localhost:3000/v1beta/models/gemini-2.0-flash:streamGenerateContent?alt=sse" \
+     -H "Content-Type: application/json" \
+     -H "x-goog-api-key: YOUR_GEMINI_API_KEY" \
+     -d '{
+       "contents": [{ "parts": [{ "text": "写一篇关于人工智能发展的短文" }] }]
+     }'
+```
+
+#### c. 原生模型列表查询
+**接口：** `GET /v1beta/models`
+
+```bash
+curl "http://localhost:3000/v1beta/models" \
+     -H "x-goog-api-key: YOUR_GEMINI_API_KEY"
 ```
 
 ---

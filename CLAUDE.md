@@ -19,14 +19,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Architecture & Structure
 
-This is a **stateless API proxy** that translates Anthropic Claude Messages API requests into Google Gemini (AI Studio) API requests, and translates responses (SSE stream or non-stream) back to Claude format, equipped with an out-of-band Admin Web Console, API Debugger, and multi-host WebTerminal.
+This is a **stateless API proxy** that translates Anthropic Claude Messages API requests into Google Gemini (AI Studio) API requests, and translates responses (SSE stream or non-stream) back to Claude format, alongside native Google Gemini API transparent reverse proxying, equipped with an out-of-band Admin Web Console, API Debugger, and multi-host WebTerminal.
 
 ### Key Components
 
 - **Core Proxy Pipelines (`src/routes/`, `src/controllers/`, `src/services/`):** 
-  - Routes incoming `/v1/messages`, `/v1/messages/count_tokens`, `/v1/models`, and `/v1/models/:model_id` requests to `claudeController.ts`.
-  - Core translation engine (`claudeTranslator.ts`) remains 100% clean and stateless, converting tool schemas, system instructions, images, PDF documents, and thinking modes.
-  - Returns structured Claude JSON event arrays during stream translation, which are written as standard SSE events to client sockets while recorded natively as JSON arrays in transaction logs.
+  - **Claude Translation Proxy (`claudeRoutes.ts`, `claudeController.ts`, `claudeTranslator.ts`):** Routes incoming `/v1/messages`, `/v1/messages/count_tokens`, `/v1/models`, and `/v1/models/:model_id` requests to `claudeController.ts`. Core translation engine (`claudeTranslator.ts`) converts tool schemas, system instructions, images, PDF documents, and thinking modes. Returns structured Claude JSON event arrays during stream translation, which are written as standard SSE events to client sockets while recorded natively as JSON arrays in transaction logs.
+  - **Native Gemini API Proxy (`geminiRoutes.ts`, `geminiController.ts`):** Handles native Google Gemini protocol requests under `/v1beta/*` and `/v1/models/*:*` without translation. Integrates model alias mapping (`MODEL_MAPPINGS`), client-abort streaming lifecycle (`StreamLifecycleManager`), and full transaction audit logging (`payloadLogger`).
 
 - **Out-of-Band Admin & Web Console (`src/admin/`, `frontend/`):**
   - **Admin Controller & Routes (`src/admin/controllers/`, `src/admin/routes/`):** Exposes `/api/admin/status`, `/api/admin/stats`, `/api/admin/models`, `/api/admin/logs`, `/api/admin/terminal/hosts`, and `/api/admin/config`.
