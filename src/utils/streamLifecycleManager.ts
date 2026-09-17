@@ -76,6 +76,10 @@ export class StreamLifecycleManager {
     this.upstreamStream = stream;
   }
 
+  public setUpstreamStream(stream: any): void {
+    this.attachStream(stream);
+  }
+
   public markFinished(): void {
     this.finished = true;
     this.cleanup();
