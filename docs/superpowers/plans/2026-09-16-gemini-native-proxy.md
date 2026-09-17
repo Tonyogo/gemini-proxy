@@ -27,7 +27,7 @@
 - Produces: `geminiController.handleProxy(req: Request, res: Response)`
 - Consumes: `extractClientKey`, `extractTimeoutMs`, `extractClientSchedulingStrategy`, `getUpstreamUrl`, `generateShortId`, `buildUpstreamHeaders`, `config.modelMappings`, `payloadLogger.saveTransaction`, `StreamLifecycleManager`
 
-- [ ] **Step 1: Write the failing test for `GeminiController` non-streaming proxy**
+- [x] **Step 1: Write the failing test for `GeminiController` non-streaming proxy**
 
 Create `tests/geminiController.test.ts`:
 
@@ -105,12 +105,12 @@ describe('GeminiController - Native Gemini API Proxy', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/geminiController.test.ts`
 Expected: FAIL (controller does not exist yet).
 
-- [ ] **Step 3: Implement `src/controllers/geminiController.ts`**
+- [x] **Step 3: Implement `src/controllers/geminiController.ts`**
 
 Create `src/controllers/geminiController.ts`:
 
@@ -306,12 +306,12 @@ class GeminiController {
 export default new GeminiController();
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/geminiController.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Commit changes**
+- [x] **Step 5: Commit changes**
 
 ```bash
 git add src/controllers/geminiController.ts tests/geminiController.test.ts
@@ -332,7 +332,7 @@ git commit -m "feat(proxy): create geminiController with non-streaming and strea
 - Produces: `geminiRoutes` router handling `/v1beta/*` and fallback Gemini paths
 - Modifies: `app.ts` to mount `app.use('/v1beta', geminiRoutes)` and route `/v1/models/*:generateContent`
 
-- [ ] **Step 1: Create `src/routes/geminiRoutes.ts`**
+- [x] **Step 1: Create `src/routes/geminiRoutes.ts`**
 
 ```typescript
 import { Router, Request, Response } from 'express';
@@ -346,7 +346,7 @@ router.all('*', (req: Request, res: Response) => geminiController.handleProxy(re
 export default router;
 ```
 
-- [ ] **Step 2: Update `src/routes/claudeRoutes.ts` and `src/app.ts`**
+- [x] **Step 2: Update `src/routes/claudeRoutes.ts` and `src/app.ts`**
 
 In `src/routes/claudeRoutes.ts`, forward Gemini actions on `/v1/models/*` (e.g. `:generateContent`, `:streamGenerateContent`, `:countTokens`) to `geminiController`:
 
@@ -409,7 +409,7 @@ if (config.enableUi) {
 export default app;
 ```
 
-- [ ] **Step 3: Write integration tests in `tests/geminiRoutesIntegration.test.ts`**
+- [x] **Step 3: Write integration tests in `tests/geminiRoutesIntegration.test.ts`**
 
 Create `tests/geminiRoutesIntegration.test.ts`:
 
@@ -487,12 +487,12 @@ describe('Native Gemini Routes Integration', () => {
 });
 ```
 
-- [ ] **Step 4: Run integration test**
+- [x] **Step 4: Run integration test**
 
 Run: `npx jest tests/geminiRoutesIntegration.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Commit changes**
+- [x] **Step 5: Commit changes**
 
 ```bash
 git add src/routes/geminiRoutes.ts src/routes/claudeRoutes.ts src/app.ts tests/geminiRoutesIntegration.test.ts
@@ -506,22 +506,22 @@ git commit -m "feat(routes): mount geminiRoutes on /v1beta and forward /v1/model
 **Files:**
 - Full suite verification
 
-- [ ] **Step 1: Run complete test suite**
+- [x] **Step 1: Run complete test suite**
 
 Run: `npx jest --runInBand`
 Expected: 100% tests pass (106 test suites).
 
-- [ ] **Step 2: Run frontend build check**
+- [x] **Step 2: Run frontend build check**
 
 Run: `npm run build:frontend`
 Expected: Vite build succeeds cleanly.
 
-- [ ] **Step 3: Run backend build check**
+- [x] **Step 3: Run backend build check**
 
 Run: `npm run build:backend`
 Expected: TypeScript compile succeeds without any errors.
 
-- [ ] **Step 4: Commit and finalize**
+- [x] **Step 4: Commit and finalize**
 
 Verify git working tree status:
 ```bash
