@@ -7,7 +7,32 @@ export default defineConfig({
   base: '/',
   build: {
     outDir: path.resolve(__dirname, '../dist/frontend'),
-    emptyOutDir: true
+    emptyOutDir: true,
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom')) {
+              return 'vendor-react';
+            }
+            if (id.includes('@xterm')) {
+              return 'vendor-xterm';
+            }
+            if (id.includes('@monaco-editor')) {
+              return 'vendor-monaco';
+            }
+            if (id.includes('react-markdown') || id.includes('remark-gfm')) {
+              return 'vendor-markdown';
+            }
+            if (id.includes('lucide-react')) {
+              return 'vendor-lucide';
+            }
+            return 'vendor-others';
+          }
+        }
+      }
+    }
   },
   server: {
     port: 5173,

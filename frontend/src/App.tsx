@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import {
   LayoutDashboard,
   Users,
@@ -29,22 +29,30 @@ import {
   Minimize2,
   Edit3
 } from 'lucide-react';
-import DashboardView from './components/DashboardView';
-import AccountsView from './components/AccountsView';
-import LogsView from './components/LogsView';
-import PlaygroundView from './components/PlaygroundView';
-import UnifiedTerminalView from './components/UnifiedTerminalView';
-import TerminalLogsView from './components/TerminalLogsView';
-import TranslateView from './components/TranslateView';
-import DiscoverHubView, { DiscoverToolId } from './components/DiscoverHubView';
-import EmbeddedWebView from './components/EmbeddedWebView';
-import CustomWebAppModal from './components/CustomWebAppModal';
-import { CustomWebAppItem } from './types/customWebApps';
+import type { DiscoverToolId } from './components/DiscoverHubView';
+import type { CustomWebAppItem } from './types/customWebApps';
 import { syncCustomWebAppsFromRemote } from './utils/customWebAppsStorage';
-import ConfigModal from './components/ConfigModal';
 import { useTranslation } from './i18n/LanguageContext';
 import { ThemeSwitcher } from './components/ThemeSwitcher';
 import { isMobileScreenOrDevice } from './utils/mobileViewportHelper';
+
+const DashboardView = lazy(() => import('./components/DashboardView'));
+const AccountsView = lazy(() => import('./components/AccountsView'));
+const LogsView = lazy(() => import('./components/LogsView'));
+const PlaygroundView = lazy(() => import('./components/PlaygroundView'));
+const UnifiedTerminalView = lazy(() => import('./components/UnifiedTerminalView'));
+const TerminalLogsView = lazy(() => import('./components/TerminalLogsView'));
+const TranslateView = lazy(() => import('./components/TranslateView'));
+const DiscoverHubView = lazy(() => import('./components/DiscoverHubView'));
+const EmbeddedWebView = lazy(() => import('./components/EmbeddedWebView'));
+const CustomWebAppModal = lazy(() => import('./components/CustomWebAppModal'));
+const ConfigModal = lazy(() => import('./components/ConfigModal'));
+
+const ViewLoadingFallback: React.FC = () => (
+  <div className="flex-1 flex flex-col items-center justify-center min-h-[200px] h-full text-slate-400 gap-3">
+    <div className="w-7 h-7 border-2 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+  </div>
+);
 
 type TabType = 'dashboard' | 'accounts' | 'logs' | 'discover';
 export type DiscoverSubView = 'hub' | 'terminal' | 'systemLogs' | 'playground' | 'translate' | 'embeddedWeb';
@@ -840,8 +848,8 @@ export default function App() {
         </header>
 
         {/* Main View Workspace */}
-        <main className={`flex-1 min-h-0 overflow-hidden ${
-          isEmbeddedFullscreen
+        <main className={`flex-1 min-h-0 min-w-0 ${
+          activeTab === 'discover' && discoverSubView === 'terminal'
             ? 'p-0 pb-0 flex flex-col h-full'
             : isMobileDetailActive
               ? 'p-0 md:p-6 pb-0 md:pb-6 flex flex-col h-full'
@@ -849,80 +857,82 @@ export default function App() {
                 ? 'p-2 sm:p-4 md:p-6 pb-[calc(3.75rem+env(safe-area-inset-bottom,0px))] md:pb-6 flex flex-col h-full'
                 : 'p-2.5 sm:p-4 md:p-6 pb-20 md:pb-6 overflow-y-auto'
         }`}>
-          {activeTab === 'dashboard' && (
-            <DashboardView
-              key={refreshTrigger}
-              adminKey={adminKey}
-            />
-          )}
-          {activeTab === 'accounts' && (
-            <AccountsView
-              key={refreshTrigger}
-              adminKey={adminKey}
-            />
-          )}
-          {activeTab === 'logs' && (
-            <LogsView
-              key={refreshTrigger}
-              adminKey={adminKey}
-              mobileDetailOpenControlled={mobileLogDetailOpen}
-              onMobileDetailChange={setMobileLogDetailOpen}
-            />
-          )}
-          {activeTab === 'discover' && (
-            <>
-              {discoverSubView === 'hub' && (
-                <DiscoverHubView
-                  adminKey={adminKey}
-                  onSelectTool={handleSelectDiscoverTool}
-                  onSelectCustomApp={handleSelectCustomApp}
-                />
-              )}
-              {discoverSubView === 'terminal' && (
-                <UnifiedTerminalView
-                  key={refreshTrigger}
-                  adminKey={adminKey}
-                  isStandalone={isStandaloneTerminal}
-                  onEnterStandalone={handleEnterStandalone}
-                  onExitStandalone={handleExitStandalone}
-                />
-              )}
-              {discoverSubView === 'systemLogs' && (
-                <TerminalLogsView
-                  key={refreshTrigger}
-                  adminKey={adminKey}
-                />
-              )}
-              {discoverSubView === 'playground' && (
-                <PlaygroundView
-                  key={refreshTrigger}
-                  adminKey={adminKey}
-                />
-              )}
-              {discoverSubView === 'translate' && (
-                <TranslateView
-                  key={refreshTrigger}
-                  adminKey={adminKey}
-                />
-              )}
-              {discoverSubView === 'embeddedWeb' && activeEmbeddedApp && (
-                <EmbeddedWebView
-                  key={`${activeEmbeddedApp.id}_${embeddedReloadKey}`}
-                  app={activeEmbeddedApp}
-                  reloadKey={embeddedReloadKey}
-                  isFullscreen={isEmbeddedFullscreen}
-                  onBack={() => {
-                    setDiscoverSubView('hub');
-                    setIsEmbeddedFullscreen(false);
-                  }}
-                  onEditApp={(app) => {
-                    setActiveEmbeddedApp(app);
-                    setIsEditEmbeddedAppModalOpen(true);
-                  }}
-                />
-              )}
-            </>
-          )}
+          <Suspense fallback={<ViewLoadingFallback />}>
+            {activeTab === 'dashboard' && (
+              <DashboardView
+                key={refreshTrigger}
+                adminKey={adminKey}
+              />
+            )}
+            {activeTab === 'accounts' && (
+              <AccountsView
+                key={refreshTrigger}
+                adminKey={adminKey}
+              />
+            )}
+            {activeTab === 'logs' && (
+              <LogsView
+                key={refreshTrigger}
+                adminKey={adminKey}
+                mobileDetailOpenControlled={mobileLogDetailOpen}
+                onMobileDetailChange={setMobileLogDetailOpen}
+              />
+            )}
+            {activeTab === 'discover' && (
+              <>
+                {discoverSubView === 'hub' && (
+                  <DiscoverHubView
+                    adminKey={adminKey}
+                    onSelectTool={handleSelectDiscoverTool}
+                    onSelectCustomApp={handleSelectCustomApp}
+                  />
+                )}
+                {discoverSubView === 'terminal' && (
+                  <UnifiedTerminalView
+                    key={refreshTrigger}
+                    adminKey={adminKey}
+                    isStandalone={isStandaloneTerminal}
+                    onEnterStandalone={handleEnterStandalone}
+                    onExitStandalone={handleExitStandalone}
+                  />
+                )}
+                {discoverSubView === 'systemLogs' && (
+                  <TerminalLogsView
+                    key={refreshTrigger}
+                    adminKey={adminKey}
+                  />
+                )}
+                {discoverSubView === 'playground' && (
+                  <PlaygroundView
+                    key={refreshTrigger}
+                    adminKey={adminKey}
+                  />
+                )}
+                {discoverSubView === 'translate' && (
+                  <TranslateView
+                    key={refreshTrigger}
+                    adminKey={adminKey}
+                  />
+                )}
+                {discoverSubView === 'embeddedWeb' && activeEmbeddedApp && (
+                  <EmbeddedWebView
+                    key={`${activeEmbeddedApp.id}_${embeddedReloadKey}`}
+                    app={activeEmbeddedApp}
+                    reloadKey={embeddedReloadKey}
+                    isFullscreen={isEmbeddedFullscreen}
+                    onBack={() => {
+                      setDiscoverSubView('hub');
+                      setIsEmbeddedFullscreen(false);
+                    }}
+                    onEditApp={(app) => {
+                      setActiveEmbeddedApp(app);
+                      setIsEditEmbeddedAppModalOpen(true);
+                    }}
+                  />
+                )}
+              </>
+            )}
+          </Suspense>
         </main>
 
         {/* Fixed Mobile Bottom Navigation Bar */}
@@ -960,33 +970,39 @@ export default function App() {
       </div>
 
       {/* Global Config Modal */}
-      <ConfigModal
-        isOpen={isConfigModalOpen}
-        onClose={() => setIsConfigModalOpen(false)}
-        adminKey={adminKey}
-        onSaved={() => setRefreshTrigger(prev => prev + 1)}
-      />
+      {isConfigModalOpen && (
+        <Suspense fallback={null}>
+          <ConfigModal
+            isOpen={isConfigModalOpen}
+            onClose={() => setIsConfigModalOpen(false)}
+            adminKey={adminKey}
+            onSaved={() => setRefreshTrigger(prev => prev + 1)}
+          />
+        </Suspense>
+      )}
 
       {/* Edit Embedded App Modal */}
       {isEditEmbeddedAppModalOpen && activeEmbeddedApp && (
-        <CustomWebAppModal
-          isOpen={isEditEmbeddedAppModalOpen}
-          appToEdit={activeEmbeddedApp}
-          adminKey={adminKey}
-          onClose={() => setIsEditEmbeddedAppModalOpen(false)}
-          onSave={(saved) => {
-            setActiveEmbeddedApp(saved);
-            setIsEditEmbeddedAppModalOpen(false);
-            setRefreshTrigger(prev => prev + 1);
-          }}
-          onDelete={() => {
-            setIsEditEmbeddedAppModalOpen(false);
-            setActiveEmbeddedApp(null);
-            setDiscoverSubView('hub');
-            setIsEmbeddedFullscreen(false);
-            setRefreshTrigger(prev => prev + 1);
-          }}
-        />
+        <Suspense fallback={null}>
+          <CustomWebAppModal
+            isOpen={isEditEmbeddedAppModalOpen}
+            appToEdit={activeEmbeddedApp}
+            adminKey={adminKey}
+            onClose={() => setIsEditEmbeddedAppModalOpen(false)}
+            onSave={(saved) => {
+              setActiveEmbeddedApp(saved);
+              setIsEditEmbeddedAppModalOpen(false);
+              setRefreshTrigger(prev => prev + 1);
+            }}
+            onDelete={() => {
+              setIsEditEmbeddedAppModalOpen(false);
+              setActiveEmbeddedApp(null);
+              setDiscoverSubView('hub');
+              setIsEmbeddedFullscreen(false);
+              setRefreshTrigger(prev => prev + 1);
+            }}
+          />
+        </Suspense>
       )}
     </div>
   );
