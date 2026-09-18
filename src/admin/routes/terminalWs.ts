@@ -3,7 +3,7 @@ import { URL } from 'url';
 import { WebSocketServer, WebSocket, RawData } from 'ws';
 import config from '../../../config/default';
 import logger from '../../utils/logger';
-import { terminalHostManager } from '../services/terminalHostManager';
+import { terminalHostManager } from '../../terminal/services/terminalHostManager';
 
 export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
   const wss = new WebSocketServer({ noServer: true });

@@ -3,8 +3,8 @@ import * as path from 'path';
 import { promises as fs } from 'fs';
 import config, { updateConfig } from '../../../config/default';
 import logService from '../services/logService';
-import terminalLogService from '../services/terminalLogService';
-import { terminalHostManager } from '../services/terminalHostManager';
+import terminalLogService from '../../terminal/services/terminalLogService';
+import { terminalHostManager } from '../../terminal/services/terminalHostManager';
 
 class AdminController {
   public async getTerminalHosts(req: Request, res: Response): Promise<void> {

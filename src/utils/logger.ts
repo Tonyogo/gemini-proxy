@@ -1,5 +1,5 @@
 import config from '../../config/default';
-import terminalLogService from '../admin/services/terminalLogService';
+import terminalLogService from '../terminal/services/terminalLogService';
 
 const levels: Record<string, number> = { error: 0, warn: 1, info: 2, debug: 3 };
 
