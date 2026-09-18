@@ -16,6 +16,9 @@ use ws::TerminalAgentClient;
 
 #[tokio::main]
 async fn main() {
+    // Install default rustls crypto provider (ring) to support wss/https connections
+    let _ = rustls::crypto::ring::default_provider().install_default();
+
     // Initialize tracing logger with RUST_LOG support (default INFO)
     let env_filter = tracing_subscriber::EnvFilter::try_from_default_env()
         .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info"));
