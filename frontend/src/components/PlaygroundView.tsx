@@ -53,7 +53,7 @@ const getDefaultPayloadForEndpoint = (option: EndpointOption, model: string = 'g
       return CLAUDE_PRESETS.basicChat;
     case 'claude_count_tokens':
       return {
-        model,
+        model: "gemini-flash-lite-latest",
         messages: [{ role: "user", content: "Hello! Count the tokens in this message." }]
       };
     case 'gemini_generate_content':
@@ -213,7 +213,7 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
       setActivePreset('basicChat');
     } else if (option === 'claude_count_tokens') {
       setRequestBody(JSON.stringify({
-        model: selectedModel || "gemini-flash-lite-latest",
+        model: "gemini-flash-lite-latest",
         messages: [{ role: "user", content: "Hello! Count the tokens in this message." }]
       }, null, 2));
     }
