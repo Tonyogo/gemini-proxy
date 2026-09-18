@@ -2,6 +2,7 @@ import { Router } from 'express';
 import adminController from '../controllers/adminController';
 import accountController from '../controllers/accountController';
 import terminalFileController from '../controllers/terminalFileController';
+import terminalExecController from '../controllers/terminalExecController';
 import adminAuthMiddleware from '../middlewares/adminAuth';
 
 const router = Router();
@@ -27,6 +28,12 @@ router.post('/terminal/files/rename', (req, res) => terminalFileController.renam
 router.delete('/terminal/files/delete', (req, res) => terminalFileController.deleteItem(req, res));
 router.get('/terminal/files/download', (req, res) => terminalFileController.downloadFile(req, res));
 router.post('/terminal/files/upload', (req, res) => terminalFileController.uploadFile(req, res));
+
+// Terminal Command Execution Routes
+router.post('/terminal/exec/:hostId', (req, res) => terminalExecController.startExec(req, res));
+router.get('/terminal/exec/:hostId/:taskId', (req, res) => terminalExecController.getExecStatus(req, res));
+router.post('/terminal/exec/:hostId/:taskId/kill', (req, res) => terminalExecController.killExec(req, res));
+router.get('/terminal/exec/:hostId', (req, res) => terminalExecController.listExec(req, res));
 
 // Account Management Routes
 router.get('/accounts/status', (req, res) => accountController.getStatus(req, res));
