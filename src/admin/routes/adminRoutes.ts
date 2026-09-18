@@ -1,39 +1,25 @@
 import { Router } from 'express';
 import adminController from '../controllers/adminController';
 import accountController from '../controllers/accountController';
-import terminalFileController from '../controllers/terminalFileController';
-import terminalExecController from '../controllers/terminalExecController';
+import terminalRoutes from '../../terminal/routes/terminalRoutes';
+import terminalLogController from '../../terminal/controllers/terminalLogController';
 import adminAuthMiddleware from '../middlewares/adminAuth';
 
 const router = Router();
 
 router.use(adminAuthMiddleware);
 
+// Admin Core Routes
 router.get('/status', (req, res) => adminController.getStatus(req, res));
 router.get('/models', (req, res) => adminController.getModels(req, res));
 router.get('/logs', (req, res) => adminController.getLogs(req, res));
 router.get('/logs/:date/:hour/:filename', (req, res) => adminController.getLogDetail(req, res));
 router.get('/stats', (req, res) => adminController.getStats(req, res));
-router.get('/terminal-logs', (req, res) => adminController.getTerminalLogs(req, res));
-router.get('/terminal/hosts', (req, res) => adminController.getTerminalHosts(req, res));
-router.delete('/terminal/hosts/offline', (req, res) => adminController.pruneOfflineTerminalHosts(req, res));
 router.post('/config', (req, res) => adminController.updateConfig(req, res));
 
-// Terminal File Management Routes
-router.get('/terminal/files/list', (req, res) => terminalFileController.listFiles(req, res));
-router.get('/terminal/files/content', (req, res) => terminalFileController.readFileContent(req, res));
-router.post('/terminal/files/save', (req, res) => terminalFileController.saveFileContent(req, res));
-router.post('/terminal/files/mkdir', (req, res) => terminalFileController.createDirectory(req, res));
-router.post('/terminal/files/rename', (req, res) => terminalFileController.renameFile(req, res));
-router.delete('/terminal/files/delete', (req, res) => terminalFileController.deleteItem(req, res));
-router.get('/terminal/files/download', (req, res) => terminalFileController.downloadFile(req, res));
-router.post('/terminal/files/upload', (req, res) => terminalFileController.uploadFile(req, res));
-
-// Terminal Command Execution Routes
-router.post('/terminal/exec/:hostId', (req, res) => terminalExecController.startExec(req, res));
-router.get('/terminal/exec/:hostId/:taskId', (req, res) => terminalExecController.getExecStatus(req, res));
-router.post('/terminal/exec/:hostId/:taskId/kill', (req, res) => terminalExecController.killExec(req, res));
-router.get('/terminal/exec/:hostId', (req, res) => terminalExecController.listExec(req, res));
+// Backward Compatibility Aliases for Terminal
+router.use('/terminal', terminalRoutes);
+router.get('/terminal-logs', (req, res) => terminalLogController.getTerminalLogs(req, res));
 
 // Account Management Routes
 router.get('/accounts/status', (req, res) => accountController.getStatus(req, res));

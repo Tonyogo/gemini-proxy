@@ -3,7 +3,7 @@ import app from './app';
 import config from '../config/default';
 import logger from './utils/logger';
 import metricsService from './admin/services/metricsService';
-import { setupTerminalWebSocket } from './admin/routes/terminalWs';
+import { setupTerminalWebSocket } from './terminal/routes/terminalWs';
 
 const server = http.createServer(app);
 setupTerminalWebSocket(server);

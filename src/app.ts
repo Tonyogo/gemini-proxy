@@ -3,6 +3,7 @@ import path from 'path';
 import claudeRoutes from './proxy/routes/claudeRoutes';
 import geminiRoutes from './proxy/routes/geminiRoutes';
 import adminRoutes from './admin/routes/adminRoutes';
+import terminalRoutes from './terminal/routes/terminalRoutes';
 import config from '../config/default';
 
 const app = express();
@@ -11,6 +12,7 @@ app.use(express.json({ limit: '50mb' }));
 
 app.use('/v1beta', geminiRoutes);
 app.use('/v1', claudeRoutes);
+app.use('/api/terminal', terminalRoutes);
 app.use('/api/admin', adminRoutes);
 
 app.get('/health', (req: Request, res: Response) => {

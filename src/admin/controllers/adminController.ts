@@ -1,26 +1,8 @@
 import { Request, Response } from 'express';
-import * as path from 'path';
-import { promises as fs } from 'fs';
 import config, { updateConfig } from '../../../config/default';
 import logService from '../services/logService';
-import terminalLogService from '../../terminal/services/terminalLogService';
-import { terminalHostManager } from '../../terminal/services/terminalHostManager';
 
 class AdminController {
-  public async getTerminalHosts(req: Request, res: Response): Promise<void> {
-    const hosts = terminalHostManager.getHosts();
-    res.json({ hosts });
-  }
-
-  public async pruneOfflineTerminalHosts(req: Request, res: Response): Promise<void> {
-    const prunedIds = terminalHostManager.pruneOfflineHosts(0);
-    res.json({
-      success: true,
-      prunedCount: prunedIds.length,
-      prunedIds,
-    });
-  }
-
   public async getStatus(req: Request, res: Response): Promise<void> {
     res.json({
       status: 'ok',
@@ -40,14 +22,14 @@ class AdminController {
         countTokensModel: config.countTokensModel,
         ephemeralUserMessages: config.ephemeralUserMessages,
         ephemeralSystemMessages: config.ephemeralSystemMessages,
-        customWebApps: config.customWebApps
-      }
+        customWebApps: config.customWebApps,
+      },
     });
   }
 
   public async getModels(req: Request, res: Response): Promise<void> {
     res.json({
-      mappings: config.modelMappings
+      mappings: config.modelMappings,
     });
   }
 
@@ -112,38 +94,11 @@ class AdminController {
           countTokensModel: config.countTokensModel,
           ephemeralUserMessages: config.ephemeralUserMessages,
           ephemeralSystemMessages: config.ephemeralSystemMessages,
-          customWebApps: config.customWebApps
-        }
+          customWebApps: config.customWebApps,
+        },
       });
     } catch (err: any) {
       res.status(500).json({ error: `Failed to update configuration: ${err.message}` });
-    }
-  }
-
-  public async getTerminalLogs(req: Request, res: Response): Promise<void> {
-    const isStream = req.query.stream === 'true' || req.headers.accept === 'text/event-stream';
-
-    if (isStream) {
-      res.writeHead(200, {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive'
-      });
-
-      const logs = terminalLogService.getHistory();
-      res.write('data: ' + JSON.stringify({ type: 'history', logs }) + '\n\n');
-
-      const onLog = (log: any) => {
-        res.write('data: ' + JSON.stringify({ type: 'log', log }) + '\n\n');
-      };
-
-      terminalLogService.on('log', onLog);
-
-      req.on('close', () => {
-        terminalLogService.off('log', onLog);
-      });
-    } else {
-      res.json({ logs: terminalLogService.getHistory() });
     }
   }
 }
