@@ -39,7 +39,7 @@
   - `presetGeminiVision`: "Multimodal Vision" / "多模态视觉理解"
   - `presetGeminiThinking`: "Thinking Mode" / "思维链模式 (CoT)"
 
-- [ ] **Step 1: Update English translations dictionary**
+- [x] **Step 1: Update English translations dictionary**
 
 In `frontend/src/i18n/locales/en.ts`, add the new keys under `playground`:
 ```typescript
@@ -57,7 +57,7 @@ In `frontend/src/i18n/locales/en.ts`, add the new keys under `playground`:
     presetGeminiThinking: "Thinking Mode (CoT)",
 ```
 
-- [ ] **Step 2: Update Chinese translations dictionary**
+- [x] **Step 2: Update Chinese translations dictionary**
 
 In `frontend/src/i18n/locales/zh.ts`, add the matching keys under `playground`:
 ```typescript
@@ -75,12 +75,12 @@ In `frontend/src/i18n/locales/zh.ts`, add the matching keys under `playground`:
     presetGeminiThinking: "思维链模式 (CoT)",
 ```
 
-- [ ] **Step 3: Verify TypeScript compilation**
+- [x] **Step 3: Verify TypeScript compilation**
 
 Run: `npm run build:frontend`
 Expected: Build passes without type mismatch in i18n dictionaries.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add frontend/src/i18n/locales/en.ts frontend/src/i18n/locales/zh.ts
@@ -105,7 +105,7 @@ git commit -m "feat(i18n): add playground gemini native translations"
   - `function getProtocolForEndpoint(option: EndpointOption): ProtocolType`
   - `function resolveTargetEndpoint(params: { option: EndpointOption, model: string, isStream: boolean, customMethod: string, customPath: string }): { url: string, method: string, protocol: ProtocolType }`
 
-- [ ] **Step 1: Create `playgroundPresets.ts` module**
+- [x] **Step 1: Create `playgroundPresets.ts` module**
 
 Write `frontend/src/utils/playgroundPresets.ts` containing:
 ```typescript
@@ -335,12 +335,12 @@ export function resolveTargetEndpoint(params: {
 }
 ```
 
-- [ ] **Step 2: Verify TypeScript compilation**
+- [x] **Step 2: Verify TypeScript compilation**
 
 Run: `npm run build:frontend`
 Expected: Compiles cleanly with zero errors.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add frontend/src/utils/playgroundPresets.ts
@@ -363,13 +363,13 @@ git commit -m "feat(playground): add endpoint resolvers and gemini native preset
   - Presets dropdown: dynamically lists Claude presets when `protocol === 'claude'`, or Gemini presets when `protocol === 'gemini'`.
   - cURL generator: uses `resolveTargetEndpoint` and injects `-H "x-goog-api-key"` alongside `-H "x-api-key"`.
 
-- [ ] **Step 1: Refactor PlaygroundView state & imports**
+- [x] **Step 1: Refactor PlaygroundView state & imports**
 
 Import definitions from `../utils/playgroundPresets`.
 Replace local `EndpointOption`, `PRESETS`, `DEFAULT_PRESETS` with imports.
 Add `geminiStreamEnabled` boolean state (default: `true`).
 
-- [ ] **Step 2: Wire up Dynamic Endpoint Resolution & Stream Toggle**
+- [x] **Step 2: Wire up Dynamic Endpoint Resolution & Stream Toggle**
 
 Update `isStreamChecked`:
 - If protocol is `'claude'`: `Boolean(memoizedParsedPayload && memoizedParsedPayload.stream === true)`
@@ -380,7 +380,7 @@ Update `handleToggleStreamInBody`:
 - If protocol is `'claude'` or `'custom'`: toggles `stream` in `requestBody`.
 - If protocol is `'gemini'`: sets `setGeminiStreamEnabled(!geminiStreamEnabled)`.
 
-- [ ] **Step 3: Update Endpoint Dropdown with `<optgroup>`**
+- [x] **Step 3: Update Endpoint Dropdown with `<optgroup>`**
 
 Render:
 ```tsx
@@ -404,7 +404,7 @@ Render:
 </select>
 ```
 
-- [ ] **Step 4: Update Presets Dropdown and Endpoint Change Handler**
+- [x] **Step 4: Update Presets Dropdown and Endpoint Change Handler**
 
 When `handleEndpointOptionChange(option)` is called:
 - If switched to `gemini_generate_content`: load `GEMINI_PRESETS.geminiBasicChat`, set active preset to `'geminiBasicChat'`.
@@ -416,12 +416,12 @@ Presets dropdown displays:
 - When protocol is `'claude'`: `basicChat`, `toolUse`, `vision`, `thinkingMode`
 - When protocol is `'gemini'` and option is `'gemini_generate_content'`: `geminiBasicChat`, `geminiSystemInstruction`, `geminiToolUse`, `geminiVision`, `geminiThinking`.
 
-- [ ] **Step 5: Verify build**
+- [x] **Step 5: Verify build**
 
 Run: `npm run build:frontend`
 Expected: Build succeeds.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add frontend/src/components/PlaygroundView.tsx
@@ -442,7 +442,7 @@ git commit -m "feat(playground): integrate grouped endpoints and protocol-aware 
   - `handleSend`: uses `resolveTargetEndpoint`, handles SSE chunks without requiring Claude-specific structures, captures `usageMetadata.candidatesTokenCount` or `totalTokenCount`.
   - `parsedMessageView`: detects and formats Gemini `candidates[0].content.parts`, extracting `part.text`, `part.thought`, `part.functionCall`.
 
-- [ ] **Step 1: Update `handleCopyCurl`**
+- [x] **Step 1: Update `handleCopyCurl`**
 
 Refactor `handleCopyCurl`:
 ```typescript
@@ -467,7 +467,7 @@ if (protocol === 'gemini') {
 }
 ```
 
-- [ ] **Step 2: Update `handleSend` for Native SSE and Non-stream Gemini Responses**
+- [x] **Step 2: Update `handleSend` for Native SSE and Non-stream Gemini Responses**
 
 Ensure that:
 1. `fetchOptions.headers` includes `'x-goog-api-key': effectiveApiKey`.
@@ -475,7 +475,7 @@ Ensure that:
 3. If method is `GET`, do not attach request body.
 4. Stream processing handles SSE formatted `data: { ... }` from Gemini upstream (which outputs Gemini candidate chunks), extracting `usageMetadata.candidatesTokenCount || usageMetadata.totalTokenCount`.
 
-- [ ] **Step 3: Update `parsedMessageView` for Gemini native candidates & thoughts**
+- [x] **Step 3: Update `parsedMessageView` for Gemini native candidates & thoughts**
 
 Ensure `parsedMessageView`:
 ```typescript
@@ -513,12 +513,12 @@ if (responseJson?.usageMetadata) {
 }
 ```
 
-- [ ] **Step 4: Verify Frontend Build**
+- [x] **Step 4: Verify Frontend Build**
 
 Run: `npm run build:frontend`
 Expected: Build succeeds without TypeScript or Vite errors.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src/components/PlaygroundView.tsx
@@ -541,7 +541,7 @@ git commit -m "feat(playground): enhance response parsing and curl generation fo
   - Passes `x-goog-api-key` in `fetchOptions.headers`.
   - Replaces `{model}` in URL if the user switches target model inside the modal.
 
-- [ ] **Step 1: Update `ConcurrentTestModal.tsx` request logic**
+- [x] **Step 1: Update `ConcurrentTestModal.tsx` request logic**
 
 In `ConcurrentTestModal.tsx`:
 1. Check if `targetUrl.includes('/v1beta/models/')`:
@@ -551,7 +551,7 @@ In `ConcurrentTestModal.tsx`:
 2. In `executeSingleRequest`:
    - Add `'x-goog-api-key': apiKey` to headers.
 
-- [ ] **Step 2: Update `ConcurrentTestModal` invocation in `PlaygroundView.tsx`**
+- [x] **Step 2: Update `ConcurrentTestModal` invocation in `PlaygroundView.tsx`**
 
 Pass resolved non-streaming target URL and method to `ConcurrentTestModal`:
 ```tsx
@@ -573,12 +573,12 @@ const modalTarget = resolveTargetEndpoint({
 />
 ```
 
-- [ ] **Step 3: Verify Frontend Build and Backend Tests**
+- [x] **Step 3: Verify Frontend Build and Backend Tests**
 
 Run: `npm run build:frontend && npm test`
 Expected: Both frontend compile and backend test suite pass completely.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add frontend/src/components/ConcurrentTestModal.tsx frontend/src/components/PlaygroundView.tsx
@@ -593,19 +593,19 @@ git commit -m "feat(playground): adapt concurrent test modal for gemini native e
 - Verify: Full repository build (`npm run build`)
 - Verify: Jest test suite (`npm test`)
 
-- [ ] **Step 1: Execute Full Clean Build**
+- [x] **Step 1: Execute Full Clean Build**
 
 Run: `npm run build`
 Expected:
 1. `npm run build:frontend` generates assets into `dist/frontend`.
 2. `npm run build:backend` compiles TypeScript backend into `dist/src`.
 
-- [ ] **Step 2: Execute Backend Test Suite**
+- [x] **Step 2: Execute Backend Test Suite**
 
 Run: `npm test`
 Expected: All Jest test suites pass.
 
-- [ ] **Step 3: Final Verification & Commit**
+- [x] **Step 3: Final Verification & Commit**
 
 ```bash
 git status
