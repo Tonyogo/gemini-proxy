@@ -41,7 +41,7 @@ export default function ConversationView({ log }: ConversationViewProps) {
     const clientReq = log.client_req || {};
     const claudeRes = log.claude_res;
 
-    // 1. 提取 System Prompt
+    // 1. 提取 System Prompt (支持 Claude clientReq.system 或 Gemini clientReq.systemInstruction)
     let extractedSystem = '';
     if (clientReq.system) {
       if (typeof clientReq.system === 'string') {
@@ -51,9 +51,18 @@ export default function ConversationView({ log }: ConversationViewProps) {
           .map((s: any) => (typeof s === 'string' ? s : s.text || ''))
           .join('\n\n');
       }
+    } else if (clientReq.systemInstruction) {
+      if (typeof clientReq.systemInstruction === 'string') {
+        extractedSystem = clientReq.systemInstruction;
+      } else if (clientReq.systemInstruction.parts && Array.isArray(clientReq.systemInstruction.parts)) {
+        extractedSystem = clientReq.systemInstruction.parts
+          .map((p: any) => p.text || '')
+          .filter(Boolean)
+          .join('\n\n');
+      }
     }
 
-    // 2. 解析客户端消息列表 (client_req.messages)
+    // 2. 解析客户端消息列表 (Claude client_req.messages 或 Gemini client_req.contents)
     const messages: ChatMessage[] = [];
     if (Array.isArray(clientReq.messages)) {
       clientReq.messages.forEach((msg: any) => {
@@ -61,11 +70,17 @@ export default function ConversationView({ log }: ConversationViewProps) {
         const blocks = parseContentToBlocks(msg.content);
         messages.push({ role, blocks, raw: msg });
       });
+    } else if (Array.isArray(clientReq.contents)) {
+      clientReq.contents.forEach((contentItem: any) => {
+        const role = contentItem.role === 'model' || contentItem.role === 'assistant' ? 'assistant' : 'user';
+        const blocks = parseGeminiPartsToBlocks(contentItem.parts);
+        messages.push({ role, blocks, raw: contentItem });
+      });
     }
 
-    // 3. 解析当前轮次助手的响应 (claude_res) 并追加至末尾
+    // 3. 解析当前轮次助手的响应 (claude_res / gem_res) 并追加至末尾
     if (claudeRes) {
-      const assistantBlocks = parseClaudeResponseToBlocks(claudeRes);
+      const assistantBlocks = parseAssistantResponseToBlocks(claudeRes);
       if (assistantBlocks.length > 0) {
         messages.push({
           role: 'assistant',
@@ -240,22 +255,102 @@ function parseContentToBlocks(content: any): ParsedBlock[] {
   return [];
 }
 
-// 辅助函数：解析 Claude 响应 (支持非流式 JSON 或流式 SSE 数组)
-function parseClaudeResponseToBlocks(claudeRes: any): ParsedBlock[] {
+// 辅助函数：解析 Gemini 原生 parts
+function parseGeminiPartsToBlocks(parts: any): ParsedBlock[] {
+  if (!Array.isArray(parts)) return [];
   const blocks: ParsedBlock[] = [];
 
-  // 1. 处理非流式响应对象 (type: 'message')
-  if (claudeRes && claudeRes.content && Array.isArray(claudeRes.content)) {
-    return parseContentToBlocks(claudeRes.content);
+  parts.forEach(part => {
+    if (!part || typeof part !== 'object') return;
+    if (part.thought) {
+      blocks.push({ type: 'thinking', thinking: part.thought });
+    } else if (part.text) {
+      blocks.push({ type: 'text', text: part.text });
+    } else if (part.functionCall) {
+      blocks.push({
+        type: 'tool_use',
+        toolName: part.functionCall.name,
+        toolInput: part.functionCall.args
+      });
+    } else if (part.functionResponse) {
+      blocks.push({
+        type: 'tool_result',
+        toolName: part.functionResponse.name,
+        toolResult: part.functionResponse.response
+      });
+    } else if (part.inlineData) {
+      blocks.push({
+        type: 'image',
+        mediaType: part.inlineData.mimeType,
+        data: part.inlineData.data
+      });
+    }
+  });
+
+  return blocks;
+}
+
+// 辅助函数：解析助手响应 (支持 Claude 格式或 Gemini 原生格式，流式或非流式)
+function parseAssistantResponseToBlocks(resData: any): ParsedBlock[] {
+  const blocks: ParsedBlock[] = [];
+
+  // 1. 处理 Claude 非流式响应对象 (type: 'message')
+  if (resData && resData.content && Array.isArray(resData.content)) {
+    return parseContentToBlocks(resData.content);
   }
 
-  // 2. 处理流式 SSE 事件流数组
-  if (Array.isArray(claudeRes)) {
+  // 2. 处理 Gemini 原生非流式响应对象 (candidates[0].content.parts)
+  if (resData && resData.candidates && Array.isArray(resData.candidates) && resData.candidates[0]?.content?.parts) {
+    return parseGeminiPartsToBlocks(resData.candidates[0].content.parts);
+  }
+
+  // 3. 处理流式数组 (可以是 Claude SSE 事件数组，也可以是 Gemini Stream chunk 数组)
+  if (Array.isArray(resData)) {
+    // 检查是否为 Gemini 原生 chunk 数组
+    const isGeminiChunks = resData.some((chunk: any) => chunk && chunk.candidates);
+    if (isGeminiChunks) {
+      let accumulatedThinking = '';
+      let accumulatedText = '';
+      const toolCalls: any[] = [];
+
+      resData.forEach((chunk: any) => {
+        if (chunk.candidates && chunk.candidates[0]?.content?.parts) {
+          for (const part of chunk.candidates[0].content.parts) {
+            if (part.thought) {
+              accumulatedThinking += part.thought;
+            } else if (part.text) {
+              accumulatedText += part.text;
+            }
+            if (part.functionCall) {
+              toolCalls.push(part.functionCall);
+            }
+          }
+        }
+      });
+
+      if (accumulatedThinking) {
+        blocks.push({ type: 'thinking', thinking: accumulatedThinking });
+      }
+      if (accumulatedText) {
+        blocks.push({ type: 'text', text: accumulatedText });
+      }
+      toolCalls.forEach(tc => {
+        blocks.push({
+          type: 'tool_use',
+          toolName: tc.name,
+          toolInput: tc.args
+        });
+      });
+
+      return blocks;
+    }
+
+    // 否则按 Claude SSE 事件流数组处理
     let accumulatedThinking = '';
     let accumulatedText = '';
     const toolUseMap: Record<number, { name: string; id: string; inputJson: string }> = {};
 
-    claudeRes.forEach((event: any) => {
+    resData.forEach((event: any) => {
       if (!event || !event.type) return;
 
       if (event.type === 'content_block_start') {

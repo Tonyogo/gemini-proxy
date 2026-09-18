@@ -96,5 +96,18 @@ describe('GeminiController - Native Gemini API Proxy', () => {
 
     expect(res.status).toBe(200);
     expect(res.text).toContain('Stream chunk');
+
+    const payloadLogger = require('../src/services/payloadLogger');
+    expect(payloadLogger.saveTransaction).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ contents: expect.any(Array) }),
+      expect.objectContaining({ contents: expect.any(Array) }),
+      expect.anything(),
+      expect.anything(),
+      expect.any(Number),
+      '/v1beta/models/gemini-2.0-flash:streamGenerateContent?alt=sse',
+      200,
+      true
+    );
   });
 });

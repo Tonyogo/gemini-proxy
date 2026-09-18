@@ -89,7 +89,7 @@ class GeminiController {
           let errJson: any;
           try { errJson = JSON.parse(errText); } catch { errJson = { error: errText }; }
           const duration = Date.now() - startTime;
-          payloadLogger.saveTransaction(transactionId, clientReq, null, null, errJson, duration, requestPath, response.status, true);
+          payloadLogger.saveTransaction(transactionId, clientReq, clientReq, errJson, errJson, duration, requestPath, response.status, true);
           return res.status(response.status).json(errJson);
         }
 
@@ -122,7 +122,7 @@ class GeminiController {
           } catch {
             parsedResponse = accumulatedStreamText;
           }
-          payloadLogger.saveTransaction(transactionId, clientReq, null, null, parsedResponse, duration, requestPath, 200, true);
+          payloadLogger.saveTransaction(transactionId, clientReq, clientReq, parsedResponse, parsedResponse, duration, requestPath, 200, true);
         });
 
         response.body.on('error', (err: any) => {
@@ -140,7 +140,7 @@ class GeminiController {
         const duration = Date.now() - startTime;
         logger.error(`[GeminiProxy] [Transaction: ${transactionId}] Stream exception: ${err.message}`);
         const errJson = { error: { code: 500, message: err.message, status: 'INTERNAL' } };
-        payloadLogger.saveTransaction(transactionId, clientReq, null, null, errJson, duration, requestPath, 500, true);
+        payloadLogger.saveTransaction(transactionId, clientReq, clientReq, errJson, errJson, duration, requestPath, 500, true);
         if (!res.headersSent) {
           return res.status(500).json(errJson);
         }
@@ -166,7 +166,7 @@ class GeminiController {
       }
 
       const duration = Date.now() - startTime;
-      payloadLogger.saveTransaction(transactionId, clientReq, null, null, resJson, duration, requestPath, response.status, false);
+      payloadLogger.saveTransaction(transactionId, clientReq, clientReq, resJson, resJson, duration, requestPath, response.status, false);
 
       res.setHeader('x-transaction-id', transactionId);
       return res.status(response.status).json(resJson);
@@ -174,7 +174,7 @@ class GeminiController {
       const duration = Date.now() - startTime;
       logger.error(`[GeminiProxy] [Transaction: ${transactionId}] Proxy error: ${err.message}`);
       const errJson = { error: { code: 500, message: err.message, status: 'INTERNAL' } };
-      payloadLogger.saveTransaction(transactionId, clientReq, null, null, errJson, duration, requestPath, 500, false);
+      payloadLogger.saveTransaction(transactionId, clientReq, clientReq, errJson, errJson, duration, requestPath, 500, false);
       return res.status(500).json(errJson);
     }
   }

@@ -33,11 +33,11 @@ describe('Logs Mobile Optimization and Sub-Tab Navigation', () => {
     expect(logsViewContent).toContain('<span className="hidden sm:inline">JSON</span>');
     expect(logsViewContent).toContain('<span className="text-emerald-400 font-semibold hidden sm:inline">');
 
-    // Claude cURL button text is hidden on small screens
-    expect(logsViewContent).toContain('<span className="hidden sm:inline">Claude cURL</span>');
+    // Client cURL button text is hidden on small screens
+    expect(logsViewContent).toContain('{t(\'logs.copyClaudeCurl\', \'Client cURL\')}</span>');
 
-    // Gemini cURL button text is hidden on small screens
-    expect(logsViewContent).toContain('<span className="hidden sm:inline">Gemini cURL</span>');
+    // Upstream cURL button text is hidden on small screens
+    expect(logsViewContent).toContain('{t(\'logs.copyGeminiCurl\', \'Upstream cURL\')}</span>');
   });
 
   test('payload and response tabs provide mobile segmented sub-tab controls and responsive columns', () => {

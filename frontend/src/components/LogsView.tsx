@@ -324,7 +324,7 @@ export default function LogsView({
     }
   };
 
-  // Copy Upstream Gemini cURL command for current log
+  // Copy Upstream cURL command for current log
   const handleCopyGeminiCurl = () => {
     if (!selectedLog) return;
     try {
@@ -338,7 +338,9 @@ export default function LogsView({
       let method = 'POST';
       let bodyData = selectedLog.gem_req;
 
-      if (reqPath.startsWith('/v1/models')) {
+      if (reqPath.startsWith('/v1beta/')) {
+        targetUrl = `${baseUrl}${reqPath}`;
+      } else if (reqPath.startsWith('/v1/models')) {
         method = 'GET';
         if (reqPath === '/v1/models' || reqPath === '/v1/models/') {
           targetUrl = `${baseUrl}/v1beta/models`;
@@ -1057,11 +1059,11 @@ export default function LogsView({
 
                         <div className="w-[1px] h-3 bg-[var(--border-subtle)]" />
 
-                        {/* Action: Claude cURL */}
+                        {/* Action: Client cURL */}
                         <button
                           onClick={handleCopyClaudeCurl}
                           className="px-2 py-0.5 ui-btn-secondary text-[10px] font-mono flex items-center space-x-1"
-                          title="Copy Claude proxy cURL command"
+                          title="Copy client proxy cURL command"
                         >
                           {copiedClaudeCurl ? (
                             <>
@@ -1071,7 +1073,7 @@ export default function LogsView({
                           ) : (
                             <>
                               <Terminal className="w-3 h-3 text-indigo-400" />
-                              <span className="hidden sm:inline">Claude cURL</span>
+                              <span className="hidden sm:inline">{t('logs.copyClaudeCurl', 'Client cURL')}</span>
                             </>
                           )}
                         </button>
@@ -1138,11 +1140,11 @@ export default function LogsView({
 
                         <div className="w-[1px] h-3 bg-[var(--border-subtle)]" />
 
-                        {/* Action: Gemini cURL */}
+                        {/* Action: Upstream cURL */}
                         <button
                           onClick={handleCopyGeminiCurl}
                           className="px-2 py-0.5 ui-btn-secondary text-[10px] font-mono flex items-center space-x-1"
-                          title="Copy upstream Gemini cURL command"
+                          title="Copy upstream cURL command"
                         >
                           {copiedGeminiCurl ? (
                             <>
@@ -1152,7 +1154,7 @@ export default function LogsView({
                           ) : (
                             <>
                               <Terminal className="w-3 h-3 text-emerald-400" />
-                              <span className="hidden sm:inline">Gemini cURL</span>
+                              <span className="hidden sm:inline">{t('logs.copyGeminiCurl', 'Upstream cURL')}</span>
                             </>
                           )}
                         </button>

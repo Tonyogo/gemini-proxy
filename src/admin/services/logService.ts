@@ -131,7 +131,7 @@ class LogService {
                   fallbackIsStream = true;
                 }
 
-                const rawModel = parsed.claude_res?.model || parsed.client_req?.model || null;
+                const rawModel = parsed.claude_res?.model || parsed.client_req?.model || (parsed.path ? (parsed.path.match(/models\/([^:/?]+)/)?.[1] || null) : null) || null;
                 const modelName = rawModel ? claudeTranslator.getCleanModelName(rawModel) : null;
                 
                 // Extract transactionId correctly, supporting both transaction_<id>.json and mmss_<id>.json

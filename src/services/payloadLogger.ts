@@ -144,7 +144,7 @@ class PayloadLogger {
       await fs.writeFile(filePath, JSON.stringify(payload, null, 2), 'utf8');
       logger.debug(`[PayloadLogger] Saved transaction log: ${filePath}`);
 
-      const rawModelName = (claudeRes && claudeRes.model) || (clientReq && clientReq.model) || null;
+      const rawModelName = (claudeRes && claudeRes.model) || (clientReq && clientReq.model) || (reqPath ? (reqPath.match(/models\/([^:/?]+)/)?.[1] || null) : null) || null;
       const modelName = rawModelName ? claudeTranslator.getCleanModelName(rawModelName) : null;
 
       const indexRecord: LogIndexRecord = {
