@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Activity,
   Zap,
@@ -47,12 +47,29 @@ export default function ConcurrentTestModal({
   const { t } = useTranslation();
   const [concurrency, setConcurrency] = useState<number>(5);
   const [totalRequests, setTotalRequests] = useState<number>(10);
-  const [targetModel, setTargetModel] = useState<string>(parsedPayload?.model || 'gemini-flash-lite-latest');
+  const initialModel = (() => {
+    if (parsedPayload?.model) return parsedPayload.model;
+    const match = targetUrl.match(/\/models\/([^:/?]+)/);
+    return match ? match[1] : 'gemini-flash-lite-latest';
+  })();
+  const [targetModel, setTargetModel] = useState<string>(initialModel);
 
   const [testing, setTesting] = useState(false);
   const [completedCount, setCompletedCount] = useState<number>(0);
   const [results, setResults] = useState<RequestResult[]>([]);
   const [totalDuration, setTotalDuration] = useState<number | null>(null);
+
+  const isGemini = targetUrl.includes('/v1beta/models/');
+  const currentUrlDisplay = useMemo(() => {
+    if (isGemini && targetModel) {
+      return targetUrl
+        .replace(/\/models\/[^:/?]+/, `/models/${targetModel}`)
+        .replace(':streamGenerateContent', ':generateContent')
+        .replace('?alt=sse', '')
+        .replace('&alt=sse', '');
+    }
+    return targetUrl;
+  }, [targetUrl, targetModel, isGemini]);
 
   if (!isOpen) return null;
 
@@ -66,32 +83,50 @@ export default function ConcurrentTestModal({
     const requestList: RequestResult[] = [];
     let completed = 0;
 
-    // Deep clone payload, assign model and ensure stream is false for accurate response latency
-    const testPayload = parsedPayload ? JSON.parse(JSON.stringify(parsedPayload)) : {};
-    if (testPayload && typeof testPayload === 'object') {
-      testPayload.stream = false;
+    let effectiveTargetUrl = targetUrl;
+    if (isGemini) {
       if (targetModel) {
-        testPayload.model = targetModel;
+        effectiveTargetUrl = effectiveTargetUrl.replace(/\/models\/[^:/?]+/, `/models/${targetModel}`);
+      }
+      effectiveTargetUrl = effectiveTargetUrl
+        .replace(':streamGenerateContent', ':generateContent')
+        .replace('?alt=sse', '')
+        .replace('&alt=sse', '');
+    }
+
+    // Deep clone payload, assign model and ensure stream is false for accurate response latency
+    const testPayload = parsedPayload ? JSON.parse(JSON.stringify(parsedPayload)) : null;
+    if (testPayload && typeof testPayload === 'object') {
+      if (!isGemini) {
+        testPayload.stream = false;
+        if (targetModel) {
+          testPayload.model = targetModel;
+        }
       }
     }
 
     const executeSingleRequest = async (id: number): Promise<RequestResult> => {
       const reqStart = Date.now();
       try {
+        const fetchHeaders: Record<string, string> = {
+          'content-type': 'application/json',
+          'x-api-key': apiKey,
+          'x-admin-key': apiKey
+        };
+        if (isGemini) {
+          fetchHeaders['x-goog-api-key'] = apiKey;
+        }
+
         const fetchOptions: RequestInit = {
           method: targetMethod,
-          headers: {
-            'content-type': 'application/json',
-            'x-api-key': apiKey,
-            'x-admin-key': apiKey
-          }
+          headers: fetchHeaders
         };
 
         if (targetMethod !== 'GET' && targetMethod !== 'HEAD' && testPayload !== null) {
           fetchOptions.body = JSON.stringify(testPayload);
         }
 
-        const res = await fetch(targetUrl, fetchOptions);
+        const res = await fetch(effectiveTargetUrl, fetchOptions);
         const reqLatency = Date.now() - reqStart;
 
         const result: RequestResult = {
@@ -173,7 +208,7 @@ export default function ConcurrentTestModal({
                 </span>
               </div>
               <p className="text-[10px] sm:text-[11px] text-[var(--text-secondary)] truncate">
-                {t('concurrentTest.sub').replace('{method}', targetMethod).replace('{url}', targetUrl)}
+                {t('concurrentTest.sub').replace('{method}', targetMethod).replace('{url}', currentUrlDisplay)}
               </p>
             </div>
           </div>
