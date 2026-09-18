@@ -1,11 +1,11 @@
 import { Request, Response } from 'express';
 import fetch from 'node-fetch';
-import config from '../../config/default';
-import { ModelConfig, GeminiModelsResponse, GeminiModelEntry } from '../types';
-import claudeTranslator from '../proxy/services/claudeTranslator';
-import payloadLogger from '../proxy/services/payloadLogger';
-import logger from '../utils/logger';
-import { StreamLifecycleManager } from '../utils/streamLifecycleManager';
+import config from '../../../config/default';
+import { ModelConfig, GeminiModelsResponse, GeminiModelEntry } from '../../types';
+import claudeTranslator from '../services/claudeTranslator';
+import payloadLogger from '../services/payloadLogger';
+import logger from '../../utils/logger';
+import { StreamLifecycleManager } from '../../utils/streamLifecycleManager';
 import {
   extractClientKey,
   extractTimeoutMs,
@@ -14,7 +14,7 @@ import {
   generateShortId,
   generateTransactionId,
   buildUpstreamHeaders
-} from '../utils/requestHelper';
+} from '../../utils/requestHelper';
 
 const SUPPORTED_MODELS: ModelConfig[] = [];
 

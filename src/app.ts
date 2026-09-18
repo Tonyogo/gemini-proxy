@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express';
 import path from 'path';
-import claudeRoutes from './routes/claudeRoutes';
-import geminiRoutes from './routes/geminiRoutes';
+import claudeRoutes from './proxy/routes/claudeRoutes';
+import geminiRoutes from './proxy/routes/geminiRoutes';
 import adminRoutes from './admin/routes/adminRoutes';
 import config from '../config/default';
 

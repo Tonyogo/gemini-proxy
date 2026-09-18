@@ -1,10 +1,10 @@
 import { Request, Response } from 'express';
 import fetch from 'node-fetch';
-import config from '../../config/default';
-import payloadLogger from '../proxy/services/payloadLogger';
-import claudeTranslator from '../proxy/services/claudeTranslator';
-import logger from '../utils/logger';
-import { StreamLifecycleManager } from '../utils/streamLifecycleManager';
+import config from '../../../config/default';
+import payloadLogger from '../services/payloadLogger';
+import claudeTranslator from '../services/claudeTranslator';
+import logger from '../../utils/logger';
+import { StreamLifecycleManager } from '../../utils/streamLifecycleManager';
 import {
   extractClientKey,
   extractTimeoutMs,
@@ -12,7 +12,7 @@ import {
   getUpstreamUrl,
   generateShortId,
   buildUpstreamHeaders
-} from '../utils/requestHelper';
+} from '../../utils/requestHelper';
 
 class GeminiController {
   public async handleProxy(req: Request, res: Response): Promise<any> {
