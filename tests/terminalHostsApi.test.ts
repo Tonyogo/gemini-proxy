@@ -9,6 +9,17 @@ describe('Admin Terminal Hosts API', () => {
   app.use(express.json());
   app.use('/api/admin', adminRoutes);
 
+  const originalKey = config.adminSecretKey;
+  const key = config.adminSecretKey || 'test-key';
+
+  beforeAll(() => {
+    config.adminSecretKey = key;
+  });
+
+  afterAll(() => {
+    config.adminSecretKey = originalKey;
+  });
+
   test('rejects GET /api/admin/terminal/hosts without valid admin key', async () => {
     const res = await request(app).get('/api/admin/terminal/hosts');
     expect(res.status).toBe(401);
