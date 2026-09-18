@@ -71,10 +71,12 @@ export default function SseStreamPreview({ streamData }: { streamData: any }) {
     // Gemini Stream format
     if (chunk.candidates && chunk.candidates[0]?.content?.parts) {
       for (const part of chunk.candidates[0].content.parts) {
-        if (part.text) {
-          fullText += part.text;
-        } else if (part.thought) {
+        if (part.thought === true && part.text) {
+          fullThinking += part.text;
+        } else if (typeof part.thought === 'string') {
           fullThinking += part.thought;
+        } else if (part.text) {
+          fullText += part.text;
         }
       }
     }
@@ -164,20 +166,28 @@ export default function SseStreamPreview({ streamData }: { streamData: any }) {
     // Gemini format classification
     if (chunk.candidates && chunk.candidates[0]?.content?.parts) {
       const part = chunk.candidates[0].content.parts[0];
+      if (part.thought === true && part.text) {
+        return {
+          type: 'thinking_chunk',
+          badgeColor: 'bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/30',
+          summary: part.text.length > 60 ? `"${part.text.substring(0, 60)}..."` : `"${part.text}"`,
+          tokenDelta: '+thought'
+        };
+      }
+      if (typeof part.thought === 'string') {
+        return {
+          type: 'thinking_chunk',
+          badgeColor: 'bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/30',
+          summary: part.thought.length > 60 ? `"${part.thought.substring(0, 60)}..."` : `"${part.thought}"`,
+          tokenDelta: '+thought'
+        };
+      }
       if (part.text) {
         return {
           type: 'text_chunk',
           badgeColor: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
           summary: part.text.length > 60 ? `"${part.text.substring(0, 60)}..."` : `"${part.text}"`,
           tokenDelta: `+${Math.max(1, Math.round(part.text.length / 3))}t`
-        };
-      }
-      if (part.thought) {
-        return {
-          type: 'thinking_chunk',
-          badgeColor: 'bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/30',
-          summary: part.thought.length > 60 ? `"${part.thought.substring(0, 60)}..."` : `"${part.thought}"`,
-          tokenDelta: '+thought'
         };
       }
       if (part.functionCall) {

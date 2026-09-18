@@ -32,92 +32,41 @@ import { useTranslation } from '../i18n/LanguageContext';
 import { useTheme } from '../theme/ThemeContext';
 import { STANDARD_MODELS } from '../utils/modelHelpers';
 
-type EndpointOption = 'messages' | 'count_tokens' | 'custom';
+import {
+  EndpointOption,
+  ProtocolType,
+  PresetKey,
+  ClaudePresetKey,
+  GeminiPresetKey,
+  CLAUDE_PRESETS,
+  GEMINI_PRESETS,
+  GEMINI_COUNT_TOKENS_PRESET,
+  getProtocolForEndpoint,
+  resolveTargetEndpoint
+} from '../utils/playgroundPresets';
+
 type ViewMode = 'preview' | 'raw';
-type PresetKey = 'basicChat' | 'toolUse' | 'vision' | 'thinkingMode';
 
-const PRESETS: Record<PresetKey, any> = {
-  basicChat: {
-    model: "gemini-flash-lite-latest",
-    max_tokens: 1024,
-    messages: [
-      { role: "user", content: "Hello! Explain quantum computing in simple terms." }
-    ],
-    stream: true
-  },
-  toolUse: {
-    model: "gemini-flash-lite-latest",
-    max_tokens: 1024,
-    tools: [
-      {
-        name: "get_weather",
-        description: "Get the current weather for a location",
-        input_schema: {
-          type: "object",
-          properties: {
-            location: { type: "string", description: "City and state, e.g. San Francisco, CA" },
-            unit: { type: "string", enum: ["celsius", "fahrenheit"] }
-          },
-          required: ["location"]
-        }
-      }
-    ],
-    messages: [
-      { role: "user", content: "What is the weather in Tokyo right now?" }
-    ],
-    stream: false
-  },
-  vision: {
-    model: "gemini-flash-lite-latest",
-    max_tokens: 1024,
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "image",
-            source: {
-              type: "base64",
-              media_type: "image/png",
-              data: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
-            }
-          },
-          {
-            type: "text",
-            text: "Describe this 1x1 red pixel image."
-          }
-        ]
-      }
-    ],
-    stream: true
-  },
-  thinkingMode: {
-    model: "gemini-pro-latest",
-    max_tokens: 2048,
-    thinking: {
-      type: "enabled",
-      budget_tokens: 1024
-    },
-    messages: [
-      { role: "user", content: "Solve this riddle: I speak without a mouth and hear without ears. I have no body, but I come alive with wind. What am I?" }
-    ],
-    stream: true
-  }
-};
-
-const DEFAULT_PRESETS: Record<EndpointOption, any> = {
-  messages: PRESETS.basicChat,
-  count_tokens: {
-    model: "gemini-flash-lite-latest",
-    messages: [
-      { role: "user", content: "Hello! Count the tokens in this message." }
-    ]
-  },
-  custom: {
-    model: "gemini-flash-lite-latest",
-    messages: [
-      { role: "user", content: "Test custom endpoint payload" }
-    ]
+const getDefaultPayloadForEndpoint = (option: EndpointOption, model: string = 'gemini-flash-lite-latest'): any => {
+  switch (option) {
+    case 'claude_messages':
+      return CLAUDE_PRESETS.basicChat;
+    case 'claude_count_tokens':
+      return {
+        model,
+        messages: [{ role: "user", content: "Hello! Count the tokens in this message." }]
+      };
+    case 'gemini_generate_content':
+      return GEMINI_PRESETS.geminiBasicChat;
+    case 'gemini_count_tokens':
+      return GEMINI_COUNT_TOKENS_PRESET;
+    case 'gemini_models_list':
+      return null;
+    case 'custom':
+      return {
+        model,
+        messages: [{ role: "user", content: "Test custom endpoint payload" }]
+      };
   }
 };
 
@@ -126,12 +75,13 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
   const { resolvedTheme } = useTheme();
   const monacoTheme = resolvedTheme === 'dark' ? 'gemini-proxy-dark' : 'gemini-proxy-light';
   const effectiveApiKey = adminKey;
-  const [endpointOption, setEndpointOption] = useState<EndpointOption>('messages');
+  const [endpointOption, setEndpointOption] = useState<EndpointOption>('claude_messages');
   const [customMethod, setCustomMethod] = useState<string>('POST');
   const [customPath, setCustomPath] = useState<string>('/v1/models');
   const [selectedModel, setSelectedModel] = useState<string>('gemini-flash-lite-latest');
+  const [geminiStreamEnabled, setGeminiStreamEnabled] = useState<boolean>(true);
 
-  const [requestBody, setRequestBody] = useState<string>(JSON.stringify(DEFAULT_PRESETS.messages, null, 2));
+  const [requestBody, setRequestBody] = useState<string>(() => JSON.stringify(CLAUDE_PRESETS.basicChat, null, 2));
   const [responseRaw, setResponseRaw] = useState<string>(() => t('playground.initialResponse'));
   const [responseJson, setResponseJson] = useState<any>(null);
   const [responseStreamChunks, setResponseStreamChunks] = useState<any[]>([]);
@@ -173,15 +123,32 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
   const handleModelChange = (modelName: string) => {
     setSelectedModel(modelName);
     try {
-      const parsed = JSON.parse(requestBody);
-      parsed.model = modelName;
-      setRequestBody(JSON.stringify(parsed, null, 2));
+      if (requestBody.trim()) {
+        const parsed = JSON.parse(requestBody);
+        if (parsed && typeof parsed === 'object' && parsed.model !== undefined) {
+          parsed.model = modelName;
+          setRequestBody(JSON.stringify(parsed, null, 2));
+        }
+      }
     } catch {
       // ignore
     }
   };
 
+  const currentProtocol = getProtocolForEndpoint(endpointOption);
+
+  const isStreamChecked = useMemo(() => {
+    if (currentProtocol === 'gemini') {
+      return geminiStreamEnabled;
+    }
+    return Boolean(memoizedParsedPayload && memoizedParsedPayload.stream === true);
+  }, [currentProtocol, geminiStreamEnabled, memoizedParsedPayload]);
+
   const handleToggleStreamInBody = () => {
+    if (currentProtocol === 'gemini') {
+      setGeminiStreamEnabled(prev => !prev);
+      return;
+    }
     try {
       const parsed = JSON.parse(requestBody);
       parsed.stream = !parsed.stream;
@@ -190,10 +157,6 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
       // ignore
     }
   };
-
-  const isStreamChecked = useMemo(() => {
-    return Boolean(memoizedParsedPayload && memoizedParsedPayload.stream === true);
-  }, [memoizedParsedPayload]);
 
   const handleFormatJson = () => {
     try {
@@ -205,21 +168,28 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
   };
 
   const handleResetJson = () => {
-    setRequestBody(JSON.stringify(DEFAULT_PRESETS[endpointOption], null, 2));
-    if (endpointOption === 'messages') {
+    const payload = getDefaultPayloadForEndpoint(endpointOption, selectedModel);
+    setRequestBody(payload ? JSON.stringify(payload, null, 2) : '');
+    if (endpointOption === 'claude_messages') {
       setActivePreset('basicChat');
+    } else if (endpointOption === 'gemini_generate_content') {
+      setActivePreset('geminiBasicChat');
     }
   };
 
-  const handleSelectPreset = (key: PresetKey) => {
+  const handleApplyPreset = (key: PresetKey) => {
     setActivePreset(key);
-    const preset = PRESETS[key];
-    setRequestBody(JSON.stringify(preset, null, 2));
-    setSelectedModel(preset.model || 'gemini-flash-lite-latest');
-    setEndpointOption('messages');
+    if (key in CLAUDE_PRESETS) {
+      const preset = CLAUDE_PRESETS[key as ClaudePresetKey];
+      setRequestBody(JSON.stringify(preset, null, 2));
+      if (preset.model) setSelectedModel(preset.model);
+      setEndpointOption('claude_messages');
+    } else if (key in GEMINI_PRESETS) {
+      const preset = GEMINI_PRESETS[key as GeminiPresetKey];
+      setRequestBody(JSON.stringify(preset, null, 2));
+      setEndpointOption('gemini_generate_content');
+    }
   };
-
-  const handleApplyPreset = handleSelectPreset;
 
   const handleOpenConcurrentModal = () => {
     if (!effectiveApiKey) {
@@ -231,27 +201,34 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
 
   const handleEndpointOptionChange = (option: EndpointOption) => {
     setEndpointOption(option);
-    if (option === 'messages' || option === 'count_tokens') {
-      setRequestBody(JSON.stringify(DEFAULT_PRESETS[option], null, 2));
-      if (option === 'messages') {
-        setActivePreset('basicChat');
-      }
+    if (option === 'gemini_generate_content') {
+      setRequestBody(JSON.stringify(GEMINI_PRESETS.geminiBasicChat, null, 2));
+      setActivePreset('geminiBasicChat');
+    } else if (option === 'gemini_count_tokens') {
+      setRequestBody(JSON.stringify(GEMINI_COUNT_TOKENS_PRESET, null, 2));
+    } else if (option === 'gemini_models_list') {
+      setRequestBody('');
+    } else if (option === 'claude_messages') {
+      setRequestBody(JSON.stringify(CLAUDE_PRESETS.basicChat, null, 2));
+      setActivePreset('basicChat');
+    } else if (option === 'claude_count_tokens') {
+      setRequestBody(JSON.stringify({
+        model: selectedModel || "gemini-flash-lite-latest",
+        messages: [{ role: "user", content: "Hello! Count the tokens in this message." }]
+      }, null, 2));
     }
   };
 
   const handleCopyCurl = () => {
+    const { url: resolvedPath, method: targetMethod, protocol } = resolveTargetEndpoint({
+      option: endpointOption,
+      model: selectedModel,
+      isStream: isStreamChecked,
+      customMethod,
+      customPath
+    });
     const origin = window.location.origin;
-    let targetUrl = `${origin}/v1/messages`;
-    let targetMethod = 'POST';
-
-    if (endpointOption === 'count_tokens') {
-      targetUrl = `${origin}/v1/messages/count_tokens`;
-      targetMethod = 'POST';
-    } else if (endpointOption === 'custom') {
-      const cleanPath = customPath.startsWith('/') ? customPath : `/${customPath}`;
-      targetUrl = `${origin}${cleanPath}`;
-      targetMethod = customMethod;
-    }
+    const targetUrl = `${origin}${resolvedPath}`;
 
     const apiKeyToUse = effectiveApiKey || 'YOUR_ADMIN_SECRET_KEY';
     const headers = [
@@ -259,6 +236,9 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
       `-H "x-admin-key: ${apiKeyToUse}"`,
       `-H "Content-Type: application/json"`
     ];
+    if (protocol === 'gemini') {
+      headers.push(`-H "x-goog-api-key: ${apiKeyToUse}"`);
+    }
 
     let bodyFlag = '';
     if (targetMethod !== 'GET' && targetMethod !== 'HEAD' && requestBody.trim()) {
@@ -298,9 +278,16 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
         // Gemini Stream parts
         if (chunk.candidates && chunk.candidates[0]?.content?.parts) {
           for (const part of chunk.candidates[0].content.parts) {
-            if (part.text) text += part.text;
-            if (part.thought) thinking += part.thought;
-            if (part.functionCall) toolCalls.push(part.functionCall);
+            if (part.thought === true && part.text) {
+              thinking += part.text;
+            } else if (typeof part.thought === 'string') {
+              thinking += part.thought;
+            } else if (part.text) {
+              text += part.text;
+            }
+            if (part.functionCall) {
+              toolCalls.push(part.functionCall);
+            }
           }
         }
       }
@@ -320,9 +307,16 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
       // Gemini Non-Stream format
       if (responseJson.candidates && responseJson.candidates[0]?.content?.parts) {
         for (const part of responseJson.candidates[0].content.parts) {
-          if (part.text) text += part.text;
-          if (part.thought) thinking += part.thought;
-          if (part.functionCall) toolCalls.push(part.functionCall);
+          if (part.thought === true && part.text) {
+            thinking += part.text;
+          } else if (typeof part.thought === 'string') {
+            thinking += part.thought;
+          } else if (part.text) {
+            text += part.text;
+          }
+          if (part.functionCall) {
+            toolCalls.push(part.functionCall);
+          }
         }
       }
       // Error format
@@ -350,25 +344,23 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
     }
 
     let parsedPayload: any = null;
-    try {
-      if (requestBody.trim()) {
+    if (requestBody.trim()) {
+      try {
         parsedPayload = JSON.parse(requestBody);
+      } catch (err: any) {
+        alert(`${t('playground.alertInvalidJson')}${err.message}`);
+        return;
       }
-    } catch (err: any) {
-      alert(`${t('playground.alertInvalidJson')}${err.message}`);
-      return;
     }
 
-    let targetUrl = '/v1/messages';
-    let targetMethod = 'POST';
-
-    if (endpointOption === 'count_tokens') {
-      targetUrl = '/v1/messages/count_tokens';
-      targetMethod = 'POST';
-    } else if (endpointOption === 'custom') {
-      targetUrl = customPath.startsWith('/') ? customPath : `/${customPath}`;
-      targetMethod = customMethod;
-    }
+    const { url: resolvedPath, method: targetMethod, protocol } = resolveTargetEndpoint({
+      option: endpointOption,
+      model: selectedModel,
+      isStream: isStreamChecked,
+      customMethod,
+      customPath
+    });
+    const targetUrl = resolvedPath;
 
     setLoading(true);
     setMobileActiveTab('response');
@@ -381,16 +373,21 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
     setTokenCount(null);
 
     const startTime = Date.now();
-    const isStream = targetMethod === 'POST' && parsedPayload && parsedPayload.stream === true;
+    const isStream = targetUrl.includes(':streamGenerateContent') || (targetMethod === 'POST' && parsedPayload && parsedPayload.stream === true);
 
     try {
+      const fetchHeaders: Record<string, string> = {
+        'content-type': 'application/json',
+        'x-api-key': effectiveApiKey,
+        'x-admin-key': effectiveApiKey
+      };
+      if (protocol === 'gemini') {
+        fetchHeaders['x-goog-api-key'] = effectiveApiKey;
+      }
+
       const fetchOptions: RequestInit = {
         method: targetMethod,
-        headers: {
-          'content-type': 'application/json',
-          'x-api-key': effectiveApiKey,
-          'x-admin-key': effectiveApiKey
-        }
+        headers: fetchHeaders
       };
 
       if (targetMethod !== 'GET' && targetMethod !== 'HEAD' && parsedPayload !== null) {
@@ -447,6 +444,8 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
                     totalOutTokens = chunk.usage.output_tokens;
                   } else if (chunk.usageMetadata?.candidatesTokenCount) {
                     totalOutTokens = chunk.usageMetadata.candidatesTokenCount;
+                  } else if (chunk.usageMetadata?.totalTokenCount) {
+                    totalOutTokens = chunk.usageMetadata.totalTokenCount;
                   }
                   if (totalOutTokens > 0) {
                     setTokenCount(totalOutTokens);
@@ -467,6 +466,12 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
           setTokenCount(data.usage.output_tokens);
         } else if (data?.input_tokens) {
           setTokenCount(data.input_tokens);
+        } else if (data?.usageMetadata) {
+          const meta = data.usageMetadata;
+          const count = meta.candidatesTokenCount || meta.totalTokenCount;
+          if (count) setTokenCount(count);
+        } else if (data?.totalTokens) {
+          setTokenCount(data.totalTokens);
         }
       }
     } catch (err: any) {
@@ -476,6 +481,14 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
       setLoading(false);
     }
   };
+
+  const modalTarget = resolveTargetEndpoint({
+    option: endpointOption,
+    model: selectedModel,
+    isStream: false,
+    customMethod,
+    customPath
+  });
 
   return (
     <div className="w-full flex-1 space-y-4 flex flex-col font-sans h-auto min-h-0 md:h-[calc(100dvh-6.5rem)] overflow-hidden">
@@ -505,9 +518,18 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
               onChange={(e) => handleEndpointOptionChange(e.target.value as EndpointOption)}
               className="bg-transparent text-xs text-[var(--text-primary)] focus:outline-none font-mono cursor-pointer truncate w-full"
             >
-              <option value="messages">POST /v1/messages</option>
-              <option value="count_tokens">POST /v1/messages/count_tokens</option>
-              <option value="custom">{t('playground.customEndpoint')}</option>
+              <optgroup label={t('playground.protocolClaude')}>
+                <option value="claude_messages">POST /v1/messages</option>
+                <option value="claude_count_tokens">POST /v1/messages/count_tokens</option>
+              </optgroup>
+              <optgroup label={t('playground.protocolGemini')}>
+                <option value="gemini_generate_content">{`POST /v1beta/models/${selectedModel}:generateContent`}</option>
+                <option value="gemini_count_tokens">{`POST /v1beta/models/${selectedModel}:countTokens`}</option>
+                <option value="gemini_models_list">GET /v1beta/models</option>
+              </optgroup>
+              <optgroup label={t('playground.customEndpoint')}>
+                <option value="custom">{t('playground.customEndpoint')}</option>
+              </optgroup>
             </select>
 
             {endpointOption === 'custom' && (
@@ -550,16 +572,28 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
                 }}
                 className="appearance-none ui-input w-full sm:w-auto pr-6 py-1 px-2 text-xs font-medium cursor-pointer truncate"
               >
-                <option value="basicChat">{t('playground.presetBasicChat')}</option>
-                <option value="toolUse">{t('playground.presetToolUse')}</option>
-                <option value="vision">{t('playground.presetVision')}</option>
-                <option value="thinkingMode">{t('playground.presetThinkingMode')}</option>
+                {currentProtocol === 'gemini' ? (
+                  <>
+                    <option value="geminiBasicChat">{t('playground.presetGeminiBasicChat')}</option>
+                    <option value="geminiSystemInstruction">{t('playground.presetGeminiSystemInstruction')}</option>
+                    <option value="geminiToolUse">{t('playground.presetGeminiToolUse')}</option>
+                    <option value="geminiVision">{t('playground.presetGeminiVision')}</option>
+                    <option value="geminiThinking">{t('playground.presetGeminiThinking')}</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="basicChat">{t('playground.presetBasicChat')}</option>
+                    <option value="toolUse">{t('playground.presetToolUse')}</option>
+                    <option value="vision">{t('playground.presetVision')}</option>
+                    <option value="thinkingMode">{t('playground.presetThinkingMode')}</option>
+                  </>
+                )}
               </select>
               <ChevronDown className="w-3 h-3 text-slate-400 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
 
             {/* 4. Independent Stream Toggle Pill (Icon only on mobile) */}
-            {endpointOption !== 'custom' && (
+            {endpointOption !== 'custom' && endpointOption !== 'gemini_models_list' && (
               <button
                 type="button"
                 onClick={handleToggleStreamInBody}
@@ -891,8 +925,8 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
       <ConcurrentTestModal
         isOpen={showConcurrentModal}
         onClose={() => setShowConcurrentModal(false)}
-        targetUrl={endpointOption === 'count_tokens' ? '/v1/messages/count_tokens' : endpointOption === 'custom' ? (customPath.startsWith('/') ? customPath : `/${customPath}`) : '/v1/messages'}
-        targetMethod={endpointOption === 'custom' ? customMethod : 'POST'}
+        targetUrl={modalTarget.url}
+        targetMethod={modalTarget.method}
         parsedPayload={memoizedParsedPayload}
         apiKey={effectiveApiKey}
       />
