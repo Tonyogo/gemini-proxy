@@ -87,7 +87,7 @@ function resolveWebSocketUrl(serverUrl) {
     platform,
     key: adminKey,
   });
-  return `${wsUrl}/api/admin/terminal/agent-ws?${query.toString()}`;
+  return `${wsUrl}/api/terminal/agent-ws?${query.toString()}`;
 }
 
 function parseControlMessage(msgStr) {

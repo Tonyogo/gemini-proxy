@@ -135,7 +135,7 @@ export function TerminalHostSelector({
     try {
       setIsLoading(true);
       const effectiveKey = adminKey || (typeof localStorage !== 'undefined' ? localStorage.getItem('adminKey') || '' : '');
-      const res = await fetch('/api/admin/terminal/hosts', {
+      const res = await fetch('/api/terminal/hosts', {
         headers: effectiveKey ? { 'x-admin-key': effectiveKey } : {},
       });
       if (res.ok) {
@@ -163,7 +163,7 @@ export function TerminalHostSelector({
     try {
       setIsClearingOffline(true);
       const effectiveKey = adminKey || (typeof localStorage !== 'undefined' ? localStorage.getItem('adminKey') || '' : '');
-      const res = await fetch('/api/admin/terminal/hosts/offline', {
+      const res = await fetch('/api/terminal/hosts/offline', {
         method: 'DELETE',
         headers: effectiveKey ? { 'x-admin-key': effectiveKey } : {},
       });

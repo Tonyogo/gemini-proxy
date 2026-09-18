@@ -49,7 +49,7 @@ export default function TerminalLogsView({
 
   useEffect(() => {
     let eventSource: EventSource | null = null;
-    const streamUrl = `/api/admin/terminal-logs?stream=true${adminKey ? `&x-admin-key=${encodeURIComponent(adminKey)}` : ''}`;
+    const streamUrl = `/api/terminal/logs?stream=true${adminKey ? `&x-admin-key=${encodeURIComponent(adminKey)}` : ''}`;
 
     try {
       eventSource = new EventSource(streamUrl);

@@ -223,7 +223,7 @@ const TerminalFileManagerView = React.forwardRef<TerminalFileManagerHandle, Term
     setLoading(true);
     setError(null);
     try {
-      let url = `/api/admin/terminal/files/list?hostId=${encodeURIComponent(activeHostId)}`;
+      let url = `/api/terminal/files/list?hostId=${encodeURIComponent(activeHostId)}`;
       if (targetPath) {
         url += `&path=${encodeURIComponent(targetPath)}`;
       }
@@ -306,7 +306,7 @@ const TerminalFileManagerView = React.forwardRef<TerminalFileManagerHandle, Term
 
   // Native Download
   const handleDownload = useCallback((file: TerminalFileItem) => {
-    const url = `/api/admin/terminal/files/download?hostId=${encodeURIComponent(activeHostId)}&path=${encodeURIComponent(file.path)}`;
+    const url = `/api/terminal/files/download?hostId=${encodeURIComponent(activeHostId)}&path=${encodeURIComponent(file.path)}`;
     fetch(url, { headers: { 'x-admin-key': adminKey } })
       .then(async (res) => {
         if (!res.ok) {
@@ -334,7 +334,7 @@ const TerminalFileManagerView = React.forwardRef<TerminalFileManagerHandle, Term
     if (IMAGE_EXTENSIONS.has(ext)) {
       // Fetch image as blob for preview
       try {
-        const url = `/api/admin/terminal/files/download?hostId=${encodeURIComponent(activeHostId)}&path=${encodeURIComponent(file.path)}`;
+        const url = `/api/terminal/files/download?hostId=${encodeURIComponent(activeHostId)}&path=${encodeURIComponent(file.path)}`;
         const res = await fetch(url, { headers: { 'x-admin-key': adminKey } });
         if (!res.ok) throw new Error('Failed to load image');
         const blob = await res.blob();
@@ -357,7 +357,7 @@ const TerminalFileManagerView = React.forwardRef<TerminalFileManagerHandle, Term
     });
 
     try {
-      const url = `/api/admin/terminal/files/content?hostId=${encodeURIComponent(activeHostId)}&path=${encodeURIComponent(file.path)}`;
+      const url = `/api/terminal/files/content?hostId=${encodeURIComponent(activeHostId)}&path=${encodeURIComponent(file.path)}`;
       const res = await fetch(url, { headers: { 'x-admin-key': adminKey } });
       const data = await res.json();
       if (!res.ok || !data.success) {
@@ -390,7 +390,7 @@ const TerminalFileManagerView = React.forwardRef<TerminalFileManagerHandle, Term
     setEditorTarget(prev => prev ? { ...prev, saving: true } : null);
 
     try {
-      const res = await fetch('/api/admin/terminal/files/save', {
+      const res = await fetch('/api/terminal/files/save', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -427,7 +427,7 @@ const TerminalFileManagerView = React.forwardRef<TerminalFileManagerHandle, Term
       for (let i = 0; i < fileList.length; i++) {
         formData.append('file', fileList[i]);
       }
-      const url = `/api/admin/terminal/files/upload?hostId=${encodeURIComponent(activeHostId)}&path=${encodeURIComponent(currentPath)}`;
+      const url = `/api/terminal/files/upload?hostId=${encodeURIComponent(activeHostId)}&path=${encodeURIComponent(currentPath)}`;
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'x-admin-key': adminKey },
@@ -450,7 +450,7 @@ const TerminalFileManagerView = React.forwardRef<TerminalFileManagerHandle, Term
     e.preventDefault();
     if (!newFolderName.trim()) return;
     try {
-      const res = await fetch('/api/admin/terminal/files/mkdir', {
+      const res = await fetch('/api/terminal/files/mkdir', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -485,7 +485,7 @@ const TerminalFileManagerView = React.forwardRef<TerminalFileManagerHandle, Term
       : `${parentDir}${separator}${renameInput.trim()}`;
 
     try {
-      const res = await fetch('/api/admin/terminal/files/rename', {
+      const res = await fetch('/api/terminal/files/rename', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -515,7 +515,7 @@ const TerminalFileManagerView = React.forwardRef<TerminalFileManagerHandle, Term
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      const url = `/api/admin/terminal/files/delete?hostId=${encodeURIComponent(activeHostId)}&path=${encodeURIComponent(deleteTarget.path)}`;
+      const url = `/api/terminal/files/delete?hostId=${encodeURIComponent(activeHostId)}&path=${encodeURIComponent(deleteTarget.path)}`;
       const res = await fetch(url, {
         method: 'DELETE',
         headers: { 'x-admin-key': adminKey },
