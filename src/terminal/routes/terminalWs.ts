@@ -3,7 +3,7 @@ import { URL } from 'url';
 import { WebSocketServer, WebSocket, RawData } from 'ws';
 import config from '../../../config/default';
 import logger from '../../utils/logger';
-import { terminalHostManager } from '../../terminal/services/terminalHostManager';
+import { terminalHostManager } from '../services/terminalHostManager';
 
 export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
   const wss = new WebSocketServer({ noServer: true });
@@ -11,8 +11,8 @@ export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
 
   const onUpgrade = (req: http.IncomingMessage, socket: any, head: Buffer) => {
     const reqUrl = req.url || '';
-    const isClientWs = reqUrl.startsWith('/api/admin/terminal/ws');
-    const isAgentWs = reqUrl.startsWith('/api/admin/terminal/agent-ws');
+    const isClientWs = reqUrl.startsWith('/api/terminal/ws') || reqUrl.startsWith('/api/admin/terminal/ws');
+    const isAgentWs = reqUrl.startsWith('/api/terminal/agent-ws') || reqUrl.startsWith('/api/admin/terminal/agent-ws');
 
     if (!isClientWs && !isAgentWs) {
       return;

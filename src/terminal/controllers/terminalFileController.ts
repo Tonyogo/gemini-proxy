@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import path from 'path';
-import terminalFileService from '../../terminal/services/terminalFileService';
+import terminalFileService from '../services/terminalFileService';
 import logger from '../../utils/logger';
 
 function parseMultipartForm(buffer: Buffer, boundary: string): { filename: string; data: Buffer }[] {

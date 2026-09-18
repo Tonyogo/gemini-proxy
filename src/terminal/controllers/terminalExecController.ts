@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import terminalExecService from '../../terminal/services/terminalExecService';
+import terminalExecService from '../services/terminalExecService';
 
 class TerminalExecController {
   public async startExec(req: Request, res: Response): Promise<any> {
