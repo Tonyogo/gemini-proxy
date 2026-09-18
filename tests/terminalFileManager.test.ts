@@ -1,8 +1,8 @@
 import request from 'supertest';
 import app from '../src/app';
 import config from '../config/default';
-import { terminalFileService } from '../src/admin/services/terminalFileService';
-import { terminalHostManager } from '../src/admin/services/terminalHostManager';
+import { terminalFileService } from '../src/terminal/services/terminalFileService';
+import { terminalHostManager } from '../src/terminal/services/terminalHostManager';
 
 describe('Terminal File Manager Pure RPC Integration Tests', () => {
   const secretKey = config.adminSecretKey || 'test-admin-key';

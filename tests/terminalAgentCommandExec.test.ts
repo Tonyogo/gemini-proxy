@@ -3,7 +3,7 @@ import http from 'http';
 import WebSocket from 'ws';
 import express from 'express';
 import adminRoutes from '../src/admin/routes/adminRoutes';
-import { setupTerminalWebSocket } from '../src/admin/routes/terminalWs';
+import { setupTerminalWebSocket } from '../src/terminal/routes/terminalWs';
 import config from '../config/default';
 const { handleCmdExec } = require('../scripts/terminal-agent.js');
 

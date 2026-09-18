@@ -40,7 +40,7 @@ describe('TerminalHostSelector Pure Agent Tests', () => {
   });
 
   test('renders clear offline hosts button when offline hosts exist', () => {
-    expect(content).toContain('/api/admin/terminal/hosts/offline');
+    expect(content).toContain('/api/terminal/hosts/offline');
     expect(content).toContain('hasOfflineHosts');
   });
 

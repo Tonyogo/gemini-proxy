@@ -1,4 +1,4 @@
-import { spawnTerminalSession } from '../src/admin/services/terminalService';
+import { spawnTerminalSession } from '../src/terminal/services/terminalService';
 
 describe('terminalService', () => {
   it('should spawn a terminal session and receive initial data or exit code', (done) => {

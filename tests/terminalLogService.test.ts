@@ -1,4 +1,4 @@
-import terminalLogService, { TerminalLogEntry } from '../src/admin/services/terminalLogService';
+import terminalLogService, { TerminalLogEntry } from '../src/terminal/services/terminalLogService';
 
 describe('TerminalLogService', () => {
   beforeEach(() => {

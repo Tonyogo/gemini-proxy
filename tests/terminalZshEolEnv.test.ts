@@ -1,5 +1,5 @@
 import * as pty from 'node-pty';
-import { spawnTerminalSession } from '../src/admin/services/terminalService';
+import { spawnTerminalSession } from '../src/terminal/services/terminalService';
 
 describe('Terminal Service Environment Options', () => {
   it('includes PROMPT_EOL_MARK empty string in default terminal env', () => {

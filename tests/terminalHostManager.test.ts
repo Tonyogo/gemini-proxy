@@ -1,4 +1,4 @@
-import { TerminalHostManager, RemoteAgentTerminalSession } from '../src/admin/services/terminalHostManager';
+import { TerminalHostManager, RemoteAgentTerminalSession } from '../src/terminal/services/terminalHostManager';
 
 describe('TerminalHostManager (Pure Dynamic Agent)', () => {
   let manager: TerminalHostManager;

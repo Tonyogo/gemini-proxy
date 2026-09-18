@@ -1,7 +1,7 @@
 import http from 'http';
 import WebSocket from 'ws';
 import express from 'express';
-import { setupTerminalWebSocket } from '../src/admin/routes/terminalWs';
+import { setupTerminalWebSocket } from '../src/terminal/routes/terminalWs';
 import config from '../config/default';
 
 describe('Terminal WebSocket Gateway', () => {

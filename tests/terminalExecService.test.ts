@@ -1,7 +1,7 @@
-import { terminalExecService } from '../src/admin/services/terminalExecService';
-import { terminalHostManager } from '../src/admin/services/terminalHostManager';
+import { terminalExecService } from '../src/terminal/services/terminalExecService';
+import { terminalHostManager } from '../src/terminal/services/terminalHostManager';
 
-jest.mock('../src/admin/services/terminalHostManager');
+jest.mock('../src/terminal/services/terminalHostManager');
 
 describe('TerminalExecService', () => {
   beforeEach(() => {

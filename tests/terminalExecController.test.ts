@@ -1,10 +1,11 @@
 import request from 'supertest';
 import express from 'express';
 import adminRoutes from '../src/admin/routes/adminRoutes';
-import { terminalExecService } from '../src/admin/services/terminalExecService';
+import terminalRoutes from '../src/terminal/routes/terminalRoutes';
+import { terminalExecService } from '../src/terminal/services/terminalExecService';
 import config from '../config/default';
 
-jest.mock('../src/admin/services/terminalExecService');
+jest.mock('../src/terminal/services/terminalExecService');
 
 describe('TerminalExecController API', () => {
   let app: express.Express;
@@ -16,6 +17,7 @@ describe('TerminalExecController API', () => {
     config.adminSecretKey = adminKey;
     app = express();
     app.use(express.json());
+    app.use('/api/terminal', terminalRoutes);
     app.use('/api/admin', adminRoutes);
   });
 
@@ -28,13 +30,18 @@ describe('TerminalExecController API', () => {
   });
 
   it('rejects unauthenticated request without admin key', async () => {
-    const res = await request(app)
+    const resNew = await request(app)
+      .post('/api/terminal/exec/node-1')
+      .send({ command: 'echo 1' });
+    expect(resNew.status).toBe(401);
+
+    const resLegacy = await request(app)
       .post('/api/admin/terminal/exec/node-1')
       .send({ command: 'echo 1' });
-    expect(res.status).toBe(401);
+    expect(resLegacy.status).toBe(401);
   });
 
-  it('starts command execution with 202 Accepted', async () => {
+  it('starts command execution with 202 Accepted on both routes', async () => {
     (terminalExecService.startExecution as jest.Mock).mockResolvedValue({
       success: true,
       taskId: 'task-123',
@@ -42,19 +49,27 @@ describe('TerminalExecController API', () => {
       command: 'echo 1',
     });
 
-    const res = await request(app)
+    const resNew = await request(app)
+      .post('/api/terminal/exec/node-1')
+      .set('x-admin-key', adminKey)
+      .send({ command: 'echo 1' });
+
+    expect(resNew.status).toBe(202);
+    expect(resNew.body.taskId).toBe('task-123');
+    expect(resNew.body.status).toBe('running');
+
+    const resLegacy = await request(app)
       .post('/api/admin/terminal/exec/node-1')
       .set('x-admin-key', adminKey)
       .send({ command: 'echo 1' });
 
-    expect(res.status).toBe(202);
-    expect(res.body.taskId).toBe('task-123');
-    expect(res.body.status).toBe('running');
+    expect(resLegacy.status).toBe(202);
+    expect(resLegacy.body.taskId).toBe('task-123');
   });
 
   it('returns 400 when command is missing', async () => {
     const res = await request(app)
-      .post('/api/admin/terminal/exec/node-1')
+      .post('/api/terminal/exec/node-1')
       .set('x-admin-key', adminKey)
       .send({});
 
@@ -69,7 +84,7 @@ describe('TerminalExecController API', () => {
     });
 
     const res = await request(app)
-      .post('/api/admin/terminal/exec/node-1')
+      .post('/api/terminal/exec/node-1')
       .set('x-admin-key', adminKey)
       .send({ command: 'echo 1' });
 
@@ -77,7 +92,7 @@ describe('TerminalExecController API', () => {
     expect(res.body.error).toContain('offline');
   });
 
-  it('polls task status with 200 OK', async () => {
+  it('polls task status with 200 OK on both routes', async () => {
     (terminalExecService.getExecutionStatus as jest.Mock).mockResolvedValue({
       success: true,
       taskId: 'task-123',
@@ -86,13 +101,20 @@ describe('TerminalExecController API', () => {
       stdout: 'done\n',
     });
 
-    const res = await request(app)
+    const resNew = await request(app)
+      .get('/api/terminal/exec/node-1/task-123?offset=0')
+      .set('x-admin-key', adminKey);
+
+    expect(resNew.status).toBe(200);
+    expect(resNew.body.status).toBe('completed');
+    expect(resNew.body.exitCode).toBe(0);
+
+    const resLegacy = await request(app)
       .get('/api/admin/terminal/exec/node-1/task-123?offset=0')
       .set('x-admin-key', adminKey);
 
-    expect(res.status).toBe(200);
-    expect(res.body.status).toBe('completed');
-    expect(res.body.exitCode).toBe(0);
+    expect(resLegacy.status).toBe(200);
+    expect(resLegacy.body.status).toBe('completed');
   });
 
   it('returns 404 when polling non-existent task', async () => {
@@ -102,40 +124,55 @@ describe('TerminalExecController API', () => {
     });
 
     const res = await request(app)
-      .get('/api/admin/terminal/exec/node-1/task-999')
+      .get('/api/terminal/exec/node-1/task-999')
       .set('x-admin-key', adminKey);
 
     expect(res.status).toBe(404);
     expect(res.body.error).toContain('No such task');
   });
 
-  it('kills task with 200 OK', async () => {
+  it('kills task with 200 OK on both routes', async () => {
     (terminalExecService.killExecution as jest.Mock).mockResolvedValue({
       success: true,
       taskId: 'task-123',
       status: 'killed',
     });
 
-    const res = await request(app)
+    const resNew = await request(app)
+      .post('/api/terminal/exec/node-1/task-123/kill')
+      .set('x-admin-key', adminKey)
+      .send({ signal: 'SIGKILL' });
+
+    expect(resNew.status).toBe(200);
+    expect(resNew.body.status).toBe('killed');
+
+    const resLegacy = await request(app)
       .post('/api/admin/terminal/exec/node-1/task-123/kill')
       .set('x-admin-key', adminKey)
       .send({ signal: 'SIGKILL' });
 
-    expect(res.status).toBe(200);
-    expect(res.body.status).toBe('killed');
+    expect(resLegacy.status).toBe(200);
+    expect(resLegacy.body.status).toBe('killed');
   });
 
-  it('lists tasks with 200 OK', async () => {
+  it('lists tasks with 200 OK on both routes', async () => {
     (terminalExecService.listExecutions as jest.Mock).mockResolvedValue({
       success: true,
       tasks: [{ taskId: 'task-123', command: 'ls', status: 'completed' }],
     });
 
-    const res = await request(app)
+    const resNew = await request(app)
+      .get('/api/terminal/exec/node-1?limit=10')
+      .set('x-admin-key', adminKey);
+
+    expect(resNew.status).toBe(200);
+    expect(resNew.body.tasks).toHaveLength(1);
+
+    const resLegacy = await request(app)
       .get('/api/admin/terminal/exec/node-1?limit=10')
       .set('x-admin-key', adminKey);
 
-    expect(res.status).toBe(200);
-    expect(res.body.tasks).toHaveLength(1);
+    expect(resLegacy.status).toBe(200);
+    expect(resLegacy.body.tasks).toHaveLength(1);
   });
 });

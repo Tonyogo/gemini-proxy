@@ -1,4 +1,4 @@
-import { RemoteAgentTerminalSession } from '../src/admin/services/terminalHostManager';
+import { RemoteAgentTerminalSession } from '../src/terminal/services/terminalHostManager';
 
 describe('RemoteAgentTerminalSession Persistence & Replay', () => {
   it('should maintain state and buffer output across attach/detach cycles', (done) => {

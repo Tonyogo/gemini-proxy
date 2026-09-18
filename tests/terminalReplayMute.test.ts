@@ -1,5 +1,5 @@
 import { isSyntheticTerminalReport } from '../frontend/src/utils/terminalFilter';
-import { RemoteAgentTerminalSession } from '../src/admin/services/terminalHostManager';
+import { RemoteAgentTerminalSession } from '../src/terminal/services/terminalHostManager';
 
 describe('Terminal Reconnect Replay Mute', () => {
   it('should classify and filter all standard query response escape sequences', () => {

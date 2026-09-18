@@ -1,4 +1,4 @@
-import { TerminalHostManager } from '../src/admin/services/terminalHostManager';
+import { TerminalHostManager } from '../src/terminal/services/terminalHostManager';
 
 describe('TerminalHostManager - Command Execution RPC', () => {
   let manager: TerminalHostManager;

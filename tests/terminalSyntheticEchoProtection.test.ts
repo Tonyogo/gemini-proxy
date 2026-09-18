@@ -5,7 +5,7 @@ import {
 import {
   stripTerminalQuerySequences,
   RemoteAgentTerminalSession,
-} from '../src/admin/services/terminalHostManager';
+} from '../src/terminal/services/terminalHostManager';
 
 describe('Terminal Synthetic Echo Protection (OSC 11 / DA / CPR)', () => {
   describe('isSyntheticTerminalReport with Compound Sequences', () => {

@@ -1,4 +1,4 @@
-import { terminalHostManager, RemoteAgentTerminalSession } from '../src/admin/services/terminalHostManager';
+import { terminalHostManager, RemoteAgentTerminalSession } from '../src/terminal/services/terminalHostManager';
 import { isSyntheticTerminalReport } from '../frontend/src/utils/terminalFilter';
 
 describe('Terminal Agent Reconnect and Replay Loop Prevention Tests', () => {
