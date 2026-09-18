@@ -54,20 +54,16 @@ gemini-proxy/
 │   │   ├── controllers/       # Admin 控制器 (状态、统计、日志分卷、主机列表等)
 │   │   ├── middlewares/       # 管理员密钥鉴权中间件 (x-admin-key)
 │   │   ├── routes/            # Admin REST API 及 WebTerminal WebSocket 网关 (/agent-ws & /ws)
-│   │   └── services/          # TerminalHostManager (多主机终端会话抽象与 Agent 状态管理)
+│   │   └── services/          # TerminalHostManager, TerminalFileService, LogService 等
+│   ├── proxy/                 # 核心 API 代理与转译系统
+│   │   ├── controllers/       # ClaudeController, GeminiController (请求解析与响应调度)
+│   │   ├── routes/            # ClaudeRoutes, GeminiRoutes (协议路由挂载)
+│   │   └── services/          # ClaudeTranslator (转译核心), PayloadLogger (审计日志)
 │   ├── types/
 │   │   └── index.ts           # 强类型定义声明 (Claude 与 Gemini API REST 协议载荷接口)
-│   ├── routes/
-│   │   ├── claudeRoutes.ts    # 路由层：Claude 协议接口 (/v1/messages, /v1/models, /v1/messages/count_tokens)
-│   │   └── geminiRoutes.ts    # 路由层：原生 Gemini 协议接口 (/v1beta/*)
-│   ├── controllers/
-│   │   ├── claudeController.ts# 控制器层：Claude 转译请求与响应逻辑
-│   │   └── geminiController.ts# 控制器层：原生 Gemini 代理���传、流式接管与模型重定向
-│   ├── services/
-│   │   ├── claudeTranslator.ts# 服务层：核心翻译适配器 (Claude <-> Gemini 核心协议转换)
-│   │   └── payloadLogger.ts   # 服务层：异步、非阻塞式交易日志文件保存器
 │   ├── utils/
 │   │   ├── logger.ts          # 工具类：支持日志级别的定制化控制台日志输出
+│   │   ├── requestHelper.ts   # 请求头与基址辅助工具
 │   │   └── streamLifecycleManager.ts # 工具类：流式传输超时控制与客户端断开检测管理
 │   ├── app.ts                 # Express 应用注册、中间件绑定
 │   └── index.ts               # 服务监听主启动入口

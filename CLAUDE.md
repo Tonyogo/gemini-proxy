@@ -23,7 +23,7 @@ This is a **stateless API proxy** that translates Anthropic Claude Messages API 
 
 ### Key Components
 
-- **Core Proxy Pipelines (`src/routes/`, `src/controllers/`, `src/services/`):** 
+- **Core Proxy Pipelines (`src/proxy/routes/`, `src/proxy/controllers/`, `src/proxy/services/`):** 
   - **Claude Translation Proxy (`claudeRoutes.ts`, `claudeController.ts`, `claudeTranslator.ts`):** Routes incoming `/v1/messages`, `/v1/messages/count_tokens`, `/v1/models`, and `/v1/models/:model_id` requests to `claudeController.ts`. Core translation engine (`claudeTranslator.ts`) converts tool schemas, system instructions, images, PDF documents, and thinking modes. Returns structured Claude JSON event arrays during stream translation, which are written as standard SSE events to client sockets while recorded natively as JSON arrays in transaction logs.
   - **Native Gemini API Proxy (`geminiRoutes.ts`, `geminiController.ts`):** Handles native Google Gemini protocol requests under `/v1beta/*` and `/v1/models/*:*` without translation. Integrates model alias mapping (`MODEL_MAPPINGS`), client-abort streaming lifecycle (`StreamLifecycleManager`), and full transaction audit logging (`payloadLogger`).
 
@@ -42,7 +42,7 @@ This is a **stateless API proxy** that translates Anthropic Claude Messages API 
   - **Standalone Command Execution Engine (`terminalExecService.ts`, `terminalExecController.ts`, `TaskManager` in `terminal-agent.js`):** Isolated asynchronous command execution engine (`child_process.spawn`) supporting immediate non-blocking task creation (`POST /api/admin/terminal/exec/:hostId`), incremental offset output polling (`GET /api/admin/terminal/exec/:hostId/:taskId`), process termination (`POST /api/admin/terminal/exec/:hostId/:taskId/kill`), and recent tasks listing (`GET /api/admin/terminal/exec/:hostId`), with 5MB buffer truncation and timeout guards for AI/script deployment workflows.
   - **Frontend UI & Empty State:** `TerminalHostSelector` with automatic online host switching, rich frosted empty state guidance cards with one-click startup commands when no agents are connected, `TerminalAccessoryBar` for touch modifier keys, and `mobileViewportHelper` with dynamic keyboard push-up compensation.
 
-- **Payload Debug Logger (`src/services/payloadLogger.ts`):**
+- **Payload Debug Logger (`src/proxy/services/payloadLogger.ts`):**
   - Asynchronously saves JSON transaction details partitioned into date/hour subdirectories under `TRANSACTION_LOGS_DIR` formatted using the configured `TIME_ZONE` (defaults to `Asia/Shanghai`).
   - Automatically performs day-based log expiration pruning (`LOG_RETENTION_DAYS`, defaults to 3 days).
   - Automatically sanitizes sensitive keys and Bearer tokens via `sanitizeData()` before persisting logs to disk.
