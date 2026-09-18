@@ -1,4 +1,4 @@
-import translator from '../src/services/claudeTranslator';
+import translator from '../src/proxy/services/claudeTranslator';
 import config, { updateConfig } from '../config/default';
 
 describe('Dynamic Config Hot-Reload in Translator', () => {

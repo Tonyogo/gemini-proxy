@@ -1,4 +1,4 @@
-import translator from '../src/services/claudeTranslator';
+import translator from '../src/proxy/services/claudeTranslator';
 import { config } from '../config/default';
 
 describe('Claude to Gemini Request Translation', () => {

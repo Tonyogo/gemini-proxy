@@ -1,7 +1,7 @@
 import request from 'supertest';
 import app from '../src/app';
 
-jest.mock('../src/services/payloadLogger', () => ({
+jest.mock('../src/proxy/services/payloadLogger', () => ({
   saveTransaction: jest.fn().mockResolvedValue(undefined)
 }));
 

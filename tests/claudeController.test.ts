@@ -1,11 +1,11 @@
 import request from 'supertest';
 import app from '../src/app';
 import config from '../config/default';
-import claudeController from '../src/controllers/claudeController';
+import claudeController from '../src/proxy/controllers/claudeController';
 import { getUpstreamUrl, extractClientKey, generateShortId, generateTransactionId, buildUpstreamHeaders, maskApiKey, sanitizeData } from '../src/utils/requestHelper';
 
 // Mock payloadLogger to prevent async disk writing side-effects and background log warnings
-jest.mock('../src/services/payloadLogger', () => ({
+jest.mock('../src/proxy/services/payloadLogger', () => ({
   saveTransaction: jest.fn().mockResolvedValue(undefined)
 }));
 

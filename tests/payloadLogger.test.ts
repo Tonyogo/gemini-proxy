@@ -1,4 +1,4 @@
-import payloadLogger from '../src/services/payloadLogger';
+import payloadLogger from '../src/proxy/services/payloadLogger';
 import { promises as fs, existsSync, readFileSync } from 'fs';
 import * as path from 'path';
 import config from '../config/default';

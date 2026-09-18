@@ -4,7 +4,7 @@ import fetch from 'node-fetch';
 import { updateConfig } from '../config/default';
 
 // Mock payloadLogger to prevent background async logs and disk I/O side effects during tests
-jest.mock('../src/services/payloadLogger', () => ({
+jest.mock('../src/proxy/services/payloadLogger', () => ({
   saveTransaction: jest.fn().mockResolvedValue(undefined)
 }));
 

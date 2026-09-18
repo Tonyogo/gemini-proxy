@@ -1,9 +1,9 @@
 import request from 'supertest';
 import express from 'express';
-import geminiController from '../src/controllers/geminiController';
+import geminiController from '../src/proxy/controllers/geminiController';
 import config from '../config/default';
 
-jest.mock('../src/services/payloadLogger', () => ({
+jest.mock('../src/proxy/services/payloadLogger', () => ({
   saveTransaction: jest.fn().mockResolvedValue(undefined)
 }));
 
@@ -97,7 +97,7 @@ describe('GeminiController - Native Gemini API Proxy', () => {
     expect(res.status).toBe(200);
     expect(res.text).toContain('Stream chunk');
 
-    const payloadLogger = require('../src/services/payloadLogger');
+    const payloadLogger = require('../src/proxy/services/payloadLogger');
     expect(payloadLogger.saveTransaction).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({ contents: expect.any(Array) }),

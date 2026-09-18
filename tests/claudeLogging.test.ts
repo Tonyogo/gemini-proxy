@@ -1,6 +1,6 @@
 import request from 'supertest';
 import app from '../src/app';
-import payloadLogger from '../src/services/payloadLogger';
+import payloadLogger from '../src/proxy/services/payloadLogger';
 import fetch from 'node-fetch';
 
 jest.mock('node-fetch');
