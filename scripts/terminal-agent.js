@@ -8,6 +8,7 @@
 const os = require('os');
 const path = require('path');
 const fs = require('fs');
+const { spawn } = require('child_process');
 const WebSocket = require('ws');
 const pty = require('node-pty');
 const dotenv = require('dotenv');
@@ -342,6 +343,295 @@ async function handleFileRpc(control) {
   }
 }
 
+class TaskManager {
+  constructor() {
+    this.tasks = new Map();
+    this.MAX_TASKS = 100;
+    this.MAX_BUFFER_SIZE = 5 * 1024 * 1024; // 5 MB per stream
+    this.TASK_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+  }
+
+  pruneOldTasks() {
+    const now = Date.now();
+    for (const [taskId, task] of this.tasks.entries()) {
+      if (task.status !== 'running' && (now - task.startTime > this.TASK_TTL_MS)) {
+        this.tasks.delete(taskId);
+      }
+    }
+    if (this.tasks.size > this.MAX_TASKS) {
+      const sorted = Array.from(this.tasks.entries())
+        .filter(([, t]) => t.status !== 'running')
+        .sort((a, b) => a[1].startTime - b[1].startTime);
+      while (this.tasks.size > this.MAX_TASKS && sorted.length > 0) {
+        const [oldId] = sorted.shift();
+        this.tasks.delete(oldId);
+      }
+    }
+  }
+
+  startTask({ taskId, command, cwd, timeoutMs = 300000, env = {} }) {
+    this.pruneOldTasks();
+
+    if (this.tasks.has(taskId)) {
+      const existing = this.tasks.get(taskId);
+      return { success: true, taskId, status: existing.status, startTime: existing.startTime };
+    }
+
+    const shell = getDefaultShell();
+    const isWindows = platform === 'win32';
+    const shellArgs = isWindows
+      ? (shell.toLowerCase().includes('powershell') ? ['-Command', command] : ['/c', command])
+      : ['-c', command];
+    const workingDir = cwd ? path.resolve(cwd) : (process.env.HOME || process.cwd());
+
+    const taskEnv = {
+      ...process.env,
+      ...env,
+      TERM: 'xterm-256color',
+      COLORTERM: 'truecolor',
+      LANG: process.env.LANG || 'en_US.UTF-8',
+    };
+
+    let child = null;
+    try {
+      child = spawn(shell, shellArgs, {
+        cwd: workingDir,
+        env: taskEnv,
+        stdio: ['ignore', 'pipe', 'pipe'],
+        detached: false,
+      });
+    } catch (err) {
+      return { success: false, error: `Failed to spawn process: ${err.message}` };
+    }
+
+    const taskRecord = {
+      taskId,
+      command,
+      cwd: workingDir,
+      status: 'running',
+      exitCode: null,
+      startTime: Date.now(),
+      endTime: null,
+      stdout: '',
+      stderr: '',
+      output: '',
+      child,
+      timeoutTimer: null,
+      killTimer: null,
+    };
+
+    const appendChunk = (type, chunk) => {
+      const text = chunk.toString('utf-8');
+      if (type === 'stdout') {
+        taskRecord.stdout += text;
+        if (taskRecord.stdout.length > this.MAX_BUFFER_SIZE) {
+          taskRecord.stdout = taskRecord.stdout.slice(-this.MAX_BUFFER_SIZE);
+        }
+      } else {
+        taskRecord.stderr += text;
+        if (taskRecord.stderr.length > this.MAX_BUFFER_SIZE) {
+          taskRecord.stderr = taskRecord.stderr.slice(-this.MAX_BUFFER_SIZE);
+        }
+      }
+      taskRecord.output += text;
+      if (taskRecord.output.length > this.MAX_BUFFER_SIZE) {
+        taskRecord.output = taskRecord.output.slice(-this.MAX_BUFFER_SIZE);
+      }
+    };
+
+    child.stdout.on('data', (chunk) => appendChunk('stdout', chunk));
+    child.stderr.on('data', (chunk) => appendChunk('stderr', chunk));
+
+    child.on('error', (err) => {
+      taskRecord.stderr += `\nProcess execution error: ${err.message}\n`;
+      taskRecord.output += `\nProcess execution error: ${err.message}\n`;
+      taskRecord.status = 'failed';
+      taskRecord.endTime = Date.now();
+      if (taskRecord.timeoutTimer) clearTimeout(taskRecord.timeoutTimer);
+    });
+
+    child.on('close', (code, signal) => {
+      if (taskRecord.timeoutTimer) clearTimeout(taskRecord.timeoutTimer);
+      if (taskRecord.killTimer) clearTimeout(taskRecord.killTimer);
+      taskRecord.endTime = Date.now();
+      taskRecord.child = null;
+
+      if (taskRecord.status === 'running') {
+        if (signal) {
+          taskRecord.status = 'killed';
+        } else {
+          taskRecord.exitCode = code;
+          taskRecord.status = code === 0 ? 'completed' : 'failed';
+        }
+      }
+    });
+
+    if (timeoutMs > 0) {
+      taskRecord.timeoutTimer = setTimeout(() => {
+        if (taskRecord.status === 'running' && taskRecord.child) {
+          taskRecord.status = 'timeout';
+          const timeoutMsg = `\n[Agent] Process timed out after ${timeoutMs}ms. Terminating...\n`;
+          taskRecord.stderr += timeoutMsg;
+          taskRecord.output += timeoutMsg;
+          try {
+            taskRecord.child.kill('SIGTERM');
+          } catch {}
+          taskRecord.killTimer = setTimeout(() => {
+            if (taskRecord.child) {
+              try {
+                taskRecord.child.kill('SIGKILL');
+              } catch {}
+            }
+          }, 3000);
+          if (taskRecord.killTimer.unref) taskRecord.killTimer.unref();
+        }
+      }, timeoutMs);
+      if (taskRecord.timeoutTimer.unref) taskRecord.timeoutTimer.unref();
+    }
+
+    this.tasks.set(taskId, taskRecord);
+    return {
+      success: true,
+      taskId,
+      status: 'running',
+      command,
+      cwd: workingDir,
+      startTime: taskRecord.startTime,
+    };
+  }
+
+  getTask(taskId, offset = 0) {
+    const task = this.tasks.get(taskId);
+    if (!task) {
+      return { success: false, error: `No such task: ${taskId}` };
+    }
+
+    const totalBytes = Buffer.byteLength(task.output, 'utf-8');
+    const safeOffset = Math.max(0, Math.min(offset, totalBytes));
+
+    const sliceOutput = (str) => {
+      if (safeOffset === 0) return str;
+      const buf = Buffer.from(str, 'utf-8');
+      if (safeOffset >= buf.length) return '';
+      return buf.slice(safeOffset).toString('utf-8');
+    };
+
+    return {
+      success: true,
+      taskId: task.taskId,
+      status: task.status,
+      exitCode: task.exitCode,
+      stdout: sliceOutput(task.stdout),
+      stderr: sliceOutput(task.stderr),
+      output: sliceOutput(task.output),
+      offset: totalBytes,
+      totalBytes,
+      durationMs: (task.endTime || Date.now()) - task.startTime,
+      startTime: task.startTime,
+      endTime: task.endTime,
+    };
+  }
+
+  killTask(taskId, signal = 'SIGTERM') {
+    const task = this.tasks.get(taskId);
+    if (!task) {
+      return { success: false, error: `No such task: ${taskId}` };
+    }
+    if (task.status !== 'running' || !task.child) {
+      return { success: true, taskId, status: task.status, message: 'Task is not running' };
+    }
+
+    task.status = 'killed';
+    try {
+      task.child.kill(signal || 'SIGTERM');
+    } catch {}
+
+    task.killTimer = setTimeout(() => {
+      if (task.child) {
+        try {
+          task.child.kill('SIGKILL');
+        } catch {}
+      }
+    }, 3000);
+    if (task.killTimer.unref) task.killTimer.unref();
+
+    return { success: true, taskId, status: 'killed', message: `Signal ${signal} sent` };
+  }
+
+  listTasks(limit = 20) {
+    const list = Array.from(this.tasks.values())
+      .sort((a, b) => b.startTime - a.startTime)
+      .slice(0, limit)
+      .map((t) => ({
+        taskId: t.taskId,
+        command: t.command,
+        cwd: t.cwd,
+        status: t.status,
+        exitCode: t.exitCode,
+        durationMs: (t.endTime || Date.now()) - t.startTime,
+        startTime: t.startTime,
+        endTime: t.endTime,
+      }));
+    return { success: true, tasks: list };
+  }
+}
+
+const taskManager = new TaskManager();
+
+function handleCmdExec(control, targetWs = ws) {
+  const { reqId, action, taskId, command, cwd, timeoutMs, env, offset, signal, limit } = control;
+
+  const reply = (success, data = null, error = null) => {
+    if (targetWs && targetWs.readyState === WebSocket.OPEN) {
+      targetWs.send(
+        `JSON:${JSON.stringify({
+          type: 'cmd_exec_res',
+          reqId,
+          taskId,
+          success,
+          data,
+          error,
+        })}`
+      );
+    }
+  };
+
+  try {
+    if (action === 'start') {
+      const res = taskManager.startTask({ taskId, command, cwd, timeoutMs, env });
+      if (res.success) {
+        return reply(true, res);
+      }
+      return reply(false, null, res.error);
+    }
+
+    if (action === 'poll') {
+      const res = taskManager.getTask(taskId, offset || 0);
+      if (res.success) {
+        return reply(true, res);
+      }
+      return reply(false, null, res.error);
+    }
+
+    if (action === 'kill') {
+      const res = taskManager.killTask(taskId, signal);
+      if (res.success) {
+        return reply(true, res);
+      }
+      return reply(false, null, res.error);
+    }
+
+    if (action === 'list') {
+      const res = taskManager.listTasks(limit);
+      return reply(true, res);
+    }
+
+    reply(false, null, `Unknown cmd_exec action: ${action}`);
+  } catch (err) {
+    reply(false, null, err.message);
+  }
+}
+
 function connect() {
   if (isExiting) return;
 
@@ -401,6 +691,10 @@ function connect() {
       if (control) {
         if (control.type === 'file_rpc') {
           handleFileRpc(control);
+          return;
+        }
+        if (control.type === 'cmd_exec') {
+          handleCmdExec(control);
           return;
         }
         if (control.type === 'resize') {
@@ -487,6 +781,13 @@ function cleanup() {
       ptyProcess.kill();
     } catch {}
   }
+  for (const task of taskManager.tasks.values()) {
+    if (task.status === 'running' && task.child) {
+      try {
+        task.child.kill('SIGTERM');
+      } catch {}
+    }
+  }
   process.exit(0);
 }
 
@@ -500,5 +801,8 @@ if (typeof module !== 'undefined') {
     HANDSHAKE_TIMEOUT_MS,
     HEARTBEAT_INTERVAL_MS,
     HEARTBEAT_TIMEOUT_MS,
+    TaskManager,
+    taskManager,
+    handleCmdExec,
   };
 }
