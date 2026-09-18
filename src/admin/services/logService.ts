@@ -2,8 +2,8 @@ import { promises as fs } from 'fs';
 import * as path from 'path';
 import config from '../../../config/default';
 import metricsService from './metricsService';
-import { LogIndexRecord } from '../../services/payloadLogger';
-import claudeTranslator from '../../services/claudeTranslator';
+import { LogIndexRecord } from '../../proxy/services/payloadLogger';
+import claudeTranslator from '../../proxy/services/claudeTranslator';
 
 export interface LogItem {
   date: string;

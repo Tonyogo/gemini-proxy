@@ -1,5 +1,5 @@
-import config from '../../config/default';
-import logger from '../utils/logger';
+import config from '../../../config/default';
+import logger from '../../utils/logger';
 import {
   ClaudeRequest,
   GeminiRequest,
@@ -7,7 +7,7 @@ import {
   GeminiPart,
   GeminiModelsResponse,
   SchedulingStrategy
-} from '../types';
+} from '../../types';
 
 const BYPASS_SIGNATURE = 'context_engineering_is_the_way_to_go';
 

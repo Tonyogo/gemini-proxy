@@ -1,9 +1,9 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
-import config from '../../config/default';
-import logger from '../utils/logger';
-import { sanitizeData } from '../utils/requestHelper';
-import metricsService from '../admin/services/metricsService';
+import config from '../../../config/default';
+import logger from '../../utils/logger';
+import { sanitizeData } from '../../utils/requestHelper';
+import metricsService from '../../admin/services/metricsService';
 import claudeTranslator from './claudeTranslator';
 
 export interface LogIndexRecord {
