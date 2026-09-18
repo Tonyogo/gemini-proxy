@@ -299,6 +299,7 @@ export class TerminalHostManager {
   }
 
   private rpcResolvers: Map<string, (response: any) => void> = new Map();
+  private cmdRpcResolvers: Map<string, (response: any) => void> = new Map();
 
   public handleAgentRpcResponse(response: any): void {
     const { reqId } = response;
@@ -311,11 +312,56 @@ export class TerminalHostManager {
     }
   }
 
+  public handleAgentCmdRpcResponse(response: any): void {
+    const { reqId } = response;
+    if (reqId && this.cmdRpcResolvers.has(reqId)) {
+      const resolver = this.cmdRpcResolvers.get(reqId);
+      this.cmdRpcResolvers.delete(reqId);
+      if (resolver) {
+        resolver(response);
+      }
+    }
+  }
+
   public clearPendingRpcForHost(hostId: string): void {
     for (const [reqId, resolver] of this.rpcResolvers.entries()) {
       resolver({ success: false, error: `Agent ${hostId} reconnected; previous RPC cancelled` });
       this.rpcResolvers.delete(reqId);
     }
+    for (const [reqId, resolver] of this.cmdRpcResolvers.entries()) {
+      resolver({ success: false, error: `Agent ${hostId} reconnected; previous command RPC cancelled` });
+      this.cmdRpcResolvers.delete(reqId);
+    }
+  }
+
+  public async executeCmdRpc(hostId: string, payload: { action: string; [key: string]: any }): Promise<any> {
+    const session = this.getSession(hostId);
+    if (!session) {
+      return { success: false, error: `Agent "${hostId}" is offline or unavailable` };
+    }
+
+    const reqId = `cmd-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const rpcMsg = `JSON:${JSON.stringify({
+      type: 'cmd_exec',
+      reqId,
+      ...payload,
+    })}`;
+
+    return new Promise((resolve) => {
+      const timeoutTimer = setTimeout(() => {
+        if (this.cmdRpcResolvers.has(reqId)) {
+          this.cmdRpcResolvers.delete(reqId);
+          resolve({ success: false, error: 'Agent command RPC request timed out (30s)' });
+        }
+      }, 30000);
+
+      this.cmdRpcResolvers.set(reqId, (response) => {
+        clearTimeout(timeoutTimer);
+        resolve(response);
+      });
+
+      session.write(rpcMsg);
+    });
   }
 
   public async executeFileRpc(hostId: string, payload: { action: string; path: string; params?: any }): Promise<any> {
