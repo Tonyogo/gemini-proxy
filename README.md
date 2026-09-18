@@ -50,15 +50,19 @@ gemini-proxy/
 │   ├── deploy.sh              # 统一步署脚本 (Git 拉取、依赖安装、前后端编译、PM2 平滑重载)
 │   └── terminal-agent.js      # 轻量级多主机反向终端 Agent 脚本 (局域网主机一键接入)
 ├── src/
-│   ├── admin/                 # 管理控制台后端逻辑
-│   │   ├── controllers/       # Admin 控制器 (状态、统计、日志分卷、主机列表等)
-│   │   ├── middlewares/       # 管理员密钥鉴权中间件 (x-admin-key)
-│   │   ├── routes/            # Admin REST API 及 WebTerminal WebSocket 网关 (/agent-ws & /ws)
-│   │   └── services/          # TerminalHostManager, TerminalFileService, LogService 等
-│   ├── proxy/                 # 核心 API 代理与转译系统
-│   │   ├── controllers/       # ClaudeController, GeminiController (请求解析与响应调度)
-│   │   ├── routes/            # ClaudeRoutes, GeminiRoutes (协议路由挂载)
-│   │   └── services/          # ClaudeTranslator (转译核心), PayloadLogger (审计日志)
+│   ├── admin/                 # 管理控制台后端逻辑 (状态、统计、日志审计、全局配置、账号)
+│   │   ├── controllers/       # AdminController, AccountController
+│   │   ├── middlewares/       # AdminAuth (管理员密钥鉴权)
+│   │   ├── routes/            # AdminRoutes (/api/admin/* 及向下兼容别名)
+│   │   └── services/          # MetricsService, LogService, AccountService
+│   ├── proxy/                 # 核心 API 代理��转译系统
+│   │   ├── controllers/       # ClaudeController, GeminiController (协议转译与转发)
+│   │   ├── routes/            # ClaudeRoutes, GeminiRoutes (/v1/*, /v1beta/*)
+│   │   └── services/          # ClaudeTranslator (转译核心), PayloadLogger (报文审计)
+│   ├── terminal/              # 独立终端与运维子系统
+│   │   ├── controllers/       # TerminalHost, File, Exec, Log 控制器
+│   │   ├── routes/            # TerminalRoutes (/api/terminal/*), TerminalWs (双通道网关)
+│   │   └── services/          # TerminalHostManager, TerminalExec, File, Log 服务
 │   ├── types/
 │   │   └── index.ts           # 强类型定义声明 (Claude 与 Gemini API REST 协议载荷接口)
 │   ├── utils/
