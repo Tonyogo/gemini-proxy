@@ -33,7 +33,7 @@
   - `terminalHostManager.executeCmdRpc(hostId: string, payload: { action: string; taskId?: string; command?: string; cwd?: string; timeoutMs?: number; env?: Record<string, string>; offset?: number; signal?: string; limit?: number }): Promise<any>`
   - `terminalHostManager.handleAgentCmdRpcResponse(response: any): void`
 
-- [ ] **Step 1: Write failing test in `tests/terminalHostManagerCmdRpc.test.ts`**
+- [x] **Step 1: Write failing test in `tests/terminalHostManagerCmdRpc.test.ts`**
 
 ```typescript
 import { terminalHostManager } from '../src/admin/services/terminalHostManager';
@@ -50,12 +50,12 @@ describe('TerminalHostManager - Command Execution RPC', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/terminalHostManagerCmdRpc.test.ts`
 Expected: FAIL (`executeCmdRpc` is not a function).
 
-- [ ] **Step 3: Implement `executeCmdRpc` and `handleAgentCmdRpcResponse` in `TerminalHostManager`**
+- [x] **Step 3: Implement `executeCmdRpc` and `handleAgentCmdRpcResponse` in `TerminalHostManager`**
 
 In `src/admin/services/terminalHostManager.ts`:
 ```typescript
@@ -113,12 +113,12 @@ if (control.type === 'cmd_exec_res') {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/terminalHostManagerCmdRpc.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/admin/services/terminalHostManager.ts src/admin/routes/terminalWs.ts tests/terminalHostManagerCmdRpc.test.ts
@@ -141,7 +141,7 @@ git commit -m "feat(terminal): add command execution RPC in terminalHostManager"
   - `killExecution(hostId, taskId, signal?): Promise<{ success: boolean; status?: string; message?: string; error?: string }>`
   - `listExecutions(hostId, limit?): Promise<{ success: boolean; tasks?: any[]; error?: string }>`
 
-- [ ] **Step 1: Write unit tests in `tests/terminalExecService.test.ts`**
+- [x] **Step 1: Write unit tests in `tests/terminalExecService.test.ts`**
 
 ```typescript
 import { terminalExecService } from '../src/admin/services/terminalExecService';
@@ -185,12 +185,12 @@ describe('TerminalExecService', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/terminalExecService.test.ts`
 Expected: FAIL (`terminalExecService` does not exist).
 
-- [ ] **Step 3: Implement `TerminalExecService`**
+- [x] **Step 3: Implement `TerminalExecService`**
 
 Write `src/admin/services/terminalExecService.ts`:
 ```typescript
@@ -325,12 +325,12 @@ export const terminalExecService = new TerminalExecService();
 export default terminalExecService;
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/terminalExecService.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/admin/services/terminalExecService.ts tests/terminalExecService.test.ts
@@ -353,7 +353,7 @@ git commit -m "feat(terminal): implement TerminalExecService"
   - `POST /api/admin/terminal/exec/:hostId/:taskId/kill` -> `200 OK`
   - `GET /api/admin/terminal/exec/:hostId` -> `200 OK`
 
-- [ ] **Step 1: Write integration tests in `tests/terminalExecController.test.ts`**
+- [x] **Step 1: Write integration tests in `tests/terminalExecController.test.ts`**
 
 ```typescript
 import request from 'supertest';
@@ -462,12 +462,12 @@ describe('TerminalExecController API', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/terminalExecController.test.ts`
 Expected: FAIL (`terminalExecController` does not exist).
 
-- [ ] **Step 3: Create `terminalExecController.ts` and update `adminRoutes.ts`**
+- [x] **Step 3: Create `terminalExecController.ts` and update `adminRoutes.ts`**
 
 Write `src/admin/controllers/terminalExecController.ts`:
 ```typescript
@@ -552,12 +552,12 @@ router.post('/terminal/exec/:hostId/:taskId/kill', (req, res) => terminalExecCon
 router.get('/terminal/exec/:hostId', (req, res) => terminalExecController.listExec(req, res));
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/terminalExecController.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/admin/controllers/terminalExecController.ts src/admin/routes/adminRoutes.ts tests/terminalExecController.test.ts
@@ -578,7 +578,7 @@ git commit -m "feat(terminal): add terminalExecController and routes"
   - Sends back `JSON:{"type":"cmd_exec_res", "reqId":"...", "taskId":"...", "success":true, "data":{...}}`
   - Completely isolated from `ptyProcess`.
 
-- [ ] **Step 1: Implement `TaskManager` class in `scripts/terminal-agent.js`**
+- [x] **Step 1: Implement `TaskManager` class in `scripts/terminal-agent.js`**
 
 Add `const { spawn } = require('child_process');` at top of `scripts/terminal-agent.js`.
 Add `TaskManager`:
@@ -810,7 +810,7 @@ class TaskManager {
 const taskManager = new TaskManager();
 ```
 
-- [ ] **Step 2: Add `handleCmdExec` dispatch function**
+- [x] **Step 2: Add `handleCmdExec` dispatch function**
 
 In `scripts/terminal-agent.js`:
 ```javascript
@@ -875,11 +875,11 @@ if (control.type === 'cmd_exec') {
 }
 ```
 
-- [ ] **Step 3: Export `taskManager` for programmatic testing if required**
+- [x] **Step 3: Export `taskManager` for programmatic testing if required**
 
 Ensure `module.exports = { ...options, taskManager, handleCmdExec }` is available when required by tests.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add scripts/terminal-agent.js
@@ -904,7 +904,7 @@ git commit -m "feat(agent): implement TaskManager and cmd_exec handler"
   5. Process kill terminates execution and marks status `killed`.
   6. Timeout kills hanging commands.
 
-- [ ] **Step 1: Write E2E test in `tests/terminalAgentCommandExec.test.ts`**
+- [x] **Step 1: Write E2E test in `tests/terminalAgentCommandExec.test.ts`**
 
 ```typescript
 import request from 'supertest';
@@ -1009,12 +1009,12 @@ describe('Terminal Agent Command Execution End-to-End', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it passes**
+- [x] **Step 2: Run test to verify it passes**
 
 Run: `npx jest tests/terminalAgentCommandExec.test.ts`
 Expected: PASS.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add tests/terminalAgentCommandExec.test.ts
@@ -1029,17 +1029,17 @@ git commit -m "test(terminal): add end-to-end command execution tests"
 - Test all: `npm test`
 - Build all: `npm run build`
 
-- [ ] **Step 1: Execute full TypeScript and Frontend Build**
+- [x] **Step 1: Execute full TypeScript and Frontend Build**
 
 Run: `npm run build`
 Expected: Zero compilation errors.
 
-- [ ] **Step 2: Execute all unit and integration tests**
+- [x] **Step 2: Execute all unit and integration tests**
 
 Run: `npm test`
 Expected: All test suites pass (including existing 106 test suites + new command execution suites).
 
-- [ ] **Step 3: Final Git Check**
+- [x] **Step 3: Final Git Check**
 
 Run: `git status && git log -n 5 --oneline`
 Expected: Clean working tree with distinct semantic commits.
