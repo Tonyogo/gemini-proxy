@@ -259,6 +259,9 @@ npm run pm2:logs     # 查看实时运行日志
   - 服务端维护 200KB 环形历史回放缓冲区，重新进入时秒级恢复最近屏幕输出。
 - **纯 RPC 远程文件管理**：
   - 支持多主机目录实时浏览、文件查看与编辑（集成 Monaco Editor）、文件夹新建、重命名、批量上传与下载。
+- **独立异步命令执行引擎 (AI 与自动化部署对接)**：
+  - **进程级绝对隔离**：基于独立子进程（`child_process.spawn`）执行，不占用或干扰交互式 PTY 终端会话；
+  - **非阻塞异步生命周期**：触发执行即刻返回全局唯一 `taskId`，支持按字节偏移（`offset`）增量拉取输出、超时守卫（SIGTERM/SIGKILL 强杀）与任务自动垃圾回收。
 - **优雅空态与自动切换**：
   - 当暂无在线主机时，自动展示毛玻璃空态引导卡片，提供当前服务地址的一键启动命令；
   - 当主机上线时平滑自动连接并装载 xterm 终端，多节点自动自愈切换。
@@ -296,6 +299,84 @@ node scripts/terminal-agent.js --server=http://<proxy-ip>:3000 --key=<ADMIN_SECR
 - **自动检测内网 IP**：Agent 自动探测并上报主机的真实局域网 IPv4 地址与操作系统平台；
 - **自愈重连机制**：遇网络波动或代理重启，Agent 会自动采用指数退避算法（2s, 4s, 8s...）无限重连保活；
 - **零额外编译开销**：基于纯 Node.js 运行时，直接复用标准 `ws` 和 `node-pty`。
+
+#### D. 自动化命令执行 API (对接 AI / 部署脚本 / CI/CD)
+
+通过反向隧道连接的每个 Agent 节点，均支持通过标准 HTTP REST API 异步执行 Shell 命令，与人工交互的 WebTerminal 会话完全隔离。
+
+##### 1. 提交执行任务
+- **接口：** `POST /api/admin/terminal/exec/:hostId`
+- **说明：** 立即在目标节点派发独立子进程（`child_process.spawn`），返回 202 Accepted 与 `taskId`，避���长连接 HTTP 超时。
+- **请求示例 (cURL)：**
+```bash
+curl -X POST "http://localhost:3000/api/admin/terminal/exec/Ubuntu-GPU-Server" \
+     -H "Content-Type: application/json" \
+     -H "x-admin-key: YOUR_ADMIN_SECRET_KEY" \
+     -d '{
+       "command": "git pull origin main && npm run build",
+       "cwd": "/opt/apps/gemini-proxy",
+       "timeoutMs": 300000,
+       "env": { "NODE_ENV": "production" }
+     }'
+```
+- **响应示例：**
+```json
+{
+  "success": true,
+  "taskId": "task-1726671234000-a9b2c3",
+  "hostId": "Ubuntu-GPU-Server",
+  "status": "running",
+  "command": "git pull origin main && npm run build",
+  "cwd": "/opt/apps/gemini-proxy",
+  "startTime": 1726671234000
+}
+```
+
+##### 2. 轮询任务状态与增量输出
+- **接口：** `GET /api/admin/terminal/exec/:hostId/:taskId?offset=0`
+- **说明：** 支持按字节偏移量 `offset` 获取未读增量输出，AI Agent 或自动化脚本可根据返回的 `offset` 持续轮询直至任务结束（`status` 变为 `completed` / `failed` / `timeout` / `killed`）。
+- **请求示例 (cURL)：**
+```bash
+curl "http://localhost:3000/api/admin/terminal/exec/Ubuntu-GPU-Server/task-1726671234000-a9b2c3?offset=0" \
+     -H "x-admin-key: YOUR_ADMIN_SECRET_KEY"
+```
+- **响应示例：**
+```json
+{
+  "success": true,
+  "taskId": "task-1726671234000-a9b2c3",
+  "hostId": "Ubuntu-GPU-Server",
+  "status": "completed",
+  "exitCode": 0,
+  "stdout": "Updating a981fb7..81b8f5b\nFast-forward\nBuild success.\n",
+  "stderr": "",
+  "output": "Updating a981fb7..81b8f5b\nFast-forward\nBuild success.\n",
+  "offset": 58,
+  "totalBytes": 58,
+  "durationMs": 4200,
+  "startTime": 1726671234000,
+  "endTime": 1726671238200
+}
+```
+
+##### 3. 中断 / 强杀运行中的任务
+- **接口：** `POST /api/admin/terminal/exec/:hostId/:taskId/kill`
+- **说明：** 向指定任务进程发送 `SIGTERM`（可选 `SIGKILL`）中断信号。
+- **请求示例 (cURL)：**
+```bash
+curl -X POST "http://localhost:3000/api/admin/terminal/exec/Ubuntu-GPU-Server/task-1726671234000-a9b2c3/kill" \
+     -H "Content-Type: application/json" \
+     -H "x-admin-key: YOUR_ADMIN_SECRET_KEY" \
+     -d '{"signal": "SIGTERM"}'
+```
+
+##### 4. 获取节点最近历史任务列表
+- **接口：** `GET /api/admin/terminal/exec/:hostId?limit=20`
+- **请求示例 (cURL)：**
+```bash
+curl "http://localhost:3000/api/admin/terminal/exec/Ubuntu-GPU-Server?limit=20" \
+     -H "x-admin-key: YOUR_ADMIN_SECRET_KEY"
+```
 
 ---
 
