@@ -39,7 +39,7 @@
   - `serverErrorNotice`: "该节点上游请求异常: {error}" / "Upstream node error: {error}"
   - `scopeDesc`: "导入、删除、启用/禁用及轮换操作仅作用于当前选中的服务器实例。" / "All import, delete, toggle, and rotation actions apply strictly to this server instance."
 
-- [ ] **Step 1: Update `frontend/src/i18n/locales/zh.ts`**
+- [x] **Step 1: Update `frontend/src/i18n/locales/zh.ts`**
 
 In `frontend/src/i18n/locales/zh.ts`, add the new keys to `accounts`:
 ```typescript
@@ -52,7 +52,7 @@ In `frontend/src/i18n/locales/zh.ts`, add the new keys to `accounts`:
     scopeDesc: "当前凭据导入、启停、删除、去重及轮换设置仅作用于该独立服务器实例。",
 ```
 
-- [ ] **Step 2: Update `frontend/src/i18n/locales/en.ts`**
+- [x] **Step 2: Update `frontend/src/i18n/locales/en.ts`**
 
 In `frontend/src/i18n/locales/en.ts`, add the corresponding keys:
 ```typescript
@@ -65,12 +65,12 @@ In `frontend/src/i18n/locales/en.ts`, add the corresponding keys:
     scopeDesc: "All credential operations apply strictly to this server instance.",
 ```
 
-- [ ] **Step 3: Run build to verify dictionary compatibility**
+- [x] **Step 3: Run build to verify dictionary compatibility**
 
 Run: `npm run build:frontend`
 Expected: Passes with 0 errors.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add frontend/src/i18n/locales/zh.ts frontend/src/i18n/locales/en.ts
@@ -93,7 +93,7 @@ git commit -m "feat(i18n): add account multi-server scope and isolation translat
   - `handleSwitchServer(idx)`: Instant cache display + silent background fetch
   - Explicit `targetServerIdx = activeServerIndex` binding across all mutation functions
 
-- [ ] **Step 1: Replace monolithic `data` state with sharded maps**
+- [x] **Step 1: Replace monolithic `data` state with sharded maps**
 
 In `frontend/src/components/AccountsView.tsx`:
 Replace:
@@ -121,7 +121,7 @@ Update derived data:
   const isSystemBusy = Boolean(currentData?.status?.isSystemBusy);
 ```
 
-- [ ] **Step 2: Update `fetchStatus` with Request Sequence Guard**
+- [x] **Step 2: Update `fetchStatus` with Request Sequence Guard**
 
 Implement sequence-guarded `fetchStatus`:
 ```typescript
@@ -168,7 +168,7 @@ Implement sequence-guarded `fetchStatus`:
   };
 ```
 
-- [ ] **Step 3: Update `handleSwitchServer` for Instantaneous Switching**
+- [x] **Step 3: Update `handleSwitchServer` for Instantaneous Switching**
 
 ```typescript
   const handleSwitchServer = (idx: number) => {
@@ -183,7 +183,7 @@ Implement sequence-guarded `fetchStatus`:
   };
 ```
 
-- [ ] **Step 4: Explicitly scope all mutation handlers with `targetServerIdx`**
+- [x] **Step 4: Explicitly scope all mutation handlers with `targetServerIdx`**
 
 Update handlers:
 1. `handleCloseContext(index)`:
@@ -257,12 +257,12 @@ Update handlers:
    }
    ```
 
-- [ ] **Step 5: Verify build**
+- [x] **Step 5: Verify build**
 
 Run: `npm run build:frontend`
 Expected: Compiles with 0 errors.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add frontend/src/components/AccountsView.tsx
@@ -281,7 +281,7 @@ git commit -m "feat(accounts): implement sharded state caching and sequence guar
   - Rich Tab element with node status dot and account count badge
   - Dedicated `Server Scope Banner` with distinct color loop scheme, active target information, and quick refresh button
 
-- [ ] **Step 1: Enhance Multi-Server Selection Tabs UI**
+- [x] **Step 1: Enhance Multi-Server Selection Tabs UI**
 
 In `frontend/src/components/AccountsView.tsx`, update the `{servers.length > 1 && ...}` section:
 ```tsx
@@ -335,7 +335,7 @@ In `frontend/src/components/AccountsView.tsx`, update the `{servers.length > 1 &
       )}
 ```
 
-- [ ] **Step 2: Add Persistent Server Scope Banner Component**
+- [x] **Step 2: Add Persistent Server Scope Banner Component**
 
 Directly under the tabs (or above the modern page header / toolbar):
 ```tsx
@@ -407,7 +407,7 @@ Directly under the tabs (or above the modern page header / toolbar):
       )}
 ```
 
-- [ ] **Step 3: Add Empty / Loading Skeleton Overlay when currentData is null**
+- [x] **Step 3: Add Empty / Loading Skeleton Overlay when currentData is null**
 
 When switching to a server that has not yet loaded (`!currentData && isCurrentLoading`), render a clean loading skeleton or indicator instead of stale empty cards:
 ```tsx
@@ -419,12 +419,12 @@ When switching to a server that has not yet loaded (`!currentData && isCurrentLo
       )}
 ```
 
-- [ ] **Step 4: Verify Frontend Build**
+- [x] **Step 4: Verify Frontend Build**
 
 Run: `npm run build:frontend`
 Expected: Passes with 0 errors.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src/components/AccountsView.tsx
@@ -444,7 +444,7 @@ git commit -m "feat(accounts): add rich server tabs, scope banner, and loading s
   - Race condition immunity: slow network mock for server 0 does not overwrite server 1 data.
   - Scope banner presence and active target host rendering.
 
-- [ ] **Step 1: Write tests in `tests/accountsMultiServerIsolation.test.ts`**
+- [x] **Step 1: Write tests in `tests/accountsMultiServerIsolation.test.ts`**
 
 ```typescript
 import fs from 'fs';
@@ -484,12 +484,12 @@ describe('AccountsView Multi-Server Tab Isolation and Caching', () => {
 });
 ```
 
-- [ ] **Step 2: Run new test file**
+- [x] **Step 2: Run new test file**
 
 Run: `npx jest tests/accountsMultiServerIsolation.test.ts`
 Expected: PASS.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add tests/accountsMultiServerIsolation.test.ts
@@ -504,17 +504,18 @@ git commit -m "test(accounts): add unit tests for multi-server tab isolation and
 - Test all: `npm test`
 - Build all: `npm run build`
 
-- [ ] **Step 1: Execute Full Build**
+- [x] **Step 1: Execute Full Build**
 
 Run: `npm run build`
 Expected: Both frontend Vite bundle and backend TypeScript compile cleanly with 0 errors.
 
-- [ ] **Step 2: Execute Complete Test Suite**
+- [x] **Step 2: Execute Complete Test Suite**
 
 Run: `npm test`
 Expected: All 112 test suites pass with 0 failures.
 
-- [ ] **Step 3: Final Git Check**
+- [x] **Step 3: Final Git Check**
 
 Run: `git status && git log -n 5 --oneline`
 Expected: Clean working tree.
+
