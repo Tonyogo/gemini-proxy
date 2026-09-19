@@ -38,6 +38,27 @@ fn test_config_resolution() {
 }
 
 #[test]
+fn test_host_id_deterministic_derivation() {
+    let cfg_name_only = Config {
+        server: "http://localhost:3000".to_string(),
+        key: "".to_string(),
+        id: None,
+        name: Some("Ubuntu GPU Server".to_string()),
+        shell: None,
+    };
+    assert_eq!(cfg_name_only.get_host_id(), "ubuntu-gpu-server");
+
+    let cfg_explicit_id = Config {
+        server: "http://localhost:3000".to_string(),
+        key: "".to_string(),
+        id: Some("custom-box-id".to_string()),
+        name: Some("demo".to_string()),
+        shell: None,
+    };
+    assert_eq!(cfg_explicit_id.get_host_id(), "custom-box-id");
+}
+
+#[test]
 fn test_control_message_parsing() {
     // Ping & Pong
     match parse_control_message("JSON:{\"type\":\"ping\"}") {

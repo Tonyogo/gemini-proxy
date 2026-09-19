@@ -61,6 +61,17 @@ impl Config {
         if let Some(ref id) = self.id {
             return id.clone();
         }
+        if let Some(ref name) = self.name {
+            let sanitized: String = name
+                .to_lowercase()
+                .chars()
+                .map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' { c } else { '-' })
+                .collect();
+            let trimmed = sanitized.trim_matches('-');
+            if !trimmed.is_empty() {
+                return trimmed.to_string();
+            }
+        }
         let hostname = self.get_hostname();
         let sanitized_hostname: String = hostname
             .to_lowercase()

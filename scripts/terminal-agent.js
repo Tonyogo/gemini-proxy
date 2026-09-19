@@ -62,8 +62,11 @@ function getLocalIp() {
 }
 
 const localIp = getLocalIp();
-const hostId = options.id || options.hostId || `${hostname.toLowerCase().replace(/[^a-z0-9-_]/g, '-')}-${localIp.replace(/\./g, '-')}`;
 const hostName = options.name || hostname;
+const sanitizedName = options.name
+  ? options.name.toLowerCase().replace(/[^a-z0-9-_]/g, '-').replace(/^-+|-+$/g, '')
+  : '';
+const hostId = options.id || options.hostId || (sanitizedName || `${hostname.toLowerCase().replace(/[^a-z0-9-_]/g, '-')}-${localIp.replace(/\./g, '-')}`);
 
 function getDefaultShell() {
   if (platform === 'win32') {

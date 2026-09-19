@@ -15,6 +15,19 @@ describe('Terminal Agent Script', () => {
     expect(content).toContain('[Agent] Loaded .env configuration');
     expect(content).toContain('isFirstSpawn');
     expect(content).toContain('CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN');
+    expect(content).toContain('sanitizedName');
+  });
+
+  test('derives deterministic hostId from name when id is omitted', () => {
+    const parseHostId = (options: { id?: string; name?: string }, hostname: string, localIp: string) => {
+      const sanitizedName = options.name ? options.name.toLowerCase().replace(/[^a-z0-9-_]/g, '-').replace(/^-+|-+$/g, '') : '';
+      return options.id || (sanitizedName || `${hostname.toLowerCase().replace(/[^a-z0-9-_]/g, '-')}-${localIp.replace(/\./g, '-')}`);
+    };
+
+    expect(parseHostId({ name: 'demo' }, 'my-box', '192.168.1.10')).toBe('demo');
+    expect(parseHostId({ name: 'Ubuntu GPU Server' }, 'my-box', '192.168.1.10')).toBe('ubuntu-gpu-server');
+    expect(parseHostId({ id: 'explicit-id', name: 'demo' }, 'my-box', '192.168.1.10')).toBe('explicit-id');
+    expect(parseHostId({}, 'my-box', '192.168.1.10')).toBe('my-box-192-168-1-10');
   });
 
   test('package.json includes terminal-agent script', () => {
