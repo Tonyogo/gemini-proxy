@@ -35,7 +35,7 @@
   - When `--name="My Server 01"` and `--id` is absent, produce `hostId === "my-server-01"`.
   - When `--id="custom-id"` is provided, it always takes precedence.
 
-- [ ] **Step 1: Write failing test in `tests/terminalAgent.test.ts`**
+- [x] **Step 1: Write failing test in `tests/terminalAgent.test.ts`**
 
 Add tests asserting deterministic `hostId` derivation when `--name` is provided without `--id`:
 ```typescript
@@ -53,12 +53,12 @@ Add tests asserting deterministic `hostId` derivation when `--name` is provided 
   });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/terminalAgent.test.ts`
 Expected: PASS (or FAIL if test assertion requires implementation in `scripts/terminal-agent.js`).
 
-- [ ] **Step 3: Update `scripts/terminal-agent.js` host ID derivation**
+- [x] **Step 3: Update `scripts/terminal-agent.js` host ID derivation**
 
 In `scripts/terminal-agent.js`:
 ```javascript
@@ -70,7 +70,7 @@ const sanitizedName = options.name
 const hostId = options.id || options.hostId || (sanitizedName || `${hostname.toLowerCase().replace(/[^a-z0-9-_]/g, '-')}-${localIp.replace(/\./g, '-')}`);
 ```
 
-- [ ] **Step 4: Update `agent-rs/src/config.rs` host ID derivation**
+- [x] **Step 4: Update `agent-rs/src/config.rs` host ID derivation**
 
 In `agent-rs/src/config.rs`:
 ```rust
@@ -100,7 +100,7 @@ In `agent-rs/src/config.rs`:
     }
 ```
 
-- [ ] **Step 5: Add Rust test in `agent-rs/tests/agent_tests.rs`**
+- [x] **Step 5: Add Rust test in `agent-rs/tests/agent_tests.rs`**
 
 In `agent-rs/tests/agent_tests.rs`:
 ```rust
@@ -126,12 +126,12 @@ fn test_host_id_deterministic_derivation() {
 }
 ```
 
-- [ ] **Step 6: Run tests to verify**
+- [x] **Step 6: Run tests to verify**
 
 Run: `npx jest tests/terminalAgent.test.ts`
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add scripts/terminal-agent.js agent-rs/src/config.rs agent-rs/tests/agent_tests.rs tests/terminalAgent.test.ts
@@ -152,7 +152,7 @@ git commit -m "feat(agent): derive deterministic hostId from name when id is omi
   - `terminalHostManager.registerAgent(metadata)`: Auto-prunes existing offline nodes whose `name` matches `metadata.name`.
   - `terminalHostManager.getHosts()`: Returns array where each `name` is unique, prioritizing online status and higher `lastSeen`.
 
-- [ ] **Step 1: Write failing tests in `tests/terminalHostManager.test.ts`**
+- [x] **Step 1: Write failing tests in `tests/terminalHostManager.test.ts`**
 
 Add tests verifying:
 1. Registering an agent with `name: "demo"` removes any offline node with `name: "demo"` even if `hostId` differs.
@@ -218,12 +218,12 @@ Add tests verifying:
   });
 ```
 
-- [ ] **Step 2: Run tests to verify failure**
+- [x] **Step 2: Run tests to verify failure**
 
 Run: `npx jest tests/terminalHostManager.test.ts`
 Expected: FAIL with duplicate count expectations.
 
-- [ ] **Step 3: Implement Auto-Pruning and Deduplication in `TerminalHostManager`**
+- [x] **Step 3: Implement Auto-Pruning and Deduplication in `TerminalHostManager`**
 
 In `src/terminal/services/terminalHostManager.ts`:
 
@@ -325,12 +325,12 @@ In `src/terminal/services/terminalHostManager.ts`:
   }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/terminalHostManager.test.ts tests/terminalHostsApi.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/terminal/services/terminalHostManager.ts tests/terminalHostManager.test.ts
@@ -353,7 +353,7 @@ git commit -m "feat(terminal): auto-prune stale offline hosts and deduplicate ge
   - Frontend renders unique names by filtering duplicates before sorting.
   - Helpful hint provided for naming persistence.
 
-- [ ] **Step 1: Write test assertion in `tests/terminalHostSelector.test.ts`**
+- [x] **Step 1: Write test assertion in `tests/terminalHostSelector.test.ts`**
 
 In `tests/terminalHostSelector.test.ts`:
 ```typescript
@@ -363,12 +363,12 @@ In `tests/terminalHostSelector.test.ts`:
   });
 ```
 
-- [ ] **Step 2: Run test to verify failure**
+- [x] **Step 2: Run test to verify failure**
 
 Run: `npx jest tests/terminalHostSelector.test.ts`
 Expected: FAIL (`--name="my-server"` not found).
 
-- [ ] **Step 3: Update `TerminalHostSelector.tsx` and i18n locales**
+- [x] **Step 3: Update `TerminalHostSelector.tsx` and i18n locales**
 
 1. In `frontend/src/components/terminal/TerminalHostSelector.tsx`:
 Replace:
@@ -439,17 +439,17 @@ In `en.ts`:
 addNodeTip: "Specify a persistent identifier via --name (e.g., my-server). Reconnecting with the same name automatically updates the existing host without creating duplicates.",
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/terminalHostSelector.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Verify frontend build**
+- [x] **Step 5: Verify frontend build**
 
 Run: `npm run build:frontend`
 Expected: Passes with 0 errors.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add frontend/src/components/terminal/TerminalHostSelector.tsx frontend/src/i18n/locales/ tests/terminalHostSelector.test.ts
@@ -464,17 +464,17 @@ git commit -m "feat(frontend): stabilize agent onboarding command and deduplicat
 - Test all: `npm test`
 - Build all: `npm run build`
 
-- [ ] **Step 1: Execute Full Build**
+- [x] **Step 1: Execute Full Build**
 
 Run: `npm run build`
 Expected: Frontend (`vite build`) and backend (`tsc`) pass with 0 errors.
 
-- [ ] **Step 2: Execute Complete Test Suite**
+- [x] **Step 2: Execute Complete Test Suite**
 
 Run: `npm test`
 Expected: 111 / 111 test suites pass (614+ tests passed, 0 failures).
 
-- [ ] **Step 3: Final Git Check**
+- [x] **Step 3: Final Git Check**
 
 Run: `git status && git log -n 5 --oneline`
 Expected: Clean working tree with distinct semantic commits.
