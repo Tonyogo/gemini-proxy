@@ -30,7 +30,8 @@ import {
   ArrowDownCircle,
   Info,
   CopyCheck,
-  Server
+  Server,
+  Globe
 } from 'lucide-react';
 import { useTranslation } from '../i18n/LanguageContext';
 
@@ -83,8 +84,28 @@ export interface SystemStatusData {
 
 export default function AccountsView({ adminKey }: { adminKey: string }) {
   const { t } = useTranslation();
-  const [data, setData] = useState<SystemStatusData | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+
+  // Multi-server state
+  const [servers, setServers] = useState<string[]>([]);
+  const [activeServerIndex, setActiveServerIndex] = useState<number>(0);
+
+  const [serverDataMap, setServerDataMap] = useState<Record<number, any>>({});
+  const [serverLoadingMap, setServerLoadingMap] = useState<Record<number, boolean>>({});
+  const [serverErrorMap, setServerErrorMap] = useState<Record<number, string | null>>({});
+
+  const latestRequestIdRef = useRef<number>(0);
+
+  const currentData = serverDataMap[activeServerIndex] || null;
+  const isCurrentLoading = Boolean(serverLoadingMap[activeServerIndex]);
+  const currentError = serverErrorMap[activeServerIndex] || null;
+
+  const accounts: AccountDetail[] = currentData?.status?.accountDetails || [];
+  const currentAuthIndex = currentData?.status?.currentAuthIndex;
+  const isSystemBusy = Boolean(currentData?.status?.isSystemBusy);
+
+  const data = currentData;
+  const loading = isCurrentLoading;
+
   const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
   const [actionLoading, setActionLoading] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
@@ -154,10 +175,6 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     return headers;
   };
 
-  // Multi-server state
-  const [servers, setServers] = useState<string[]>([]);
-  const [activeServerIndex, setActiveServerIndex] = useState<number>(0);
-
   const getServerHost = (url: string): string => {
     try {
       const parsed = new URL(url);
@@ -188,28 +205,44 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     }
   };
 
-  const fetchStatus = async (silent: boolean = false, serverIdx: number = activeServerIndex) => {
+  const fetchStatus = async (silent: boolean = false, targetServerIdx: number = activeServerIndex) => {
+    const reqId = ++latestRequestIdRef.current;
+
     if (!silent) {
-      setLoading(true);
+      setServerLoadingMap(prev => ({ ...prev, [targetServerIdx]: true }));
     }
+
     try {
-      const res = await fetch(getApiUrl('/api/admin/accounts/status', serverIdx), {
+      const res = await fetch(getApiUrl('/api/admin/accounts/status', targetServerIdx), {
         headers: getHeaders()
       });
+
+      // Drop stale response if another request has been started for another tab
+      if (reqId !== latestRequestIdRef.current && targetServerIdx !== activeServerIndex) {
+        return;
+      }
+
       if (res.ok) {
         const json = await res.json();
-        setData(json);
-      } else if (!silent) {
+        setServerDataMap(prev => ({ ...prev, [targetServerIdx]: json }));
+        setServerErrorMap(prev => ({ ...prev, [targetServerIdx]: null }));
+      } else {
         const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-        showToast(t('accounts.actionFailed', { error: err.error || err.message }), 'error');
+        setServerErrorMap(prev => ({ ...prev, [targetServerIdx]: err.error || err.message }));
+        if (!silent) {
+          showToast(t('accounts.actionFailed', { error: err.error || err.message }), 'error');
+        }
       }
     } catch (e: any) {
-      if (!silent) {
-        showToast(t('accounts.actionFailed', { error: e.message }), 'error');
+      if (reqId === latestRequestIdRef.current) {
+        setServerErrorMap(prev => ({ ...prev, [targetServerIdx]: e.message }));
+        if (!silent) {
+          showToast(t('accounts.actionFailed', { error: e.message }), 'error');
+        }
       }
     } finally {
       if (!silent) {
-        setLoading(false);
+        setServerLoadingMap(prev => ({ ...prev, [targetServerIdx]: false }));
       }
     }
   };
@@ -219,6 +252,10 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     setActiveServerIndex(idx);
     setSelectedIndices([]);
     setPopoverAnchor(null);
+
+    const hasCachedData = Boolean(serverDataMap[idx]);
+    // If cached, render immediately without blocking, then trigger silent sync; otherwise show loading spinner
+    fetchStatus(!hasCachedData ? false : true, idx);
   };
 
   useEffect(() => {
@@ -227,7 +264,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
 
   useEffect(() => {
     fetchStatus(false, activeServerIndex);
-  }, [adminKey, activeServerIndex]);
+  }, [adminKey]);
 
   // Click outside / scroll / resize / keydown listener to dismiss open popovers
   useEffect(() => {
@@ -274,10 +311,6 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
       terminalLogsEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [data?.logs, autoScrollLogs, isLogsExpanded]);
-
-  const accounts: AccountDetail[] = data?.status?.accountDetails || [];
-  const currentAuthIndex = data?.status?.currentAuthIndex;
-  const isSystemBusy = Boolean(data?.status?.isSystemBusy);
 
   const totalCount = accounts.length;
 
@@ -371,16 +404,17 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
   };
 
   const handleCloseContext = async (index: number) => {
+    const targetServerIdx = activeServerIndex;
     setActionLoading(true);
     try {
-      const res = await fetch(getApiUrl(`/api/admin/accounts/${index}/close-context`), {
+      const res = await fetch(getApiUrl(`/api/admin/accounts/${index}/close-context`, targetServerIdx), {
         method: 'POST',
         headers: getHeaders()
       });
       if (res.ok) {
         showToast(t('accounts.closeContextSuccess', { index: String(index) }));
         setCloseContextConfirm(null);
-        fetchStatus();
+        fetchStatus(false, targetServerIdx);
       } else {
         const err = await res.json().catch(() => ({ error: 'Error' }));
         showToast(t('accounts.actionFailed', { error: err.error || err.message }), 'error');
@@ -393,16 +427,17 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
   };
 
   const handleToggleDisabled = async (index: number, currentDisabled: boolean) => {
+    const targetServerIdx = activeServerIndex;
     setActionLoading(true);
     try {
-      const res = await fetch(getApiUrl('/api/admin/accounts/toggle-disabled'), {
+      const res = await fetch(getApiUrl('/api/admin/accounts/toggle-disabled', targetServerIdx), {
         method: 'POST',
         headers: getHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ index, disabled: !currentDisabled })
       });
       if (res.ok) {
         showToast(t('accounts.actionSuccess'));
-        fetchStatus();
+        fetchStatus(false, targetServerIdx);
       } else {
         const err = await res.json().catch(() => ({ error: 'Error' }));
         showToast(t('accounts.actionFailed', { error: err.error || err.message }), 'error');
@@ -416,11 +451,12 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
 
   const handleBatchToggleDisabled = async (disabled: boolean) => {
     if (selectedIndices.length === 0) return;
+    const targetServerIdx = activeServerIndex;
     setActionLoading(true);
     try {
       await Promise.all(
         selectedIndices.map(index =>
-          fetch(getApiUrl('/api/admin/accounts/toggle-disabled'), {
+          fetch(getApiUrl('/api/admin/accounts/toggle-disabled', targetServerIdx), {
             method: 'POST',
             headers: getHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({ index, disabled })
@@ -428,7 +464,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
         )
       );
       showToast(t('accounts.actionSuccess'));
-      fetchStatus();
+      fetchStatus(false, targetServerIdx);
     } catch (err: any) {
       showToast(t('accounts.actionFailed', { error: err.message }), 'error');
     } finally {
@@ -437,16 +473,17 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
   };
 
   const handleSetCurrent = async (targetIndex: number) => {
+    const targetServerIdx = activeServerIndex;
     setActionLoading(true);
     try {
-      const res = await fetch(getApiUrl('/api/admin/accounts/current'), {
+      const res = await fetch(getApiUrl('/api/admin/accounts/current', targetServerIdx), {
         method: 'PUT',
         headers: getHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ targetIndex })
       });
       if (res.ok) {
         showToast(t('accounts.actionSuccess'));
-        fetchStatus();
+        fetchStatus(false, targetServerIdx);
       } else {
         const err = await res.json().catch(() => ({ error: 'Error' }));
         showToast(t('accounts.actionFailed', { error: err.error || err.message }), 'error');
@@ -459,14 +496,16 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
   };
 
   const handleDownloadSingle = async (index: number) => {
+    const targetServerIdx = activeServerIndex;
     const filename = `auth-${index}.json`;
-    window.open(getApiUrl(`/api/admin/accounts/files/${filename}`), '_blank');
+    window.open(getApiUrl(`/api/admin/accounts/files/${filename}`, targetServerIdx), '_blank');
   };
 
   const handleDeleteSingle = async (index: number, force: boolean = false) => {
+    const targetServerIdx = activeServerIndex;
     setActionLoading(true);
     try {
-      const res = await fetch(getApiUrl(`/api/admin/accounts/${index}?force=${force}`), {
+      const res = await fetch(getApiUrl(`/api/admin/accounts/${index}?force=${force}`, targetServerIdx), {
         method: 'DELETE',
         headers: getHeaders()
       });
@@ -474,7 +513,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
         showToast(t('accounts.actionSuccess'));
         setDeleteConfirm(null);
         setSelectedIndices(selectedIndices.filter(i => i !== index));
-        fetchStatus();
+        fetchStatus(false, targetServerIdx);
       } else if (res.status === 409 && !force) {
         const acc = accounts.find(a => a.index === index);
         setDeleteConfirm({ index, email: acc?.name || '', isCurrent: true });
@@ -491,9 +530,10 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
 
   const handleBatchDelete = async () => {
     if (selectedIndices.length === 0) return;
+    const targetServerIdx = activeServerIndex;
     setActionLoading(true);
     try {
-      const res = await fetch(getApiUrl('/api/admin/accounts/batch-delete'), {
+      const res = await fetch(getApiUrl('/api/admin/accounts/batch-delete', targetServerIdx), {
         method: 'POST',
         headers: getHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ indices: selectedIndices, force: true })
@@ -502,7 +542,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
         showToast(t('accounts.actionSuccess'));
         setSelectedIndices([]);
         setBatchDeleteConfirm(false);
-        fetchStatus();
+        fetchStatus(false, targetServerIdx);
       } else {
         const err = await res.json().catch(() => ({ error: 'Error' }));
         showToast(t('accounts.actionFailed', { error: err.error || err.message }), 'error');
@@ -515,9 +555,10 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
   };
 
   const handleDeduplicate = async () => {
+    const targetServerIdx = activeServerIndex;
     setActionLoading(true);
     try {
-      const res = await fetch(getApiUrl('/api/admin/accounts/deduplicate'), {
+      const res = await fetch(getApiUrl('/api/admin/accounts/deduplicate', targetServerIdx), {
         method: 'POST',
         headers: getHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({})
@@ -527,7 +568,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
         const removed = result.removedIndices?.length || 0;
         showToast(t('accounts.dedupSuccess', { count: removed }));
         setDedupConfirm(false);
-        fetchStatus();
+        fetchStatus(false, targetServerIdx);
       } else {
         const err = await res.json().catch(() => ({ error: 'Error' }));
         showToast(t('accounts.actionFailed', { error: err.error || err.message }), 'error');
@@ -541,9 +582,10 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
 
   const handleBatchDownload = async () => {
     if (selectedIndices.length === 0) return;
+    const targetServerIdx = activeServerIndex;
     setActionLoading(true);
     try {
-      const res = await fetch(getApiUrl('/api/admin/accounts/batch-download'), {
+      const res = await fetch(getApiUrl('/api/admin/accounts/batch-download', targetServerIdx), {
         method: 'POST',
         headers: getHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ indices: selectedIndices })
@@ -574,6 +616,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
+    const targetServerIdx = activeServerIndex;
     setActionLoading(true);
     try {
       const parsedFiles: any[] = [];
@@ -590,13 +633,13 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
 
       let res;
       if (parsedFiles.length === 1) {
-        res = await fetch(getApiUrl('/api/admin/accounts/upload'), {
+        res = await fetch(getApiUrl('/api/admin/accounts/upload', targetServerIdx), {
           method: 'POST',
           headers: getHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify({ content: parsedFiles[0] })
         });
       } else {
-        res = await fetch(getApiUrl('/api/admin/accounts/upload'), {
+        res = await fetch(getApiUrl('/api/admin/accounts/upload', targetServerIdx), {
           method: 'POST',
           headers: getHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify({ files: parsedFiles })
@@ -605,7 +648,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
 
       if (res.ok || res.status === 207) {
         showToast(t('accounts.uploadSuccess', { count: parsedFiles.length }));
-        fetchStatus();
+        fetchStatus(false, targetServerIdx);
       } else {
         const err = await res.json().catch(() => ({ error: 'Upload failed' }));
         showToast(t('accounts.uploadFailed', { error: err.error || err.message }), 'error');
