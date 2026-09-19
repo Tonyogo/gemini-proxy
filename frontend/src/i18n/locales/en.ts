@@ -362,7 +362,7 @@ export const en = {
     generalGroup: "General Runtime & Logging Policies",
     upstreamGroup: "Upstream Gemini Gateway & Timeouts",
     geminiBaseUrlTitle: "GEMINI_BASE_URL",
-    geminiBaseUrlDesc: "Official Gemini API or reverse proxy gateway URL. Takes effect immediately.",
+    geminiBaseUrlDesc: "Official Gemini API or reverse proxy gateway URL. Supports multiple servers separated by commas, load-balanced via per-model round-robin.",
     useOfficialDefault: "Use Official Default",
     securityGroup: "Security & Environment Recovery",
     logLevelDesc: "Terminal & system logging verbosity level.",

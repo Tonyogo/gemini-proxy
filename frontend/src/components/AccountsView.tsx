@@ -29,7 +29,8 @@ import {
   ExternalLink,
   ArrowDownCircle,
   Info,
-  CopyCheck
+  CopyCheck,
+  Server
 } from 'lucide-react';
 import { useTranslation } from '../i18n/LanguageContext';
 
@@ -153,12 +154,46 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     return headers;
   };
 
-  const fetchStatus = async (silent: boolean = false) => {
+  // Multi-server state
+  const [servers, setServers] = useState<string[]>([]);
+  const [activeServerIndex, setActiveServerIndex] = useState<number>(0);
+
+  const getServerHost = (url: string): string => {
+    try {
+      const parsed = new URL(url);
+      return parsed.host;
+    } catch {
+      return url.replace(/^https?:\/\//, '').replace(/\/+$/, '');
+    }
+  };
+
+  const getApiUrl = (endpoint: string, serverIdx: number = activeServerIndex): string => {
+    const sep = endpoint.includes('?') ? '&' : '?';
+    return `${endpoint}${sep}serverId=${serverIdx}`;
+  };
+
+  const fetchServers = async () => {
+    try {
+      const res = await fetch('/api/admin/accounts/servers', {
+        headers: getHeaders()
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (Array.isArray(json.servers)) {
+          setServers(json.servers);
+        }
+      }
+    } catch {
+      // Non-fatal
+    }
+  };
+
+  const fetchStatus = async (silent: boolean = false, serverIdx: number = activeServerIndex) => {
     if (!silent) {
       setLoading(true);
     }
     try {
-      const res = await fetch('/api/admin/accounts/status', {
+      const res = await fetch(getApiUrl('/api/admin/accounts/status', serverIdx), {
         headers: getHeaders()
       });
       if (res.ok) {
@@ -179,9 +214,20 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     }
   };
 
+  const handleSwitchServer = (idx: number) => {
+    if (idx === activeServerIndex) return;
+    setActiveServerIndex(idx);
+    setSelectedIndices([]);
+    setPopoverAnchor(null);
+  };
+
   useEffect(() => {
-    fetchStatus();
+    fetchServers();
   }, [adminKey]);
+
+  useEffect(() => {
+    fetchStatus(false, activeServerIndex);
+  }, [adminKey, activeServerIndex]);
 
   // Click outside / scroll / resize / keydown listener to dismiss open popovers
   useEffect(() => {
@@ -215,13 +261,13 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
   useEffect(() => {
     if (!isLogsExpanded || !enableLivePolling) return;
 
-    fetchStatus(true);
+    fetchStatus(true, activeServerIndex);
     const timer = setInterval(() => {
-      fetchStatus(true);
+      fetchStatus(true, activeServerIndex);
     }, 3000);
 
     return () => clearInterval(timer);
-  }, [isLogsExpanded, enableLivePolling, adminKey]);
+  }, [isLogsExpanded, enableLivePolling, adminKey, activeServerIndex]);
 
   useEffect(() => {
     if (autoScrollLogs && isLogsExpanded && terminalLogsEndRef.current) {
@@ -327,7 +373,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
   const handleCloseContext = async (index: number) => {
     setActionLoading(true);
     try {
-      const res = await fetch(`/api/admin/accounts/${index}/close-context`, {
+      const res = await fetch(getApiUrl(`/api/admin/accounts/${index}/close-context`), {
         method: 'POST',
         headers: getHeaders()
       });
@@ -349,7 +395,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
   const handleToggleDisabled = async (index: number, currentDisabled: boolean) => {
     setActionLoading(true);
     try {
-      const res = await fetch('/api/admin/accounts/toggle-disabled', {
+      const res = await fetch(getApiUrl('/api/admin/accounts/toggle-disabled'), {
         method: 'POST',
         headers: getHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ index, disabled: !currentDisabled })
@@ -374,7 +420,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     try {
       await Promise.all(
         selectedIndices.map(index =>
-          fetch('/api/admin/accounts/toggle-disabled', {
+          fetch(getApiUrl('/api/admin/accounts/toggle-disabled'), {
             method: 'POST',
             headers: getHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({ index, disabled })
@@ -393,7 +439,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
   const handleSetCurrent = async (targetIndex: number) => {
     setActionLoading(true);
     try {
-      const res = await fetch('/api/admin/accounts/current', {
+      const res = await fetch(getApiUrl('/api/admin/accounts/current'), {
         method: 'PUT',
         headers: getHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ targetIndex })
@@ -414,13 +460,13 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
 
   const handleDownloadSingle = async (index: number) => {
     const filename = `auth-${index}.json`;
-    window.open(`/api/admin/accounts/files/${filename}`, '_blank');
+    window.open(getApiUrl(`/api/admin/accounts/files/${filename}`), '_blank');
   };
 
   const handleDeleteSingle = async (index: number, force: boolean = false) => {
     setActionLoading(true);
     try {
-      const res = await fetch(`/api/admin/accounts/${index}?force=${force}`, {
+      const res = await fetch(getApiUrl(`/api/admin/accounts/${index}?force=${force}`), {
         method: 'DELETE',
         headers: getHeaders()
       });
@@ -447,7 +493,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     if (selectedIndices.length === 0) return;
     setActionLoading(true);
     try {
-      const res = await fetch('/api/admin/accounts/batch-delete', {
+      const res = await fetch(getApiUrl('/api/admin/accounts/batch-delete'), {
         method: 'POST',
         headers: getHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ indices: selectedIndices, force: true })
@@ -471,7 +517,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
   const handleDeduplicate = async () => {
     setActionLoading(true);
     try {
-      const res = await fetch('/api/admin/accounts/deduplicate', {
+      const res = await fetch(getApiUrl('/api/admin/accounts/deduplicate'), {
         method: 'POST',
         headers: getHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({})
@@ -497,7 +543,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     if (selectedIndices.length === 0) return;
     setActionLoading(true);
     try {
-      const res = await fetch('/api/admin/accounts/batch-download', {
+      const res = await fetch(getApiUrl('/api/admin/accounts/batch-download'), {
         method: 'POST',
         headers: getHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ indices: selectedIndices })
@@ -544,13 +590,13 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
 
       let res;
       if (parsedFiles.length === 1) {
-        res = await fetch('/api/admin/accounts/upload', {
+        res = await fetch(getApiUrl('/api/admin/accounts/upload'), {
           method: 'POST',
           headers: getHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify({ content: parsedFiles[0] })
         });
       } else {
-        res = await fetch('/api/admin/accounts/upload', {
+        res = await fetch(getApiUrl('/api/admin/accounts/upload'), {
           method: 'POST',
           headers: getHeaders({ 'Content-Type': 'application/json' }),
           body: JSON.stringify({ files: parsedFiles })
@@ -713,6 +759,34 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
             <AlertCircle className="w-4 h-4 text-rose-400" />
           )}
           <span>{toastMessage.text}</span>
+        </div>
+      )}
+
+      {/* Multi-Server Selection Tabs */}
+      {servers.length > 1 && (
+        <div className="flex items-center space-x-2 overflow-x-auto pb-1 scrollbar-thin">
+          <div className="flex items-center bg-black/[0.03] dark:bg-white/[0.04] p-1 rounded-xl border border-black/5 dark:border-white/10 gap-1.5 min-w-max">
+            {servers.map((serverUrl, idx) => {
+              const host = getServerHost(serverUrl);
+              const isActive = activeServerIndex === idx;
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => handleSwitchServer(idx)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center space-x-1.5 ${
+                    isActive
+                      ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/25 font-semibold'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'
+                  }`}
+                  title={serverUrl}
+                >
+                  <Server className="w-3.5 h-3.5 shrink-0" />
+                  <span>Server {idx + 1} ({host})</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 

@@ -5,6 +5,7 @@ import payloadLogger from '../services/payloadLogger';
 import claudeTranslator from '../services/claudeTranslator';
 import logger from '../../utils/logger';
 import { StreamLifecycleManager } from '../../utils/streamLifecycleManager';
+import upstreamManager from '../../utils/upstreamManager';
 import {
   extractClientKey,
   extractTimeoutMs,
@@ -62,7 +63,7 @@ class GeminiController {
     }
 
     const isStream = cleanPath.includes(':streamGenerateContent') || req.query.alt === 'sse';
-    const targetUrl = getUpstreamUrl(cleanPath);
+    const { targetUrl, serverUrl, serverIndex } = upstreamManager.getUpstreamUrl(cleanPath, { model: targetModelName || undefined });
     const customUpstreamHeaders: Record<string, string> = {};
     if (effectiveStrategy) {
       customUpstreamHeaders['x-scheduling-strategy'] = effectiveStrategy;
@@ -73,7 +74,7 @@ class GeminiController {
 
     if (isStream) {
       const streamManager = new StreamLifecycleManager({ req, res, transactionId, timeoutMs });
-      logger.info(`[GeminiProxy] [Transaction: ${transactionId}] Proxying stream to: ${req.method} ${targetUrl}`);
+      logger.info(`[GeminiProxy] [Transaction: ${transactionId}] Proxying stream to [server ${serverIndex + 1}: ${serverUrl}]: ${req.method} ${targetUrl}`);
 
       try {
         const response = await fetch(targetUrl, {
@@ -150,7 +151,7 @@ class GeminiController {
 
     // Non-streaming request
     try {
-      logger.info(`[GeminiProxy] [Transaction: ${transactionId}] Proxying request to: ${req.method} ${targetUrl}`);
+      logger.info(`[GeminiProxy] [Transaction: ${transactionId}] Proxying request to [server ${serverIndex + 1}: ${serverUrl}]: ${req.method} ${targetUrl}`);
       const response = await fetch(targetUrl, {
         method: req.method,
         headers: upstreamHeaders,

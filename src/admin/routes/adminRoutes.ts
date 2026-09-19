@@ -22,6 +22,7 @@ router.use('/terminal', terminalRoutes);
 router.get('/terminal-logs', (req, res) => terminalLogController.getTerminalLogs(req, res));
 
 // Account Management Routes
+router.get('/accounts/servers', (req, res) => accountController.getServers(req, res));
 router.get('/accounts/status', (req, res) => accountController.getStatus(req, res));
 router.post('/accounts/upload', (req, res) => accountController.upload(req, res));
 router.post('/accounts/toggle-disabled', (req, res) => accountController.toggleDisabled(req, res));

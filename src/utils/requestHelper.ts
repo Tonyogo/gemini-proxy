@@ -1,5 +1,6 @@
 import { Request } from 'express';
 import config from '../../config/default';
+import upstreamManager, { UpstreamUrlSelection } from './upstreamManager';
 
 /**
  * Extracts the Google Gemini API key from various client request headers or query parameters.
@@ -51,11 +52,14 @@ export function extractClientSchedulingStrategy(req: Request): string | null {
 
 /**
  * Normalizes and builds the absolute upstream Gemini URL for proxying.
+ * Supports per-model round-robin or explicit server index via options.
  */
-export function getUpstreamUrl(pathAndQuery: string): string {
-  const base = config.geminiBaseUrl.replace(/\/+$/, '');
-  const cleanPath = pathAndQuery.replace(/^\/+/, '');
-  return `${base}/${cleanPath}`;
+export function getUpstreamUrl(
+  pathAndQuery: string,
+  options?: { model?: string; serverIndex?: number } | string
+): string {
+  const opts = typeof options === 'string' ? { model: options } : options;
+  return upstreamManager.getUpstreamUrl(pathAndQuery, opts).targetUrl;
 }
 
 /**

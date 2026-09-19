@@ -176,4 +176,44 @@ describe('accountService', () => {
       })
     );
   });
+
+  it('should target specific upstream server URLs when serverIndex is specified', async () => {
+    const configModule = require('../config/default');
+    const originalUrl = configModule.config.geminiBaseUrl;
+    await configModule.updateConfig({
+      geminiBaseUrl: 'https://acc-srv1.example.com,https://acc-srv2.example.com'
+    });
+
+    mockedFetch.mockResolvedValueOnce({
+      status: 200,
+      headers: {
+        get: () => 'application/json',
+        forEach: (fn: any) => fn('application/json', 'content-type')
+      },
+      json: async () => ({ server: 1 })
+    });
+
+    await accountService.getStatus(1);
+    expect(mockedFetch).toHaveBeenLastCalledWith(
+      'https://acc-srv2.example.com/api/status',
+      expect.anything()
+    );
+
+    mockedFetch.mockResolvedValueOnce({
+      status: 200,
+      headers: {
+        get: () => 'application/json',
+        forEach: (fn: any) => fn('application/json', 'content-type')
+      },
+      json: async () => ({ server: 0 })
+    });
+
+    await accountService.getStatus(0);
+    expect(mockedFetch).toHaveBeenLastCalledWith(
+      'https://acc-srv1.example.com/api/status',
+      expect.anything()
+    );
+
+    await configModule.updateConfig({ geminiBaseUrl: originalUrl });
+  });
 });

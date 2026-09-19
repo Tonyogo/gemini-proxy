@@ -300,7 +300,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
         body: JSON.stringify({
           systemRoleToInstruction,
           customSystemInstruction,
-          geminiBaseUrl: geminiBaseUrl.trim().replace(/\/+$/, ''),
+          geminiBaseUrl: geminiBaseUrl.split(',').map(s => s.trim().replace(/\/+$/, '')).filter(Boolean).join(','),
           upstreamTimeoutMs,
           logLevel,
           logRetentionDays,
@@ -529,12 +529,12 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                           type="text"
                           value={geminiBaseUrl}
                           onChange={(e) => setGeminiBaseUrl(e.target.value)}
-                          onBlur={() => setGeminiBaseUrl(prev => prev.trim().replace(/\/+$/, ''))}
-                          placeholder="https://generativelanguage.googleapis.com"
+                          onBlur={() => setGeminiBaseUrl(prev => prev.split(',').map(s => s.trim().replace(/\/+$/, '')).filter(Boolean).join(','))}
+                          placeholder="https://generativelanguage.googleapis.com,https://s2.example.com"
                           className="w-full ui-input p-2.5 text-xs font-mono"
                         />
                         <p className="hidden sm:block text-[10px] text-slate-400">
-                          {t('config.geminiBaseUrlDesc', 'Gemini 官方 API 地址或反向代理网关。保存后所有请求实时生效。')}
+                          {t('config.geminiBaseUrlDesc', 'Gemini 官方 API 地址或反向代理网关。支持配置多个 server（以英文逗号分隔），各模型将按轮询算法均匀调度。')}
                         </p>
                       </div>
 

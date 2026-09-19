@@ -6,6 +6,7 @@ import claudeTranslator from '../services/claudeTranslator';
 import payloadLogger from '../services/payloadLogger';
 import logger from '../../utils/logger';
 import { StreamLifecycleManager } from '../../utils/streamLifecycleManager';
+import upstreamManager from '../../utils/upstreamManager';
 import {
   extractClientKey,
   extractTimeoutMs,
@@ -62,8 +63,8 @@ class ClaudeController {
       if (isStream) {
         const streamManager = new StreamLifecycleManager({ req, res, transactionId, timeoutMs });
         const targetPath = `/v1beta/models/${cleanModelName}:streamGenerateContent?alt=sse`;
-        const targetUrl = getUpstreamUrl(targetPath);
-        logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini: POST ${targetPath}`);
+        const { targetUrl, serverUrl, serverIndex } = upstreamManager.getUpstreamUrl(targetPath, { model: cleanModelName });
+        logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini [server ${serverIndex + 1}: ${serverUrl}]: POST ${targetPath}`);
 
         try {
           const response = await fetch(targetUrl, {
@@ -243,8 +244,8 @@ class ClaudeController {
       // Non-Streaming generation
       const streamManager = new StreamLifecycleManager({ req, res, transactionId, timeoutMs });
       const targetPath = `/v1beta/models/${cleanModelName}:generateContent`;
-      const targetUrl = getUpstreamUrl(targetPath);
-      logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini: POST ${targetPath}`);
+      const { targetUrl, serverUrl, serverIndex } = upstreamManager.getUpstreamUrl(targetPath, { model: cleanModelName });
+      logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini [server ${serverIndex + 1}: ${serverUrl}]: POST ${targetPath}`);
 
       try {
         const response = await fetch(targetUrl, {
@@ -358,8 +359,8 @@ class ClaudeController {
       gemReq = countTokensPayload;
 
       const targetPath = `/v1beta/models/${cleanModelName}:countTokens`;
-      const targetUrl = getUpstreamUrl(targetPath);
-      logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini: POST ${targetPath}`);
+      const { targetUrl, serverUrl, serverIndex } = upstreamManager.getUpstreamUrl(targetPath, { model: cleanModelName });
+      logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini [server ${serverIndex + 1}: ${serverUrl}]: POST ${targetPath}`);
 
       const response = await fetch(targetUrl, {
         method: 'POST',
@@ -427,7 +428,8 @@ class ClaudeController {
       }
 
       const targetPath = `/v1beta/models`;
-      const targetUrl = getUpstreamUrl(targetPath);
+      const { targetUrl, serverUrl, serverIndex } = upstreamManager.getUpstreamUrl(targetPath);
+      logger.info(`[Request] [Transaction: ${transactionId}] Proxying models list to Gemini [server ${serverIndex + 1}: ${serverUrl}]: GET ${targetPath}`);
       gemReq = { endpoint: targetPath };
 
       const response = await fetch(targetUrl, {
@@ -515,7 +517,8 @@ class ClaudeController {
       const resolvedModelId = claudeTranslator.getCleanModelName(cleanModelId);
 
       const targetPath = `/v1beta/models/${resolvedModelId}`;
-      const targetUrl = getUpstreamUrl(targetPath);
+      const { targetUrl, serverUrl, serverIndex } = upstreamManager.getUpstreamUrl(targetPath, { model: resolvedModelId });
+      logger.info(`[Request] [Transaction: ${transactionId}] Proxying model metadata to Gemini [server ${serverIndex + 1}: ${serverUrl}]: GET ${targetPath}`);
       gemReq = { endpoint: targetPath };
 
       const response = await fetch(targetUrl, {

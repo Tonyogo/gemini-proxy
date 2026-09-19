@@ -74,8 +74,25 @@ if (existsSync(runtimeJsonPath)) {
   }
 }
 
+export function normalizeBaseUrls(raw?: string): string {
+  if (!raw || typeof raw !== 'string' || !raw.trim()) {
+    return 'https://generativelanguage.googleapis.com';
+  }
+  const parts = raw
+    .split(',')
+    .map(s => s.trim().replace(/\/+$/, ''))
+    .filter(Boolean)
+    .map(s => (/^https?:\/\//i.test(s) ? s : `https://${s}`));
+  return parts.length > 0 ? parts.join(',') : 'https://generativelanguage.googleapis.com';
+}
+
+export function parseBaseUrls(raw?: string): string[] {
+  const normalized = normalizeBaseUrls(raw);
+  return normalized.split(',').map(s => s.trim()).filter(Boolean);
+}
+
 const getEnvConfig = () => ({
-  geminiBaseUrl: (process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com') as string,
+  geminiBaseUrl: normalizeBaseUrls(process.env.GEMINI_BASE_URL),
   logLevel: (process.env.LOG_LEVEL || 'info') as string,
   modelMappings: parsedModelMappings as ModelMappingsConfig,
   ephemeralUserMessages: parsedEphemeralUserMessages as string[],
@@ -121,13 +138,11 @@ export async function updateConfig(
 
   if (partialConfig.geminiBaseUrl !== undefined) {
     if (typeof partialConfig.geminiBaseUrl === 'string') {
-      let cleanUrl = partialConfig.geminiBaseUrl.trim().replace(/\/+$/, '');
-      if (!cleanUrl) {
-        cleanUrl = process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com';
-      } else if (!/^https?:\/\//i.test(cleanUrl)) {
-        cleanUrl = `https://${cleanUrl}`;
+      let raw = partialConfig.geminiBaseUrl.trim();
+      if (!raw) {
+        raw = process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com';
       }
-      partialConfig.geminiBaseUrl = cleanUrl;
+      partialConfig.geminiBaseUrl = normalizeBaseUrls(raw);
     }
   }
 

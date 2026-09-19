@@ -364,7 +364,7 @@ export const zh: Translations = {
     generalGroup: "通用运行时与日志记录策略",
     upstreamGroup: "上游 Gemini 网关与超时参数",
     geminiBaseUrlTitle: "GEMINI_BASE_URL",
-    geminiBaseUrlDesc: "Gemini 官方 API 地址或反向代理网关。保存后所有请求实时生效。",
+    geminiBaseUrlDesc: "Gemini 官方 API 地址或反向代理网关。支持配置多个 server（以英文逗号分隔），各模型将按轮询算法均匀调度。",
     useOfficialDefault: "填入官方默认",
     securityGroup: "安全控制与环境恢复",
     logLevelDesc: "控制终端与系统内部日志输出的详细程度。",

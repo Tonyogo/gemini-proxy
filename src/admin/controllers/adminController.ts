@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import config, { updateConfig } from '../../../config/default';
 import logService from '../services/logService';
+import upstreamManager from '../../utils/upstreamManager';
 
 class AdminController {
   public async getStatus(req: Request, res: Response): Promise<void> {
@@ -11,6 +12,7 @@ class AdminController {
       config: {
         logLevel: config.logLevel,
         geminiBaseUrl: config.geminiBaseUrl,
+        geminiBaseUrls: upstreamManager.getBaseUrls(),
         systemRoleToInstruction: config.systemRoleToInstruction,
         runtimeContextTag: config.runtimeContextTag,
         upstreamTimeoutMs: config.upstreamTimeoutMs,
@@ -84,6 +86,7 @@ class AdminController {
         config: {
           logLevel: config.logLevel,
           geminiBaseUrl: config.geminiBaseUrl,
+          geminiBaseUrls: upstreamManager.getBaseUrls(),
           systemRoleToInstruction: config.systemRoleToInstruction,
           runtimeContextTag: config.runtimeContextTag,
           upstreamTimeoutMs: config.upstreamTimeoutMs,

@@ -1,9 +1,10 @@
 import fetch, { Response } from 'node-fetch';
 import config from '../../../config/default';
+import upstreamManager from '../../utils/upstreamManager';
 
 export class AccountService {
-  private getBaseUrl(): string {
-    return (config.geminiBaseUrl || 'https://generativelanguage.googleapis.com').replace(/\/+$/, '');
+  private getBaseUrl(serverIndex?: number): string {
+    return upstreamManager.getUpstreamServer({ serverIndex }).serverUrl;
   }
 
   private getHeaders(extraHeaders: Record<string, string> = {}): Record<string, string> {
@@ -22,9 +23,10 @@ export class AccountService {
     method: 'get' | 'post' | 'put' | 'delete',
     path: string,
     data?: any,
-    params?: Record<string, string>
+    params?: Record<string, string>,
+    serverIndex?: number
   ) {
-    let url = `${this.getBaseUrl()}${path.startsWith('/') ? path : '/' + path}`;
+    let url = `${this.getBaseUrl(serverIndex)}${path.startsWith('/') ? path : '/' + path}`;
     if (params) {
       const searchParams = new URLSearchParams(params);
       const queryStr = searchParams.toString();
@@ -77,45 +79,45 @@ export class AccountService {
     }
   }
 
-  public async getStatus() {
-    return this.request('get', '/api/status');
+  public async getStatus(serverIndex?: number) {
+    return this.request('get', '/api/status', undefined, undefined, serverIndex);
   }
 
-  public async uploadFile(content: any) {
-    return this.request('post', '/api/files', { content });
+  public async uploadFile(content: any, serverIndex?: number) {
+    return this.request('post', '/api/files', { content }, undefined, serverIndex);
   }
 
-  public async uploadBatchFiles(files: any[]) {
-    return this.request('post', '/api/files/batch', { files });
+  public async uploadBatchFiles(files: any[], serverIndex?: number) {
+    return this.request('post', '/api/files/batch', { files }, undefined, serverIndex);
   }
 
-  public async toggleDisabled(index: number, disabled: boolean) {
-    return this.request('post', '/api/auth/toggle-disabled', { index, disabled });
+  public async toggleDisabled(index: number, disabled: boolean, serverIndex?: number) {
+    return this.request('post', '/api/auth/toggle-disabled', { index, disabled }, undefined, serverIndex);
   }
 
-  public async deleteAccount(index: number, force?: boolean) {
-    return this.request('delete', `/api/accounts/${index}`, undefined, { force: force ? 'true' : 'false' });
+  public async deleteAccount(index: number, force?: boolean, serverIndex?: number) {
+    return this.request('delete', `/api/accounts/${index}`, undefined, { force: force ? 'true' : 'false' }, serverIndex);
   }
 
-  public async batchDeleteAccounts(indices: number[], force: boolean = true) {
-    return this.request('delete', '/api/accounts/batch', { indices, force });
+  public async batchDeleteAccounts(indices: number[], force: boolean = true, serverIndex?: number) {
+    return this.request('delete', '/api/accounts/batch', { indices, force }, undefined, serverIndex);
   }
 
-  public async deduplicateAccounts() {
-    return this.request('post', '/api/accounts/deduplicate', {});
+  public async deduplicateAccounts(serverIndex?: number) {
+    return this.request('post', '/api/accounts/deduplicate', {}, undefined, serverIndex);
   }
 
-  public async switchCurrentAccount(targetIndex?: number) {
+  public async switchCurrentAccount(targetIndex?: number, serverIndex?: number) {
     const payload = typeof targetIndex === 'number' ? { targetIndex } : {};
-    return this.request('put', '/api/accounts/current', payload);
+    return this.request('put', '/api/accounts/current', payload, undefined, serverIndex);
   }
 
-  public async closeContext(index: number) {
-    return this.request('post', `/api/accounts/${index}/close-context`);
+  public async closeContext(index: number, serverIndex?: number) {
+    return this.request('post', `/api/accounts/${index}/close-context`, undefined, undefined, serverIndex);
   }
 
-  public async getFileStream(filename: string): Promise<{ status: number; body?: NodeJS.ReadableStream; headers: Record<string, string>; data?: any }> {
-    const url = `${this.getBaseUrl()}/api/files/${encodeURIComponent(filename)}`;
+  public async getFileStream(filename: string, serverIndex?: number): Promise<{ status: number; body?: NodeJS.ReadableStream; headers: Record<string, string>; data?: any }> {
+    const url = `${this.getBaseUrl(serverIndex)}/api/files/${encodeURIComponent(filename)}`;
     try {
       const res = await fetch(url, {
         method: 'GET',
@@ -151,8 +153,8 @@ export class AccountService {
     }
   }
 
-  public async batchDownload(indices: number[]): Promise<{ status: number; body?: NodeJS.ReadableStream; headers: Record<string, string>; data?: any }> {
-    const url = `${this.getBaseUrl()}/api/accounts/batch/download`;
+  public async batchDownload(indices: number[], serverIndex?: number): Promise<{ status: number; body?: NodeJS.ReadableStream; headers: Record<string, string>; data?: any }> {
+    const url = `${this.getBaseUrl(serverIndex)}/api/accounts/batch/download`;
     try {
       const res = await fetch(url, {
         method: 'POST',
