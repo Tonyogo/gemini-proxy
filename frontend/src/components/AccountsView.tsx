@@ -812,23 +812,111 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
             {servers.map((serverUrl, idx) => {
               const host = getServerHost(serverUrl);
               const isActive = activeServerIndex === idx;
+              const serverData = serverDataMap[idx];
+              const isLoading = Boolean(serverLoadingMap[idx]);
+              const hasError = Boolean(serverErrorMap[idx]);
+              const count = serverData?.status?.accountDetails?.length;
+
               return (
                 <button
                   key={idx}
                   type="button"
                   onClick={() => handleSwitchServer(idx)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center space-x-1.5 ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center space-x-2 ${
                     isActive
                       ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/25 font-semibold'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'
                   }`}
                   title={serverUrl}
                 >
-                  <Server className="w-3.5 h-3.5 shrink-0" />
-                  <span>Server {idx + 1} ({host})</span>
+                  <span className="flex items-center space-x-1.5">
+                    {isLoading ? (
+                      <RefreshCw className="w-3 h-3 animate-spin text-indigo-300" />
+                    ) : hasError ? (
+                      <span className="w-2 h-2 rounded-full bg-rose-400 ring-2 ring-rose-400/20" />
+                    ) : (
+                      <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-emerald-300 ring-2 ring-emerald-300/30' : 'bg-emerald-500/60'}`} />
+                    )}
+                    <span>Server {idx + 1} ({host})</span>
+                  </span>
+
+                  {count !== undefined && (
+                    <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
+                      isActive ? 'bg-white/20 text-white' : 'bg-black/5 dark:bg-white/10 text-slate-500 dark:text-slate-300'
+                    }`}>
+                      {count}
+                    </span>
+                  )}
                 </button>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Multi-Server Scope & Environment Banner */}
+      {servers.length > 1 && (
+        <div className={`ui-card-sub px-3.5 py-2.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs transition-all ${
+          activeServerIndex % 4 === 0
+            ? 'border-indigo-500/30 bg-indigo-500/5 text-indigo-900 dark:text-indigo-200'
+            : activeServerIndex % 4 === 1
+            ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-900 dark:text-emerald-200'
+            : activeServerIndex % 4 === 2
+            ? 'border-amber-500/30 bg-amber-500/5 text-amber-900 dark:text-amber-200'
+            : 'border-purple-500/30 bg-purple-500/5 text-purple-900 dark:text-purple-200'
+        }`}>
+          <div className="flex items-center space-x-2.5 min-w-0">
+            <div className={`p-1.5 rounded-lg shrink-0 ${
+              activeServerIndex % 4 === 0
+                ? 'bg-indigo-500/20 text-indigo-600 dark:text-indigo-400'
+                : activeServerIndex % 4 === 1
+                ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                : activeServerIndex % 4 === 2
+                ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400'
+                : 'bg-purple-500/20 text-purple-600 dark:text-purple-400'
+            }`}>
+              <Globe className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center space-x-2 flex-wrap gap-y-0.5">
+                <span className="font-bold text-xs">
+                  {t('accounts.serverScope', { server: `Server ${activeServerIndex + 1}` })}
+                </span>
+                <span className="font-mono text-[11px] opacity-80 truncate max-w-xs sm:max-w-md">
+                  ({servers[activeServerIndex]})
+                </span>
+                {currentAuthIndex !== undefined && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-black/5 dark:bg-white/10 font-semibold">
+                    {t('accounts.activeAuthBadge', {
+                      index: String(currentAuthIndex),
+                      email: accounts[currentAuthIndex]?.name || 'current'
+                    })}
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] opacity-75 mt-0.5 hidden sm:block">
+                {t('accounts.scopeDesc')}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-2 shrink-0 self-end sm:self-center">
+            {currentError && (
+              <span className="text-[11px] text-rose-500 dark:text-rose-400 flex items-center space-x-1 font-medium">
+                <AlertCircle className="w-3.5 h-3.5" />
+                <span className="max-w-[200px] truncate">{currentError}</span>
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => fetchStatus(false, activeServerIndex)}
+              disabled={isCurrentLoading}
+              className="px-2.5 py-1 rounded-lg ui-btn-secondary text-xs flex items-center space-x-1.5 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+              title={t('accounts.refreshServer')}
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isCurrentLoading ? 'animate-spin text-indigo-400' : ''}`} />
+              <span className="hidden sm:inline">{t('accounts.refreshServer')}</span>
+            </button>
           </div>
         </div>
       )}
@@ -1110,7 +1198,15 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
         </div>
       </div>
 
+      {isCurrentLoading && !currentData && (
+        <div className="ui-card p-12 flex flex-col items-center justify-center space-y-3 text-slate-400">
+          <RefreshCw className="w-8 h-8 animate-spin text-indigo-500" />
+          <span className="text-xs font-mono">{t('accounts.loading')}</span>
+        </div>
+      )}
+
       {/* Modern Data Table */}
+      {(!isCurrentLoading || currentData) && (
       <div className="ui-card overflow-hidden">
         {loading && accounts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-slate-400 font-mono text-xs space-y-3">
@@ -1570,6 +1666,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
           </>
         )}
       </div>
+      )}
 
       {/* Floating Action Bar when rows are selected */}
       {selectedIndices.length > 0 && (
