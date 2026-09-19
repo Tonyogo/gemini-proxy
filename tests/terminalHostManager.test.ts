@@ -73,4 +73,63 @@ describe('TerminalHostManager (Pure Dynamic Agent)', () => {
     manager.handleAgentData('agent-02', 'new line');
     expect(mockClientWs.send).not.toHaveBeenCalledWith('new line');
   });
+
+  it('automatically prunes stale offline node with matching name on registerAgent', () => {
+    const mockAgentWs = { readyState: 1, send: jest.fn() };
+    manager.registerAgent({
+      hostId: 'node-old-id',
+      name: 'production-app',
+      agentWs: mockAgentWs,
+    });
+    manager.unregisterAgent('node-old-id');
+    expect(manager.getHost('node-old-id')?.status).toBe('offline');
+
+    // Reconnect with new hostId but same name
+    manager.registerAgent({
+      hostId: 'node-new-id',
+      name: 'production-app',
+      agentWs: mockAgentWs,
+    });
+
+    // Old offline node must be pruned
+    expect(manager.getHost('node-old-id')).toBeNull();
+    const current = manager.getHost('node-new-id');
+    expect(current).not.toBeNull();
+    expect(current?.status).toBe('online');
+
+    const hosts = manager.getHosts();
+    const matching = hosts.filter((h) => h.name === 'production-app');
+    expect(matching).toHaveLength(1);
+    expect(matching[0].id).toBe('node-new-id');
+  });
+
+  it('getHosts deduplicates same-name entries favoring online hosts', () => {
+    // Force insert duplicate name entries in manager
+    (manager as any).hosts.set('id-1', {
+      id: 'id-1',
+      name: 'duplicate-service',
+      hostname: 'host-1',
+      ip: '10.0.0.1',
+      platform: 'linux',
+      status: 'offline',
+      lastSeen: 1000,
+      type: 'agent',
+    });
+    (manager as any).hosts.set('id-2', {
+      id: 'id-2',
+      name: 'duplicate-service',
+      hostname: 'host-2',
+      ip: '10.0.0.2',
+      platform: 'linux',
+      status: 'online',
+      lastSeen: 2000,
+      type: 'agent',
+    });
+
+    const hosts = manager.getHosts();
+    const serviceHosts = hosts.filter((h) => h.name === 'duplicate-service');
+    expect(serviceHosts).toHaveLength(1);
+    expect(serviceHosts[0].id).toBe('id-2');
+    expect(serviceHosts[0].status).toBe('online');
+  });
 });

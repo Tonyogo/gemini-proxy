@@ -206,7 +206,25 @@ export class TerminalHostManager {
 
   public getHosts(): ManagedHost[] {
     this.pruneOfflineHosts(TerminalHostManager.OFFLINE_HOST_TTL_MS);
-    const list = Array.from(this.hosts.values());
+
+    // Group by host name to guarantee unique names in listing
+    const nameMap = new Map<string, ManagedHost>();
+
+    for (const host of this.hosts.values()) {
+      const existing = nameMap.get(host.name);
+      if (!existing) {
+        nameMap.set(host.name, host);
+      } else {
+        // Priority: online wins over offline; if same status, highest lastSeen wins
+        if (host.status === 'online' && existing.status !== 'online') {
+          nameMap.set(host.name, host);
+        } else if (host.status === existing.status && host.lastSeen > existing.lastSeen) {
+          nameMap.set(host.name, host);
+        }
+      }
+    }
+
+    const list = Array.from(nameMap.values());
     return list.sort((a, b) => {
       if (a.status !== b.status) {
         return a.status === 'online' ? -1 : 1;
@@ -238,12 +256,30 @@ export class TerminalHostManager {
     agentWs: any;
   }): ManagedHost {
     const id = metadata.hostId;
+    const targetName = metadata.name || metadata.hostname || id;
+
+    // Auto-prune any existing offline host that shares the same name but has a different hostId
+    for (const [existingId, existingHost] of this.hosts.entries()) {
+      if (existingId !== id && existingHost.status === 'offline') {
+        if (existingHost.name === targetName || (metadata.name && existingHost.name === metadata.name)) {
+          const session = this.sessions.get(existingId);
+          if (session) {
+            session.destroy();
+            this.sessions.delete(existingId);
+          }
+          this.clearPendingRpcForHost(existingId);
+          this.hosts.delete(existingId);
+          logger.info(`[TerminalHostManager] Auto-pruned stale offline host with matching name "${existingHost.name}": ${existingId}`);
+        }
+      }
+    }
+
     let host = this.hosts.get(id);
 
     if (!host) {
       host = {
         id,
-        name: metadata.name || metadata.hostname || id,
+        name: targetName,
         hostname: metadata.hostname || id,
         ip: metadata.ip || '127.0.0.1',
         platform: metadata.platform || 'linux',
