@@ -192,6 +192,11 @@ impl TaskManager {
         if std::env::var_os("LANG").is_none() {
             cmd.env("LANG", "en_US.UTF-8");
         }
+        cmd.env_remove("TMUX");
+        cmd.env_remove("TMUX_PANE");
+        cmd.env_remove("STY");
+        cmd.env_remove("WINDOW");
+        cmd.env_remove("TERM_SESSION_ID");
 
         let mut child = cmd
             .spawn()

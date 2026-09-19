@@ -3,6 +3,7 @@ use super::cmd_exec::CmdExecRequest;
 use serde_json::Value;
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum ControlMessage {
     Ping,
     Pong,
@@ -45,6 +46,7 @@ pub fn parse_control_message(text: &str) -> Option<ControlMessage> {
     }
 }
 
+#[allow(dead_code)]
 pub fn format_json_message<T: serde::Serialize>(msg: &T) -> Result<String, serde_json::Error> {
     let json = serde_json::to_string(msg)?;
     Ok(format!("JSON:{}", json))

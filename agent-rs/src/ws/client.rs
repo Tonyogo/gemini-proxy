@@ -130,6 +130,14 @@ impl TerminalAgentClient {
             }
         });
 
+        // Send initial reset and resize control messages to sync state with backend
+        if let Ok(reset_frame) = format_json_message(&serde_json::json!({ "type": "reset" })) {
+            let _ = out_tx.send(Message::Text(reset_frame)).await;
+        }
+        if let Ok(resize_frame) = format_json_message(&serde_json::json!({ "type": "resize", "cols": 80, "rows": 24 })) {
+            let _ = out_tx.send(Message::Text(resize_frame)).await;
+        }
+
         // Heartbeat state
         let mut heartbeat_interval = tokio::time::interval(HEARTBEAT_INTERVAL);
         heartbeat_interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);

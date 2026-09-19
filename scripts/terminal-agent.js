@@ -192,6 +192,11 @@ function spawnPty() {
     TERM_PROGRAM: 'gemini-proxy-agent',
     CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN: process.env.CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN || '1',
   };
+  delete env.TMUX;
+  delete env.TMUX_PANE;
+  delete env.STY;
+  delete env.WINDOW;
+  delete env.TERM_SESSION_ID;
 
   try {
     ptyProcess = pty.spawn(shell, [], {
@@ -391,6 +396,11 @@ class TaskManager {
       COLORTERM: 'truecolor',
       LANG: process.env.LANG || 'en_US.UTF-8',
     };
+    delete taskEnv.TMUX;
+    delete taskEnv.TMUX_PANE;
+    delete taskEnv.STY;
+    delete taskEnv.WINDOW;
+    delete taskEnv.TERM_SESSION_ID;
 
     let child = null;
     try {

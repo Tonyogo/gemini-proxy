@@ -262,3 +262,35 @@ async fn test_pty_session_lifecycle() {
     // Kill PTY
     pty.kill();
 }
+
+#[tokio::test]
+async fn test_pty_cleans_tmux_environment() {
+    std::env::set_var("TMUX", "/tmp/tmux-mock/default,999,0");
+    std::env::set_var("TMUX_PANE", "%99");
+
+    let pty = pty::PtySession::spawn("/bin/sh", 80, 24).expect("Failed to spawn PTY");
+
+    pty.write_all(b"val=${TMUX:-empty}; echo TMUX_RES:$val:DONE\n").await.expect("Failed to write to PTY");
+
+    let mut buf = [0u8; 1024];
+    let mut output = String::new();
+
+    let start = std::time::Instant::now();
+    while start.elapsed() < std::time::Duration::from_secs(3) {
+        if let Ok(n) = tokio::time::timeout(std::time::Duration::from_millis(500), pty.read(&mut buf)).await {
+            if let Ok(count) = n {
+                if count > 0 {
+                    output.push_str(&String::from_utf8_lossy(&buf[..count]));
+                    if output.contains("TMUX_RES:empty:DONE") {
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    assert!(output.contains("TMUX_RES:empty:DONE"), "TMUX env was not stripped! Output: {}", output);
+
+    pty.kill();
+}
+

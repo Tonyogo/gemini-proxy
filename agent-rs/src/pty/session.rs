@@ -76,6 +76,17 @@ impl PtySession {
                     set_env("TERM_PROGRAM", "gemini-proxy-agent");
                     set_env("CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN", "1");
 
+                    // Purge terminal multiplexer variables so the spawned shell does not assume it is running inside tmux/screen
+                    let unset_env = |k: &str| {
+                        let c_k = CString::new(k).unwrap();
+                        libc::unsetenv(c_k.as_ptr());
+                    };
+                    unset_env("TMUX");
+                    unset_env("TMUX_PANE");
+                    unset_env("STY");
+                    unset_env("WINDOW");
+                    unset_env("TERM_SESSION_ID");
+
                     let c_shell = CString::new(shell).unwrap_or_else(|_| CString::new("/bin/bash").unwrap());
                     let arg_i = CString::new("-i").unwrap();
                     let args = [c_shell.as_ptr(), arg_i.as_ptr(), std::ptr::null()];
