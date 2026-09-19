@@ -77,7 +77,8 @@ impl PtySession {
                     set_env("CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN", "1");
 
                     let c_shell = CString::new(shell).unwrap_or_else(|_| CString::new("/bin/bash").unwrap());
-                    let args = [c_shell.as_ptr(), std::ptr::null()];
+                    let arg_i = CString::new("-i").unwrap();
+                    let args = [c_shell.as_ptr(), arg_i.as_ptr(), std::ptr::null()];
 
                     libc::execvp(c_shell.as_ptr(), args.as_ptr());
                     libc::_exit(127);
