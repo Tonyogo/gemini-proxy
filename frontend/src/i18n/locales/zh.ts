@@ -529,7 +529,8 @@ export const zh: Translations = {
       onlyLocalTip: "当前暂无在线主机。点击上方「接入内网新节点」即可通过反向隧道将服务器接入此终端。",
       runOnTarget: "在目标节点运行终端 Agent:",
       directTunnelTitle: "反向安全隧道",
-      directTunnelDesc: "Agent 启动后会直接与当前代理建立出站 WebSocket 安全长连接，无需公网 IP 和开放端口。连接成功后将立即出现在上方节点列表中。"
+      directTunnelDesc: "Agent 启动后会直接与当前代理建立出站 WebSocket 安全长连接，无需公网 IP 和开放端口。连接成功后将立即出现在上方节点列表中。",
+      addNodeTip: "可通过 --name 指定持久化机器标识（如 my-server），同名节点重启时将自动复用并更新状态，避免重复卡片。"
     },
     emptyState: {
       title: "当前暂无在线终端节点",

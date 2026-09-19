@@ -11,6 +11,11 @@ describe('TerminalHostSelector Pure Agent Tests', () => {
     expect(content).not.toContain('localHostFallback');
   });
 
+  test('uses stable my-server name instead of random worker suffix in agentCommand', () => {
+    expect(content).toContain('--name="my-server"');
+    expect(content).not.toMatch(/worker-\$\{Math\.floor/);
+  });
+
   test('auto selects first online host when current host is absent', () => {
     expect(content).toContain('onSelectHost');
   });

@@ -271,7 +271,21 @@ export function TerminalHostSelector({
           h.platform.toLowerCase().includes(q)
       );
     }
-    return [...list].sort((a, b) => {
+
+    // Defensive deduplication by name (online takes precedence over offline)
+    const nameMap = new Map<string, ManagedHostItem>();
+    for (const h of list) {
+      const existing = nameMap.get(h.name);
+      if (!existing) {
+        nameMap.set(h.name, h);
+      } else if (h.status === 'online' && existing.status !== 'online') {
+        nameMap.set(h.name, h);
+      } else if (h.status === existing.status && (h.lastSeen || 0) > (existing.lastSeen || 0)) {
+        nameMap.set(h.name, h);
+      }
+    }
+
+    return Array.from(nameMap.values()).sort((a, b) => {
       if (a.status !== b.status) {
         return a.status === 'online' ? -1 : 1;
       }
@@ -285,7 +299,7 @@ export function TerminalHostSelector({
   const agentCommand = useMemo(() => {
     const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
     const effectiveKey = adminKey || (typeof localStorage !== 'undefined' ? localStorage.getItem('adminKey') || '' : '');
-    return `node scripts/terminal-agent.js --server="${origin}" --key="${effectiveKey}" --name="worker-${Math.floor(Math.random() * 900 + 100)}"`;
+    return `node scripts/terminal-agent.js --server="${origin}" --key="${effectiveKey}" --name="my-server"`;
   }, [adminKey]);
 
   const handleCopyCommand = () => {
@@ -607,6 +621,12 @@ export function TerminalHostSelector({
                   {t(
                     'webTerminal.hostSelector.directTunnelDesc',
                     'Agent 启动后会直接与当前代理建立出站 WebSocket 安全长连接，无需公网 IP 和开放端口。连接成功后将立即出现在上方节点列表中。'
+                  )}
+                </p>
+                <p className="text-indigo-300/80 leading-normal pt-1 border-t border-indigo-500/20">
+                  {t(
+                    'webTerminal.hostSelector.addNodeTip',
+                    '可通过 --name 指定持久化机器标识（如 my-server），同名节点重启时将自动复用并更新状态，避免重复卡片。'
                   )}
                 </p>
               </div>

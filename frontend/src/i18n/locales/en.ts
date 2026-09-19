@@ -527,7 +527,8 @@ export const en = {
       onlyLocalTip: "Currently no online hosts are available. Click \"Add Intranet Node\" above to connect servers via reverse tunnel.",
       runOnTarget: "Run command on target host:",
       directTunnelTitle: "Direct Intranet Tunnel",
-      directTunnelDesc: "The agent establishes an outbound WebSocket connection directly to this proxy without requiring a public IP or port forwarding. Once connected, it will appear in the node selector above instantly."
+      directTunnelDesc: "The agent establishes an outbound WebSocket connection directly to this proxy without requiring a public IP or port forwarding. Once connected, it will appear in the node selector above instantly.",
+      addNodeTip: "Specify a persistent identifier via --name (e.g., my-server). Reconnecting with the same name automatically updates the existing host without creating duplicates."
     },
     emptyState: {
       title: "No Online Terminal Nodes Available",
