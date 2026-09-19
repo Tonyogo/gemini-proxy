@@ -49,6 +49,12 @@ fn test_control_message_parsing() {
         _ => panic!("Expected Pong"),
     }
 
+    // Reset
+    match parse_control_message("JSON:{\"type\":\"reset\"}") {
+        Some(ControlMessage::Reset) => {}
+        _ => panic!("Expected Reset"),
+    }
+
     // Resize
     match parse_control_message("JSON:{\"type\":\"resize\",\"cols\":120,\"rows\":40}") {
         Some(ControlMessage::Resize { cols, rows }) => {

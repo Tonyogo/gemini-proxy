@@ -10,6 +10,7 @@ pub enum ControlMessage {
     Resize { cols: u16, rows: u16 },
     FileRpc(FileRpcRequest),
     CmdExec(CmdExecRequest),
+    Reset,
     Unknown(Value),
 }
 
@@ -29,6 +30,7 @@ pub fn parse_control_message(text: &str) -> Option<ControlMessage> {
     match msg_type {
         "ping" => Some(ControlMessage::Ping),
         "pong" => Some(ControlMessage::Pong),
+        "reset" => Some(ControlMessage::Reset),
         "resize" => {
             let cols = parsed.get("cols").and_then(|c| c.as_u64()).unwrap_or(80) as u16;
             let rows = parsed.get("rows").and_then(|r| r.as_u64()).unwrap_or(24) as u16;
