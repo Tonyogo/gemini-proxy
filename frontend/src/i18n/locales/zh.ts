@@ -110,7 +110,14 @@ export const zh: Translations = {
     confirmCloseContextTitle: "确认释放浏览器 Context",
     confirmCloseContextMessage: "确定要关闭账号 #{index} ({email}) 的浏览器上下文并断开连接吗？",
     confirmCloseContextDesc: "关闭后将释放约 500MB~700MB 内存占用。后续发起请求时系统将按需重新初始化。",
-    closeContextSuccess: "账号 #{index} 的 Context 已成功释放。"
+    closeContextSuccess: "账号 #{index} 的 Context 已成功释放。",
+    serverScope: "当前操作节点: {server}",
+    accountsCountBadge: "{count} 账号",
+    activeAuthBadge: "当前轮换: #{index} ({email})",
+    noActiveAuth: "暂无生效中的轮换账号",
+    refreshServer: "刷新当前节点",
+    serverErrorNotice: "该节点上游请求异常: {error}",
+    scopeDesc: "当前凭据导入、启停、删除、去重及轮换设置仅作用于该独立服务器实例。"
   },
   dashboard: {
     title: "代理系统概览",

@@ -108,7 +108,14 @@ export const en = {
     confirmCloseContextTitle: "Confirm Close Browser Context",
     confirmCloseContextMessage: "Are you sure you want to close browser context and disconnect account #{index} ({email})?",
     confirmCloseContextDesc: "This will free ~500MB-700MB memory. A new context will be initialized on-demand when requested.",
-    closeContextSuccess: "Context for account #{index} has been released."
+    closeContextSuccess: "Context for account #{index} has been released.",
+    serverScope: "Active Target: {server}",
+    accountsCountBadge: "{count} accounts",
+    activeAuthBadge: "Active: #{index} ({email})",
+    noActiveAuth: "No active rotation account",
+    refreshServer: "Refresh Server",
+    serverErrorNotice: "Upstream node error: {error}",
+    scopeDesc: "All credential operations apply strictly to this server instance."
   },
   dashboard: {
     title: "Proxy System Overview",
