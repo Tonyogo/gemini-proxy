@@ -26,7 +26,10 @@ export class AccountService {
     params?: Record<string, string>,
     serverIndex?: number
   ) {
-    let url = `${this.getBaseUrl(serverIndex)}${path.startsWith('/') ? path : '/' + path}`;
+    const serverSelection = upstreamManager.getUpstreamServer({ serverIndex });
+    const actualIndex = serverSelection.serverIndex;
+    let url = `${serverSelection.serverUrl}${path.startsWith('/') ? path : '/' + path}`;
+
     if (params) {
       const searchParams = new URLSearchParams(params);
       const queryStr = searchParams.toString();
@@ -47,6 +50,15 @@ export class AccountService {
       }
 
       const res = await fetch(url, options);
+
+      // Check upstream gateway failure vs success
+      if (res.status >= 502 && res.status <= 504) {
+        upstreamManager.recordRequestResult(actualIndex, false, `HTTP ${res.status}`);
+      } else {
+        // Any other valid HTTP response (200, 400, 401, 403, 404, etc.) proves host is alive -> immediately recover!
+        upstreamManager.recordRequestResult(actualIndex, true);
+      }
+
       const contentType = res.headers.get('content-type') || '';
 
       let resData: any;
@@ -71,6 +83,7 @@ export class AccountService {
         headers: headersObj
       };
     } catch (err: any) {
+      upstreamManager.recordRequestResult(actualIndex, false, err.message);
       return {
         status: 502,
         data: { error: `Upstream error: ${err.message}` },
@@ -117,13 +130,21 @@ export class AccountService {
   }
 
   public async getFileStream(filename: string, serverIndex?: number): Promise<{ status: number; body?: NodeJS.ReadableStream; headers: Record<string, string>; data?: any }> {
-    const url = `${this.getBaseUrl(serverIndex)}/api/files/${encodeURIComponent(filename)}`;
+    const serverSelection = upstreamManager.getUpstreamServer({ serverIndex });
+    const actualIndex = serverSelection.serverIndex;
+    const url = `${serverSelection.serverUrl}/api/files/${encodeURIComponent(filename)}`;
     try {
       const res = await fetch(url, {
         method: 'GET',
         headers: this.getHeaders(),
         timeout: config.upstreamTimeoutMs || 30000
       });
+
+      if (res.status >= 502 && res.status <= 504) {
+        upstreamManager.recordRequestResult(actualIndex, false, `HTTP ${res.status}`);
+      } else {
+        upstreamManager.recordRequestResult(actualIndex, true);
+      }
 
       const headersObj: Record<string, string> = {};
       res.headers.forEach((val, key) => {
@@ -145,6 +166,7 @@ export class AccountService {
         };
       }
     } catch (err: any) {
+      upstreamManager.recordRequestResult(actualIndex, false, err.message);
       return {
         status: 502,
         data: { error: `Upstream error: ${err.message}` },
@@ -154,7 +176,9 @@ export class AccountService {
   }
 
   public async batchDownload(indices: number[], serverIndex?: number): Promise<{ status: number; body?: NodeJS.ReadableStream; headers: Record<string, string>; data?: any }> {
-    const url = `${this.getBaseUrl(serverIndex)}/api/accounts/batch/download`;
+    const serverSelection = upstreamManager.getUpstreamServer({ serverIndex });
+    const actualIndex = serverSelection.serverIndex;
+    const url = `${serverSelection.serverUrl}/api/accounts/batch/download`;
     try {
       const res = await fetch(url, {
         method: 'POST',
@@ -162,6 +186,12 @@ export class AccountService {
         body: JSON.stringify({ indices }),
         timeout: config.upstreamTimeoutMs || 30000
       });
+
+      if (res.status >= 502 && res.status <= 504) {
+        upstreamManager.recordRequestResult(actualIndex, false, `HTTP ${res.status}`);
+      } else {
+        upstreamManager.recordRequestResult(actualIndex, true);
+      }
 
       const headersObj: Record<string, string> = {};
       res.headers.forEach((val, key) => {
@@ -183,6 +213,7 @@ export class AccountService {
         };
       }
     } catch (err: any) {
+      upstreamManager.recordRequestResult(actualIndex, false, err.message);
       return {
         status: 502,
         data: { error: `Upstream error: ${err.message}` },
