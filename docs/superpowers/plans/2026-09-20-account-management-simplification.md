@@ -35,7 +35,7 @@
   - `UpstreamManager.stopHealthCheck(): void`
   - `UpstreamManager.setNodeHealth(serverIndex: number, isHealthy: boolean, error?: string): void`
 
-- [ ] **Step 1: Write the failing unit test for upstream health checking and bypass routing**
+- [x] **Step 1: Write the failing unit test for upstream health checking and bypass routing**
 
 Create `tests/upstreamHealthCheck.test.ts`:
 ```typescript
@@ -131,12 +131,12 @@ describe('UpstreamManager Health Checking and Dead Node Bypass', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/upstreamHealthCheck.test.ts`
 Expected: FAIL with `upstreamManager.getHealthStatusList is not a function` or similar.
 
-- [ ] **Step 3: Implement health checking and dead node bypass in `src/utils/upstreamManager.ts`**
+- [x] **Step 3: Implement health checking and dead node bypass in `src/utils/upstreamManager.ts`**
 
 Update `src/utils/upstreamManager.ts`:
 ```typescript
@@ -377,17 +377,17 @@ export const upstreamManager = new UpstreamManager();
 export default upstreamManager;
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/upstreamHealthCheck.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Run existing tests to ensure no regressions**
+- [x] **Step 5: Run existing tests to ensure no regressions**
 
 Run: `npx jest tests/upstreamManager.test.ts tests/multiServerProxy.test.ts`
 Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/utils/upstreamManager.ts tests/upstreamHealthCheck.test.ts
@@ -406,7 +406,7 @@ git commit -m "feat(upstream): implement upstream active health checking and dea
 - Consumes: `upstreamManager.getHealthStatusList()`
 - Produces: `GET /api/admin/accounts/servers` returns `{ servers: string[], health: UpstreamHealthStatus[] }`
 
-- [ ] **Step 1: Write the failing test for `getServers` health response**
+- [x] **Step 1: Write the failing test for `getServers` health response**
 
 Add to `tests/accountController.test.ts`:
 ```typescript
@@ -425,12 +425,12 @@ Add to `tests/accountController.test.ts`:
   });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/accountController.test.ts`
 Expected: FAIL with `expect(Array.isArray(res.body.health)).toBe(true)` failing.
 
-- [ ] **Step 3: Update `src/admin/controllers/accountController.ts`**
+- [x] **Step 3: Update `src/admin/controllers/accountController.ts`**
 
 Update `getServers` method:
 ```typescript
@@ -442,12 +442,12 @@ Update `getServers` method:
   }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/accountController.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/admin/controllers/accountController.ts tests/accountController.test.ts
@@ -471,7 +471,7 @@ git commit -m "feat(admin): expose upstream server health list in accounts serve
   - `accounts.refreshAll` ("刷新全部节点" / "Refresh All Nodes")
   - `accounts.offlineTip` ("当前节点无法访问，模型路由已自动跳过该节点。" / "This node is unreachable and automatically bypassed by model routing.")
 
-- [ ] **Step 1: Add keys to `frontend/src/i18n/locales/zh.ts`**
+- [x] **Step 1: Add keys to `frontend/src/i18n/locales/zh.ts`**
 
 In `accounts` section of `frontend/src/i18n/locales/zh.ts`, add:
 ```typescript
@@ -483,7 +483,7 @@ In `accounts` section of `frontend/src/i18n/locales/zh.ts`, add:
     offlineTip: "当前节点无法访问，模型请求已自动跳过该节点��"
 ```
 
-- [ ] **Step 2: Add keys to `frontend/src/i18n/locales/en.ts`**
+- [x] **Step 2: Add keys to `frontend/src/i18n/locales/en.ts`**
 
 In `accounts` section of `frontend/src/i18n/locales/en.ts`, add:
 ```typescript
@@ -495,7 +495,7 @@ In `accounts` section of `frontend/src/i18n/locales/en.ts`, add:
     offlineTip: "This node is unreachable and automatically bypassed by model routing."
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add frontend/src/i18n/locales/zh.ts frontend/src/i18n/locales/en.ts
@@ -521,7 +521,7 @@ git commit -m "feat(i18n): add node health and simplified accounts view translat
   - Removal of Server Scope Banner
   - Offline empty state in table container when active node fails to load and has no accounts
 
-- [ ] **Step 1: Write failing unit test in `tests/accountsMultiServerIsolation.test.ts`**
+- [x] **Step 1: Write failing unit test in `tests/accountsMultiServerIsolation.test.ts`**
 
 Update `tests/accountsMultiServerIsolation.test.ts`:
 ```typescript
@@ -558,12 +558,12 @@ describe('AccountsView Multi-Server Concurrent Refresh & Simplified UI', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/accountsMultiServerIsolation.test.ts`
 Expected: FAIL due to missing `fetchAllServers`, old banner still present, etc.
 
-- [ ] **Step 3: Implement concurrent refresh, health display, and UI simplification in `AccountsView.tsx`**
+- [x] **Step 3: Implement concurrent refresh, health display, and UI simplification in `AccountsView.tsx`**
 
 In `frontend/src/components/AccountsView.tsx`:
 1. Add `serverHealthMap` state: `const [serverHealthMap, setServerHealthMap] = useState<Record<number, boolean>>({});`
@@ -639,17 +639,17 @@ In `frontend/src/components/AccountsView.tsx`:
   )}
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/accountsMultiServerIsolation.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Run frontend build to verify compilation**
+- [x] **Step 5: Run frontend build to verify compilation**
 
 Run: `npm run build:frontend`
 Expected: PASS with 0 errors.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add frontend/src/components/AccountsView.tsx tests/accountsMultiServerIsolation.test.ts
@@ -664,17 +664,17 @@ git commit -m "feat(accounts): simplify multi-server refresh with concurrent fet
 - Run all test suites
 - Build frontend and backend
 
-- [ ] **Step 1: Run complete backend & integration test suite**
+- [x] **Step 1: Run complete backend & integration test suite**
 
 Run: `npm test`
 Expected: All test suites pass.
 
-- [ ] **Step 2: Build full production bundle**
+- [x] **Step 2: Build full production bundle**
 
 Run: `npm run build`
 Expected: Both frontend Vite SPA and backend TypeScript compile cleanly to `dist/`.
 
-- [ ] **Step 3: Commit any lingering changes or docs**
+- [x] **Step 3: Commit any lingering changes or docs**
 
 ```bash
 git status
