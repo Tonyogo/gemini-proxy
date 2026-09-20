@@ -24,5 +24,13 @@ describe('AccountsView Mobile Optimization Test', () => {
     // Mobile search button and toggle
     expect(code).toMatch(/sm:hidden[\s\S]*?setIsMobileSearchOpen/);
   });
+
+  it('verifies mobile compact server tab capsules and dedicated active node status bar', () => {
+    // Compact mobile tab short label
+    expect(code).toContain('accounts.mobileTabShort');
+    // Mobile-only active node status bar
+    expect(code).toContain('block sm:hidden');
+    expect(code).toContain('getServerHost(servers[activeServerIndex])');
+  });
 });
 

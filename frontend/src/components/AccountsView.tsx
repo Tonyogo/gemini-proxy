@@ -868,7 +868,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                   key={idx}
                   type="button"
                   onClick={() => handleSwitchServer(idx)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center space-x-2 ${
+                  className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-medium transition-all flex items-center space-x-1.5 sm:space-x-2 ${
                     isActive
                       ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/25 font-semibold'
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'
@@ -877,22 +877,23 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                 >
                   <span className="flex items-center space-x-1.5">
                     {isLoading ? (
-                      <RefreshCw className="w-3 h-3 animate-spin text-indigo-300" />
+                      <RefreshCw className="w-3 h-3 animate-spin text-indigo-300 shrink-0" />
                     ) : isOffline ? (
-                      <span className="w-2 h-2 rounded-full bg-rose-500 ring-2 ring-rose-500/30" />
+                      <span className="w-2 h-2 rounded-full bg-rose-500 ring-2 ring-rose-500/20 shrink-0" />
                     ) : (
-                      <span className={`w-2 h-2 rounded-full bg-emerald-500 ${isActive ? 'ring-2 ring-emerald-300/30' : ''}`} />
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${isActive ? 'bg-emerald-300 ring-2 ring-emerald-300/30' : 'bg-emerald-500'}`} />
                     )}
-                    <span>Server {idx + 1} ({host})</span>
+                    <span className="hidden sm:inline">Server {idx + 1} ({host})</span>
+                    <span className="inline sm:hidden font-mono font-bold">{t('accounts.mobileTabShort', { index: idx + 1 })}</span>
                   </span>
 
                   {isOffline ? (
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                    <span className="px-1 sm:px-1.5 py-0.2 rounded text-[9px] sm:text-[10px] font-semibold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/20 shrink-0">
                       {t('accounts.nodeOffline')}
                     </span>
                   ) : count !== undefined ? (
-                    <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
-                      isActive ? 'bg-white/20 text-white' : 'bg-black/5 dark:bg-white/10 text-slate-500 dark:text-slate-300'
+                    <span className={`text-[9px] sm:text-[10px] font-mono px-1 sm:px-1.5 py-0.2 rounded-full shrink-0 ${
+                      isActive ? 'bg-white/20 text-white font-semibold' : 'bg-black/5 dark:bg-white/10 text-slate-500 dark:text-slate-300'
                     }`}>
                       {count}
                     </span>
@@ -900,6 +901,29 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                 </button>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Mobile-only Active Node Status Bar */}
+      {servers.length > 1 && (
+        <div className="block sm:hidden px-2.5 py-1 rounded-lg bg-black/[0.03] dark:bg-white/[0.04] border border-[var(--border-subtle)] text-[11px]">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-1.5 min-w-0">
+              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isCurrentOffline ? 'bg-rose-500 ring-2 ring-rose-500/20' : 'bg-emerald-500 ring-2 ring-emerald-500/20'}`} />
+              <span className="font-semibold text-slate-800 dark:text-slate-200 shrink-0">
+                Server {activeServerIndex + 1}
+              </span>
+              <span className="font-mono text-slate-400 dark:text-slate-500 truncate max-w-[130px]">
+                ({getServerHost(servers[activeServerIndex])})
+              </span>
+            </div>
+            <div className="flex items-center space-x-1.5 shrink-0 text-[10px]">
+              <span className={isCurrentOffline ? 'text-rose-500 font-medium' : 'text-emerald-500 font-medium'}>
+                {isCurrentOffline ? t('accounts.nodeOffline') : t('accounts.nodeOnline')}
+              </span>
+              <span className="text-slate-400 font-mono">· {accounts.length} {t('accounts.accountUnit')}</span>
+            </div>
           </div>
         </div>
       )}
