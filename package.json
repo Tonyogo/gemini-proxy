@@ -3,8 +3,11 @@
   "version": "1.0.0",
   "description": "Stateless Claude-to-Gemini API proxy",
   "main": "dist/src/index.js",
-  "type": "commonjs",
+  "bin": {
+    "gt": "./scripts/gt.js"
+  },
   "scripts": {
+    "gt": "node scripts/gt.js",
     "build:frontend": "cd frontend && npm run build",
     "build:backend": "tsc",
     "build": "npm run build:frontend && npm run build:backend",
@@ -19,7 +22,7 @@
     "pm2:stop": "pm2 stop ecosystem.config.js",
     "pm2:logs": "pm2 logs gemini-proxy",
     "terminal-agent": "node scripts/terminal-agent.js",
-    "terminal-exec": "node scripts/terminal-exec.js",
+    "terminal-exec": "node scripts/gt.js exec",
     "build:agent": "cd agent-rs && cargo build --release",
     "agent:rs": "./agent-rs/target/release/gemini-terminal-agent",
     "clean": "rm -rf dist"
