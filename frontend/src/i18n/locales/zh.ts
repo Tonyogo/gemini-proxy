@@ -126,7 +126,9 @@ export const zh: Translations = {
     nodeConnectionFailed: "无法连接到该节点",
     retryNode: "重试连接",
     refreshAll: "刷新全部节点",
-    offlineTip: "当前节点无法访问，模型请求已自动跳过该节点。"
+    offlineTip: "当前节点无法访问，模型请求已自动跳过该节点。",
+    accountUnit: "个账号",
+    mobileTabShort: "S{index}"
   },
   dashboard: {
     title: "代理系统概览",

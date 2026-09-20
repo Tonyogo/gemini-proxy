@@ -124,7 +124,9 @@ export const en = {
     nodeConnectionFailed: "Failed to connect to node",
     retryNode: "Retry Connection",
     refreshAll: "Refresh All Nodes",
-    offlineTip: "This node is unreachable and automatically bypassed by model routing."
+    offlineTip: "This node is unreachable and automatically bypassed by model routing.",
+    accountUnit: "accounts",
+    mobileTabShort: "S{index}"
   },
   dashboard: {
     title: "Proxy System Overview",
