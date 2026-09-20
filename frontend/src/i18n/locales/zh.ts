@@ -23,6 +23,9 @@ export const zh: Translations = {
   accounts: {
     title: "账号管理",
     sub: "管理多账号凭据、自动上下文轮换机制及单账号用量配额。",
+    modernSub: "集中管理多节点账号凭据、状态监控与上下文轮换",
+    singleNode: "单节点",
+    multiNodes: "{count} 个节点",
     loading: "正在加载账号列表与系统状态...",
     totalAccounts: "账号总数",
     activeAccounts: "已激活",

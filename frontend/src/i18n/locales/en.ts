@@ -21,6 +21,9 @@ export const en = {
   accounts: {
     title: "Account Management",
     sub: "Manage multi-account credentials, automatic context rotation, and per-account usage quotas.",
+    modernSub: "Centralized multi-node credentials, monitoring, and context rotation",
+    singleNode: "Single Node",
+    multiNodes: "{count} Nodes",
     loading: "Loading accounts and system status...",
     totalAccounts: "Total Accounts",
     activeAccounts: "Activated",
