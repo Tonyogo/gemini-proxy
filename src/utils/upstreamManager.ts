@@ -1,4 +1,3 @@
-import fetch from 'node-fetch';
 import config, { parseBaseUrls } from '../../config/default';
 import logger from './logger';
 
@@ -11,27 +10,18 @@ export interface UpstreamUrlSelection extends UpstreamServerSelection {
   targetUrl: string;
 }
 
-export interface UpstreamHealthStatus {
+export interface UpstreamCircuitState {
   serverUrl: string;
   serverIndex: number;
-  isHealthy: boolean;
-  lastChecked: number;
-  lastError?: string;
   consecutiveFailures: number;
+  isolatedUntil: number; // Timestamp in ms until node is isolated; 0 if healthy
+  lastError?: string;
 }
 
 export class UpstreamManager {
   private modelCounters: Map<string, number> = new Map();
   private globalCounter: number = 0;
-  private healthMap: Map<number, UpstreamHealthStatus> = new Map();
-  private healthCheckTimer: NodeJS.Timeout | null = null;
-  private isChecking: boolean = false;
-
-  constructor() {
-    if (process.env.NODE_ENV !== 'test') {
-      this.startHealthCheck();
-    }
-  }
+  private circuitMap: Map<number, UpstreamCircuitState> = new Map();
 
   /**
    * Retrieves current list of configured upstream server URLs.
@@ -43,126 +33,96 @@ export class UpstreamManager {
   }
 
   /**
-   * Returns health status list for all configured upstream nodes.
+   * Returns circuit breaker status list for all configured upstream nodes.
    */
-  public getHealthStatusList(): UpstreamHealthStatus[] {
+  public getCircuitStatusList(): UpstreamCircuitState[] {
     const servers = this.getBaseUrls();
+    const now = Date.now();
     return servers.map((url, idx) => {
-      const existing = this.healthMap.get(idx);
+      const existing = this.circuitMap.get(idx);
       if (existing && existing.serverUrl === url) {
+        // Auto-heal if isolation time has passed
+        if (existing.isolatedUntil > 0 && existing.isolatedUntil <= now) {
+          existing.isolatedUntil = 0;
+          existing.consecutiveFailures = 0;
+          existing.lastError = undefined;
+        }
         return existing;
       }
-      const initial: UpstreamHealthStatus = {
+      const initial: UpstreamCircuitState = {
         serverUrl: url,
         serverIndex: idx,
-        isHealthy: true,
-        lastChecked: Date.now(),
-        consecutiveFailures: 0
+        consecutiveFailures: 0,
+        isolatedUntil: 0
       };
-      this.healthMap.set(idx, initial);
+      this.circuitMap.set(idx, initial);
       return initial;
     });
   }
 
   /**
-   * Manually set a node's health status (e.g. for testing or passive circuit breaker).
+   * Checks whether a node is currently isolated under circuit breaker.
    */
-  public setNodeHealth(serverIndex: number, isHealthy: boolean, error?: string): void {
+  public isNodeIsolated(serverIndex: number): boolean {
+    const servers = this.getBaseUrls();
+    if (serverIndex < 0 || serverIndex >= servers.length) return false;
+    const existing = this.circuitMap.get(serverIndex);
+    if (!existing) return false;
+    if (existing.isolatedUntil > 0 && existing.isolatedUntil > Date.now()) {
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Records request outcome for a given upstream server.
+   * 3 consecutive failures trigger 180-second isolation.
+   */
+  public recordRequestResult(serverIndex: number, success: boolean, error?: string | number): void {
     const servers = this.getBaseUrls();
     if (serverIndex < 0 || serverIndex >= servers.length) return;
     const url = servers[serverIndex];
-    const existing = this.healthMap.get(serverIndex) || {
-      serverUrl: url,
-      serverIndex,
-      isHealthy: true,
-      lastChecked: Date.now(),
-      consecutiveFailures: 0
-    };
+    let existing = this.circuitMap.get(serverIndex);
+    if (!existing || existing.serverUrl !== url) {
+      existing = {
+        serverUrl: url,
+        serverIndex,
+        consecutiveFailures: 0,
+        isolatedUntil: 0
+      };
+      this.circuitMap.set(serverIndex, existing);
+    }
 
-    existing.isHealthy = isHealthy;
-    existing.lastChecked = Date.now();
-    if (!isHealthy) {
-      existing.lastError = error;
-      existing.consecutiveFailures += 1;
-    } else {
-      existing.lastError = undefined;
+    if (success) {
       existing.consecutiveFailures = 0;
+      existing.isolatedUntil = 0;
+      existing.lastError = undefined;
+      return;
     }
-    this.healthMap.set(serverIndex, existing);
-  }
 
-  /**
-   * Actively probe upstream server health.
-   */
-  public async checkHealth(): Promise<void> {
-    if (this.isChecking) return;
-    this.isChecking = true;
+    existing.consecutiveFailures += 1;
+    existing.lastError = error !== undefined ? String(error) : 'Upstream request failed';
 
-    try {
-      const servers = this.getBaseUrls();
-      await Promise.allSettled(
-        servers.map(async (serverUrl, idx) => {
-          const timeout = 3000;
-          const headers: Record<string, string> = {
-            'Accept': 'application/json'
-          };
-          if (config.adminSecretKey) {
-            headers['Authorization'] = `Bearer ${config.adminSecretKey}`;
-          }
-
-          try {
-            const probeUrl = `${serverUrl}/api/status`;
-            const res = await fetch(probeUrl, {
-              method: 'GET',
-              headers,
-              timeout
-            });
-
-            // Any HTTP response (2xx, 3xx, 401, 403, 404, etc.) proves host is alive and reachable
-            // 502/503 indicates an upstream gateway outage
-            if (res.status === 502 || res.status === 503) {
-              this.setNodeHealth(idx, false, `HTTP ${res.status}`);
-            } else {
-              this.setNodeHealth(idx, true);
-            }
-          } catch (err: any) {
-            this.setNodeHealth(idx, false, err.message || 'Connection failed');
-          }
-        })
-      );
-    } finally {
-      this.isChecking = false;
+    if (existing.consecutiveFailures >= 3) {
+      existing.isolatedUntil = Date.now() + 180_000; // 180 seconds isolation
+      logger.warn(`[UpstreamManager] Upstream node ${serverIndex + 1} (${url}) failed 3 times consecutively (${existing.lastError}). Isolated for 180s.`);
     }
   }
 
   /**
-   * Starts periodic background health check (every 20s by default).
+   * Resets circuit state for a given node or all nodes.
    */
-  public startHealthCheck(intervalMs: number = 20000): void {
-    if (this.healthCheckTimer) return;
-    // Immediate initial probe asynchronously
-    this.checkHealth().catch(() => {});
-    this.healthCheckTimer = setInterval(() => {
-      this.checkHealth().catch(() => {});
-    }, intervalMs);
-    if (this.healthCheckTimer.unref) {
-      this.healthCheckTimer.unref();
-    }
-  }
-
-  /**
-   * Stops periodic background health check.
-   */
-  public stopHealthCheck(): void {
-    if (this.healthCheckTimer) {
-      clearInterval(this.healthCheckTimer);
-      this.healthCheckTimer = null;
+  public resetCircuit(serverIndex?: number): void {
+    if (serverIndex !== undefined) {
+      this.circuitMap.delete(serverIndex);
+    } else {
+      this.circuitMap.clear();
     }
   }
 
   /**
    * Selects an upstream server based on model-specific round-robin,
-   * explicit server index, or global round-robin, filtering out offline nodes.
+   * explicit server index, or global round-robin, skipping isolated nodes.
    */
   public getUpstreamServer(options?: { model?: string; serverIndex?: number }): UpstreamServerSelection {
     const servers = this.getBaseUrls();
@@ -176,21 +136,22 @@ export class UpstreamManager {
       return { serverUrl: servers[idx], serverIndex: idx };
     }
 
-    // 2. Filter healthy servers
-    const healthyList = servers
+    // 2. Filter out isolated nodes
+    const now = Date.now();
+    const availableList = servers
       .map((url, idx) => ({ url, idx }))
       .filter(item => {
-        const h = this.healthMap.get(item.idx);
-        return h ? h.isHealthy : true;
+        const state = this.circuitMap.get(item.idx);
+        return !state || state.isolatedUntil <= now;
       });
 
-    // If all servers are marked unhealthy, fall back to full pool to prevent 100% hard failure
-    const candidatePool = healthyList.length > 0
-      ? healthyList
+    // If all servers are isolated, fall back to full pool to prevent 100% rejection
+    const candidatePool = availableList.length > 0
+      ? availableList
       : servers.map((url, idx) => ({ url, idx }));
 
-    if (healthyList.length === 0 && servers.length > 1) {
-      logger.warn(`[UpstreamManager] All upstream servers marked offline/unhealthy, falling back to full cluster`);
+    if (availableList.length === 0 && servers.length > 1) {
+      logger.warn(`[UpstreamManager] All upstream servers currently isolated, falling back to full cluster`);
     }
 
     // 3. Per-model round-robin
@@ -224,12 +185,12 @@ export class UpstreamManager {
   }
 
   /**
-   * Resets internal counters and health cache.
+   * Resets internal counters and circuit state.
    */
   public reset(): void {
     this.modelCounters.clear();
     this.globalCounter = 0;
-    this.healthMap.clear();
+    this.circuitMap.clear();
   }
 }
 
