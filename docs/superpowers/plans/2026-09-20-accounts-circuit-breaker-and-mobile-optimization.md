@@ -30,7 +30,7 @@
   - Account API failures (502-504, connection errors) increment node failure counter.
   - Account API successes (200, valid HTTP status) immediately clear isolation for that node.
 
-- [ ] **Step 1: Write the failing unit test for AccountService circuit breaker reporting and recovery**
+- [x] **Step 1: Write the failing unit test for AccountService circuit breaker reporting and recovery**
 
 Create `tests/accountServiceCircuitBreaker.test.ts`:
 ```typescript
@@ -120,12 +120,12 @@ describe('AccountService Circuit Breaker Integration & Instant Recovery', () => 
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/accountServiceCircuitBreaker.test.ts`
 Expected: FAIL because `accountService.request` does not yet call `upstreamManager.recordRequestResult`.
 
-- [ ] **Step 3: Update `src/admin/services/accountService.ts`**
+- [x] **Step 3: Update `src/admin/services/accountService.ts`**
 
 In `src/admin/services/accountService.ts`:
 ```typescript
@@ -203,17 +203,17 @@ In `src/admin/services/accountService.ts`:
   }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/accountServiceCircuitBreaker.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Run existing accountService tests to verify no regressions**
+- [x] **Step 5: Run existing accountService tests to verify no regressions**
 
 Run: `npx jest tests/accountService.test.ts tests/accountController.test.ts`
 Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/admin/services/accountService.ts tests/accountServiceCircuitBreaker.test.ts
@@ -233,7 +233,7 @@ git commit -m "feat(accounts): integrate circuit breaker into account service wi
   - `accounts.accountUnit`: "个账号" / "accounts"
   - `accounts.mobileTabShort`: "S{index}"
 
-- [ ] **Step 1: Add keys in `frontend/src/i18n/locales/zh.ts`**
+- [x] **Step 1: Add keys in `frontend/src/i18n/locales/zh.ts`**
 
 In `accounts` section of `frontend/src/i18n/locales/zh.ts`:
 ```typescript
@@ -241,7 +241,7 @@ In `accounts` section of `frontend/src/i18n/locales/zh.ts`:
     mobileTabShort: "S{index}",
 ```
 
-- [ ] **Step 2: Add keys in `frontend/src/i18n/locales/en.ts`**
+- [x] **Step 2: Add keys in `frontend/src/i18n/locales/en.ts`**
 
 In `accounts` section of `frontend/src/i18n/locales/en.ts`:
 ```typescript
@@ -249,7 +249,7 @@ In `accounts` section of `frontend/src/i18n/locales/en.ts`:
     mobileTabShort: "S{index}",
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add frontend/src/i18n/locales/zh.ts frontend/src/i18n/locales/en.ts
@@ -270,7 +270,7 @@ git commit -m "feat(i18n): add account unit and mobile tab translation keys"
   - Dedicated mobile single-row active node status indicator bar when `servers.length > 1`.
   - Polished touch card spacing.
 
-- [ ] **Step 1: Update `tests/accountsViewMobileOptimization.test.ts` to test mobile tab capsules & status bar**
+- [x] **Step 1: Update `tests/accountsViewMobileOptimization.test.ts` to test mobile tab capsules & status bar**
 
 Add assertions in `tests/accountsViewMobileOptimization.test.ts`:
 ```typescript
@@ -283,12 +283,12 @@ Add assertions in `tests/accountsViewMobileOptimization.test.ts`:
   });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/accountsViewMobileOptimization.test.ts`
 Expected: FAIL due to missing `accounts.mobileTabShort` or mobile status bar.
 
-- [ ] **Step 3: Update `frontend/src/components/AccountsView.tsx`**
+- [x] **Step 3: Update `frontend/src/components/AccountsView.tsx`**
 
 1. In Multi-Server Tabs render block (`{servers.length > 1 && ...}`):
    - Update tab button styles for mobile compactness: `px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-medium transition-all flex items-center space-x-1.5 sm:space-x-2`
@@ -344,17 +344,17 @@ Expected: FAIL due to missing `accounts.mobileTabShort` or mobile status bar.
       )}
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/accountsViewMobileOptimization.test.ts tests/accountsMultiServerIsolation.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Run frontend build to verify compilation**
+- [x] **Step 5: Run frontend build to verify compilation**
 
 Run: `npm run build:frontend`
 Expected: PASS with 0 errors.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add frontend/src/components/AccountsView.tsx tests/accountsViewMobileOptimization.test.ts
@@ -369,17 +369,17 @@ git commit -m "feat(accounts): optimize mobile view with compact tab capsules an
 - Run all test suites
 - Full production build
 
-- [ ] **Step 1: Run complete test suite**
+- [x] **Step 1: Run complete test suite**
 
 Run: `npm test`
 Expected: All test suites pass.
 
-- [ ] **Step 2: Run full build**
+- [x] **Step 2: Run full build**
 
 Run: `npm run build`
 Expected: 0 errors for frontend Vite build and backend TypeScript build.
 
-- [ ] **Step 3: Commit and verify status**
+- [x] **Step 3: Commit and verify status**
 
 ```bash
 git status
