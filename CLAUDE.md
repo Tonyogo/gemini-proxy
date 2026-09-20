@@ -13,8 +13,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Start Production**: `npm start` (automatically builds before running `dist/src/index.js`)
 - **Dev Mode Backend**: `npm run dev` (starts hot-reloading development server via `ts-node-dev`)
 - **Dev Mode Frontend**: `npm run dev:frontend` (starts Vite dev server on port 5173 proxying API requests to `:3000`)
-- **Terminal Agent**: `npm run terminal-agent -- --server=http://<host>:3000 --key=<admin-key> --name="Node-Name"` (runs standalone reverse terminal agent on intranet host)
-- **Terminal Remote Command Execution CLI**: `npm run terminal-exec -- --host=<host-id> "command"` (executes remote shell commands with live streaming output and exit code forwarding; subcommands: `status <taskId>`, `list`, `kill <taskId>`; options: `-a, --async`, `--json`, `--cwd <path>`, `--timeout <ms>`, `-s, --server <url>`, `-k, --key <secret>`)
+- **`gt` Unified Terminal CLI**: `npm run gt -- <command>` or `gt <command>` (unified Docker-style CLI for Gemini Terminal):
+  - `gt hosts [--json]`: Lists connected agent hosts / nodes
+  - `gt exec [-d] [-w <dir>] [-t <ms>] [-q] <host> [--] <cmd...>`: Executes remote command with streaming output and exit code forwarding
+  - `gt ps <host> [--json]`: Lists active and recent execution tasks on target host
+  - `gt logs <host> <taskId> [--json]`: Inspects execution logs for a task
+  - `gt kill <host> <taskId>`: Terminates a running task on target host
+  - `gt agent [options]`: Launches reverse terminal agent daemon
+- **Terminal Agent**: `npm run terminal-agent -- --server=http://<host>:3000 --key=<admin-key> --name="Node-Name"` (or `npm run gt -- agent ...`)
+- **Terminal Remote Command Execution CLI (Legacy Alias)**: `npm run terminal-exec -- <host> <cmd>` (delegates to `gt exec`)
 - **Run All Tests**: `npm test` (runs complete Jest test suite; use `npx jest --runInBand` if experiencing SIGSEGV clustering issues)
 - **Run Single Test**: `npx jest tests/<test-name>.test.ts` (e.g., `npx jest tests/claudeTranslator.test.ts`)
 
@@ -40,7 +47,7 @@ This is a **stateless API proxy** that translates Anthropic Claude Messages API 
   - **Remote Terminal Session (`RemoteAgentTerminalSession`):** Handles 200KB scrollback history buffers, replay on client attach, multi-client attach/detach, and PTY resize/reset frame forwarding.
   - **Host Manager (`TerminalHostManager`):** Pure dynamic agent registry with agent registration/unregistration, metadata tracking, RPC response dispatching, and online/offline status. Exposes `/api/terminal/hosts` and `/api/terminal/hosts/offline`.
   - **100% RPC File Management (`terminalFileService.ts` & `terminalFileController.ts`):** Pure RPC-driven file browsing, preview, editing, directory creation, deletion, download, and upload through WebSocket channels (`/api/terminal/files/*`).
-  - **Standalone Command Execution Engine (`terminalExecService.ts`, `terminalExecController.ts`, `TaskManager` in `terminal-agent.js`, `scripts/terminal-exec.js`):** Isolated asynchronous command execution engine (`child_process.spawn`) supporting immediate non-blocking task creation (`POST /api/terminal/exec/:hostId`), incremental offset output polling (`GET /api/terminal/exec/:hostId/:taskId`), process termination (`POST /api/terminal/exec/:hostId/:taskId/kill`), recent tasks listing (`GET /api/terminal/exec/:hostId`), and standalone CLI client (`npm run terminal-exec`), with 5MB buffer truncation and timeout guards for AI/script deployment workflows.
+  - **Standalone Command Execution Engine (`terminalExecService.ts`, `terminalExecController.ts`, `TaskManager` in `terminal-agent.js`, `scripts/gt.js`, `scripts/terminal-exec.js`):** Isolated asynchronous command execution engine (`child_process.spawn`) supporting immediate non-blocking task creation (`POST /api/terminal/exec/:hostId`), incremental offset output polling (`GET /api/terminal/exec/:hostId/:taskId`), process termination (`POST /api/terminal/exec/:hostId/:taskId/kill`), recent tasks listing (`GET /api/terminal/exec/:hostId`), and unified Docker-style CLI tool `gt` (`scripts/gt.js`), with 5MB buffer truncation and timeout guards for AI/script deployment workflows.
   - **System Console Log Stream (`terminalLogService.ts` & `terminalLogController.ts`):** Real-time server log broadcaster and history provider (`/api/terminal/logs`).
   - **Backward Compatibility Aliases:** `adminRoutes.ts` routes legacy `/api/admin/terminal/*` and `/api/admin/terminal-logs` requests to `terminalRoutes` seamlessly.
   - **Frontend UI & Empty State:** `TerminalHostSelector` with automatic online host switching, rich frosted empty state guidance cards with one-click startup commands when no agents are connected, `TerminalAccessoryBar` for touch modifier keys, and `mobileViewportHelper` with dynamic keyboard push-up compensation.
