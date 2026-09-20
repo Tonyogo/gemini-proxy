@@ -37,7 +37,7 @@
 - `gt agent [options]`
 - `gt --help` / `gt -v` / `gt --version`
 
-- [ ] **Step 1: Write failing unit & dispatch test for `gt` CLI**
+- [x] **Step 1: Write failing unit & dispatch test for `gt` CLI**
 
 Create `tests/gtCli.test.ts`:
 ```typescript
@@ -99,12 +99,12 @@ describe('gt (Gemini Terminal) CLI', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/gtCli.test.ts`
 Expected: FAIL because `scripts/gt.js` does not exist.
 
-- [ ] **Step 3: Implement `scripts/gt.js`**
+- [x] **Step 3: Implement `scripts/gt.js`**
 
 Create `scripts/gt.js`:
 ```javascript
@@ -682,7 +682,7 @@ if (require.main === module) {
 module.exports = { formatRelativeTime, makeRequest };
 ```
 
-- [ ] **Step 4: Update `package.json` with `bin` and script entries**
+- [x] **Step 4: Update `package.json` with `bin` and script entries**
 
 In `package.json`:
 ```json
@@ -696,12 +696,12 @@ In `package.json`:
   }
 ```
 
-- [ ] **Step 5: Run tests to verify basic command dispatch**
+- [x] **Step 5: Run tests to verify basic command dispatch**
 
 Run: `npx jest tests/gtCli.test.ts`
 Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add scripts/gt.js tests/gtCli.test.ts package.json
@@ -724,7 +724,7 @@ git commit -m "feat(cli): implement gt unified docker-style CLI tool"
   - POSIX `--` pass-through prevents flag collision (e.g. `gt exec host -- -a -s`).
   - `gt ps`, `gt logs`, `gt kill`.
 
-- [ ] **Step 1: Expand `tests/gtCli.test.ts` with mock server integration suite**
+- [x] **Step 1: Expand `tests/gtCli.test.ts` with mock server integration suite**
 
 Update `tests/gtCli.test.ts`:
 ```typescript
@@ -893,12 +893,12 @@ describe('gt CLI Mock Server Integration', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify integration tests pass**
+- [x] **Step 2: Run test to verify integration tests pass**
 
 Run: `npx jest tests/gtCli.test.ts`
 Expected: PASS
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add tests/gtCli.test.ts
@@ -912,7 +912,7 @@ git commit -m "test(cli): add comprehensive integration test suite for gt CLI"
 **Files:**
 - Modify: `CLAUDE.md`
 
-- [ ] **Step 1: Update CLAUDE.md with `gt` usage guide**
+- [x] **Step 1: Update CLAUDE.md with `gt` usage guide**
 
 Update `CLAUDE.md`:
 - Document `gt` as the primary unified CLI:
@@ -921,7 +921,7 @@ Update `CLAUDE.md`:
   - `gt ps <host>`, `gt logs <host> <task>`, `gt kill <host> <task>`
   - `gt agent` (launch reverse agent)
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add CLAUDE.md
@@ -936,17 +936,17 @@ git commit -m "docs: document gt unified CLI tool in CLAUDE.md"
 - Full test suite
 - Full build
 
-- [ ] **Step 1: Run complete test suite**
+- [x] **Step 1: Run complete test suite**
 
 Run: `npm test`
 Expected: All test suites pass.
 
-- [ ] **Step 2: Run build**
+- [x] **Step 2: Run build**
 
 Run: `npm run build`
 Expected: 0 errors.
 
-- [ ] **Step 3: Commit and verify status**
+- [x] **Step 3: Commit and verify status**
 
 ```bash
 git status
