@@ -24,7 +24,7 @@
     "terminal-agent": "node scripts/terminal-agent.js",
     "terminal-exec": "node scripts/gt.js exec",
     "build:agent": "cd agent-rs && cargo build --release",
-    "agent:rs": "./agent-rs/target/release/gemini-terminal-agent",
+    "agent:rs": "./agent-rs/target/release/gt agent",
     "clean": "rm -rf dist"
   },
   "dependencies": {
