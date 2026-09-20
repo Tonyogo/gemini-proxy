@@ -92,12 +92,15 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
   const [serverDataMap, setServerDataMap] = useState<Record<number, any>>({});
   const [serverLoadingMap, setServerLoadingMap] = useState<Record<number, boolean>>({});
   const [serverErrorMap, setServerErrorMap] = useState<Record<number, string | null>>({});
+  const [serverHealthMap, setServerHealthMap] = useState<Record<number, boolean>>({});
+  const [globalLoading, setGlobalLoading] = useState<boolean>(false);
 
   const latestRequestIdRef = useRef<number>(0);
 
   const currentData = serverDataMap[activeServerIndex] || null;
   const isCurrentLoading = Boolean(serverLoadingMap[activeServerIndex]);
   const currentError = serverErrorMap[activeServerIndex] || null;
+  const isCurrentOffline = serverHealthMap[activeServerIndex] === false || Boolean(serverErrorMap[activeServerIndex]);
 
   const accounts: AccountDetail[] = currentData?.status?.accountDetails || [];
   const currentAuthIndex = currentData?.status?.currentAuthIndex;
@@ -196,16 +199,65 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
       });
       if (res.ok) {
         const json = await res.json();
-        if (Array.isArray(json.servers)) {
-          setServers(json.servers);
+        const serverList = Array.isArray(json.servers) ? json.servers : [];
+        if (serverList.length > 0) {
+          setServers(serverList);
         }
+        if (Array.isArray(json.health)) {
+          const initialHealth: Record<number, boolean> = {};
+          json.health.forEach((h: any) => {
+            initialHealth[h.serverIndex] = h.isHealthy;
+          });
+          setServerHealthMap(prev => ({ ...initialHealth, ...prev }));
+        }
+        fetchAllServers(false, serverList);
+      } else {
+        fetchAllServers(false);
       }
     } catch {
-      // Non-fatal
+      fetchAllServers(false);
     }
   };
 
-  const fetchStatus = async (silent: boolean = false, targetServerIdx: number = activeServerIndex) => {
+  const fetchAllServers = async (silent = false, serverList?: string[]) => {
+    const list = (serverList && serverList.length > 0) ? serverList : servers;
+    if (list.length === 0) {
+      fetchSingleServer(silent, 0);
+      return;
+    }
+    if (!silent) setGlobalLoading(true);
+    try {
+      await Promise.allSettled(
+        list.map(async (_, idx) => {
+          setServerLoadingMap(prev => ({ ...prev, [idx]: true }));
+          try {
+            const res = await fetch(getApiUrl('/api/admin/accounts/status', idx), {
+              headers: getHeaders()
+            });
+            if (res.ok) {
+              const json = await res.json();
+              setServerDataMap(prev => ({ ...prev, [idx]: json }));
+              setServerErrorMap(prev => ({ ...prev, [idx]: null }));
+              setServerHealthMap(prev => ({ ...prev, [idx]: true }));
+            } else {
+              const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+              setServerErrorMap(prev => ({ ...prev, [idx]: err.error || `HTTP ${res.status}` }));
+              setServerHealthMap(prev => ({ ...prev, [idx]: false }));
+            }
+          } catch (e: any) {
+            setServerErrorMap(prev => ({ ...prev, [idx]: e.message }));
+            setServerHealthMap(prev => ({ ...prev, [idx]: false }));
+          } finally {
+            setServerLoadingMap(prev => ({ ...prev, [idx]: false }));
+          }
+        })
+      );
+    } finally {
+      if (!silent) setGlobalLoading(false);
+    }
+  };
+
+  const fetchSingleServer = async (silent: boolean = false, targetServerIdx: number = activeServerIndex) => {
     const reqId = ++latestRequestIdRef.current;
 
     if (!silent) {
@@ -226,9 +278,11 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
         const json = await res.json();
         setServerDataMap(prev => ({ ...prev, [targetServerIdx]: json }));
         setServerErrorMap(prev => ({ ...prev, [targetServerIdx]: null }));
+        setServerHealthMap(prev => ({ ...prev, [targetServerIdx]: true }));
       } else {
         const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
         setServerErrorMap(prev => ({ ...prev, [targetServerIdx]: err.error || err.message }));
+        setServerHealthMap(prev => ({ ...prev, [targetServerIdx]: false }));
         if (!silent) {
           showToast(t('accounts.actionFailed', { error: err.error || err.message }), 'error');
         }
@@ -236,6 +290,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     } catch (e: any) {
       if (reqId === latestRequestIdRef.current) {
         setServerErrorMap(prev => ({ ...prev, [targetServerIdx]: e.message }));
+        setServerHealthMap(prev => ({ ...prev, [targetServerIdx]: false }));
         if (!silent) {
           showToast(t('accounts.actionFailed', { error: e.message }), 'error');
         }
@@ -247,23 +302,21 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     }
   };
 
+  const fetchStatus = fetchSingleServer;
+
   const handleSwitchServer = (idx: number) => {
     if (idx === activeServerIndex) return;
     setActiveServerIndex(idx);
     setSelectedIndices([]);
     setPopoverAnchor(null);
 
-    const hasCachedData = Boolean(serverDataMap[idx]);
-    // If cached, render immediately without blocking, then trigger silent sync; otherwise show loading spinner
-    fetchStatus(!hasCachedData ? false : true, idx);
+    if (!serverDataMap[idx] && !serverLoadingMap[idx]) {
+      fetchSingleServer(false, idx);
+    }
   };
 
   useEffect(() => {
     fetchServers();
-  }, [adminKey]);
-
-  useEffect(() => {
-    fetchStatus(false, activeServerIndex);
   }, [adminKey]);
 
   // Click outside / scroll / resize / keydown listener to dismiss open popovers
@@ -814,7 +867,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
               const isActive = activeServerIndex === idx;
               const serverData = serverDataMap[idx];
               const isLoading = Boolean(serverLoadingMap[idx]);
-              const hasError = Boolean(serverErrorMap[idx]);
+              const isOffline = serverHealthMap[idx] === false || Boolean(serverErrorMap[idx]);
               const count = serverData?.status?.accountDetails?.length;
 
               return (
@@ -832,21 +885,25 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                   <span className="flex items-center space-x-1.5">
                     {isLoading ? (
                       <RefreshCw className="w-3 h-3 animate-spin text-indigo-300" />
-                    ) : hasError ? (
-                      <span className="w-2 h-2 rounded-full bg-rose-400 ring-2 ring-rose-400/20" />
+                    ) : isOffline ? (
+                      <span className="w-2 h-2 rounded-full bg-rose-500 ring-2 ring-rose-500/30" />
                     ) : (
-                      <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-emerald-300 ring-2 ring-emerald-300/30' : 'bg-emerald-500/60'}`} />
+                      <span className={`w-2 h-2 rounded-full bg-emerald-500 ${isActive ? 'ring-2 ring-emerald-300/30' : ''}`} />
                     )}
                     <span>Server {idx + 1} ({host})</span>
                   </span>
 
-                  {count !== undefined && (
+                  {isOffline ? (
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                      {t('accounts.nodeOffline')}
+                    </span>
+                  ) : count !== undefined ? (
                     <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded-full ${
                       isActive ? 'bg-white/20 text-white' : 'bg-black/5 dark:bg-white/10 text-slate-500 dark:text-slate-300'
                     }`}>
                       {count}
                     </span>
-                  )}
+                  ) : null}
                 </button>
               );
             })}
@@ -854,75 +911,8 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
         </div>
       )}
 
-      {/* Multi-Server Scope & Environment Banner */}
-      {servers.length > 1 && (
-        <div className={`ui-card-sub px-3.5 py-2.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs transition-all ${
-          activeServerIndex % 4 === 0
-            ? 'border-indigo-500/30 bg-indigo-500/5 text-indigo-900 dark:text-indigo-200'
-            : activeServerIndex % 4 === 1
-            ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-900 dark:text-emerald-200'
-            : activeServerIndex % 4 === 2
-            ? 'border-amber-500/30 bg-amber-500/5 text-amber-900 dark:text-amber-200'
-            : 'border-purple-500/30 bg-purple-500/5 text-purple-900 dark:text-purple-200'
-        }`}>
-          <div className="flex items-center space-x-2.5 min-w-0">
-            <div className={`p-1.5 rounded-lg shrink-0 ${
-              activeServerIndex % 4 === 0
-                ? 'bg-indigo-500/20 text-indigo-600 dark:text-indigo-400'
-                : activeServerIndex % 4 === 1
-                ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
-                : activeServerIndex % 4 === 2
-                ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400'
-                : 'bg-purple-500/20 text-purple-600 dark:text-purple-400'
-            }`}>
-              <Globe className="w-4 h-4" />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center space-x-2 flex-wrap gap-y-0.5">
-                <span className="font-bold text-xs">
-                  {t('accounts.serverScope', { server: `Server ${activeServerIndex + 1}` })}
-                </span>
-                <span className="font-mono text-[11px] opacity-80 truncate max-w-xs sm:max-w-md">
-                  ({servers[activeServerIndex]})
-                </span>
-                {currentAuthIndex !== undefined && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-black/5 dark:bg-white/10 font-semibold">
-                    {t('accounts.activeAuthBadge', {
-                      index: String(currentAuthIndex),
-                      email: accounts[currentAuthIndex]?.name || 'current'
-                    })}
-                  </span>
-                )}
-              </div>
-              <p className="text-[11px] opacity-75 mt-0.5 hidden sm:block">
-                {t('accounts.scopeDesc')}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-2 shrink-0 self-end sm:self-center">
-            {currentError && (
-              <span className="text-[11px] text-rose-500 dark:text-rose-400 flex items-center space-x-1 font-medium">
-                <AlertCircle className="w-3.5 h-3.5" />
-                <span className="max-w-[200px] truncate">{currentError}</span>
-              </span>
-            )}
-            <button
-              type="button"
-              onClick={() => fetchStatus(false, activeServerIndex)}
-              disabled={isCurrentLoading}
-              className="px-2.5 py-1 rounded-lg ui-btn-secondary text-xs flex items-center space-x-1.5 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
-              title={t('accounts.refreshServer')}
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isCurrentLoading ? 'animate-spin text-indigo-400' : ''}`} />
-              <span className="hidden sm:inline">{t('accounts.refreshServer')}</span>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Modern Page Header & Stats Banner (Desktop/Tablet only, hidden on mobile to avoid duplicate header with App bar) */}
-      <div className="hidden sm:flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      {/* Modern Page Header (Desktop/Tablet only, hidden on mobile to avoid duplicate header with App bar) */}
+      <div className="hidden sm:flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center space-x-2.5">
             <Users className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
@@ -931,87 +921,6 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             {t('accounts.sub', 'Manage multi-account credentials, automatic context rotation, and per-account usage quotas.')}
           </p>
-        </div>
-
-        {/* Stats Chips */}
-        <div className="hidden sm:grid sm:grid-cols-3 lg:grid-cols-6 gap-1.5 sm:gap-2.5">
-          {/* Total Accounts */}
-          <div className="ui-card-sub p-1.5 sm:px-4 sm:py-3 flex items-center space-x-2 sm:space-x-3">
-            <div className="p-1 sm:p-1.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] text-slate-500 dark:text-slate-400 shrink-0">
-              <Users className="w-3.5 h-3.5" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-[9px] sm:text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">
-                {t('accounts.totalAccounts')}
-              </div>
-              <div className="text-sm sm:text-lg font-bold text-slate-900 dark:text-slate-100 font-mono">{totalCount}</div>
-            </div>
-          </div>
-
-          {/* Activated */}
-          <div className="ui-card-sub p-1.5 sm:px-4 sm:py-3 flex items-center space-x-2 sm:space-x-3">
-            <div className="p-1 sm:p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-[9px] sm:text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">
-                {t('accounts.activeAccounts')}
-              </div>
-              <div className="text-sm sm:text-lg font-bold text-slate-900 dark:text-slate-100 font-mono">{activatedCount}</div>
-            </div>
-          </div>
-
-          {/* Activating */}
-          <div className="ui-card-sub p-1.5 sm:px-4 sm:py-3 flex items-center space-x-2 sm:space-x-3">
-            <div className="p-1 sm:p-1.5 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
-              <Sparkles className="w-3.5 h-3.5" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-[9px] sm:text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">
-                {t('accounts.activatingAccounts')}
-              </div>
-              <div className="text-sm sm:text-lg font-bold text-slate-900 dark:text-slate-100 font-mono">{activatingCount}</div>
-            </div>
-          </div>
-
-          {/* Retired */}
-          <div className="ui-card-sub p-1.5 sm:px-4 sm:py-3 flex items-center space-x-2 sm:space-x-3">
-            <div className="p-1 sm:p-1.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 shrink-0">
-              <Clock className="w-3.5 h-3.5" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-[9px] sm:text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">
-                {t('accounts.retiredAccounts', '已下线')}
-              </div>
-              <div className="text-sm sm:text-lg font-bold text-slate-900 dark:text-slate-100 font-mono">{retiredCount}</div>
-            </div>
-          </div>
-
-          {/* Inactive */}
-          <div className="ui-card-sub p-1.5 sm:px-4 sm:py-3 flex items-center space-x-2 sm:space-x-3">
-            <div className="p-1 sm:p-1.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] text-slate-500 dark:text-slate-400 shrink-0">
-              <Power className="w-3.5 h-3.5" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-[9px] sm:text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">
-                {t('accounts.inactiveAccounts', '未激活')}
-              </div>
-              <div className="text-sm sm:text-lg font-bold text-slate-900 dark:text-slate-100 font-mono">{inactiveCount}</div>
-            </div>
-          </div>
-
-          {/* Disabled */}
-          <div className="ui-card-sub p-1.5 sm:px-4 sm:py-3 flex items-center space-x-2 sm:space-x-3">
-            <div className="p-1 sm:p-1.5 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 shrink-0">
-              <AlertCircle className="w-3.5 h-3.5" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-[9px] sm:text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider truncate">
-                {t('accounts.disabledAccounts')}
-              </div>
-              <div className="text-sm sm:text-lg font-bold text-slate-900 dark:text-slate-100 font-mono">{disabledCount}</div>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -1187,12 +1096,12 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
             </button>
 
             <button
-              onClick={() => fetchStatus(false)}
-              disabled={loading || actionLoading}
-              className="p-1.5 ui-btn-secondary shrink-0"
-              title={t('accounts.refresh')}
+              onClick={() => fetchAllServers(false)}
+              disabled={loading || actionLoading || globalLoading}
+              className="p-1.5 ui-btn-secondary shrink-0 cursor-pointer"
+              title={t('accounts.refreshAll', '刷新全部节点')}
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-indigo-400' : 'text-slate-400'}`} />
+              <RefreshCw className={`w-4 h-4 ${(loading || globalLoading) ? 'animate-spin text-indigo-400' : 'text-slate-400'}`} />
             </button>
           </div>
         </div>
@@ -1205,8 +1114,30 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
         </div>
       )}
 
-      {/* Modern Data Table */}
-      {(!isCurrentLoading || currentData) && (
+      {/* Node Offline Fallback State */}
+      {!isCurrentLoading && isCurrentOffline && accounts.length === 0 ? (
+        <div className="ui-card p-12 text-center flex flex-col items-center justify-center space-y-4 rounded-xl border border-rose-500/20 bg-rose-500/5">
+          <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center">
+            <AlertCircle className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+              {t('accounts.nodeConnectionFailed')}
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md">
+              {currentError || t('accounts.offlineTip')}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => fetchSingleServer(false, activeServerIndex)}
+            className="px-4 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-500 text-xs font-semibold flex items-center space-x-2 transition-all cursor-pointer shadow-sm shadow-indigo-500/20"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>{t('accounts.retryNode')}</span>
+          </button>
+        </div>
+      ) : (!isCurrentLoading || currentData) && (
       <div className="ui-card overflow-hidden">
         {loading && accounts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-slate-400 font-mono text-xs space-y-3">
