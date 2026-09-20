@@ -115,7 +115,13 @@ export const en = {
     noActiveAuth: "No active rotation account",
     refreshServer: "Refresh Server",
     serverErrorNotice: "Upstream node error: {error}",
-    scopeDesc: "All credential operations apply strictly to this server instance."
+    scopeDesc: "All credential operations apply strictly to this server instance.",
+    nodeOnline: "Online",
+    nodeOffline: "Offline",
+    nodeConnectionFailed: "Failed to connect to node",
+    retryNode: "Retry Connection",
+    refreshAll: "Refresh All Nodes",
+    offlineTip: "This node is unreachable and automatically bypassed by model routing."
   },
   dashboard: {
     title: "Proxy System Overview",

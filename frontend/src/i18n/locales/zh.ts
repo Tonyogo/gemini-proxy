@@ -117,7 +117,13 @@ export const zh: Translations = {
     noActiveAuth: "暂无生效中的轮换账号",
     refreshServer: "刷新当前节点",
     serverErrorNotice: "该节点上游请求异常: {error}",
-    scopeDesc: "当前凭据导入、启停、删除、去重及轮换设置仅作用于该独立服务器实例。"
+    scopeDesc: "当前凭据导入、启停、删除、去重及轮换设置仅作用于该独立服务器实例。",
+    nodeOnline: "在线",
+    nodeOffline: "离线",
+    nodeConnectionFailed: "无法连接到该节点",
+    retryNode: "重试连接",
+    refreshAll: "刷新全部节点",
+    offlineTip: "当前节点无法访问，模型请求已自动跳过该节点。"
   },
   dashboard: {
     title: "代理系统概览",
