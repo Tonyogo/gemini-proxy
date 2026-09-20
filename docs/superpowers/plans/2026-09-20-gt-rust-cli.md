@@ -29,7 +29,7 @@
 **Interfaces:**
 - Produces: Package `gt` with `reqwest` dependency and `[[bin]] name = "gt"`.
 
-- [ ] **Step 1: Update `agent-rs/Cargo.toml`**
+- [x] **Step 1: Update `agent-rs/Cargo.toml`**
 
 Update `agent-rs/Cargo.toml`:
 ```toml
@@ -67,7 +67,7 @@ panic = "abort"
 strip = true
 ```
 
-- [ ] **Step 2: Verify compilation and dependency resolution**
+- [x] **Step 2: Verify compilation and dependency resolution**
 
 Run:
 ```bash
@@ -75,7 +75,7 @@ PATH="/Users/yogo/.rustup/toolchains/stable-x86_64-apple-darwin/bin:$HOME/.cargo
 ```
 Expected: PASS (resolves `reqwest` without error).
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add agent-rs/Cargo.toml
@@ -98,7 +98,7 @@ git commit -m "feat(rust): configure gt package and add reqwest dependency"
   - `ExecArgs` with `host`, `workdir`, `detach`, `timeout`, `quiet`, `env`, `command`.
   - `AgentArgs` with `id`, `name`, `shell`.
 
-- [ ] **Step 1: Create `agent-rs/src/cli.rs`**
+- [x] **Step 1: Create `agent-rs/src/cli.rs`**
 
 Write `agent-rs/src/cli.rs`:
 ```rust
@@ -210,11 +210,11 @@ pub struct AgentArgs {
 }
 ```
 
-- [ ] **Step 2: Register module in `agent-rs/src/main.rs`**
+- [x] **Step 2: Register module in `agent-rs/src/main.rs`**
 
 Add `mod cli;` and compile check.
 
-- [ ] **Step 3: Run compilation check**
+- [x] **Step 3: Run compilation check**
 
 Run:
 ```bash
@@ -222,7 +222,7 @@ PATH="/Users/yogo/.rustup/toolchains/stable-x86_64-apple-darwin/bin:$HOME/.cargo
 ```
 Expected: PASS.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add agent-rs/src/cli.rs agent-rs/src/main.rs
@@ -245,7 +245,7 @@ git commit -m "feat(rust): define Docker-style CLI commands and arguments for gt
   - `pub async fn run_kill(server: &str, key: &str, host: &str, task_id: &str, json: bool) -> i32`
   - `pub async fn run_exec(server: &str, key: &str, args: ExecArgs, json: bool) -> i32`
 
-- [ ] **Step 1: Implement `agent-rs/src/client.rs`**
+- [x] **Step 1: Implement `agent-rs/src/client.rs`**
 
 Write `agent-rs/src/client.rs`:
 ```rust
@@ -751,7 +751,7 @@ pub async fn run_exec(server: &str, key: &str, args: ExecArgs, json: bool) -> i3
 }
 ```
 
-- [ ] **Step 2: Run compilation check**
+- [x] **Step 2: Run compilation check**
 
 Run:
 ```bash
@@ -759,7 +759,7 @@ PATH="/Users/yogo/.rustup/toolchains/stable-x86_64-apple-darwin/bin:$HOME/.cargo
 ```
 Expected: PASS.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add agent-rs/src/client.rs
@@ -778,7 +778,7 @@ git commit -m "feat(rust): implement client REST operations and streaming execut
 - Consumes: `cli::Cli`, `client`, `ws::TerminalAgentClient`.
 - Produces: Executable `gt` that routes subcommands (`hosts`, `exec`, `ps`, `logs`, `kill`) or runs the reverse WebSocket daemon on `agent`.
 
-- [ ] **Step 1: Update `agent-rs/src/main.rs`**
+- [x] **Step 1: Update `agent-rs/src/main.rs`**
 
 Refactor `agent-rs/src/main.rs`:
 ```rust
@@ -893,7 +893,7 @@ async fn main() {
 }
 ```
 
-- [ ] **Step 2: Build debug binary**
+- [x] **Step 2: Build debug binary**
 
 Run:
 ```bash
@@ -901,7 +901,7 @@ PATH="/Users/yogo/.rustup/toolchains/stable-x86_64-apple-darwin/bin:$HOME/.cargo
 ```
 Expected: Produces executable binary at `agent-rs/target/debug/gt`.
 
-- [ ] **Step 3: Test binary invocation**
+- [x] **Step 3: Test binary invocation**
 
 Run:
 ```bash
@@ -910,7 +910,7 @@ Run:
 ```
 Expected: Displays `gt` version `1.0.0` and subcommand listing.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add agent-rs/src/main.rs
@@ -926,7 +926,7 @@ git commit -m "feat(rust): integrate main CLI dispatcher for client commands and
 - Modify: `package.json`
 - Modify: `CLAUDE.md`
 
-- [ ] **Step 1: Write integration tests in `tests/gtRustCli.test.ts`**
+- [x] **Step 1: Write integration tests in `tests/gtRustCli.test.ts`**
 
 Create `tests/gtRustCli.test.ts`:
 ```typescript
@@ -1029,18 +1029,18 @@ describe('Rust gt Binary Integration', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify integration**
+- [x] **Step 2: Run test to verify integration**
 
 Run: `npx jest tests/gtRustCli.test.ts`
 Expected: PASS.
 
-- [ ] **Step 3: Update `package.json` build scripts**
+- [x] **Step 3: Update `package.json` build scripts**
 
 In `package.json`:
 - Update `"build:agent"`: `"cd agent-rs && cargo build --release"`
 - Update `"agent:rs"`: `"./agent-rs/target/release/gt agent"`
 
-- [ ] **Step 4: Build release binary**
+- [x] **Step 4: Build release binary**
 
 Run:
 ```bash
@@ -1048,12 +1048,12 @@ PATH="/Users/yogo/.rustup/toolchains/stable-x86_64-apple-darwin/bin:$HOME/.cargo
 ```
 Expected: Compiles stripped, optimized release binary to `agent-rs/target/release/gt`.
 
-- [ ] **Step 5: Run full test suite to ensure 0 regressions**
+- [x] **Step 5: Run full test suite to ensure 0 regressions**
 
 Run: `npm test`
 Expected: 100% test suites pass.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add tests/gtRustCli.test.ts package.json CLAUDE.md
