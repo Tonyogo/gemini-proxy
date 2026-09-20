@@ -160,4 +160,18 @@ describe('Account Controller Endpoints', () => {
     expect(res.status).toBe(400);
     expect(mockedAccountService.closeContext).not.toHaveBeenCalled();
   });
+
+  it('should return servers and health status list from getServers', async () => {
+    const res = await request(app)
+      .get('/api/admin/accounts/servers')
+      .set('x-admin-key', secretKey);
+
+    expect(res.status).toBe(200);
+    expect(Array.isArray(res.body.servers)).toBe(true);
+    expect(Array.isArray(res.body.health)).toBe(true);
+    if (res.body.health.length > 0) {
+      expect(res.body.health[0]).toHaveProperty('isHealthy');
+      expect(res.body.health[0]).toHaveProperty('serverUrl');
+    }
+  });
 });
