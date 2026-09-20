@@ -1,4 +1,5 @@
-use crate::cli::ExecArgs;
+use crate::cli::{ConfigAction, ExecArgs};
+use crate::config_store::ConfigStore;
 use chrono::{DateTime, Local};
 use reqwest::header::{HeaderMap, HeaderValue, ACCEPT};
 use serde::{Deserialize, Serialize};
@@ -521,3 +522,148 @@ pub async fn run_exec(server: &str, key: &str, args: ExecArgs, json: bool) -> i3
         tokio::time::sleep(poll_interval).await;
     }
 }
+
+pub async fn run_login(server_opt: Option<String>, key_opt: Option<String>) -> i32 {
+    let mut store = ConfigStore::load();
+
+    let server = match server_opt {
+        Some(s) if !s.trim().is_empty() => s.trim().to_string(),
+        _ => {
+            print!("? Enter Proxy Server URL (e.g. http://localhost:3000): ");
+            let _ = io::stdout().flush();
+            let mut input = String::new();
+            if io::stdin().read_line(&mut input).is_err() || input.trim().is_empty() {
+                "http://localhost:3000".to_string()
+            } else {
+                input.trim().to_string()
+            }
+        }
+    };
+
+    let key = match key_opt {
+        Some(k) => k.trim().to_string(),
+        _ => {
+            print!("? Enter Admin Secret Key (leave blank if none): ");
+            let _ = io::stdout().flush();
+            let mut input = String::new();
+            let _ = io::stdin().read_line(&mut input);
+            input.trim().to_string()
+        }
+    };
+
+    let normalized_server = if server.starts_with("http://") || server.starts_with("https://") {
+        server
+    } else {
+        format!("http://{}", server)
+    };
+
+    let test_url = format!("{}/api/terminal/hosts", normalized_server.trim_end_matches('/'));
+    let (client, _) = build_client(&key);
+
+    println!("Connecting to {}...", normalized_server);
+    match client.get(&test_url).send().await {
+        Ok(res) => {
+            if res.status() == reqwest::StatusCode::UNAUTHORIZED {
+                eprintln!("✖ Error: Authentication failed. Invalid admin secret key (401).");
+                return 1;
+            }
+            if !res.status().is_success() && res.status() != reqwest::StatusCode::NOT_FOUND {
+                eprintln!("✖ Error: Server returned status {}.", res.status());
+                return 1;
+            }
+        }
+        Err(err) => {
+            eprintln!("✖ Error: Could not connect to server at {}: {}", normalized_server, err);
+            return 1;
+        }
+    }
+
+    store.server = Some(normalized_server.clone());
+    store.key = if key.is_empty() { None } else { Some(key) };
+
+    if let Err(e) = store.save() {
+        eprintln!("✖ Error saving configuration: {}", e);
+        return 1;
+    }
+
+    println!("✔ Successfully verified and logged in to {}", normalized_server);
+    if let Some(p) = ConfigStore::get_config_file_path() {
+        println!("Configuration saved to {}", p.display());
+    }
+    0
+}
+
+pub fn run_logout() -> i32 {
+    if let Err(e) = ConfigStore::clear() {
+        eprintln!("✖ Error clearing credentials: {}", e);
+        return 1;
+    }
+    println!("✔ Successfully logged out. Removed credentials from ~/.gt/config.json");
+    0
+}
+
+pub fn run_config(action: ConfigAction, json: bool) -> i32 {
+    let mut store = ConfigStore::load();
+
+    match action {
+        ConfigAction::List => {
+            if json {
+                let mut map = HashMap::new();
+                map.insert("server", store.server.clone().unwrap_or_default());
+                map.insert("key", ConfigStore::mask_key(&store.key.clone().unwrap_or_default()));
+                println!("{}", serde_json::to_string_pretty(&map).unwrap());
+            } else {
+                let s = store.server.as_deref().unwrap_or("<not configured>");
+                let k = store.key.as_deref().map(ConfigStore::mask_key).unwrap_or_else(|| "<not configured>".to_string());
+                println!("server = \"{}\"", s);
+                println!("key    = \"{}\"", k);
+            }
+            0
+        }
+        ConfigAction::Get { key } => {
+            let val = match key.to_lowercase().as_str() {
+                "server" => store.server.clone(),
+                "key" => store.key.clone(),
+                other => {
+                    eprintln!("Unknown config key: {}. Valid keys are 'server' or 'key'.", other);
+                    return 1;
+                }
+            };
+            if let Some(v) = val {
+                println!("{}", v);
+            } else {
+                println!("<not configured>");
+            }
+            0
+        }
+        ConfigAction::Set { key, value } => {
+            match key.to_lowercase().as_str() {
+                "server" => {
+                    let s = value.trim().to_string();
+                    let norm = if s.starts_with("http://") || s.starts_with("https://") { s } else { format!("http://{}", s) };
+                    store.server = Some(norm.clone());
+                    if let Err(e) = store.save() {
+                        eprintln!("Error saving config: {}", e);
+                        return 1;
+                    }
+                    println!("✔ Updated server = \"{}\"", norm);
+                }
+                "key" => {
+                    let k = value.trim().to_string();
+                    store.key = if k.is_empty() { None } else { Some(k) };
+                    if let Err(e) = store.save() {
+                        eprintln!("Error saving config: {}", e);
+                        return 1;
+                    }
+                    println!("✔ Updated key");
+                }
+                other => {
+                    eprintln!("Unknown config key: {}. Valid keys are 'server' or 'key'.", other);
+                    return 1;
+                }
+            }
+            0
+        }
+    }
+}
+

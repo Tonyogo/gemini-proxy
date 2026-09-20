@@ -11,6 +11,7 @@ mod ws;
 use clap::Parser;
 use cli::{Cli, Commands};
 use config::Config;
+use config_store::ConfigStore;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use task::TaskManager;
@@ -20,34 +21,57 @@ use ws::TerminalAgentClient;
 
 #[tokio::main]
 async fn main() {
-    // Install default rustls crypto provider (ring) to support wss/https connections
     let _ = rustls::crypto::ring::default_provider().install_default();
 
     let cli = Cli::parse();
+    let stored_config = ConfigStore::load();
+
+    let resolved_server = ConfigStore::resolve_server(
+        cli.server.as_deref(),
+        std::env::var("TERMINAL_SERVER").ok().as_deref(),
+        stored_config.server.as_deref(),
+    );
+
+    let resolved_key = ConfigStore::resolve_key(
+        cli.key.as_deref(),
+        std::env::var("ADMIN_SECRET_KEY").ok().as_deref(),
+        stored_config.key.as_deref(),
+    );
 
     match cli.command {
+        Commands::Login { server, key } => {
+            let code = client::run_login(server, key).await;
+            std::process::exit(code);
+        }
+        Commands::Logout => {
+            let code = client::run_logout();
+            std::process::exit(code);
+        }
+        Commands::Config { action } => {
+            let code = client::run_config(action, cli.json);
+            std::process::exit(code);
+        }
         Commands::Hosts => {
-            let code = client::run_hosts(&cli.server, &cli.key, cli.json).await;
+            let code = client::run_hosts(&resolved_server, &resolved_key, cli.json).await;
             std::process::exit(code);
         }
         Commands::Exec(args) => {
-            let code = client::run_exec(&cli.server, &cli.key, args, cli.json).await;
+            let code = client::run_exec(&resolved_server, &resolved_key, args, cli.json).await;
             std::process::exit(code);
         }
         Commands::Ps { host } => {
-            let code = client::run_ps(&cli.server, &cli.key, &host, cli.json).await;
+            let code = client::run_ps(&resolved_server, &resolved_key, &host, cli.json).await;
             std::process::exit(code);
         }
         Commands::Logs { host, task_id } => {
-            let code = client::run_logs(&cli.server, &cli.key, &host, &task_id, cli.json).await;
+            let code = client::run_logs(&resolved_server, &resolved_key, &host, &task_id, cli.json).await;
             std::process::exit(code);
         }
         Commands::Kill { host, task_id } => {
-            let code = client::run_kill(&cli.server, &cli.key, &host, &task_id, cli.json).await;
+            let code = client::run_kill(&resolved_server, &resolved_key, &host, &task_id, cli.json).await;
             std::process::exit(code);
         }
         Commands::Agent(agent_args) => {
-            // Initialize tracing logger for Agent daemon
             let env_filter = tracing_subscriber::EnvFilter::try_from_default_env()
                 .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info"));
 
@@ -60,8 +84,8 @@ async fn main() {
             let _ = tracing::subscriber::set_global_default(subscriber);
 
             let agent_config = Config {
-                server: cli.server,
-                key: cli.key,
+                server: resolved_server,
+                key: resolved_key,
                 id: agent_args.id,
                 name: agent_args.name,
                 shell: agent_args.shell,
@@ -84,7 +108,6 @@ async fn main() {
             let task_manager = TaskManager::new();
             let shutdown = Arc::new(AtomicBool::new(false));
 
-            // Listen for SIGINT and SIGTERM for graceful exit
             let shutdown_signal = shutdown.clone();
             tokio::spawn(async move {
                 let mut sigint = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::interrupt()).unwrap();
