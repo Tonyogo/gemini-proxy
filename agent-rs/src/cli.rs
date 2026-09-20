@@ -6,13 +6,13 @@ use clap::{Args, Parser, Subcommand};
 #[command(version = "1.0.0")]
 #[command(about = "gt (Gemini Terminal) - Unified Docker-Style Terminal CLI and Reverse Agent", long_about = None)]
 pub struct Cli {
-    /// Remote Gemini Proxy server target URL
-    #[arg(short, long, global = true, env = "TERMINAL_SERVER", default_value = "http://localhost:3000")]
-    pub server: String,
+    /// Remote Gemini Proxy server target URL (optional override)
+    #[arg(short, long, global = true, env = "TERMINAL_SERVER")]
+    pub server: Option<String>,
 
-    /// Admin secret key for authentication
-    #[arg(short, long, global = true, env = "ADMIN_SECRET_KEY", default_value = "")]
-    pub key: String,
+    /// Admin secret key for authentication (optional override)
+    #[arg(short, long, global = true, env = "ADMIN_SECRET_KEY")]
+    pub key: Option<String>,
 
     /// Output responses in structured JSON format
     #[arg(long, global = true)]
@@ -24,6 +24,26 @@ pub struct Cli {
 
 #[derive(Subcommand, Debug, Clone)]
 pub enum Commands {
+    /// Authenticate and save Proxy server URL and admin secret key
+    Login {
+        /// Proxy server URL (e.g. http://localhost:3000)
+        #[arg(index = 1)]
+        server: Option<String>,
+
+        /// Admin secret key
+        #[arg(index = 2)]
+        key: Option<String>,
+    },
+
+    /// Clear saved Proxy server URL and credentials
+    Logout,
+
+    /// View or manage persistent configurations (~/.gt/config.json)
+    Config {
+        #[command(subcommand)]
+        action: ConfigAction,
+    },
+
     /// List connected terminal agent hosts (like 'docker node ls')
     Hosts,
 
@@ -54,6 +74,16 @@ pub enum Commands {
 
     /// Run reverse terminal agent daemon on this machine
     Agent(AgentArgs),
+}
+
+#[derive(Subcommand, Debug, Clone)]
+pub enum ConfigAction {
+    /// Display all configured values
+    List,
+    /// Get a configuration value (server, key)
+    Get { key: String },
+    /// Set a configuration value (server, key)
+    Set { key: String, value: String },
 }
 
 #[derive(Args, Debug, Clone)]
