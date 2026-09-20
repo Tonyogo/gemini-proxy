@@ -44,7 +44,7 @@
   - `--json`
   - `-h, --help`
 
-- [ ] **Step 1: Write failing test for argument parsing and missing host validation**
+- [x] **Step 1: Write failing test for argument parsing and missing host validation**
 
 Create `tests/terminalExecCli.test.ts`:
 ```typescript
@@ -83,12 +83,12 @@ describe('Terminal Exec CLI', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/terminalExecCli.test.ts`
 Expected: FAIL because `scripts/terminal-exec.js` does not exist yet.
 
-- [ ] **Step 3: Implement `scripts/terminal-exec.js`**
+- [x] **Step 3: Implement `scripts/terminal-exec.js`**
 
 Create `scripts/terminal-exec.js`:
 ```javascript
@@ -480,16 +480,16 @@ if (require.main === module) {
 module.exports = { parseArgs, makeRequest };
 ```
 
-- [ ] **Step 4: Add npm script in `package.json`**
+- [x] **Step 4: Add npm script in `package.json`**
 
 In `package.json`, add `"terminal-exec": "node scripts/terminal-exec.js"` under `"scripts"`.
 
-- [ ] **Step 5: Run tests to verify basic parsing and help**
+- [x] **Step 5: Run tests to verify basic parsing and help**
 
 Run: `npx jest tests/terminalExecCli.test.ts`
 Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add scripts/terminal-exec.js tests/terminalExecCli.test.ts package.json
@@ -510,7 +510,7 @@ git commit -m "feat(terminal): add standalone remote command execution CLI tool"
   - Exit code inherits remote task exit code.
   - `list`, `status`, `kill` subcommands.
 
-- [ ] **Step 1: Write integration tests in `tests/terminalExecCli.test.ts`**
+- [x] **Step 1: Write integration tests in `tests/terminalExecCli.test.ts`**
 
 Add tests covering server interaction:
 ```typescript
@@ -615,12 +615,12 @@ describe('Terminal Exec CLI Integration', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify integration passes**
+- [x] **Step 2: Run test to verify integration passes**
 
 Run: `npx jest tests/terminalExecCli.test.ts`
 Expected: PASS
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add tests/terminalExecCli.test.ts
@@ -634,13 +634,13 @@ git commit -m "test(terminal): add integration tests for terminal-exec CLI"
 **Files:**
 - Modify: `CLAUDE.md`
 
-- [ ] **Step 1: Document `npm run terminal-exec` in CLAUDE.md**
+- [x] **Step 1: Document `npm run terminal-exec` in CLAUDE.md**
 
 In `CLAUDE.md`, under `Development Commands` and `Architecture & Structure -> WebTerminal & Multi-Host Reverse Agent`, document the new CLI command:
 - `npm run terminal-exec -- --host=<host-id> "command"`
 - Provide options summary (`--async`, `status`, `list`, `kill`).
 
-- [ ] **Step 2: Commit**
+- [x] **Step 2: Commit**
 
 ```bash
 git add CLAUDE.md
@@ -655,17 +655,17 @@ git commit -m "docs: update CLAUDE.md with terminal-exec CLI usage"
 - Full test suite
 - Full build
 
-- [ ] **Step 1: Run complete test suite**
+- [x] **Step 1: Run complete test suite**
 
 Run: `npm test`
 Expected: All test suites pass.
 
-- [ ] **Step 2: Run build**
+- [x] **Step 2: Run build**
 
 Run: `npm run build`
 Expected: 0 errors.
 
-- [ ] **Step 3: Commit any lingering changes**
+- [x] **Step 3: Commit any lingering changes**
 
 ```bash
 git status
