@@ -86,6 +86,11 @@ class GeminiController {
 
         if (!response.ok) {
           streamManager.markFinished();
+          if (response.status >= 502 && response.status <= 504) {
+            upstreamManager.recordRequestResult(serverIndex, false, response.status);
+          } else {
+            upstreamManager.recordRequestResult(serverIndex, true);
+          }
           const errText = await response.text();
           let errJson: any;
           try { errJson = JSON.parse(errText); } catch { errJson = { error: errText }; }
@@ -114,6 +119,7 @@ class GeminiController {
         response.body.on('end', () => {
           streamManager.markFinished();
           if (streamManager.isAborted) return;
+          upstreamManager.recordRequestResult(serverIndex, true);
           res.end();
           const duration = Date.now() - startTime;
           logger.info(`[GeminiProxy] [Transaction: ${transactionId}] Stream finished (duration: ${(duration / 1000).toFixed(2)}s)`);
@@ -128,6 +134,11 @@ class GeminiController {
 
         response.body.on('error', (err: any) => {
           streamManager.markFinished();
+          if (streamManager.reason === 'timeout') {
+            upstreamManager.recordRequestResult(serverIndex, false, 'Timeout');
+          } else if (!streamManager.isAborted && err.name !== 'AbortError') {
+            upstreamManager.recordRequestResult(serverIndex, false, err.message || 'Stream error');
+          }
           logger.error(`[GeminiProxy] [Transaction: ${transactionId}] Stream error: ${err.message}`);
           if (!res.headersSent) {
             res.status(502).json({ error: { code: 502, message: err.message, status: 'BAD_GATEWAY' } });
@@ -139,6 +150,11 @@ class GeminiController {
       } catch (err: any) {
         streamManager.markFinished();
         const duration = Date.now() - startTime;
+        if (streamManager.reason === 'timeout') {
+          upstreamManager.recordRequestResult(serverIndex, false, 'Timeout');
+        } else if (!streamManager.isAborted && err.name !== 'AbortError') {
+          upstreamManager.recordRequestResult(serverIndex, false, err.message || 'Stream exception');
+        }
         logger.error(`[GeminiProxy] [Transaction: ${transactionId}] Stream exception: ${err.message}`);
         const errJson = { error: { code: 500, message: err.message, status: 'INTERNAL' } };
         payloadLogger.saveTransaction(transactionId, clientReq, clientReq, errJson, errJson, duration, requestPath, 500, true);
@@ -158,6 +174,16 @@ class GeminiController {
         body: req.method !== 'GET' && req.method !== 'HEAD' && clientReq ? JSON.stringify(clientReq) : undefined
       });
 
+      if (!response.ok) {
+        if (response.status >= 502 && response.status <= 504) {
+          upstreamManager.recordRequestResult(serverIndex, false, response.status);
+        } else {
+          upstreamManager.recordRequestResult(serverIndex, true);
+        }
+      } else {
+        upstreamManager.recordRequestResult(serverIndex, true);
+      }
+
       const resText = await response.text();
       let resJson: any;
       try {
@@ -172,6 +198,7 @@ class GeminiController {
       res.setHeader('x-transaction-id', transactionId);
       return res.status(response.status).json(resJson);
     } catch (err: any) {
+      upstreamManager.recordRequestResult(serverIndex, false, err.message || 'Proxy error');
       const duration = Date.now() - startTime;
       logger.error(`[GeminiProxy] [Transaction: ${transactionId}] Proxy error: ${err.message}`);
       const errJson = { error: { code: 500, message: err.message, status: 'INTERNAL' } };

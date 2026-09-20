@@ -17,7 +17,7 @@ class AccountController {
   public async getServers(req: Request, res: Response): Promise<void> {
     res.json({
       servers: upstreamManager.getBaseUrls(),
-      health: upstreamManager.getHealthStatusList()
+      circuits: upstreamManager.getCircuitStatusList()
     });
   }
 

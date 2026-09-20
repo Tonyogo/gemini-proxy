@@ -76,6 +76,11 @@ class ClaudeController {
 
           if (!response.ok) {
             streamManager.markFinished();
+            if (response.status >= 502 && response.status <= 504) {
+              upstreamManager.recordRequestResult(serverIndex, false, response.status);
+            } else {
+              upstreamManager.recordRequestResult(serverIndex, true);
+            }
             const errorText = await response.text();
             let errorJson;
             try { errorJson = JSON.parse(errorText); } catch (e) { /* ignore */ }
@@ -156,6 +161,7 @@ class ClaudeController {
               }
             }
 
+            upstreamManager.recordRequestResult(serverIndex, true);
             const duration = Date.now() - startTime;
             logger.info(`[Response] [Transaction: ${transactionId}] Stream generated content finished successfully (duration: ${(duration / 1000).toFixed(2)}s)`);
             payloadLogger.saveTransaction(transactionId, clientReq, gemReq, gemResChunks, claudeResChunks, duration, requestPath, 200, true);
@@ -167,6 +173,7 @@ class ClaudeController {
             const duration = Date.now() - startTime;
             if (streamManager.isAborted || err.name === 'AbortError') {
               if (streamManager.reason === 'timeout') {
+                upstreamManager.recordRequestResult(serverIndex, false, 'Timeout');
                 const errPayload = {
                   type: 'error',
                   error: {
@@ -188,6 +195,7 @@ class ClaudeController {
               logger.info(`[Client Disconnect] [Transaction: ${transactionId}] Stream aborted due to client disconnect (duration: ${(duration / 1000).toFixed(2)}s)`);
               return;
             }
+            upstreamManager.recordRequestResult(serverIndex, false, err.message || 'Downstream connection lost');
             logger.error(`[Error] [Transaction: ${transactionId}] Stream reading error: ${err.message} (duration: ${(duration / 1000).toFixed(2)}s)`);
             const errPayload = {
               type: 'error',
@@ -216,6 +224,7 @@ class ClaudeController {
           const duration = Date.now() - startTime;
           if (err.name === 'AbortError' || streamManager.isAborted) {
             if (streamManager.reason === 'timeout') {
+              upstreamManager.recordRequestResult(serverIndex, false, 'Timeout');
               const errPayload = {
                 type: 'error',
                 error: {
@@ -237,6 +246,7 @@ class ClaudeController {
             logger.info(`[Client Disconnect] [Transaction: ${transactionId}] Request fetch aborted due to client disconnect.`);
             return;
           }
+          upstreamManager.recordRequestResult(serverIndex, false, err.message || 'Fetch error');
           throw err;
         }
       }
@@ -258,6 +268,11 @@ class ClaudeController {
         streamManager.markFinished();
 
         if (!response.ok) {
+          if (response.status >= 502 && response.status <= 504) {
+            upstreamManager.recordRequestResult(serverIndex, false, response.status);
+          } else {
+            upstreamManager.recordRequestResult(serverIndex, true);
+          }
           const errorText = await response.text();
           let errorJson;
           try { errorJson = JSON.parse(errorText); } catch (e) { /* ignore */ }
@@ -271,6 +286,7 @@ class ClaudeController {
           return res.status(normalized.status).json(normalized.payload);
         }
 
+        upstreamManager.recordRequestResult(serverIndex, true);
         const geminiData = await response.json();
         const translatedResponse = claudeTranslator.convertGoogleToClaudeNonStream(geminiData, cleanModelName, clientReq.tools);
 
@@ -283,6 +299,7 @@ class ClaudeController {
         const duration = Date.now() - startTime;
         if (err.name === 'AbortError' || streamManager.isAborted) {
           if (streamManager.reason === 'timeout') {
+            upstreamManager.recordRequestResult(serverIndex, false, 'Timeout');
             const errPayload = {
               type: 'error',
               error: {
@@ -297,6 +314,7 @@ class ClaudeController {
           logger.info(`[Client Disconnect] [Transaction: ${transactionId}] Non-stream request fetch aborted due to client disconnect.`);
           return;
         }
+        upstreamManager.recordRequestResult(serverIndex, false, err.message || 'Fetch error');
         throw err;
       }
     } catch (err: any) {
@@ -362,13 +380,24 @@ class ClaudeController {
       const { targetUrl, serverUrl, serverIndex } = upstreamManager.getUpstreamUrl(targetPath, { model: cleanModelName });
       logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini [server ${serverIndex + 1}: ${serverUrl}]: POST ${targetPath}`);
 
-      const response = await fetch(targetUrl, {
-        method: 'POST',
-        headers: buildUpstreamHeaders(apiKey),
-        body: JSON.stringify(countTokensPayload)
-      });
+      let response;
+      try {
+        response = await fetch(targetUrl, {
+          method: 'POST',
+          headers: buildUpstreamHeaders(apiKey),
+          body: JSON.stringify(countTokensPayload)
+        });
+      } catch (fetchErr: any) {
+        upstreamManager.recordRequestResult(serverIndex, false, fetchErr.message || 'Fetch error');
+        throw fetchErr;
+      }
 
       if (!response.ok) {
+        if (response.status >= 502 && response.status <= 504) {
+          upstreamManager.recordRequestResult(serverIndex, false, response.status);
+        } else {
+          upstreamManager.recordRequestResult(serverIndex, true);
+        }
         const errorText = await response.text();
         let errorJson;
         try { errorJson = JSON.parse(errorText); } catch (e) { /* ignore */ }
@@ -382,6 +411,7 @@ class ClaudeController {
         return res.status(normalized.status).json(normalized.payload);
       }
 
+      upstreamManager.recordRequestResult(serverIndex, true);
       const geminiData = await response.json();
       const tokenResponse = {
         input_tokens: (geminiData as any).totalTokens || 0
@@ -432,12 +462,23 @@ class ClaudeController {
       logger.info(`[Request] [Transaction: ${transactionId}] Proxying models list to Gemini [server ${serverIndex + 1}: ${serverUrl}]: GET ${targetPath}`);
       gemReq = { endpoint: targetPath };
 
-      const response = await fetch(targetUrl, {
-        method: 'GET',
-        headers: buildUpstreamHeaders(apiKey)
-      });
+      let response;
+      try {
+        response = await fetch(targetUrl, {
+          method: 'GET',
+          headers: buildUpstreamHeaders(apiKey)
+        });
+      } catch (fetchErr: any) {
+        upstreamManager.recordRequestResult(serverIndex, false, fetchErr.message || 'Fetch error');
+        throw fetchErr;
+      }
 
       if (!response.ok) {
+        if (response.status >= 502 && response.status <= 504) {
+          upstreamManager.recordRequestResult(serverIndex, false, response.status);
+        } else {
+          upstreamManager.recordRequestResult(serverIndex, true);
+        }
         const errorText = await response.text();
         let errorJson;
         try { errorJson = JSON.parse(errorText); } catch (e) { /* ignore */ }
@@ -451,6 +492,7 @@ class ClaudeController {
         return res.status(normalized.status).json(normalized.payload);
       }
 
+      upstreamManager.recordRequestResult(serverIndex, true);
       const geminiData = await response.json() as GeminiModelsResponse;
 
       const dynamicModels: ModelConfig[] = (geminiData.models || [])
@@ -521,12 +563,23 @@ class ClaudeController {
       logger.info(`[Request] [Transaction: ${transactionId}] Proxying model metadata to Gemini [server ${serverIndex + 1}: ${serverUrl}]: GET ${targetPath}`);
       gemReq = { endpoint: targetPath };
 
-      const response = await fetch(targetUrl, {
-        method: 'GET',
-        headers: buildUpstreamHeaders(apiKey)
-      });
+      let response;
+      try {
+        response = await fetch(targetUrl, {
+          method: 'GET',
+          headers: buildUpstreamHeaders(apiKey)
+        });
+      } catch (fetchErr: any) {
+        upstreamManager.recordRequestResult(serverIndex, false, fetchErr.message || 'Fetch error');
+        throw fetchErr;
+      }
 
       if (!response.ok) {
+        if (response.status >= 502 && response.status <= 504) {
+          upstreamManager.recordRequestResult(serverIndex, false, response.status);
+        } else {
+          upstreamManager.recordRequestResult(serverIndex, true);
+        }
         const duration = Date.now() - startTime;
         logger.warn(`[Retrieve Model Error] [Transaction: ${transactionId}] Requested model '${resolvedModelId}' does not exist or fetch failed`);
         const errPayload = {
@@ -540,6 +593,7 @@ class ClaudeController {
         return res.status(404).json(errPayload);
       }
 
+      upstreamManager.recordRequestResult(serverIndex, true);
       const m = await response.json() as GeminiModelEntry;
       const cleanId = m.name.replace(/^models\//, '');
       const mappedModel: ModelConfig = {
