@@ -38,14 +38,11 @@
   - `ConfigStore::resolve_key(cli: Option<&str>, env_val: Option<&str>, stored: Option<&str>) -> String`
   - `ConfigStore::mask_key(key: &str) -> String`
 
-- [ ] **Step 1: Add `dirs` crate to `agent-rs/Cargo.toml`**
+- [x] **Step 1: Add `dirs` crate to `agent-rs/Cargo.toml`**
 
-In `agent-rs/Cargo.toml` dependencies:
-```toml
-dirs = "5.0"
-```
+Add `dirs = "5.0"` under `[dependencies]` in `agent-rs/Cargo.toml`.
 
-- [ ] **Step 2: Write failing unit test for `ConfigStore`**
+- [x] **Step 2: Write failing unit test for `ConfigStore`**
 
 In `agent-rs/src/config_store.rs`, create the module with unit tests covering:
 - Resolution precedence (`CLI > ENV > Stored > Default`)
@@ -110,7 +107,7 @@ mod tests {
 }
 ```
 
-- [ ] **Step 3: Implement `agent-rs/src/config_store.rs`**
+- [x] **Step 3: Implement `agent-rs/src/config_store.rs`**
 
 ```rust
 use serde::{Deserialize, Serialize};
@@ -246,7 +243,7 @@ impl ConfigStore {
 }
 ```
 
-- [ ] **Step 4: Run unit tests to verify module passes**
+- [x] **Step 4: Run unit tests to verify module passes**
 
 Run:
 ```bash
@@ -254,7 +251,7 @@ PATH="/Users/yogo/.rustup/toolchains/stable-x86_64-apple-darwin/bin:$HOME/.cargo
 ```
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add agent-rs/Cargo.toml agent-rs/src/config_store.rs
@@ -278,7 +275,7 @@ git commit -m "feat(rust): add config_store module with permission handling and 
   - `Commands::Config { action: ConfigAction }`
   - `ConfigAction::List`, `ConfigAction::Get { key }`, `ConfigAction::Set { key, value }`
 
-- [ ] **Step 1: Update `agent-rs/src/cli.rs`**
+- [x] **Step 1: Update `agent-rs/src/cli.rs`**
 
 Update `agent-rs/src/cli.rs`:
 ```rust
@@ -420,7 +417,7 @@ pub struct AgentArgs {
 }
 ```
 
-- [ ] **Step 2: Run compilation check**
+- [x] **Step 2: Run compilation check**
 
 Run:
 ```bash
@@ -428,7 +425,7 @@ PATH="/Users/yogo/.rustup/toolchains/stable-x86_64-apple-darwin/bin:$HOME/.cargo
 ```
 Expected: PASS.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add agent-rs/src/cli.rs
@@ -451,7 +448,7 @@ git commit -m "feat(rust): add login, logout, and config CLI subcommand structur
   - `pub fn run_config(action: ConfigAction, json: bool) -> i32`
   - `run_hosts`, `run_exec`, `run_ps`, `run_logs`, `run_kill` accept resolved `&str` references for server and key.
 
-- [ ] **Step 1: Implement `run_login`, `run_logout`, `run_config` in `agent-rs/src/client.rs`**
+- [x] **Step 1: Implement `run_login`, `run_logout`, `run_config` in `agent-rs/src/client.rs`**
 
 Add functions in `agent-rs/src/client.rs`:
 ```rust
@@ -603,7 +600,7 @@ pub fn run_config(action: ConfigAction, json: bool) -> i32 {
 }
 ```
 
-- [ ] **Step 2: Update `agent-rs/src/main.rs` to route all commands using `ConfigStore` resolution**
+- [x] **Step 2: Update `agent-rs/src/main.rs` to route all commands using `ConfigStore` resolution**
 
 In `agent-rs/src/main.rs`:
 ```rust
@@ -742,7 +739,7 @@ async fn main() {
 }
 ```
 
-- [ ] **Step 3: Run compilation check**
+- [x] **Step 3: Run compilation check**
 
 Run:
 ```bash
@@ -750,7 +747,7 @@ PATH="/Users/yogo/.rustup/toolchains/stable-x86_64-apple-darwin/bin:$HOME/.cargo
 ```
 Expected: PASS.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add agent-rs/src/client.rs agent-rs/src/main.rs
@@ -772,7 +769,7 @@ git commit -m "feat(rust): implement login verification, logout, and persistent 
   - `gt logout`.
   - `gt hosts` picking up stored config automatically without `--server` or `--key`.
 
-- [ ] **Step 1: Write integration tests in `tests/gtRustConfigLogin.test.ts`**
+- [x] **Step 1: Write integration tests in `tests/gtRustConfigLogin.test.ts`**
 
 Create `tests/gtRustConfigLogin.test.ts`:
 ```typescript
@@ -904,7 +901,7 @@ describe('gt Rust Binary Config & Login Subsystem', () => {
 });
 ```
 
-- [ ] **Step 2: Build debug binary and run integration tests**
+- [x] **Step 2: Build debug binary and run integration tests**
 
 Run:
 ```bash
@@ -913,11 +910,11 @@ npx jest tests/gtRustConfigLogin.test.ts
 ```
 Expected: PASS.
 
-- [ ] **Step 3: Update documentation in CLAUDE.md**
+- [x] **Step 3: Update documentation in CLAUDE.md**
 
 Document `gt login`, `gt logout`, and `gt config` in `CLAUDE.md`.
 
-- [ ] **Step 4: Build release binary & run complete test suite**
+- [x] **Step 4: Build release binary & run complete test suite**
 
 Run:
 ```bash
@@ -926,7 +923,7 @@ npm test
 ```
 Expected: All tests pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add tests/gtRustConfigLogin.test.ts CLAUDE.md

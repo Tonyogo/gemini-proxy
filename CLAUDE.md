@@ -14,12 +14,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Dev Mode Backend**: `npm run dev` (starts hot-reloading development server via `ts-node-dev`)
 - **Dev Mode Frontend**: `npm run dev:frontend` (starts Vite dev server on port 5173 proxying API requests to `:3000`)
 - **`gt` Unified Terminal CLI**: `npm run gt -- <command>` or `gt <command>` (unified Docker-style CLI for Gemini Terminal):
+  - `gt login <server> <key>`: Verifies credentials against `/api/terminal/hosts` and persists to `~/.gt/config.json` (0600 permissions)
+  - `gt logout`: Clears persistent credentials and configuration
+  - `gt config <list|get|set> [key] [value]`: Manages persistent client configuration
   - `gt hosts [--json]`: Lists connected agent hosts / nodes
   - `gt exec [-d] [-w <dir>] [-t <ms>] [-q] <host> [--] <cmd...>`: Executes remote command with streaming output and exit code forwarding
   - `gt ps <host> [--json]`: Lists active and recent execution tasks on target host
   - `gt logs <host> <taskId> [--json]`: Inspects execution logs for a task
   - `gt kill <host> <taskId>`: Terminates a running task on target host
   - `gt agent [options]`: Launches reverse terminal agent daemon
+- **Configuration Hierarchy**: `CLI flag (--server/--key) > Environment variable (TERMINAL_SERVER/ADMIN_SECRET_KEY) > Persistent config (~/.gt/config.json) > Default fallback (http://localhost:3000 / empty key)`
 - **Rust Native `gt` Binary**: `cargo run --manifest-path agent-rs/Cargo.toml -- <command>` (unified high-performance native Rust binary implementing both the full CLI and the reverse agent daemon; build release via `npm run build:agent`, run agent via `npm run agent:rs`)
 - **Terminal Agent**: `npm run terminal-agent -- --server=http://<host>:3000 --key=<admin-key> --name="Node-Name"` (or `npm run gt -- agent ...`)
 - **Terminal Remote Command Execution CLI (Legacy Alias)**: `npm run terminal-exec -- <host> <cmd>` (delegates to `gt exec`)
