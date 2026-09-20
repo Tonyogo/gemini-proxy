@@ -1,13 +1,13 @@
 import fs from 'fs';
 import path from 'path';
 
-describe('AccountsView Multi-Server Concurrent Refresh & Simplified UI', () => {
+describe('AccountsView Multi-Server Tab Isolation & Direct Status', () => {
   const accountsViewPath = path.resolve(__dirname, '../frontend/src/components/AccountsView.tsx');
   const accountsViewContent = fs.readFileSync(accountsViewPath, 'utf-8');
 
-  test('implements concurrent fetchAllServers querying all servers at once', () => {
-    expect(accountsViewContent).toContain('fetchAllServers');
-    expect(accountsViewContent).toMatch(/Promise\.allSettled/);
+  test('derives health status directly from status fetch response', () => {
+    expect(accountsViewContent).toContain('setServerHealthMap(prev => ({ ...prev, [idx]: true }))');
+    expect(accountsViewContent).toContain('setServerHealthMap(prev => ({ ...prev, [idx]: false }))');
   });
 
   test('displays clear online / offline health indicators on server tabs', () => {
@@ -16,12 +16,9 @@ describe('AccountsView Multi-Server Concurrent Refresh & Simplified UI', () => {
     expect(accountsViewContent).toMatch(/bg-emerald-500/);
   });
 
-  test('removes 6 stats chips and server scope banner for maximized viewport', () => {
-    // Should NOT contain the old stats chips grid
-    expect(accountsViewContent).not.toContain('stats.totalAccounts');
-    expect(accountsViewContent).not.toContain('t(\'accounts.serverScope\'');
-    // Scope banner removed
-    expect(accountsViewContent).not.toContain('t(\'accounts.scopeDesc\'');
+  test('renders modernized compact header with badge and removes legacy description', () => {
+    expect(accountsViewContent).toContain('accounts.modernSub');
+    expect(accountsViewContent).not.toContain('Manage multi-account credentials, automatic context rotation');
   });
 
   test('renders node offline fallback state when active server is unreachable', () => {

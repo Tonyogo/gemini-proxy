@@ -203,13 +203,6 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
         if (serverList.length > 0) {
           setServers(serverList);
         }
-        if (Array.isArray(json.health)) {
-          const initialHealth: Record<number, boolean> = {};
-          json.health.forEach((h: any) => {
-            initialHealth[h.serverIndex] = h.isHealthy;
-          });
-          setServerHealthMap(prev => ({ ...initialHealth, ...prev }));
-        }
         fetchAllServers(false, serverList);
       } else {
         fetchAllServers(false);
@@ -912,15 +905,24 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
       )}
 
       {/* Modern Page Header (Desktop/Tablet only, hidden on mobile to avoid duplicate header with App bar) */}
-      <div className="hidden sm:flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center space-x-2.5">
-            <Users className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
-            <span>{t('accounts.title')}</span>
-          </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            {t('accounts.sub', 'Manage multi-account credentials, automatic context rotation, and per-account usage quotas.')}
-          </p>
+      <div className="hidden sm:flex items-center justify-between pb-1">
+        <div className="flex items-center space-x-3">
+          <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 border border-indigo-500/20 shadow-sm shadow-indigo-500/10 shrink-0">
+            <Users className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center space-x-2">
+              <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight">
+                {t('accounts.title')}
+              </h1>
+              <span className="text-[11px] font-mono font-medium px-2 py-0.5 rounded-full bg-slate-500/10 text-slate-500 dark:text-slate-400 border border-slate-500/20">
+                {servers.length > 1 ? t('accounts.multiNodes', { count: servers.length }) : t('accounts.singleNode')}
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              {t('accounts.modernSub')}
+            </p>
+          </div>
         </div>
       </div>
 
