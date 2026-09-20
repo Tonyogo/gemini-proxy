@@ -1,6 +1,7 @@
 mod cli;
 mod client;
 mod config;
+mod config_store;
 mod protocol;
 mod pty;
 mod rpc;
