@@ -44,7 +44,7 @@
   - `terminalHostManager.executeCmdRpc(hostOrName: string, payload: any): Promise<any>`
   - `terminalHostManager.executeFileRpc(hostOrName: string, payload: any): Promise<any>`
 
-- [ ] **Step 1: Write failing unit tests for conflict check and canonical resolver**
+- [x] **Step 1: Write failing unit tests for conflict check and canonical resolver**
 
 Create `tests/terminalHostManagerConflict.test.ts`:
 ```typescript
@@ -152,12 +152,12 @@ describe('TerminalHostManager - Conflict Check & Canonical ID Routing', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/terminalHostManagerConflict.test.ts`
 Expected: FAIL because `registerAgent` does not yet return `{ success, error }` on online conflict.
 
-- [ ] **Step 3: Update `src/terminal/services/terminalHostManager.ts`**
+- [x] **Step 3: Update `src/terminal/services/terminalHostManager.ts`**
 
 Update `src/terminal/services/terminalHostManager.ts`:
 ```typescript
@@ -606,7 +606,7 @@ export const terminalHostManager = new TerminalHostManager();
 export default terminalHostManager;
 ```
 
-- [ ] **Step 4: Update `src/terminal/routes/terminalWs.ts` to reject conflicting connections**
+- [x] **Step 4: Update `src/terminal/routes/terminalWs.ts` to reject conflicting connections**
 
 In `src/terminal/routes/terminalWs.ts`:
 ```typescript
@@ -633,12 +633,12 @@ In `src/terminal/routes/terminalWs.ts`:
     ws.send(`JSON:${JSON.stringify({ type: 'registered', hostId, status: 'online' })}`);
 ```
 
-- [ ] **Step 5: Run tests to verify Task 1 passes**
+- [x] **Step 5: Run tests to verify Task 1 passes**
 
 Run: `npx jest tests/terminalHostManagerConflict.test.ts tests/terminalHostManagerCmdRpc.test.ts`
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/terminal/services/terminalHostManager.ts src/terminal/routes/terminalWs.ts tests/terminalHostManagerConflict.test.ts
@@ -659,7 +659,7 @@ git commit -m "feat(terminal): add online name conflict rejection and canonical 
   - Auto-generated `<sanitized-hostname>-<4hex>` if `--name` is omitted.
   - On `type === 'rejected'` frame or WS close code `4009`, prints red error and exits code 1 (no reconnect).
 
-- [ ] **Step 1: Write integration test for Node.js Agent auto-naming and conflict rejection**
+- [x] **Step 1: Write integration test for Node.js Agent auto-naming and conflict rejection**
 
 Create `tests/terminalAgentConflict.test.ts`:
 ```typescript
@@ -736,12 +736,12 @@ describe('Node.js Terminal Agent - 12-Hex ID, Auto-Naming and Conflict Rejection
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/terminalAgentConflict.test.ts`
 Expected: FAIL because 12-hex ID and rejection exit are not yet implemented in `terminal-agent.js`.
 
-- [ ] **Step 3: Update `scripts/terminal-agent.js`**
+- [x] **Step 3: Update `scripts/terminal-agent.js`**
 
 In `scripts/terminal-agent.js`:
 1. Use `crypto` for 12-hex ID and 4-hex name suffix:
@@ -774,12 +774,12 @@ if (code === 4009) {
 }
 ```
 
-- [ ] **Step 4: Run test to verify Task 2 passes**
+- [x] **Step 4: Run test to verify Task 2 passes**
 
 Run: `npx jest tests/terminalAgentConflict.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add scripts/terminal-agent.js tests/terminalAgentConflict.test.ts
@@ -802,14 +802,14 @@ git commit -m "feat(agent): implement 12-hex container ID, auto-naming, and 4009
   - `config.get_host_name()` produces `<sanitized-hostname>-<4hex>` if `--name` is omitted.
   - Rust client handles `ControlMessage::Rejected` and close code 4009, printing red error and exiting code 1.
 
-- [ ] **Step 1: Add `getrandom` dependency in `agent-rs/Cargo.toml`**
+- [x] **Step 1: Add `getrandom` dependency in `agent-rs/Cargo.toml`**
 
 In `agent-rs/Cargo.toml`:
 ```toml
 getrandom = "0.2"
 ```
 
-- [ ] **Step 2: Update `agent-rs/src/config.rs`**
+- [x] **Step 2: Update `agent-rs/src/config.rs`**
 
 In `agent-rs/src/config.rs`:
 ```rust
@@ -850,7 +850,7 @@ In `agent-rs/src/config.rs`:
     }
 ```
 
-- [ ] **Step 3: Update `agent-rs/src/protocol/message.rs` and `agent-rs/src/ws/client.rs`**
+- [x] **Step 3: Update `agent-rs/src/protocol/message.rs` and `agent-rs/src/ws/client.rs`**
 
 In `agent-rs/src/protocol/message.rs`, add `ControlMessage::Rejected { reason: String }`:
 ```rust
@@ -879,7 +879,7 @@ if let Some(ref cf) = close_frame {
 }
 ```
 
-- [ ] **Step 4: Verify Rust compilation and tests**
+- [x] **Step 4: Verify Rust compilation and tests**
 
 Run:
 ```bash
@@ -887,7 +887,7 @@ PATH="/Users/yogo/.rustup/toolchains/stable-x86_64-apple-darwin/bin:$HOME/.cargo
 ```
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add agent-rs/Cargo.toml agent-rs/src/config.rs agent-rs/src/protocol/message.rs agent-rs/src/ws/client.rs
@@ -901,12 +901,12 @@ git commit -m "feat(rust): implement 12-hex host ID, auto-naming, and conflict r
 **Files:**
 - Run full test suite & production build
 
-- [ ] **Step 1: Run complete Jest test suite**
+- [x] **Step 1: Run complete Jest test suite**
 
 Run: `npm test`
 Expected: 100% test suites pass.
 
-- [ ] **Step 2: Build release Rust binary**
+- [x] **Step 2: Build release Rust binary**
 
 Run:
 ```bash
@@ -914,12 +914,12 @@ PATH="/Users/yogo/.rustup/toolchains/stable-x86_64-apple-darwin/bin:$HOME/.cargo
 ```
 Expected: Binary compiles cleanly at `agent-rs/target/release/gt`.
 
-- [ ] **Step 3: Run full production build**
+- [x] **Step 3: Run full production build**
 
 Run: `npm run build`
 Expected: 0 errors for frontend Vite SPA and backend TypeScript compilation.
 
-- [ ] **Step 4: Commit any remaining updates**
+- [x] **Step 4: Commit any remaining updates**
 
 ```bash
 git status
