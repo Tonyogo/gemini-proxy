@@ -8,9 +8,7 @@ class AccountUsageService {
   private currentStore: PeriodUsageStore | null = null;
   private flushTimer: NodeJS.Timeout | null = null;
   private isInitialized = false;
-  private dataDir = path.join(process.cwd(), 'data', 'account-usage');
-  private historyDir = path.join(process.cwd(), 'data', 'account-usage', 'history');
-  private currentFilePath = path.join(process.cwd(), 'data', 'account-usage', 'current-period.json');
+  private filePath = path.join(process.cwd(), 'data', 'account-usage.json');
 
   constructor() {
     this.registerExitHooks();
@@ -87,10 +85,6 @@ class AccountUsageService {
   private ensureCurrentStore(): PeriodUsageStore {
     const activePeriodKey = this.getPeriodKey();
     if (!this.currentStore || this.currentStore.periodKey !== activePeriodKey) {
-      if (this.currentStore && this.currentStore.periodKey !== activePeriodKey) {
-        // Archive previous period
-        this.archiveCurrentPeriod().catch(() => {});
-      }
       const boundaries = this.calculatePeriodBoundaries(activePeriodKey);
       this.currentStore = {
         periodKey: activePeriodKey,
@@ -103,29 +97,17 @@ class AccountUsageService {
     return this.currentStore;
   }
 
-  private async archiveCurrentPeriod(): Promise<void> {
-    if (!this.currentStore) return;
-    try {
-      await fs.mkdir(this.historyDir, { recursive: true });
-      const archivePath = path.join(this.historyDir, `period-${this.currentStore.periodKey}.json`);
-      await fs.writeFile(archivePath, JSON.stringify(this.currentStore, null, 2), 'utf8');
-      logger.info(`[AccountUsage] Archived past period usage to ${archivePath}`);
-    } catch (err: any) {
-      logger.error(`[AccountUsage] Failed to archive period: ${err.message}`);
-    }
-  }
-
   public async init(): Promise<void> {
     if (this.isInitialized) return;
     this.isInitialized = true;
 
     try {
-      await fs.mkdir(this.dataDir, { recursive: true });
-      await fs.mkdir(this.historyDir, { recursive: true });
+      const dir = path.dirname(this.filePath);
+      await fs.mkdir(dir, { recursive: true });
 
-      const fileExists = await fs.access(this.currentFilePath).then(() => true).catch(() => false);
+      const fileExists = await fs.access(this.filePath).then(() => true).catch(() => false);
       if (fileExists) {
-        const raw = await fs.readFile(this.currentFilePath, 'utf8');
+        const raw = await fs.readFile(this.filePath, 'utf8');
         const parsed: PeriodUsageStore = JSON.parse(raw);
         const activePeriodKey = this.getPeriodKey();
 
@@ -133,10 +115,7 @@ class AccountUsageService {
           this.currentStore = parsed;
           logger.info(`[AccountUsage] Restored current period usage: ${parsed.periodKey} (${Object.keys(parsed.accounts).length} accounts)`);
         } else {
-          // It's from a past period -> archive it and start fresh
-          await fs.mkdir(this.historyDir, { recursive: true });
-          const archivePath = path.join(this.historyDir, `period-${parsed.periodKey}.json`);
-          await fs.writeFile(archivePath, raw, 'utf8').catch(() => {});
+          // Past period -> start fresh and flush
           this.ensureCurrentStore();
           await this.flush();
         }
@@ -155,7 +134,8 @@ class AccountUsageService {
     }
 
     const normAccount = accountName.trim();
-    const normModel = (model && model.trim()) ? model.trim() : 'unknown';
+    const rawModel = (model && model.trim()) ? model.trim() : 'unknown';
+    const normModel = rawModel.replace(/^models\//, '');
 
     const store = this.ensureCurrentStore();
     let accountStats = store.accounts[normAccount];
@@ -223,11 +203,12 @@ class AccountUsageService {
     if (!this.currentStore) return;
 
     try {
-      await fs.mkdir(this.dataDir, { recursive: true });
-      const tempPath = `${this.currentFilePath}.${Date.now()}.tmp`;
+      const dir = path.dirname(this.filePath);
+      await fs.mkdir(dir, { recursive: true });
+      const tempPath = `${this.filePath}.${Date.now()}.tmp`;
       const data = JSON.stringify(this.currentStore, null, 2);
       await fs.writeFile(tempPath, data, 'utf8');
-      await fs.rename(tempPath, this.currentFilePath);
+      await fs.rename(tempPath, this.filePath);
     } catch (err: any) {
       logger.error(`[AccountUsage] Failed to flush current usage to disk: ${err.message}`);
     }
@@ -241,11 +222,12 @@ class AccountUsageService {
     if (!this.currentStore) return;
     try {
       const fsSync = require('fs');
-      if (!fsSync.existsSync(this.dataDir)) {
-        fsSync.mkdirSync(this.dataDir, { recursive: true });
+      const dir = path.dirname(this.filePath);
+      if (!fsSync.existsSync(dir)) {
+        fsSync.mkdirSync(dir, { recursive: true });
       }
       const data = JSON.stringify(this.currentStore, null, 2);
-      fsSync.writeFileSync(this.currentFilePath, data, 'utf8');
+      fsSync.writeFileSync(this.filePath, data, 'utf8');
     } catch {
       // ignore
     }

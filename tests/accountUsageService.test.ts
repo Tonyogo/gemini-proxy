@@ -3,15 +3,17 @@ import { promises as fs } from 'fs';
 import * as path from 'path';
 
 describe('AccountUsageService', () => {
-  const currentFilePath = path.join(process.cwd(), 'data', 'account-usage', 'current-period.json');
+  const currentFilePath = path.join(process.cwd(), 'data', 'account-usage.json');
 
   beforeEach(async () => {
     accountUsageService.resetForTest();
+    await fs.rm(path.join(process.cwd(), 'data', 'account-usage'), { recursive: true, force: true }).catch(() => {});
   });
 
   afterAll(async () => {
     accountUsageService.resetForTest();
     await fs.unlink(currentFilePath).catch(() => {});
+    await fs.rm(path.join(process.cwd(), 'data', 'account-usage'), { recursive: true, force: true }).catch(() => {});
   });
 
   describe('Period calculation (15:00 to next day 15:00 Asia/Shanghai)', () => {
@@ -53,6 +55,41 @@ describe('AccountUsageService', () => {
         error: 0,
         total: 1
       });
+    });
+
+    it('should normalize model name by removing models/ prefix and merge counts', () => {
+      accountUsageService.record('user-norm@example.com', 'models/gemini-2.0-flash', true);
+      accountUsageService.record('user-norm@example.com', 'gemini-2.0-flash', true);
+
+      const usage = accountUsageService.getUsageForAccount('user-norm@example.com');
+      expect(usage).not.toBeNull();
+      expect(usage!.totalSuccess).toBe(2);
+      expect(usage!.byModel['gemini-2.0-flash']).toEqual({
+        success: 2,
+        error: 0,
+        total: 2
+      });
+      expect(usage!.byModel['models/gemini-2.0-flash']).toBeUndefined();
+    });
+
+    it('should reset usage on period change without creating history archives', async () => {
+      accountUsageService.record('user-old@example.com', 'gemini-1.5-pro', true);
+      expect(accountUsageService.getUsageForAccount('user-old@example.com')?.totalSuccess).toBe(1);
+
+      // 模拟周期发生变化
+      const pastStore = accountUsageService.getAllUsage();
+      (pastStore as any).periodKey = '2026-09-20_15';
+
+      // 触发新的记录，应当自动进入新周期并重置
+      accountUsageService.record('user-new@example.com', 'gemini-1.5-pro', true);
+      expect(accountUsageService.getUsageForAccount('user-old@example.com')).toBeNull();
+      expect(accountUsageService.getUsageForAccount('user-new@example.com')?.totalSuccess).toBe(1);
+
+      // 检查 data/account-usage/history 目录不应存在
+      const historyExists = await fs.access(path.join(process.cwd(), 'data', 'account-usage', 'history'))
+        .then(() => true)
+        .catch(() => false);
+      expect(historyExists).toBe(false);
     });
 
     it('should ignore record calls when accountName is empty or null', () => {
