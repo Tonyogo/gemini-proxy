@@ -33,7 +33,7 @@
   - `node scripts/gt.js agent [options]` runs the reverse agent daemon directly without spawning or delegating to `terminal-agent.js`.
   - Exports: `formatRelativeTime`, `makeRequest`, `parseControlMessage`, `resolveWebSocketUrl`, `TaskManager`, `handleFileRpc`, `handleCmdExec`, `runAgent`, `spawnPty`, `connect`.
 
-- [ ] **Step 1: Write integration test verifying `gt agent` embedded daemon capabilities**
+- [x] **Step 1: Write integration test verifying `gt agent` embedded daemon capabilities**
 
 In `tests/gtCli.test.ts`:
 ```typescript
@@ -53,7 +53,7 @@ describe('gt agent embedded runtime exports', () => {
 });
 ```
 
-- [ ] **Step 2: Update `scripts/gt.js` to embed agent daemon completely**
+- [x] **Step 2: Update `scripts/gt.js` to embed agent daemon completely**
 
 Update `scripts/gt.js` with full agent runtime (incorporating `TaskManager`, `spawnPty`, `handleFileRpc`, `handleCmdExec`, `connect`, 12-hex ID, auto-naming, and 4009 conflict rejection):
 ```javascript
@@ -1452,12 +1452,12 @@ module.exports = {
 };
 ```
 
-- [ ] **Step 3: Run unit tests to verify `scripts/gt.js` passes**
+- [x] **Step 3: Run unit tests to verify `scripts/gt.js` passes**
 
 Run: `npx jest tests/gtCli.test.ts`
 Expected: PASS.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add scripts/gt.js tests/gtCli.test.ts
@@ -1485,11 +1485,11 @@ git commit -m "feat(gt): embed full agent daemon into scripts/gt.js"
   - Package scripts pointing to `scripts/gt.js agent` and `scripts/gt.js exec`.
   - All test files importing `../scripts/gt.js`.
 
-- [ ] **Step 1: Delete legacy script files**
+- [x] **Step 1: Delete legacy script files**
 
 Delete `scripts/terminal-agent.js` and `scripts/terminal-exec.js`.
 
-- [ ] **Step 2: Update test suites referencing `terminal-agent.js` or `terminal-exec.js`**
+- [x] **Step 2: Update test suites referencing `terminal-agent.js` or `terminal-exec.js`**
 
 1. In `tests/terminalAgentConflict.test.ts`:
    - Change `const agentScript = path.resolve(__dirname, '../scripts/terminal-agent.js');` to `path.resolve(__dirname, '../scripts/gt.js');`
@@ -1507,7 +1507,7 @@ Delete `scripts/terminal-agent.js` and `scripts/terminal-exec.js`.
    - Change `const cliPath = path.resolve(__dirname, '../scripts/terminal-exec.js');` to `path.resolve(__dirname, '../scripts/gt.js');`
    - Pass `'exec'` subcommand or global `gt` commands.
 
-- [ ] **Step 3: Update `package.json`**
+- [x] **Step 3: Update `package.json`**
 
 In `package.json`:
 ```json
@@ -1523,12 +1523,12 @@ In `package.json`:
   }
 ```
 
-- [ ] **Step 4: Run test suites to verify full migration passes**
+- [x] **Step 4: Run test suites to verify full migration passes**
 
 Run: `npx jest tests/terminalAgentConflict.test.ts tests/terminalAgent.test.ts tests/terminalTaskManager.test.ts tests/terminalAgentCommandExec.test.ts tests/terminalExecCli.test.ts tests/gtCli.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git rm scripts/terminal-agent.js
@@ -1543,23 +1543,23 @@ git commit -m "refactor(terminal): remove legacy script files and migrate all te
 **Files:**
 - Modify: `CLAUDE.md`
 
-- [ ] **Step 1: Update `CLAUDE.md` documentation**
+- [x] **Step 1: Update `CLAUDE.md` documentation**
 
 Update `CLAUDE.md`:
 - Note that `gt` (`scripts/gt.js` or `agent-rs`) is the single unified tool for both client command execution and reverse agent hosting.
 - Remove references to `terminal-agent.js` and `terminal-exec.js`.
 
-- [ ] **Step 2: Run complete test suite**
+- [x] **Step 2: Run complete test suite**
 
 Run: `npm test`
 Expected: 100% test suites pass.
 
-- [ ] **Step 3: Run production build**
+- [x] **Step 3: Run production build**
 
 Run: `npm run build`
 Expected: 0 build errors.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add CLAUDE.md
