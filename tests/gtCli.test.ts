@@ -217,3 +217,19 @@ describe('gt CLI Mock Server Integration', () => {
     expect(res.stdout).toContain('Kill signal sent to task');
   });
 });
+
+describe('gt agent embedded runtime exports', () => {
+  const { TaskManager, parseControlMessage, resolveWebSocketUrl } = require('../scripts/gt.js');
+
+  it('exports TaskManager with startTask and getTask', () => {
+    const tm = new TaskManager();
+    expect(typeof tm.startTask).toBe('function');
+    expect(typeof tm.getTask).toBe('function');
+  });
+
+  it('exports parseControlMessage and resolveWebSocketUrl', () => {
+    expect(typeof parseControlMessage).toBe('function');
+    expect(typeof resolveWebSocketUrl).toBe('function');
+  });
+});
+
