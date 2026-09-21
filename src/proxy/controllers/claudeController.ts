@@ -4,6 +4,7 @@ import config from '../../../config/default';
 import { ModelConfig, GeminiModelsResponse, GeminiModelEntry } from '../../types';
 import claudeTranslator from '../services/claudeTranslator';
 import payloadLogger from '../services/payloadLogger';
+import accountUsageService from '../../admin/services/accountUsageService';
 import logger from '../../utils/logger';
 import { StreamLifecycleManager } from '../../utils/streamLifecycleManager';
 import upstreamManager from '../../utils/upstreamManager';
@@ -74,6 +75,8 @@ class ClaudeController {
             signal: streamManager.signal
           });
 
+          const accountName = response.headers?.get ? (response.headers.get('x-account-name') || null) : null;
+
           if (!response.ok) {
             streamManager.markFinished();
             if (response.status >= 502 && response.status <= 504) {
@@ -88,9 +91,11 @@ class ClaudeController {
             const errStatus = response.status;
             const normalized = claudeTranslator.normalizeError({ status: errStatus, message: errMessage });
 
+            accountUsageService.record(accountName, cleanModelName, false);
+
             const duration = Date.now() - startTime;
             logger.error(`[Error] [Transaction: ${transactionId}] Stream request failed with status ${errStatus}: ${errMessage} (duration: ${(duration / 1000).toFixed(2)}s)`);
-            payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: errMessage }, normalized.payload, duration, requestPath, normalized.status, true);
+            payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: errMessage }, normalized.payload, duration, requestPath, normalized.status, true, ...(accountName ? [accountName] : []));
             return res.status(normalized.status).json(normalized.payload);
           }
 
@@ -161,15 +166,17 @@ class ClaudeController {
               }
             }
 
+            accountUsageService.record(accountName, cleanModelName, true);
             upstreamManager.recordRequestResult(serverIndex, true);
             const duration = Date.now() - startTime;
             logger.info(`[Response] [Transaction: ${transactionId}] Stream generated content finished successfully (duration: ${(duration / 1000).toFixed(2)}s)`);
-            payloadLogger.saveTransaction(transactionId, clientReq, gemReq, gemResChunks, claudeResChunks, duration, requestPath, 200, true);
+            payloadLogger.saveTransaction(transactionId, clientReq, gemReq, gemResChunks, claudeResChunks, duration, requestPath, 200, true, ...(accountName ? [accountName] : []));
             res.end();
           });
 
           response.body!.on('error', (err: any) => {
             streamManager.markFinished();
+            accountUsageService.record(accountName, cleanModelName, false);
             const duration = Date.now() - startTime;
             if (streamManager.isAborted || err.name === 'AbortError') {
               if (streamManager.reason === 'timeout') {
@@ -182,7 +189,7 @@ class ClaudeController {
                   }
                 };
                 logger.warn(`[Timeout Error] [Transaction: ${transactionId}] Stream request timed out after ${timeoutMs}ms (duration: ${(duration / 1000).toFixed(2)}s)`);
-                payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: 'Timeout' }, errPayload, duration, requestPath, 504, true);
+                payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: 'Timeout' }, errPayload, duration, requestPath, 504, true, ...(accountName ? [accountName] : []));
 
                 if (!res.headersSent) {
                   return res.status(504).json(errPayload);
@@ -214,7 +221,8 @@ class ClaudeController {
               duration,
               requestPath,
               500,
-              true
+              true,
+              ...(accountName ? [accountName] : [])
             );
           });
 
@@ -266,6 +274,7 @@ class ClaudeController {
         });
 
         streamManager.markFinished();
+        const accountName = response.headers?.get ? (response.headers.get('x-account-name') || null) : null;
 
         if (!response.ok) {
           if (response.status >= 502 && response.status <= 504) {
@@ -280,9 +289,11 @@ class ClaudeController {
           const errStatus = response.status;
           const normalized = claudeTranslator.normalizeError({ status: errStatus, message: errMessage });
 
+          accountUsageService.record(accountName, cleanModelName, false);
+
           const duration = Date.now() - startTime;
           logger.error(`[Error] [Transaction: ${transactionId}] Non-stream request failed with status ${errStatus}: ${errMessage} (duration: ${(duration / 1000).toFixed(2)}s)`);
-          payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: errMessage }, normalized.payload, duration, requestPath, normalized.status, false);
+          payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: errMessage }, normalized.payload, duration, requestPath, normalized.status, false, ...(accountName ? [accountName] : []));
           return res.status(normalized.status).json(normalized.payload);
         }
 
@@ -290,9 +301,11 @@ class ClaudeController {
         const geminiData = await response.json();
         const translatedResponse = claudeTranslator.convertGoogleToClaudeNonStream(geminiData, cleanModelName, clientReq.tools);
 
+        accountUsageService.record(accountName, cleanModelName, true);
+
         const duration = Date.now() - startTime;
         logger.info(`[Response] [Transaction: ${transactionId}] Non-stream content successfully returned with 200 OK (duration: ${(duration / 1000).toFixed(2)}s)`);
-        payloadLogger.saveTransaction(transactionId, clientReq, gemReq, geminiData, translatedResponse, duration, requestPath, 200, false);
+        payloadLogger.saveTransaction(transactionId, clientReq, gemReq, geminiData, translatedResponse, duration, requestPath, 200, false, ...(accountName ? [accountName] : []));
         return res.status(200).json(translatedResponse);
       } catch (err: any) {
         streamManager.markFinished();

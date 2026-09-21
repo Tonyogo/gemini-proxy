@@ -3,6 +3,7 @@ import fetch from 'node-fetch';
 import config from '../../../config/default';
 import payloadLogger from '../services/payloadLogger';
 import claudeTranslator from '../services/claudeTranslator';
+import accountUsageService from '../../admin/services/accountUsageService';
 import logger from '../../utils/logger';
 import { StreamLifecycleManager } from '../../utils/streamLifecycleManager';
 import upstreamManager from '../../utils/upstreamManager';
@@ -84,6 +85,8 @@ class GeminiController {
           signal: streamManager.signal
         });
 
+        const accountName = response.headers?.get ? (response.headers.get('x-account-name') || null) : null;
+
         if (!response.ok) {
           streamManager.markFinished();
           if (response.status >= 502 && response.status <= 504) {
@@ -94,8 +97,9 @@ class GeminiController {
           const errText = await response.text();
           let errJson: any;
           try { errJson = JSON.parse(errText); } catch { errJson = { error: errText }; }
+          accountUsageService.record(accountName, targetModelName || 'unknown', false);
           const duration = Date.now() - startTime;
-          payloadLogger.saveTransaction(transactionId, clientReq, clientReq, errJson, errJson, duration, requestPath, response.status, true);
+          payloadLogger.saveTransaction(transactionId, clientReq, clientReq, errJson, errJson, duration, requestPath, response.status, true, ...(accountName ? [accountName] : []));
           return res.status(response.status).json(errJson);
         }
 
@@ -119,6 +123,7 @@ class GeminiController {
         response.body.on('end', () => {
           streamManager.markFinished();
           if (streamManager.isAborted) return;
+          accountUsageService.record(accountName, targetModelName || 'unknown', true);
           upstreamManager.recordRequestResult(serverIndex, true);
           res.end();
           const duration = Date.now() - startTime;
@@ -129,11 +134,12 @@ class GeminiController {
           } catch {
             parsedResponse = accumulatedStreamText;
           }
-          payloadLogger.saveTransaction(transactionId, clientReq, clientReq, parsedResponse, parsedResponse, duration, requestPath, 200, true);
+          payloadLogger.saveTransaction(transactionId, clientReq, clientReq, parsedResponse, parsedResponse, duration, requestPath, 200, true, ...(accountName ? [accountName] : []));
         });
 
         response.body.on('error', (err: any) => {
           streamManager.markFinished();
+          accountUsageService.record(accountName, targetModelName || 'unknown', false);
           if (streamManager.reason === 'timeout') {
             upstreamManager.recordRequestResult(serverIndex, false, 'Timeout');
           } else if (!streamManager.isAborted && err.name !== 'AbortError') {
@@ -174,6 +180,8 @@ class GeminiController {
         body: req.method !== 'GET' && req.method !== 'HEAD' && clientReq ? JSON.stringify(clientReq) : undefined
       });
 
+      const accountName = response.headers?.get ? (response.headers.get('x-account-name') || null) : null;
+
       if (!response.ok) {
         if (response.status >= 502 && response.status <= 504) {
           upstreamManager.recordRequestResult(serverIndex, false, response.status);
@@ -184,6 +192,8 @@ class GeminiController {
         upstreamManager.recordRequestResult(serverIndex, true);
       }
 
+      accountUsageService.record(accountName, targetModelName || 'unknown', response.ok);
+
       const resText = await response.text();
       let resJson: any;
       try {
@@ -193,7 +203,7 @@ class GeminiController {
       }
 
       const duration = Date.now() - startTime;
-      payloadLogger.saveTransaction(transactionId, clientReq, clientReq, resJson, resJson, duration, requestPath, response.status, false);
+      payloadLogger.saveTransaction(transactionId, clientReq, clientReq, resJson, resJson, duration, requestPath, response.status, false, ...(accountName ? [accountName] : []));
 
       res.setHeader('x-transaction-id', transactionId);
       return res.status(response.status).json(resJson);
