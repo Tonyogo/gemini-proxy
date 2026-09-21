@@ -35,7 +35,7 @@
   - `accountUsageService.init(): Promise<void>`
   - `accountUsageService.flush(): Promise<void>`
 
-- [ ] **Step 1: 在 `tests/accountUsageService.test.ts` 中编写针对模型去重和无归档重置的测试用例**
+- [x] **Step 1: 在 `tests/accountUsageService.test.ts` 中编写针对模型去重和无归档重置的测试用例**
 
 修改 `tests/accountUsageService.test.ts`，增加以下断言：
 1. 测试传入 `models/gemini-2.0-flash` 与 `gemini-2.0-flash` 时合并为一个模型 `gemini-2.0-flash`；
@@ -79,12 +79,12 @@ it('should reset usage on period change without creating history archives', asyn
 });
 ```
 
-- [ ] **Step 2: 运行测试验证新测试失败**
+- [x] **Step 2: 运行测试验证新测试失败**
 
 Run: `npx jest tests/accountUsageService.test.ts`
 Expected: FAIL（未去除 `models/` 前缀导致断言失败）。
 
-- [ ] **Step 3: 重构 `src/admin/services/accountUsageService.ts` 为极简单文件模式**
+- [x] **Step 3: 重构 `src/admin/services/accountUsageService.ts` 为极简单文件模式**
 
 简化实现：
 1. 存储文件路径设为 `path.join(process.cwd(), 'data', 'account-usage.json')`；
@@ -113,12 +113,12 @@ Expected: FAIL（未去除 `models/` 前缀导致断言失败）。
    ```
 5. 异步原子写入 `data/account-usage.json`。
 
-- [ ] **Step 4: 运行单元测试验证通过**
+- [x] **Step 4: 运行单元测试验证通过**
 
 Run: `npx jest tests/accountUsageService.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: 提交 Task 1 代码**
+- [x] **Step 5: 提交 Task 1 代码**
 
 ```bash
 git add src/admin/services/accountUsageService.ts tests/accountUsageService.test.ts
@@ -137,7 +137,7 @@ git commit -m "refactor(admin): simplify accountUsageService to single-file stor
 - Consumes: `accountUsageService.getUsageForAccount(accountName)`
 - Produces: `GET /api/admin/accounts/status` 返回每个 `acc.usage` 均为纯净的本地统一结构，彻底丢弃上游透传的原字段
 
-- [ ] **Step 1: 在 `tests/accountStatusUsage.test.ts` 补充针对覆盖上游脏数据及零用量账号的测试用例**
+- [x] **Step 1: 在 `tests/accountStatusUsage.test.ts` 补充针对覆盖上游脏数据及零用量账号的测试用例**
 
 修改 `tests/accountStatusUsage.test.ts`，模拟上游返回带脏数据 `usage: { models: { 'gemini-pro': { requests: 99 } } }` 的账号：
 
@@ -187,12 +187,12 @@ it('should completely overwrite upstream dirty usage data with local clean usage
 });
 ```
 
-- [ ] **Step 2: 运行测试验证测试失败**
+- [x] **Step 2: 运行测试验证测试失败**
 
 Run: `npx jest tests/accountStatusUsage.test.ts`
 Expected: FAIL（上游脏数据未被完全覆盖/清除）。
 
-- [ ] **Step 3: 更新 `src/admin/controllers/accountController.ts` 实现严格覆盖**
+- [x] **Step 3: 更新 `src/admin/controllers/accountController.ts` 实现严格覆盖**
 
 在 `getStatus` 中：
 ```typescript
@@ -224,12 +224,12 @@ if (result.status === 200 && result.data?.status?.accountDetails && Array.isArra
 }
 ```
 
-- [ ] **Step 4: 运行测试验证通过**
+- [x] **Step 4: 运行测试验证通过**
 
 Run: `npx jest tests/accountStatusUsage.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: 提交 Task 2 代码**
+- [x] **Step 5: 提交 Task 2 代码**
 
 ```bash
 git add src/admin/controllers/accountController.ts tests/accountStatusUsage.test.ts
@@ -249,7 +249,7 @@ git commit -m "fix(admin): strictly overwrite account usage in getStatus to purg
   - `getModelBreakdowns(usage?: AccountUsage): Array<{ model: string; count: number; limit?: number; success?: number; error?: number }>` (严格归一化去重合并)
   - `getTotalUsage(usage?: AccountUsage): number` (直接取总请求数)
 
-- [ ] **Step 1: 重构 `frontend/src/components/AccountsView.tsx` 中的 `getModelBreakdowns` 与 `getTotalUsage`**
+- [x] **Step 1: 重构 `frontend/src/components/AccountsView.tsx` 中的 `getModelBreakdowns` 与 `getTotalUsage`**
 
 修改 `getTotalUsage`:
 ```typescript
@@ -311,12 +311,12 @@ const getModelBreakdowns = (usage?: AccountUsage): Array<{
 };
 ```
 
-- [ ] **Step 2: 执行前端构建检查是否有编译错误**
+- [x] **Step 2: 执行前端构建检查是否有编译错误**
 
 Run: `npm run build:frontend`
 Expected: Vite build succeeds with 0 errors.
 
-- [ ] **Step 3: 提交 Task 3 代码**
+- [x] **Step 3: 提交 Task 3 代码**
 
 ```bash
 git add frontend/src/components/AccountsView.tsx
@@ -330,22 +330,22 @@ git commit -m "fix(ui): deduplicate and simplify model breakdowns in AccountsVie
 **Files:**
 - 全局测试与构建验证
 
-- [ ] **Step 1: 运行所有 Jest 自动化测试**
+- [x] **Step 1: 运行所有 Jest 自动化测试**
 
 Run: `npx jest --runInBand`
 Expected: 100% 测试套件通过，0 failures。
 
-- [ ] **Step 2: 运行后端构建编译**
+- [x] **Step 2: 运行后端构建编译**
 
 Run: `npm run build:backend`
 Expected: TypeScript 编译通过，生成 `dist/src`。
 
-- [ ] **Step 3: 运行完整构建**
+- [x] **Step 3: 运行完整构建**
 
 Run: `npm run build`
 Expected: 前端和后端全部编译成功。
 
-- [ ] **Step 4: 检查 git 状态**
+- [x] **Step 4: 检查 git 状态**
 
 Run: `git status`
 Expected: 工作区干净无未提交内容。
