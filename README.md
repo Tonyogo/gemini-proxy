@@ -48,7 +48,7 @@ gemini-proxy/
 │       └── utils/             # 移动端视口计算、按键编码器、终端过滤器等
 ├── scripts/
 │   ├── deploy.sh              # 统一步署脚本 (Git 拉取、依赖安装、前后端编译、PM2 平滑重载)
-│   └── terminal-agent.js      # 轻量级多主机反向终端 Agent 脚本 (局域网主机一键接入)
+│   └── gt.js                  # 统一 Docker 风格终端 CLI 与反向 Agent 引擎 (gt hosts / exec / agent)
 ├── src/
 │   ├── admin/                 # 管理控制台后端逻辑 (状态、统计、日志审计、全局配置、账号)
 │   │   ├── controllers/       # AdminController, AccountController
@@ -244,7 +244,7 @@ npm run pm2:logs     # 查看实时运行日志
                 │ 反向 WebSocket 隧道           │ 反向 WebSocket 隧道
                 │ (双向 stdio + 文件 RPC)       │ (双向 stdio + 文件 RPC)
 ┌───────────────┴──────────────┐ ┌─────────────┴───────────────┐
-│ 局域网/远程主机 A (Agent)    │ │   宿主机节点 (terminal-agent) │
+│ 局域网/远程主机 A (Agent)    │ │   宿主机节点 (gt agent)     │
 │ Ubuntu / Debian / 树莓派 / NAS│ │  当前服务器所在系统独立运行   │
 └──────────────────────────────┘ └─────────────────────────────┘
 ```
@@ -253,7 +253,7 @@ npm run pm2:logs     # 查看实时运行日志
 
 - **纯反向 Agent 统一网关**：
   - Proxy 网关本身零内置宿主机 PTY 生成与本地 `fs` 降级，避免后端臃肿与本地特权风险；
-  - 宿主机与所有远程内网服务器平权，均通过执行 `terminal-agent.js` 反向建立长连接。
+  - 宿主机与所有远程内网服务器平权，均通过执行 `gt agent`（`scripts/gt.js agent` 或 Rust 原生二进制）反向建立长连接。
 - **后台常驻与断线无损重放**：
   - 终端 PTY 进程由 Agent 维护，关闭网页或网络波动不会中断后台任务；
   - 服务端维护 200KB 环形历史回放缓冲区，重新进入时秒级恢复最近屏幕输出。
@@ -279,11 +279,13 @@ npm run pm2:logs     # 查看实时运行日志
 在宿主机或局域网内任意 Linux、macOS 或 Windows 主机上执行：
 
 ```bash
-# 方式 1: 使用已安装依赖的项目仓库 (如宿主机或测试机)
+# 方式 1: 使用 npm package 别名脚本 (如宿主机或测试机)
 npm run terminal-agent -- --server=http://<proxy-ip>:3000 --key=<ADMIN_SECRET_KEY> --name="Ubuntu-GPU-Server"
 
-# 方式 2: 单文件独立启动 (拷贝 scripts/terminal-agent.js 即可直接运行)
-node scripts/terminal-agent.js --server=http://<proxy-ip>:3000 --key=<ADMIN_SECRET_KEY> --name="NAS-Storage"
+# 方式 2: 使用 unified gt 命令
+node scripts/gt.js agent --server=http://<proxy-ip>:3000 --key=<ADMIN_SECRET_KEY> --name="NAS-Storage"
+# 或者 Rust 原生极速二进制
+./agent-rs/target/release/gt agent --server=http://<proxy-ip>:3000 --key=<ADMIN_SECRET_KEY> --name="NAS-Storage"
 ```
 
 #### B. Agent 参数列表
