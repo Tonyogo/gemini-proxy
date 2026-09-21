@@ -79,7 +79,7 @@ class ClaudeController {
 
           if (!response.ok) {
             streamManager.markFinished();
-            if (response.status >= 502 && response.status <= 504) {
+            if (response.status >= 500 && response.status < 600) {
               upstreamManager.recordRequestResult(serverIndex, false, response.status);
             } else {
               upstreamManager.recordRequestResult(serverIndex, true);
@@ -277,7 +277,7 @@ class ClaudeController {
         const accountName = response.headers?.get ? (response.headers.get('x-account-name') || null) : null;
 
         if (!response.ok) {
-          if (response.status >= 502 && response.status <= 504) {
+          if (response.status >= 500 && response.status < 600) {
             upstreamManager.recordRequestResult(serverIndex, false, response.status);
           } else {
             upstreamManager.recordRequestResult(serverIndex, true);
@@ -406,7 +406,7 @@ class ClaudeController {
       }
 
       if (!response.ok) {
-        if (response.status >= 502 && response.status <= 504) {
+        if (response.status >= 500 && response.status < 600) {
           upstreamManager.recordRequestResult(serverIndex, false, response.status);
         } else {
           upstreamManager.recordRequestResult(serverIndex, true);
@@ -487,7 +487,7 @@ class ClaudeController {
       }
 
       if (!response.ok) {
-        if (response.status >= 502 && response.status <= 504) {
+        if (response.status >= 500 && response.status < 600) {
           upstreamManager.recordRequestResult(serverIndex, false, response.status);
         } else {
           upstreamManager.recordRequestResult(serverIndex, true);
@@ -588,7 +588,7 @@ class ClaudeController {
       }
 
       if (!response.ok) {
-        if (response.status >= 502 && response.status <= 504) {
+        if (response.status >= 500 && response.status < 600) {
           upstreamManager.recordRequestResult(serverIndex, false, response.status);
         } else {
           upstreamManager.recordRequestResult(serverIndex, true);

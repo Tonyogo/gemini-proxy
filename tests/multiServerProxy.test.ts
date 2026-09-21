@@ -100,6 +100,82 @@ describe('Multi-Server Proxy Round-Robin Integration Tests', () => {
       expect(fetchCalls[3].url).toContain('https://upstream-1.com/v1beta/models/gemini-2.5-pro:generateContent');
     });
 
+    it('isolates upstream node when receiving 3 consecutive 500 errors', async () => {
+      await updateConfig({
+        geminiBaseUrl: 'https://upstream-1.com,https://upstream-2.com'
+      });
+
+      mockFetch.mockImplementation(((url: string, options: any) => {
+        fetchCalls.push({ url, options });
+        if (url.includes('upstream-1.com')) {
+          return Promise.resolve({
+            status: 500,
+            ok: false,
+            text: () => Promise.resolve(JSON.stringify({ error: { message: 'Internal Server Error' } })),
+            json: () => Promise.resolve({ error: { message: 'Internal Server Error' } })
+          } as any);
+        }
+        return Promise.resolve({
+          status: 200,
+          ok: true,
+          text: () => Promise.resolve(JSON.stringify({
+            candidates: [{ content: { parts: [{ text: 'Mock response from 2' }] } }]
+          })),
+          json: () => Promise.resolve({
+            candidates: [{ content: { parts: [{ text: 'Mock response from 2' }] } }]
+          })
+        } as any);
+      }) as any);
+
+      // Request 1 to upstream-1 (500) -> failures = 1
+      await request(app).post('/v1/messages').set('x-api-key', 'test-key').send({
+        model: 'gemini-2.5-pro',
+        messages: [{ role: 'user', content: 'test 1' }]
+      });
+      expect(upstreamManager.getCircuitStatusList()[0].consecutiveFailures).toBe(1);
+
+      // Request 2 to upstream-2 (200)
+      await request(app).post('/v1/messages').set('x-api-key', 'test-key').send({
+        model: 'gemini-2.5-pro',
+        messages: [{ role: 'user', content: 'test 2' }]
+      });
+
+      // Request 3 to upstream-1 (500) -> failures = 2
+      await request(app).post('/v1/messages').set('x-api-key', 'test-key').send({
+        model: 'gemini-2.5-pro',
+        messages: [{ role: 'user', content: 'test 3' }]
+      });
+      expect(upstreamManager.getCircuitStatusList()[0].consecutiveFailures).toBe(2);
+
+      // Request 4 to upstream-2 (200)
+      await request(app).post('/v1/messages').set('x-api-key', 'test-key').send({
+        model: 'gemini-2.5-pro',
+        messages: [{ role: 'user', content: 'test 4' }]
+      });
+
+      // Request 5 to upstream-1 (500) -> failures = 3 -> isolated!
+      await request(app).post('/v1/messages').set('x-api-key', 'test-key').send({
+        model: 'gemini-2.5-pro',
+        messages: [{ role: 'user', content: 'test 5' }]
+      });
+      expect(upstreamManager.isNodeIsolated(0)).toBe(true);
+      expect(upstreamManager.getCircuitStatusList()[0].consecutiveFailures).toBe(3);
+
+      // Next requests for gemini-2.5-pro should skip upstream-1 and only hit upstream-2
+      fetchCalls = [];
+      await request(app).post('/v1/messages').set('x-api-key', 'test-key').send({
+        model: 'gemini-2.5-pro',
+        messages: [{ role: 'user', content: 'test 6' }]
+      });
+      expect(fetchCalls[0].url).toContain('https://upstream-2.com');
+
+      await request(app).post('/v1/messages').set('x-api-key', 'test-key').send({
+        model: 'gemini-2.5-pro',
+        messages: [{ role: 'user', content: 'test 7' }]
+      });
+      expect(fetchCalls[1].url).toContain('https://upstream-2.com');
+    });
+
     it('uses global round-robin for /v1/models query', async () => {
       await updateConfig({
         geminiBaseUrl: 'https://upstream-1.com,https://upstream-2.com'

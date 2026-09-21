@@ -52,7 +52,7 @@ export class AccountService {
       const res = await fetch(url, options);
 
       // Check upstream gateway failure vs success
-      if (res.status >= 502 && res.status <= 504) {
+      if (res.status >= 500 && res.status < 600) {
         upstreamManager.recordRequestResult(actualIndex, false, `HTTP ${res.status}`);
       } else {
         // Any other valid HTTP response (200, 400, 401, 403, 404, etc.) proves host is alive -> immediately recover!
@@ -140,7 +140,7 @@ export class AccountService {
         timeout: config.upstreamTimeoutMs || 30000
       });
 
-      if (res.status >= 502 && res.status <= 504) {
+      if (res.status >= 500 && res.status < 600) {
         upstreamManager.recordRequestResult(actualIndex, false, `HTTP ${res.status}`);
       } else {
         upstreamManager.recordRequestResult(actualIndex, true);
@@ -187,7 +187,7 @@ export class AccountService {
         timeout: config.upstreamTimeoutMs || 30000
       });
 
-      if (res.status >= 502 && res.status <= 504) {
+      if (res.status >= 500 && res.status < 600) {
         upstreamManager.recordRequestResult(actualIndex, false, `HTTP ${res.status}`);
       } else {
         upstreamManager.recordRequestResult(actualIndex, true);
