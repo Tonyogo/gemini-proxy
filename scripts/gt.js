@@ -361,7 +361,7 @@ class TaskManager {
         cwd: workingDir,
         env: taskEnv,
         stdio: ['ignore', 'pipe', 'pipe'],
-        detached: false,
+        detached: !isWindows,
       });
     } catch (err) {
       return { success: false, error: `Failed to spawn process: ${err.message}` };
@@ -537,15 +537,29 @@ class TaskManager {
     }
 
     task.status = 'killed';
+    const isWindows = os.platform() === 'win32';
+
     try {
-      task.child.kill(signal || 'SIGTERM');
-    } catch {}
+      if (isWindows) {
+        spawn('taskkill', ['/pid', String(task.child.pid), '/T', '/F'], { stdio: 'ignore' });
+      } else {
+        process.kill(-task.child.pid, signal || 'SIGTERM');
+      }
+    } catch {
+      try { task.child.kill(signal || 'SIGTERM'); } catch {}
+    }
 
     task.killTimer = setTimeout(() => {
       if (task.child) {
         try {
-          task.child.kill('SIGKILL');
-        } catch {}
+          if (isWindows) {
+            spawn('taskkill', ['/pid', String(task.child.pid), '/T', '/F'], { stdio: 'ignore' });
+          } else {
+            process.kill(-task.child.pid, 'SIGKILL');
+          }
+        } catch {
+          try { task.child.kill('SIGKILL'); } catch {}
+        }
       }
     }, 3000);
     if (task.killTimer.unref) task.killTimer.unref();
@@ -898,7 +912,6 @@ function runAgent(agentArgs = [], globalOpts = {}) {
       hostname,
       ip: localIp,
       platform,
-      key: adminKey,
     });
     console.log(`[Agent] Connecting to ${targetWsUrl.split('?')[0]}...`);
 

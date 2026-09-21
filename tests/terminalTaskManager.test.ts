@@ -139,6 +139,31 @@ describe('TaskManager & handleCmdExec', () => {
     expect(poll.status).toBe('killed');
   });
 
+  it('terminates the entire process tree including spawned child processes on killTask', async () => {
+    if (process.platform === 'win32') return; // Unix 进程组测试
+
+    // 派生一个带后台 sleep 的复杂子进程
+    const res = tm.startTask({
+      taskId: 'test-tree-kill',
+      command: 'sh -c "sleep 30 & wait"',
+    });
+
+    expect(res.success).toBe(true);
+    await new Promise((r) => setTimeout(r, 200));
+
+    const killRes = tm.killTask('test-tree-kill', 'SIGKILL');
+    expect(killRes.success).toBe(true);
+
+    // 轮询等待任务标记终止
+    let poll: any;
+    for (let i = 0; i < 20; i++) {
+      await new Promise((r) => setTimeout(r, 100));
+      poll = tm.getTask('test-tree-kill');
+      if (poll.status !== 'running') break;
+    }
+    expect(poll.status).toBe('killed');
+  });
+
   it('handles execution timeout', async () => {
     const res = tm.startTask({
       taskId: 'test-timeout',
