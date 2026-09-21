@@ -14,6 +14,9 @@ pub struct CmdExecRequest {
     pub timeout_ms: Option<u64>,
     #[serde(default)]
     pub env: Option<HashMap<String, String>>,
+    pub offset: Option<usize>,
+    pub limit: Option<usize>,
+    pub signal: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -56,6 +59,51 @@ impl CmdExecResponse {
             error: Some(error.into()),
         }
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TaskPollData {
+    #[serde(rename = "taskId")]
+    pub task_id: String,
+    pub status: String,
+    #[serde(rename = "exitCode")]
+    pub exit_code: Option<i32>,
+    pub stdout: String,
+    pub stderr: String,
+    pub output: String,
+    pub offset: usize,
+    #[serde(rename = "outputOffset")]
+    pub output_offset: usize,
+    #[serde(rename = "totalBytes")]
+    pub total_bytes: usize,
+    #[serde(rename = "durationMs")]
+    pub duration_ms: Option<u64>,
+    #[serde(rename = "startTime")]
+    pub start_time: u64,
+    #[serde(rename = "endTime")]
+    pub end_time: Option<u64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TaskSummaryItem {
+    #[serde(rename = "taskId")]
+    pub task_id: String,
+    pub command: String,
+    pub cwd: String,
+    pub status: String,
+    #[serde(rename = "exitCode")]
+    pub exit_code: Option<i32>,
+    #[serde(rename = "durationMs")]
+    pub duration_ms: Option<u64>,
+    #[serde(rename = "startTime")]
+    pub start_time: u64,
+    #[serde(rename = "endTime")]
+    pub end_time: Option<u64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TaskListData {
+    pub tasks: Vec<TaskSummaryItem>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

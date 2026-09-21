@@ -193,6 +193,9 @@ async fn test_task_manager_execution() {
         cwd: None,
         timeout_ms: Some(5000),
         env: None,
+        offset: None,
+        limit: None,
+        signal: None,
     };
 
     let start_res = tm.handle_cmd_exec(start_req).await;
@@ -211,6 +214,9 @@ async fn test_task_manager_execution() {
         cwd: None,
         timeout_ms: None,
         env: None,
+        offset: None,
+        limit: None,
+        signal: None,
     };
     let status_res = tm.handle_cmd_exec(status_req).await;
     assert!(status_res.success);
@@ -232,6 +238,9 @@ async fn test_task_manager_kill() {
         cwd: None,
         timeout_ms: Some(30000),
         env: None,
+        offset: None,
+        limit: None,
+        signal: None,
     };
 
     let start_res = tm.handle_cmd_exec(start_req).await;
@@ -248,6 +257,9 @@ async fn test_task_manager_kill() {
         cwd: None,
         timeout_ms: None,
         env: None,
+        offset: None,
+        limit: None,
+        signal: None,
     };
     let kill_res = tm.handle_cmd_exec(kill_req).await;
     assert!(kill_res.success);
