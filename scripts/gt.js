@@ -66,6 +66,9 @@ Commands:
   ps HOST                 List active and recent tasks on a host (like 'docker ps')
   logs HOST TASK_ID       View execution logs for a task (like 'docker logs')
   kill HOST TASK_ID       Terminate a running task on a host (like 'docker kill')
+  login [SERVER] [KEY]    Verify credentials and save to ~/.gt/config.json
+  logout                  Remove credentials from ~/.gt/config.json
+  config <list|get|set>   View or modify ~/.gt/config.json settings
   agent [OPTIONS]         Run reverse terminal agent daemon on this machine
 
 Global Options:
@@ -225,6 +228,77 @@ function parseControlMessage(msgStr) {
     } catch {}
   }
   return null;
+}
+
+class ConfigStore {
+  static getConfigDir() {
+    return path.join(os.homedir(), '.gt');
+  }
+
+  static getConfigFile() {
+    return path.join(this.getConfigDir(), 'config.json');
+  }
+
+  static load() {
+    try {
+      const p = this.getConfigFile();
+      if (fs.existsSync(p)) {
+        return JSON.parse(fs.readFileSync(p, 'utf-8'));
+      }
+    } catch {}
+    return {};
+  }
+
+  static save(data) {
+    const dir = this.getConfigDir();
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+    }
+    const file = this.getConfigFile();
+    fs.writeFileSync(file, JSON.stringify(data, null, 2), { encoding: 'utf-8', mode: 0o600 });
+    if (os.platform() !== 'win32') {
+      try { fs.chmodSync(file, 0o600); } catch {}
+      try { fs.chmodSync(dir, 0o700); } catch {}
+    }
+  }
+
+  static clear() {
+    try {
+      const file = this.getConfigFile();
+      if (fs.existsSync(file)) {
+        fs.unlinkSync(file);
+      }
+    } catch {}
+  }
+
+  static get(key) {
+    const data = this.load();
+    return data[key];
+  }
+
+  static set(key, val) {
+    const data = this.load();
+    if (val === undefined || val === null || val === '') {
+      delete data[key];
+    } else {
+      data[key] = val;
+    }
+    this.save(data);
+  }
+
+  static getEffectiveConfig(cliOpts = {}) {
+    const stored = this.load();
+    const server = (cliOpts && cliOpts.server) ||
+      process.env.TERMINAL_SERVER ||
+      process.env.GEMINI_PROXY_URL ||
+      stored.server ||
+      'http://localhost:3000';
+    const key = (cliOpts && cliOpts.key) ||
+      process.env.ADMIN_SECRET_KEY ||
+      stored.key ||
+      '';
+    return { server, key };
+  }
 }
 
 class TaskManager {
@@ -963,8 +1037,8 @@ function runAgent(agentArgs = [], globalOpts = {}) {
 async function main() {
   const rawArgs = process.argv.slice(2);
 
-  let server = process.env.TERMINAL_SERVER || process.env.GEMINI_PROXY_URL || 'http://localhost:3000';
-  let key = process.env.ADMIN_SECRET_KEY || '';
+  let cliServer = null;
+  let cliKey = null;
   let jsonOutput = false;
 
   const filteredArgs = [];
@@ -989,17 +1063,21 @@ async function main() {
     } else if (a === '--json') {
       jsonOutput = true;
     } else if (a === '-s' || a === '--server') {
-      server = rawArgs[++i];
+      cliServer = rawArgs[++i];
     } else if (a.startsWith('--server=')) {
-      server = a.slice(9);
+      cliServer = a.slice(9);
     } else if (a === '-k' || a === '--key') {
-      key = rawArgs[++i];
+      cliKey = rawArgs[++i];
     } else if (a.startsWith('--key=')) {
-      key = a.slice(6);
+      cliKey = a.slice(6);
     } else {
       filteredArgs.push(a);
     }
   }
+
+  const effectiveConfig = ConfigStore.getEffectiveConfig({ server: cliServer, key: cliKey });
+  const server = effectiveConfig.server;
+  const key = effectiveConfig.key;
 
   if (filteredArgs.length === 0) {
     printHelp();
@@ -1197,6 +1275,111 @@ async function main() {
         }
       } catch (err) {
         console.error(`Failed to kill task [${taskId}]: ${err.message}`);
+        process.exit(1);
+      }
+      break;
+    }
+
+    case 'login': {
+      let targetServer = cmdArgs[0] || server;
+      let targetKey = cmdArgs[1] || key;
+
+      if (cmdArgs.length === 1) {
+        if (cmdArgs[0].startsWith('http://') || cmdArgs[0].startsWith('https://')) {
+          targetServer = cmdArgs[0];
+          targetKey = key;
+        } else {
+          targetKey = cmdArgs[0];
+          targetServer = server;
+        }
+      }
+
+      if (!targetKey) {
+        console.error('Error: Missing secret key. Usage: gt login [server] [key]');
+        process.exit(1);
+      }
+
+      targetServer = targetServer.replace(/\/+$/, '');
+
+      try {
+        const res = await makeRequest({
+          serverUrl: targetServer,
+          endpoint: '/api/terminal/hosts',
+          method: 'GET',
+          apiKey: targetKey,
+        });
+
+        if (res.status === 200) {
+          const config = ConfigStore.load();
+          config.server = targetServer;
+          config.key = targetKey;
+          ConfigStore.save(config);
+          console.log(`Successfully verified and logged in to ${targetServer}`);
+          process.exit(0);
+        } else {
+          console.error(`Authentication failed: HTTP ${res.status} ${res.data?.error || 'Unauthorized'}`);
+          process.exit(1);
+        }
+      } catch (err) {
+        console.error(`Authentication failed: ${err.message}`);
+        process.exit(1);
+      }
+      break;
+    }
+
+    case 'logout': {
+      const config = ConfigStore.load();
+      delete config.key;
+      ConfigStore.save(config);
+      console.log('Successfully logged out.');
+      process.exit(0);
+    }
+
+    case 'config': {
+      const subCmd = (cmdArgs[0] || 'list').toLowerCase();
+      if (subCmd === 'list') {
+        const stored = ConfigStore.load();
+        const mask = (str) => {
+          if (!str) return '';
+          if (str.length <= 3) return '***';
+          return str.slice(0, 3) + '***';
+        };
+        const serverVal = stored.server !== undefined ? stored.server : server;
+        const keyVal = stored.key !== undefined ? mask(stored.key) : '';
+        console.log(`server = "${serverVal}"`);
+        console.log(`key    = "${keyVal}"`);
+        for (const [k, v] of Object.entries(stored)) {
+          if (k !== 'server' && k !== 'key') {
+            console.log(`${k.padEnd(6)} = "${v}"`);
+          }
+        }
+        process.exit(0);
+      } else if (subCmd === 'get') {
+        const k = cmdArgs[1];
+        if (!k) {
+          console.error('Error: Missing key. Usage: gt config get <key>');
+          process.exit(1);
+        }
+        const val = ConfigStore.get(k);
+        if (val !== undefined && val !== null) {
+          console.log(val);
+        } else {
+          console.log('');
+        }
+        process.exit(0);
+      } else if (subCmd === 'set') {
+        const k = cmdArgs[1];
+        const v = cmdArgs[2];
+        if (!k || v === undefined) {
+          console.error('Error: Missing arguments. Usage: gt config set <key> <value>');
+          process.exit(1);
+        }
+        ConfigStore.set(k, v);
+        console.log(`Set ${k} = "${v}"`);
+        process.exit(0);
+      } else {
+        console.error(`Error: Unknown config command: ${subCmd}`);
+        console.error('Usage: gt config <list|get|set> [key] [val]');
         process.exit(1);
       }
       break;
@@ -1405,6 +1588,7 @@ module.exports = {
   HANDSHAKE_TIMEOUT_MS,
   HEARTBEAT_INTERVAL_MS,
   HEARTBEAT_TIMEOUT_MS,
+  ConfigStore,
   TaskManager,
   taskManager,
   handleFileRpc,
