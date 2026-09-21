@@ -180,6 +180,45 @@ export class TerminalHostManager {
     }
   }
 
+  public resolveCanonicalHostId(input?: string): string | null {
+    if (!input || !input.trim()) return null;
+    const target = input.trim();
+
+    // 1. Exact ID match
+    if (this.hosts.has(target)) return target;
+
+    // 2. Exact Name match (prefer online node)
+    const matchingByName: ManagedHost[] = [];
+    for (const host of this.hosts.values()) {
+      if (host.name === target) {
+        matchingByName.push(host);
+      }
+    }
+    if (matchingByName.length > 0) {
+      const online = matchingByName.find(h => h.status === 'online');
+      return (online || matchingByName[0]).id;
+    }
+
+    // 3. Short ID prefix match (minimum 4 chars, like Docker)
+    if (target.length >= 4) {
+      const matchingPrefix: ManagedHost[] = [];
+      for (const host of this.hosts.values()) {
+        if (host.id.toLowerCase().startsWith(target.toLowerCase())) {
+          matchingPrefix.push(host);
+        }
+      }
+      if (matchingPrefix.length === 1) {
+        return matchingPrefix[0].id;
+      }
+      if (matchingPrefix.length > 1) {
+        const online = matchingPrefix.find(h => h.status === 'online');
+        if (online) return online.id;
+      }
+    }
+
+    return null;
+  }
+
   public pruneOfflineHosts(maxAgeMs: number = TerminalHostManager.OFFLINE_HOST_TTL_MS): string[] {
     const now = Date.now();
     const prunedIds: string[] = [];
@@ -206,25 +245,7 @@ export class TerminalHostManager {
 
   public getHosts(): ManagedHost[] {
     this.pruneOfflineHosts(TerminalHostManager.OFFLINE_HOST_TTL_MS);
-
-    // Group by host name to guarantee unique names in listing
-    const nameMap = new Map<string, ManagedHost>();
-
-    for (const host of this.hosts.values()) {
-      const existing = nameMap.get(host.name);
-      if (!existing) {
-        nameMap.set(host.name, host);
-      } else {
-        // Priority: online wins over offline; if same status, highest lastSeen wins
-        if (host.status === 'online' && existing.status !== 'online') {
-          nameMap.set(host.name, host);
-        } else if (host.status === existing.status && host.lastSeen > existing.lastSeen) {
-          nameMap.set(host.name, host);
-        }
-      }
-    }
-
-    const list = Array.from(nameMap.values());
+    const list = Array.from(this.hosts.values());
     return list.sort((a, b) => {
       if (a.status !== b.status) {
         return a.status === 'online' ? -1 : 1;
@@ -233,18 +254,21 @@ export class TerminalHostManager {
     });
   }
 
-  public getHost(hostId: string): ManagedHost | null {
-    return this.hosts.get(hostId) || null;
+  public getHost(hostIdOrName: string): ManagedHost | null {
+    const canonicalId = this.resolveCanonicalHostId(hostIdOrName);
+    if (!canonicalId) return null;
+    return this.hosts.get(canonicalId) || null;
   }
 
-  public getSession(hostId?: string): RemoteAgentTerminalSession | null {
-    if (!hostId || !hostId.trim()) return null;
-    const targetId = hostId.trim();
-    const host = this.hosts.get(targetId);
+  public getSession(hostIdOrName?: string): RemoteAgentTerminalSession | null {
+    if (!hostIdOrName || !hostIdOrName.trim()) return null;
+    const canonicalId = this.resolveCanonicalHostId(hostIdOrName);
+    if (!canonicalId) return null;
+    const host = this.hosts.get(canonicalId);
     if (!host || host.status !== 'online') {
       return null;
     }
-    return this.sessions.get(targetId) || null;
+    return this.sessions.get(canonicalId) || null;
   }
 
   public registerAgent(metadata: {
@@ -254,14 +278,21 @@ export class TerminalHostManager {
     ip?: string;
     platform?: string;
     agentWs: any;
-  }): ManagedHost {
-    const id = metadata.hostId;
-    const targetName = metadata.name || metadata.hostname || id;
+  }): { success: boolean; host?: ManagedHost; error?: string } {
+    const id = metadata.hostId.trim();
+    const targetName = (metadata.name || metadata.hostname || id).trim();
 
-    // Auto-prune any existing offline host that shares the same name but has a different hostId
+    // 1. Check for name conflict against ACTIVE (online) nodes
     for (const [existingId, existingHost] of this.hosts.entries()) {
-      if (existingId !== id && existingHost.status === 'offline') {
-        if (existingHost.name === targetName || (metadata.name && existingHost.name === metadata.name)) {
+      if (existingId !== id && existingHost.name === targetName) {
+        if (existingHost.status === 'online') {
+          logger.warn(`[TerminalHostManager] Rejecting duplicate online host name "${targetName}" from ${id} (held by ${existingId})`);
+          return {
+            success: false,
+            error: `Conflict: Host name '${targetName}' is already in use by active node '${existingId}'`
+          };
+        } else {
+          // Auto-prune offline host to allow takeover
           const session = this.sessions.get(existingId);
           if (session) {
             session.destroy();
@@ -269,13 +300,13 @@ export class TerminalHostManager {
           }
           this.clearPendingRpcForHost(existingId);
           this.hosts.delete(existingId);
-          logger.info(`[TerminalHostManager] Auto-pruned stale offline host with matching name "${existingHost.name}": ${existingId}`);
+          logger.info(`[TerminalHostManager] Pruned offline host with matching name "${targetName}": ${existingId}`);
         }
       }
     }
 
+    // 2. Register or update host strictly under `id`
     let host = this.hosts.get(id);
-
     if (!host) {
       host = {
         id,
@@ -291,7 +322,7 @@ export class TerminalHostManager {
     } else {
       host.status = 'online';
       host.lastSeen = Date.now();
-      if (metadata.name) host.name = metadata.name;
+      host.name = targetName;
       if (metadata.hostname) host.hostname = metadata.hostname;
       if (metadata.ip) host.ip = metadata.ip;
       if (metadata.platform) host.platform = metadata.platform;
@@ -308,15 +339,16 @@ export class TerminalHostManager {
     }
 
     logger.info(`[TerminalHostManager] Agent registered: ${id} (${host.name})`);
-    return host;
+    return { success: true, host };
   }
 
   public unregisterAgent(hostId: string): void {
-    const host = this.hosts.get(hostId);
+    const canonicalId = this.resolveCanonicalHostId(hostId) || hostId;
+    const host = this.hosts.get(canonicalId);
     if (host && host.type === 'agent') {
       host.status = 'offline';
       host.lastSeen = Date.now();
-      logger.info(`[TerminalHostManager] Agent unregistered/offline: ${hostId}`);
+      logger.info(`[TerminalHostManager] Agent unregistered/offline: ${canonicalId}`);
     }
   }
 
@@ -370,10 +402,14 @@ export class TerminalHostManager {
     }
   }
 
-  public async executeCmdRpc(hostId: string, payload: { action: string; [key: string]: any }): Promise<any> {
-    const session = this.getSession(hostId);
+  public async executeCmdRpc(hostIdOrName: string, payload: { action: string; [key: string]: any }): Promise<any> {
+    const canonicalId = this.resolveCanonicalHostId(hostIdOrName);
+    if (!canonicalId) {
+      return { success: false, error: `Agent "${hostIdOrName}" is offline or unavailable` };
+    }
+    const session = this.getSession(canonicalId);
     if (!session) {
-      return { success: false, error: `Agent "${hostId}" is offline or unavailable` };
+      return { success: false, error: `Agent "${hostIdOrName}" is offline or unavailable` };
     }
 
     const reqId = `cmd-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -400,10 +436,14 @@ export class TerminalHostManager {
     });
   }
 
-  public async executeFileRpc(hostId: string, payload: { action: string; path: string; params?: any }): Promise<any> {
-    const session = this.getSession(hostId);
+  public async executeFileRpc(hostIdOrName: string, payload: { action: string; path: string; params?: any }): Promise<any> {
+    const canonicalId = this.resolveCanonicalHostId(hostIdOrName);
+    if (!canonicalId) {
+      return { success: false, error: `Agent "${hostIdOrName}" is offline or unavailable` };
+    }
+    const session = this.getSession(canonicalId);
     if (!session) {
-      return { success: false, error: `Agent "${hostId}" is offline or unavailable` };
+      return { success: false, error: `Agent "${hostIdOrName}" is offline or unavailable` };
     }
 
     const reqId = `rpc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -432,3 +472,4 @@ export class TerminalHostManager {
 }
 
 export const terminalHostManager = new TerminalHostManager();
+export default terminalHostManager;

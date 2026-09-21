@@ -16,7 +16,7 @@ describe('TerminalHostManager (Pure Dynamic Agent)', () => {
 
   test('registers and unregisters remote agent correctly', () => {
     const mockWs = { readyState: 1, send: jest.fn() };
-    const host = manager.registerAgent({
+    const res = manager.registerAgent({
       hostId: 'agent-1',
       name: 'Test-Node',
       hostname: 'test-node',
@@ -24,6 +24,7 @@ describe('TerminalHostManager (Pure Dynamic Agent)', () => {
       platform: 'linux',
       agentWs: mockWs,
     });
+    const host = res.host!;
 
     expect(host.id).toBe('agent-1');
     expect(host.status).toBe('online');

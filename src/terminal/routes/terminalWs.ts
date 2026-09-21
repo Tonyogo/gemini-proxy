@@ -67,7 +67,7 @@ export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
       undefined;
     const platform = parsedUrl.searchParams.get('platform') || undefined;
 
-    const host = terminalHostManager.registerAgent({
+    const regResult = terminalHostManager.registerAgent({
       hostId,
       name,
       hostname,
@@ -76,6 +76,16 @@ export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
       agentWs: ws,
     });
 
+    if (!regResult.success) {
+      logger.warn(`[TerminalWS:Agent] Registration rejected for ${hostId} (${name}): ${regResult.error}`);
+      try {
+        ws.send(`JSON:${JSON.stringify({ type: 'rejected', reason: regResult.error, code: 4009 })}`);
+        ws.close(4009, regResult.error);
+      } catch {}
+      return;
+    }
+
+    const host = regResult.host!;
     logger.info(`[TerminalWS:Agent] Agent connected: ${hostId} (${host.name}) from ${ip}`);
     ws.send(`JSON:${JSON.stringify({ type: 'registered', hostId, status: 'online' })}`);
 
@@ -89,7 +99,7 @@ export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
             return;
           }
           if (control.type === 'meta') {
-            terminalHostManager.registerAgent({
+            const metaRes = terminalHostManager.registerAgent({
               hostId,
               name: control.name,
               hostname: control.hostname,
@@ -97,6 +107,13 @@ export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
               platform: control.platform,
               agentWs: ws,
             });
+            if (!metaRes.success) {
+              logger.warn(`[TerminalWS:Agent] Meta update rejected for ${hostId}: ${metaRes.error}`);
+              try {
+                ws.send(`JSON:${JSON.stringify({ type: 'rejected', reason: metaRes.error, code: 4009 })}`);
+                ws.close(4009, metaRes.error);
+              } catch {}
+            }
             return;
           }
           if (control.type === 'file_rpc_res') {
