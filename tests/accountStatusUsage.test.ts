@@ -52,7 +52,52 @@ describe('Account Controller Usage Integration', () => {
     expect(acc0.usage.byModel['claude-3-5-sonnet'].error).toBe(1);
 
     const acc1 = res.body.status.accountDetails[1];
-    expect(acc1.usage).toBeUndefined();
+    expect(acc1.usage.totalRequests).toBe(0);
+    expect(acc1.usage.byModel).toEqual({});
+  });
+
+  it('should completely overwrite upstream dirty usage data with local clean usage', async () => {
+    accountUsageService.record('clean-user@example.com', 'models/gemini-2.0-flash', true);
+
+    mockedAccountService.getStatus.mockResolvedValueOnce({
+      status: 200,
+      data: {
+        status: {
+          accountDetails: [
+            {
+              index: 0,
+              name: 'clean-user@example.com',
+              usage: {
+                models: { 'dirty-model': { requests: 999 } }
+              }
+            },
+            {
+              index: 1,
+              name: 'zero-user@example.com',
+              usage: {
+                models: { 'old-model': { requests: 50 } }
+              }
+            }
+          ]
+        }
+      },
+      headers: {}
+    } as any);
+
+    const res = await request(app)
+      .get('/api/admin/accounts/status')
+      .set('x-admin-key', secretKey);
+
+    expect(res.status).toBe(200);
+    const acc0 = res.body.status.accountDetails[0];
+    expect(acc0.usage.models).toBeUndefined(); // 上游脏字段被清除
+    expect(acc0.usage.byModel['gemini-2.0-flash'].success).toBe(1);
+    expect(acc0.usage.totalRequests).toBe(1);
+
+    const acc1 = res.body.status.accountDetails[1];
+    expect(acc1.usage.models).toBeUndefined(); // 零用量账号的上游脏字段也被清除
+    expect(acc1.usage.totalRequests).toBe(0);
+    expect(acc1.usage.byModel).toEqual({});
   });
 
   it('should return all period usage from GET /api/admin/accounts/usage', async () => {

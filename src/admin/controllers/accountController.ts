@@ -30,27 +30,28 @@ class AccountController {
 
     if (result.status === 200 && result.data?.status?.accountDetails && Array.isArray(result.data.status.accountDetails)) {
       for (const acc of result.data.status.accountDetails) {
-        if (acc.name) {
-          const localStats = accountUsageService.getUsageForAccount(acc.name);
-          if (localStats) {
-            const byModelCompat: Record<string, any> = {};
-            for (const [model, stats] of Object.entries(localStats.byModel)) {
-              byModelCompat[model] = {
-                usage: stats.success,
-                requests: stats.total,
-                success: stats.success,
-                error: stats.error
-              };
-            }
-            acc.usage = {
-              total: localStats.totalSuccess,
-              totalRequests: localStats.totalRequests,
-              totalSuccess: localStats.totalSuccess,
-              totalError: localStats.totalError,
-              byModel: byModelCompat
+        const localStats = acc.name ? accountUsageService.getUsageForAccount(acc.name) : null;
+        const byModelCompat: Record<string, any> = {};
+
+        if (localStats?.byModel) {
+          for (const [model, stats] of Object.entries(localStats.byModel)) {
+            const cleanModel = model.replace(/^models\//, '');
+            byModelCompat[cleanModel] = {
+              usage: stats.success,
+              requests: stats.total,
+              success: stats.success,
+              error: stats.error
             };
           }
         }
+
+        acc.usage = {
+          total: localStats?.totalSuccess || 0,
+          totalRequests: localStats?.totalRequests || 0,
+          totalSuccess: localStats?.totalSuccess || 0,
+          totalError: localStats?.totalError || 0,
+          byModel: byModelCompat
+        };
       }
     }
 
