@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import accountService from '../services/accountService';
+import accountUsageService from '../services/accountUsageService';
 import upstreamManager from '../../utils/upstreamManager';
 
 class AccountController {
@@ -26,7 +27,38 @@ class AccountController {
     const result = serverIndex !== undefined
       ? await accountService.getStatus(serverIndex)
       : await accountService.getStatus();
+
+    if (result.status === 200 && result.data?.status?.accountDetails && Array.isArray(result.data.status.accountDetails)) {
+      for (const acc of result.data.status.accountDetails) {
+        if (acc.name) {
+          const localStats = accountUsageService.getUsageForAccount(acc.name);
+          if (localStats) {
+            const byModelCompat: Record<string, any> = {};
+            for (const [model, stats] of Object.entries(localStats.byModel)) {
+              byModelCompat[model] = {
+                usage: stats.success,
+                requests: stats.total,
+                success: stats.success,
+                error: stats.error
+              };
+            }
+            acc.usage = {
+              total: localStats.totalSuccess,
+              totalRequests: localStats.totalRequests,
+              totalSuccess: localStats.totalSuccess,
+              totalError: localStats.totalError,
+              byModel: byModelCompat
+            };
+          }
+        }
+      }
+    }
+
     res.status(result.status).json(result.data);
+  }
+
+  public async getUsage(req: Request, res: Response): Promise<void> {
+    res.json(accountUsageService.getAllUsage());
   }
 
   public async upload(req: Request, res: Response): Promise<void> {
