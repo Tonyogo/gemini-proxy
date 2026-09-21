@@ -174,10 +174,10 @@ npm run deploy
 
 常用 PM2 管理命令：
 ```bash
-npm run pm2:start    # 启动 PM2 守护进程
-npm run pm2:reload   # 零停机平滑热重载
-npm run pm2:stop     # 停止进程
-npm run pm2:logs     # 查看实时运行日志
+pm2 start ecosystem.config.js    # 启动 PM2 守护进程
+pm2 reload ecosystem.config.js   # 零停机平滑热重载
+pm2 stop gemini-proxy            # 停止进程
+pm2 logs gemini-proxy            # 查看实时运行日志
 ```
 
 ### 2. GitHub Actions 自动部署流水线
@@ -279,12 +279,12 @@ npm run pm2:logs     # 查看实时运行日志
 在宿主机或局域网内任意 Linux、macOS 或 Windows 主机上执行：
 
 ```bash
-# 方式 1: 使用 npm package 别名脚本 (如宿主机或测试机)
-npm run terminal-agent -- --server=http://<proxy-ip>:3000 --key=<ADMIN_SECRET_KEY> --name="Ubuntu-GPU-Server"
+# 方式 1: 使用 npm 脚本 (或本地安装后的 gt 命令)
+npm run gt -- agent --server=http://<proxy-ip>:3000 --key=<ADMIN_SECRET_KEY> --name="Ubuntu-GPU-Server"
 
-# 方式 2: 使用 unified gt 命令
-node scripts/gt.js agent --server=http://<proxy-ip>:3000 --key=<ADMIN_SECRET_KEY> --name="NAS-Storage"
-# 或者 Rust 原生极速二进制
+# 方式 2: 使用 Rust 原生极速二进制
+npm run gt:rs -- agent --server=http://<proxy-ip>:3000 --key=<ADMIN_SECRET_KEY> --name="NAS-Storage"
+# 或者直接运行编译出的二进制
 ./agent-rs/target/release/gt agent --server=http://<proxy-ip>:3000 --key=<ADMIN_SECRET_KEY> --name="NAS-Storage"
 ```
 

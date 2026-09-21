@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Build Backend**: `npm run build:backend` (compiles TypeScript server code via `tsc`)
 - **Deploy**: `npm run deploy` (executes `scripts/deploy.sh`: pulls latest code from `origin/main`, installs dependencies, builds all assets, and reloads PM2 with zero downtime)
 - **CI/CD Deployment**: `.github/workflows/deploy.yml` (GitHub Actions workflow connecting to target VPS via Cloudflare Tunnel SSH and running `npm run deploy`. Requires Secrets: `SSH_HOST`, `SSH_USER`, `SSH_KEY`, `DEPLOY_PATH`)
-- **PM2 Commands**: `npm run pm2:start` / `npm run pm2:reload` / `npm run pm2:stop` / `npm run pm2:logs`
+- **PM2 Process Management**: `pm2 start ecosystem.config.js` / `pm2 reload ecosystem.config.js` / `pm2 stop gemini-proxy` / `pm2 logs gemini-proxy`
 - **Start Production**: `npm start` (automatically builds before running `dist/src/index.js`)
 - **Dev Mode Backend**: `npm run dev` (starts hot-reloading development server via `ts-node-dev`)
 - **Dev Mode Frontend**: `npm run dev:frontend` (starts Vite dev server on port 5173 proxying API requests to `:3000`)
@@ -24,9 +24,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - `gt kill <host> <taskId>`: Terminates a running task on target host
   - `gt agent [options]`: Launches reverse terminal agent daemon
 - **Configuration Hierarchy**: `CLI flag (--server/--key) > Environment variable (TERMINAL_SERVER/ADMIN_SECRET_KEY) > Persistent config (~/.gt/config.json) > Default fallback (http://localhost:3000 / empty key)`
-- **Rust Native `gt` Binary**: `cargo run --manifest-path agent-rs/Cargo.toml -- <command>` (unified high-performance native Rust binary implementing both the full CLI and the reverse agent daemon; build release via `npm run build:agent`, run agent via `npm run agent:rs`)
-- **Terminal Agent**: `npm run terminal-agent -- --server=http://<host>:3000 --key=<admin-key> --name="Node-Name"` (or `npm run gt -- agent ...`)
-- **Terminal Remote Command Execution CLI (Legacy Alias)**: `npm run terminal-exec -- <host> <cmd>` (delegates to `gt exec`)
+- **Rust Native `gt` Binary**: `npm run gt:rs -- <command>` (or `cargo run --manifest-path agent-rs/Cargo.toml -- <command>`; build release via `npm run build:agent`)
+- **Terminal Agent**: `npm run gt -- agent --server=http://<host>:3000 --key=<admin-key> --name="Node-Name"` (or `npm run gt:rs -- agent ...`)
 - **Run All Tests**: `npm test` (runs complete Jest test suite; use `npx jest --runInBand` if experiencing SIGSEGV clustering issues)
 - **Run Single Test**: `npx jest tests/<test-name>.test.ts` (e.g., `npx jest tests/claudeTranslator.test.ts`)
 

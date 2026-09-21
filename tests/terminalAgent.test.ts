@@ -30,9 +30,16 @@ describe('Terminal Agent Script', () => {
     expect(parseHostId({}, 'my-box', '192.168.1.10')).toBe('my-box-192-168-1-10');
   });
 
-  test('package.json includes terminal-agent script', () => {
+  test('package.json includes gt and gt:rs scripts and removes deprecated scripts', () => {
     const pkg = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../package.json'), 'utf-8'));
-    expect(pkg.scripts['terminal-agent']).toBeDefined();
-    expect(pkg.scripts['terminal-agent']).toContain('scripts/gt.js agent');
+    expect(pkg.scripts['gt']).toBe('node scripts/gt.js');
+    expect(pkg.scripts['gt:rs']).toBe('./agent-rs/target/release/gt');
+    expect(pkg.scripts['terminal-agent']).toBeUndefined();
+    expect(pkg.scripts['terminal-exec']).toBeUndefined();
+    expect(pkg.scripts['agent:rs']).toBeUndefined();
+    expect(pkg.scripts['pm2:start']).toBeUndefined();
+    expect(pkg.scripts['pm2:reload']).toBeUndefined();
+    expect(pkg.scripts['pm2:stop']).toBeUndefined();
+    expect(pkg.scripts['pm2:logs']).toBeUndefined();
   });
 });
