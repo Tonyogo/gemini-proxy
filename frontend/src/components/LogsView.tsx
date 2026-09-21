@@ -22,7 +22,8 @@ import {
   Terminal,
   MessageSquare,
   ArrowUpRight,
-  ArrowDownLeft
+  ArrowDownLeft,
+  User
 } from 'lucide-react';
 import JsonTreeView from './JsonTreeView';
 import SseStreamPreview from './SseStreamPreview';
@@ -204,6 +205,7 @@ export default function LogsView({
           ...data,
           filename: log.filename || data.filename,
           model: log.model || data.model || data.client_req?.model,
+          account: data.account || log.account || null,
           isStream: data.isStream !== undefined ? data.isStream : (data.is_stream !== undefined ? data.is_stream : log.isStream)
         };
         detailCacheRef.current.set(log.path, enriched);
@@ -217,6 +219,7 @@ export default function LogsView({
           path: log.reqPath || '/v1/messages',
           filename: log.filename,
           model: log.model,
+          account: log.account || null,
           is_stream: log.isStream,
           client_req: {
             path: log.reqPath || '/v1/messages',
@@ -292,8 +295,9 @@ export default function LogsView({
         const path = (log.reqPath || log.path || '').toLowerCase();
         const filename = (log.filename || '').toLowerCase();
         const logId = (log.filename || '').replace(/\.json$/, '').replace(/^\d{4}_/, '').replace(/^transaction_/, '').toLowerCase();
+        const account = (log.account || '').toLowerCase();
 
-        if (!model.includes(query) && !path.includes(query) && !filename.includes(query) && !logId.includes(query)) {
+        if (!model.includes(query) && !path.includes(query) && !filename.includes(query) && !logId.includes(query) && !account.includes(query)) {
           return false;
         }
       }
@@ -724,6 +728,15 @@ export default function LogsView({
                             {log.model}
                           </span>
                         )}
+                        {log.account && (
+                          <span
+                            className="px-1.5 py-0.5 rounded border text-[9px] font-mono font-medium bg-cyan-50 dark:bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border-cyan-200 dark:border-cyan-500/20 truncate max-w-[110px] inline-flex items-center gap-0.5"
+                            title={log.account}
+                          >
+                            <User className="w-2.5 h-2.5 inline shrink-0" />
+                            <span className="truncate">{log.account}</span>
+                          </span>
+                        )}
                       </div>
                       {durationElem}
                     </div>
@@ -954,6 +967,17 @@ export default function LogsView({
                   title={selectedLog.model}
                 >
                   {selectedLog.model}
+                </span>
+              )}
+
+              {/* Account */}
+              {selectedLog.account && (
+                <span
+                  className="bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border border-cyan-500/20 px-2 py-0.5 rounded font-medium max-w-[180px] truncate inline-flex items-center gap-1"
+                  title={selectedLog.account}
+                >
+                  <User className="w-3 h-3 inline shrink-0" />
+                  <span className="truncate">{selectedLog.account}</span>
                 </span>
               )}
 

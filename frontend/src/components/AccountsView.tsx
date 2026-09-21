@@ -39,6 +39,8 @@ export interface ModelUsageDetail {
   limit?: number;
   usage?: number;
   requests?: number;
+  success?: number;
+  error?: number;
 }
 
 export interface AccountUsage {
@@ -745,15 +747,29 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     return 0;
   };
 
-  const getModelBreakdowns = (usage?: AccountUsage): Array<{ model: string; count: number; limit?: number }> => {
+  const getModelBreakdowns = (usage?: AccountUsage): Array<{
+    model: string;
+    count: number;
+    limit?: number;
+    success?: number;
+    error?: number;
+  }> => {
     if (!usage) return [];
-    const list: Array<{ model: string; count: number; limit?: number }> = [];
+    const list: Array<{
+      model: string;
+      count: number;
+      limit?: number;
+      success?: number;
+      error?: number;
+    }> = [];
     if (usage.byModel) {
       for (const [model, item] of Object.entries(usage.byModel)) {
         list.push({
           model,
           count: item.usage ?? item.requests ?? 0,
-          limit: item.limit
+          limit: item.limit,
+          success: item.success,
+          error: item.error
         });
       }
     } else if (usage.models) {
@@ -1598,6 +1614,11 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                                   <span className="text-slate-500 dark:text-slate-400 font-semibold">
                                     <strong className="text-slate-800 dark:text-slate-200">{item.count}</strong>
                                     {item.limit !== undefined && <span className="text-slate-500 text-[10px]"> / {item.limit}</span>}
+                                    {item.error !== undefined && item.error > 0 && (
+                                      <span className="text-rose-500 dark:text-rose-400 text-[10px] ml-1 font-normal">
+                                        ({item.success ?? 0} ok / {item.error} err)
+                                      </span>
+                                    )}
                                   </span>
                                 </div>
                                 {ratio !== null && (
@@ -2064,6 +2085,11 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                         <span className="text-[var(--text-secondary)] font-mono text-xs font-semibold shrink-0 ml-2">
                           <strong className="text-[var(--text-primary)]">{item.count.toLocaleString()}</strong>
                           {item.limit !== undefined && <span className="text-[var(--text-muted)] text-[10px]"> / {item.limit}</span>}
+                          {item.error !== undefined && item.error > 0 && (
+                            <span className="text-rose-500 dark:text-rose-400 text-[10px] ml-1 font-normal">
+                              ({item.success ?? 0} ok / {item.error} err)
+                            </span>
+                          )}
                         </span>
                       </div>
                       {ratio !== null && (
