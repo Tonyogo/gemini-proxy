@@ -33,7 +33,7 @@
   - `TaskPollData`: `{ task_id, status, exit_code, stdout, stderr, output, offset, output_offset, total_bytes, duration_ms, start_time, end_time }`.
   - `TaskListData`: `{ tasks: Vec<TaskSummaryItem> }`.
 
-- [ ] **Step 1: Update `agent-rs/src/protocol/cmd_exec.rs`**
+- [x] **Step 1: Update `agent-rs/src/protocol/cmd_exec.rs`**
 
 Update `agent-rs/src/protocol/cmd_exec.rs`:
 ```rust
@@ -141,7 +141,7 @@ pub struct TaskSummaryItem {
 }
 ```
 
-- [ ] **Step 2: Run compilation check**
+- [x] **Step 2: Run compilation check**
 
 Run:
 ```bash
@@ -149,7 +149,7 @@ PATH="/Users/yogo/.rustup/toolchains/stable-x86_64-apple-darwin/bin:$HOME/.cargo
 ```
 Expected: PASS.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add agent-rs/src/protocol/cmd_exec.rs
@@ -172,7 +172,7 @@ git commit -m "feat(protocol): add offset, limit, signal fields to CmdExecReques
   - `TaskManager::kill_task(&self, task_id: &str, signal: Option<&str>) -> Result<serde_json::Value, String>`.
   - Safe UTF-8 substring helper `slice_utf8_from_offset(s: &str, offset: usize) -> String`.
 
-- [ ] **Step 1: Write unit tests for `TaskManager` in `agent-rs/src/task/manager.rs`**
+- [x] **Step 1: Write unit tests for `TaskManager` in `agent-rs/src/task/manager.rs`**
 
 Add tests to `agent-rs/src/task/manager.rs`:
 ```rust
@@ -267,7 +267,7 @@ mod tests {
 }
 ```
 
-- [ ] **Step 2: Implement updated `TaskManager` in `agent-rs/src/task/manager.rs`**
+- [x] **Step 2: Implement updated `TaskManager` in `agent-rs/src/task/manager.rs`**
 
 Refactor `agent-rs/src/task/manager.rs`:
 ```rust
@@ -713,7 +713,7 @@ fn current_time_ms() -> u64 {
 }
 ```
 
-- [ ] **Step 3: Run Rust unit tests to verify protocol alignment**
+- [x] **Step 3: Run Rust unit tests to verify protocol alignment**
 
 Run:
 ```bash
@@ -721,7 +721,7 @@ PATH="/Users/yogo/.rustup/toolchains/stable-x86_64-apple-darwin/bin:$HOME/.cargo
 ```
 Expected: PASS.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add agent-rs/src/task/manager.rs
@@ -736,7 +736,7 @@ git commit -m "fix(rust): align TaskManager with poll, list, kill RPC actions an
 - Test: `tests/terminalHostManagerCmdRpc.test.ts`
 - Full test suite & release build
 
-- [ ] **Step 1: Run all existing TypeScript backend terminal tests**
+- [x] **Step 1: Run all existing TypeScript backend terminal tests**
 
 Run:
 ```bash
@@ -744,7 +744,7 @@ npm test tests/terminalHostManagerCmdRpc.test.ts tests/terminalAgentCommandExec.
 ```
 Expected: PASS.
 
-- [ ] **Step 2: Build release binary for `gt`**
+- [x] **Step 2: Build release binary for `gt`**
 
 Run:
 ```bash
@@ -752,7 +752,7 @@ PATH="/Users/yogo/.rustup/toolchains/stable-x86_64-apple-darwin/bin:$HOME/.cargo
 ```
 Expected: Compiles stripped, optimized binary at `agent-rs/target/release/gt`.
 
-- [ ] **Step 3: Run full Rust and Node test suites**
+- [x] **Step 3: Run full Rust and Node test suites**
 
 Run:
 ```bash
@@ -761,7 +761,7 @@ npm test
 ```
 Expected: 100% tests pass.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git status
