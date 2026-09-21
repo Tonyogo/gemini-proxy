@@ -101,11 +101,13 @@ pub struct TaskSummaryItem {
     pub end_time: Option<u64>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TaskListData {
     pub tasks: Vec<TaskSummaryItem>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TaskStatusData {
     #[serde(rename = "taskId")]

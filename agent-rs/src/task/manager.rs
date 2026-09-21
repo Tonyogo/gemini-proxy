@@ -1,4 +1,4 @@
-use crate::protocol::cmd_exec::{CmdExecRequest, CmdExecResponse, TaskStatusData};
+use crate::protocol::cmd_exec::{CmdExecRequest, CmdExecResponse, TaskPollData, TaskSummaryItem};
 use nix::sys::signal::{killpg, Signal};
 use nix::unistd::Pid;
 use std::collections::HashMap;
@@ -62,12 +62,13 @@ impl TaskManager {
                     Err(e) => CmdExecResponse::error(req_id, Some(tid), action, e),
                 }
             }
-            "status" => {
+            "poll" | "status" | "stream" => {
                 let tid = match task_id {
                     Some(id) => id,
                     None => return CmdExecResponse::error(req_id, None, action, "Missing taskId"),
                 };
-                match self.get_task_status(&tid).await {
+                let offset = req.offset.unwrap_or(0);
+                match self.get_task_poll(&tid, offset).await {
                     Some(data) => CmdExecResponse::success(req_id, Some(tid), action, serde_json::to_value(data).unwrap()),
                     None => {
                         let err_msg = format!("Task not found: {}", tid);
@@ -75,34 +76,19 @@ impl TaskManager {
                     }
                 }
             }
+            "list" => {
+                let limit = req.limit.unwrap_or(20);
+                let tasks = self.list_tasks(limit).await;
+                CmdExecResponse::success(req_id, task_id, action, serde_json::json!({ "tasks": tasks }))
+            }
             "kill" => {
                 let tid = match task_id {
                     Some(id) => id,
                     None => return CmdExecResponse::error(req_id, None, action, "Missing taskId"),
                 };
-                match self.kill_task(&tid).await {
+                match self.kill_task(&tid, req.signal.as_deref()).await {
                     Ok(data) => CmdExecResponse::success(req_id, Some(tid), action, data),
                     Err(e) => CmdExecResponse::error(req_id, Some(tid), action, e),
-                }
-            }
-            "stream" => {
-                let tid = match task_id {
-                    Some(id) => id,
-                    None => return CmdExecResponse::error(req_id, None, action, "Missing taskId"),
-                };
-                match self.get_task_status(&tid).await {
-                    Some(data) => CmdExecResponse::success(req_id, Some(tid), action, serde_json::json!({
-                        "taskId": data.task_id,
-                        "status": data.status,
-                        "exitCode": data.exit_code,
-                        "stdoutChunk": data.stdout,
-                        "stderrChunk": data.stderr,
-                        "outputChunk": data.output,
-                    })),
-                    None => {
-                        let err_msg = format!("Task not found: {}", tid);
-                        CmdExecResponse::error(req_id, Some(tid), action, err_msg)
-                    }
                 }
             }
             unknown => {
@@ -224,13 +210,11 @@ impl TaskManager {
             tasks.insert(task_id.clone(), initial_record);
         }
 
-        // Spawn async collector tasks
         let stdout_pipe = child.stdout.take();
         let stderr_pipe = child.stderr.take();
 
         let tasks_ref = self.tasks.clone();
         let tid_for_out = task_id.clone();
-        let tid_for_err = task_id.clone();
 
         if let Some(mut stdout) = stdout_pipe {
             tokio::spawn(async move {
@@ -250,6 +234,7 @@ impl TaskManager {
         }
 
         let tasks_ref_err = self.tasks.clone();
+        let tid_for_err = task_id.clone();
         if let Some(mut stderr) = stderr_pipe {
             tokio::spawn(async move {
                 let mut buf = [0u8; 4096];
@@ -267,7 +252,6 @@ impl TaskManager {
             });
         }
 
-        // Spawn timeout & exit monitor
         let tasks_ref_wait = self.tasks.clone();
         let tid_for_wait = task_id.clone();
 
@@ -294,7 +278,6 @@ impl TaskManager {
                     }
                 }
                 _ = tokio::time::sleep(timeout_duration) => {
-                    // Timeout hit
                     warn!("[TaskManager] Task {} timed out after {}ms", tid_for_wait, timeout_ms);
                     if let Some(p) = pgid {
                         let _ = killpg(Pid::from_raw(p as i32), Signal::SIGTERM);
@@ -310,7 +293,6 @@ impl TaskManager {
                             }
                         }
                     }
-                    // Grace period before SIGKILL
                     tokio::time::sleep(Duration::from_secs(5)).await;
                     if let Some(p) = pgid {
                         let _ = killpg(Pid::from_raw(p as i32), Signal::SIGKILL);
@@ -328,7 +310,7 @@ impl TaskManager {
         }))
     }
 
-    pub async fn get_task_status(&self, task_id: &str) -> Option<TaskStatusData> {
+    pub async fn get_task_poll(&self, task_id: &str, offset: usize) -> Option<TaskPollData> {
         let tasks = self.tasks.read().await;
         let t = tasks.get(task_id)?;
 
@@ -337,22 +319,59 @@ impl TaskManager {
             Some(current_time_ms().saturating_sub(t.start_time))
         });
 
-        Some(TaskStatusData {
+        let total_bytes = t.output.len();
+        let stdout_slice = slice_utf8_from_offset(&t.stdout, offset);
+        let stderr_slice = slice_utf8_from_offset(&t.stderr, offset);
+        let output_slice = slice_utf8_from_offset(&t.output, offset);
+
+        Some(TaskPollData {
             task_id: t.task_id.clone(),
-            command: t.command.clone(),
-            cwd: t.cwd.clone(),
             status: t.status.clone(),
             exit_code: t.exit_code,
+            stdout: stdout_slice,
+            stderr: stderr_slice,
+            output: output_slice,
+            offset: total_bytes,
+            output_offset: total_bytes,
+            total_bytes,
+            duration_ms,
             start_time: t.start_time,
             end_time,
-            duration_ms,
-            stdout: t.stdout.clone(),
-            stderr: t.stderr.clone(),
-            output: t.output.clone(),
         })
     }
 
-    pub async fn kill_task(&self, task_id: &str) -> Result<serde_json::Value, String> {
+    #[allow(dead_code)]
+    pub async fn get_task_status(&self, task_id: &str) -> Option<TaskPollData> {
+        self.get_task_poll(task_id, 0).await
+    }
+
+    pub async fn list_tasks(&self, limit: usize) -> Vec<TaskSummaryItem> {
+        let tasks = self.tasks.read().await;
+        let mut list: Vec<TaskSummaryItem> = tasks
+            .values()
+            .map(|t| {
+                let duration_ms = t.end_time.map(|e| e.saturating_sub(t.start_time)).or_else(|| {
+                    Some(current_time_ms().saturating_sub(t.start_time))
+                });
+                TaskSummaryItem {
+                    task_id: t.task_id.clone(),
+                    command: t.command.clone(),
+                    cwd: t.cwd.clone(),
+                    status: t.status.clone(),
+                    exit_code: t.exit_code,
+                    duration_ms,
+                    start_time: t.start_time,
+                    end_time: t.end_time,
+                }
+            })
+            .collect();
+
+        list.sort_by(|a, b| b.start_time.cmp(&a.start_time));
+        list.truncate(limit.clamp(1, 100));
+        list
+    }
+
+    pub async fn kill_task(&self, task_id: &str, signal_name: Option<&str>) -> Result<serde_json::Value, String> {
         let mut tasks = self.tasks.write().await;
         let t = match tasks.get_mut(task_id) {
             Some(task) => task,
@@ -367,13 +386,19 @@ impl TaskManager {
             }));
         }
 
+        let sig = match signal_name {
+            Some("SIGKILL") => Signal::SIGKILL,
+            _ => Signal::SIGTERM,
+        };
+
         if let Some(pgid) = t.pgid {
-            let _ = killpg(Pid::from_raw(pgid as i32), Signal::SIGTERM);
-            // Spawn background task to enforce SIGKILL if needed
-            tokio::spawn(async move {
-                tokio::time::sleep(Duration::from_secs(5)).await;
-                let _ = killpg(Pid::from_raw(pgid as i32), Signal::SIGKILL);
-            });
+            let _ = killpg(Pid::from_raw(pgid as i32), sig);
+            if sig == Signal::SIGTERM {
+                tokio::spawn(async move {
+                    tokio::time::sleep(Duration::from_secs(5)).await;
+                    let _ = killpg(Pid::from_raw(pgid as i32), Signal::SIGKILL);
+                });
+            }
         }
 
         t.status = "killed".to_string();
@@ -386,11 +411,23 @@ impl TaskManager {
     }
 }
 
+fn slice_utf8_from_offset(s: &str, offset: usize) -> String {
+    if offset >= s.len() {
+        return String::new();
+    }
+    // Find closest character boundary >= offset
+    let start = s
+        .char_indices()
+        .map(|(i, _)| i)
+        .find(|&i| i >= offset)
+        .unwrap_or(s.len());
+    s[start..].to_string()
+}
+
 fn append_buffer(buf: &mut String, chunk: &str) {
     buf.push_str(chunk);
     if buf.len() > MAX_BUFFER_SIZE {
         let overflow = buf.len() - MAX_BUFFER_SIZE;
-        // Slice at character boundary
         let start = buf
             .char_indices()
             .map(|(i, _)| i)
@@ -405,4 +442,166 @@ fn current_time_ms() -> u64 {
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_millis() as u64
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_slice_utf8_from_offset_boundaries() {
+        let s = "Hello, 世界! 🚀";
+        // ASCII slicing
+        assert_eq!(slice_utf8_from_offset(s, 0), s);
+        assert_eq!(slice_utf8_from_offset(s, 7), "世界! 🚀");
+        assert_eq!(slice_utf8_from_offset(s, s.len()), "");
+        assert_eq!(slice_utf8_from_offset(s, s.len() + 10), "");
+
+        // Multi-byte boundary safety (offset inside 3-byte '世')
+        // '世' starts at byte 7, ends at byte 10. Offset 8 or 9 should safely clamp to byte 10 ('界! 🚀')
+        assert_eq!(slice_utf8_from_offset(s, 8), "界! 🚀");
+        assert_eq!(slice_utf8_from_offset(s, 9), "界! 🚀");
+        assert_eq!(slice_utf8_from_offset(s, 10), "界! 🚀");
+    }
+
+    #[tokio::test]
+    async fn test_task_manager_start_poll_list_kill() {
+        let tm = TaskManager::new();
+
+        // 1. Start a task
+        let start_req = CmdExecRequest {
+            req_id: Some("req-1".into()),
+            action: "start".into(),
+            task_id: Some("task-test-1".into()),
+            command: Some("echo 'hello world'".into()),
+            cwd: None,
+            timeout_ms: Some(10000),
+            env: None,
+            offset: None,
+            limit: None,
+            signal: None,
+        };
+
+        let start_res = tm.handle_cmd_exec(start_req).await;
+        assert!(start_res.success);
+
+        // Wait a short moment for echo to finish
+        tokio::time::sleep(Duration::from_millis(200)).await;
+
+        // 2. Poll action
+        let poll_req = CmdExecRequest {
+            req_id: Some("req-2".into()),
+            action: "poll".into(),
+            task_id: Some("task-test-1".into()),
+            command: None,
+            cwd: None,
+            timeout_ms: None,
+            env: None,
+            offset: Some(0),
+            limit: None,
+            signal: None,
+        };
+
+        let poll_res = tm.handle_cmd_exec(poll_req).await;
+        assert!(poll_res.success);
+        let data = poll_res.data.expect("data present");
+        let stdout = data.get("stdout").and_then(|v| v.as_str()).unwrap_or("");
+        assert!(stdout.contains("hello world"));
+        let total_bytes = data.get("totalBytes").and_then(|v| v.as_u64()).unwrap_or(0);
+        assert!(total_bytes > 0);
+
+        // 3. Poll with offset at end of stream should return empty slice
+        let poll_req_2 = CmdExecRequest {
+            req_id: Some("req-3".into()),
+            action: "poll".into(),
+            task_id: Some("task-test-1".into()),
+            command: None,
+            cwd: None,
+            timeout_ms: None,
+            env: None,
+            offset: Some(total_bytes as usize),
+            limit: None,
+            signal: None,
+        };
+        let poll_res_2 = tm.handle_cmd_exec(poll_req_2).await;
+        assert!(poll_res_2.success);
+        let data_2 = poll_res_2.data.expect("data present");
+        assert_eq!(data_2.get("stdout").and_then(|v| v.as_str()), Some(""));
+
+        // 4. List tasks
+        let list_req = CmdExecRequest {
+            req_id: Some("req-4".into()),
+            action: "list".into(),
+            task_id: None,
+            command: None,
+            cwd: None,
+            timeout_ms: None,
+            env: None,
+            offset: None,
+            limit: Some(10),
+            signal: None,
+        };
+        let list_res = tm.handle_cmd_exec(list_req).await;
+        assert!(list_res.success);
+        let list_data = list_res.data.expect("list data");
+        let tasks = list_data.get("tasks").and_then(|v| v.as_array()).expect("tasks array");
+        assert_eq!(tasks.len(), 1);
+        assert_eq!(tasks[0].get("taskId").and_then(|v| v.as_str()), Some("task-test-1"));
+    }
+
+    #[tokio::test]
+    async fn test_task_manager_kill_with_signal() {
+        let tm = TaskManager::new();
+
+        let start_req = CmdExecRequest {
+            req_id: Some("req-kill-1".into()),
+            action: "start".into(),
+            task_id: Some("task-kill-sig".into()),
+            command: Some("sleep 30".into()),
+            cwd: None,
+            timeout_ms: Some(30000),
+            env: None,
+            offset: None,
+            limit: None,
+            signal: None,
+        };
+        let start_res = tm.handle_cmd_exec(start_req).await;
+        assert!(start_res.success);
+
+        tokio::time::sleep(Duration::from_millis(100)).await;
+
+        let kill_req = CmdExecRequest {
+            req_id: Some("req-kill-2".into()),
+            action: "kill".into(),
+            task_id: Some("task-kill-sig".into()),
+            command: None,
+            cwd: None,
+            timeout_ms: None,
+            env: None,
+            offset: None,
+            limit: None,
+            signal: Some("SIGKILL".into()),
+        };
+        let kill_res = tm.handle_cmd_exec(kill_req).await;
+        assert!(kill_res.success);
+
+        let status = tm.get_task_status("task-kill-sig").await.expect("task exists");
+        assert_eq!(status.status, "killed");
+
+        // Kill non-existent task returns error
+        let kill_unknown = CmdExecRequest {
+            req_id: Some("req-kill-3".into()),
+            action: "kill".into(),
+            task_id: Some("task-non-existent".into()),
+            command: None,
+            cwd: None,
+            timeout_ms: None,
+            env: None,
+            offset: None,
+            limit: None,
+            signal: None,
+        };
+        let err_res = tm.handle_cmd_exec(kill_unknown).await;
+        assert!(!err_res.success);
+    }
 }
