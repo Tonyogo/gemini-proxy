@@ -5,7 +5,7 @@ import express from 'express';
 import adminRoutes from '../src/admin/routes/adminRoutes';
 import { setupTerminalWebSocket } from '../src/terminal/routes/terminalWs';
 import config from '../config/default';
-const { handleCmdExec } = require('../scripts/terminal-agent.js');
+const { handleCmdExec } = require('../scripts/gt.js');
 
 describe('Terminal Agent Command Execution End-to-End', () => {
   let server: http.Server;

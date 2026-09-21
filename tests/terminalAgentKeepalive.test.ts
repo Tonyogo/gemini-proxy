@@ -5,7 +5,7 @@ const {
   HEARTBEAT_INTERVAL_MS,
   HEARTBEAT_TIMEOUT_MS,
   HANDSHAKE_TIMEOUT_MS,
-} = require('../scripts/terminal-agent.js');
+} = require('../scripts/gt.js');
 
 describe('Terminal Agent Keepalive & Control Protocol', () => {
   it('should export correct keepalive constants', () => {

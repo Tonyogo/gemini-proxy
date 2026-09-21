@@ -1,4 +1,4 @@
-const { TaskManager, handleCmdExec } = require('../scripts/terminal-agent.js');
+const { TaskManager, handleCmdExec } = require('../scripts/gt.js');
 
 describe('TaskManager & handleCmdExec', () => {
   let tm: any;

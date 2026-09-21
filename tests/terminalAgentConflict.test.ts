@@ -3,7 +3,7 @@ import http from 'http';
 import { execFile } from 'child_process';
 import path from 'path';
 
-const agentScript = path.resolve(__dirname, '../scripts/terminal-agent.js');
+const agentScript = path.resolve(__dirname, '../scripts/gt.js');
 
 describe('Node.js Terminal Agent - 12-Hex ID, Auto-Naming and Conflict Rejection', () => {
   let server: http.Server;
@@ -51,7 +51,7 @@ describe('Node.js Terminal Agent - 12-Hex ID, Auto-Naming and Conflict Rejection
   });
 
   it('generates 12-hex hostId and auto-derives name when not specified', (done) => {
-    const child = execFile('node', [agentScript, `--server=http://localhost:${serverPort}`]);
+    const child = execFile('node', [agentScript, 'agent', `--server=http://localhost:${serverPort}`]);
 
     setTimeout(() => {
       expect(receivedQueryParams.hostId).toMatch(/^[0-9a-f]{12}$/);
@@ -62,7 +62,7 @@ describe('Node.js Terminal Agent - 12-Hex ID, Auto-Naming and Conflict Rejection
   });
 
   it('exits with code 1 immediately without reconnect loops when rejected with 4009', (done) => {
-    const child = execFile('node', [agentScript, `--server=http://localhost:${serverPort}`, '--name=conflict-name'], (error, stdout, stderr) => {
+    const child = execFile('node', [agentScript, 'agent', `--server=http://localhost:${serverPort}`, '--name=conflict-name'], (error, stdout, stderr) => {
       expect(error?.code).toBe(1);
       expect(stderr).toContain('Registration rejected by server');
       done();

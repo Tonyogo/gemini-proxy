@@ -2,7 +2,7 @@ import { execFile } from 'child_process';
 import path from 'path';
 import http from 'http';
 
-const cliPath = path.resolve(__dirname, '../scripts/terminal-exec.js');
+const cliPath = path.resolve(__dirname, '../scripts/gt.js');
 
 function runCli(args: string[], env: Record<string, string> = {}): Promise<{ code: number; stdout: string; stderr: string }> {
   return new Promise((resolve) => {
@@ -18,16 +18,16 @@ function runCli(args: string[], env: Record<string, string> = {}): Promise<{ cod
   });
 }
 
-describe('Terminal Exec CLI', () => {
+describe('Terminal Exec CLI via gt', () => {
   it('shows help information with --help', async () => {
     const res = await runCli(['--help']);
     expect(res.code).toBe(0);
     expect(res.stdout).toContain('Usage:');
-    expect(res.stdout).toContain('--host');
+    expect(res.stdout).toContain('exec');
   });
 
-  it('fails with code 1 if --host is missing and TERMINAL_HOST is unset', async () => {
-    const res = await runCli(['echo 1'], { TERMINAL_HOST: '' });
+  it('fails with code 1 if host is missing', async () => {
+    const res = await runCli(['exec']);
     expect(res.code).toBe(1);
     expect(res.stderr).toContain('Missing target host');
   });
@@ -134,38 +134,38 @@ describe('Terminal Exec CLI Integration', () => {
   });
 
   it('runs command in streaming mode, prints stdout, and exits with 0', async () => {
-    const res = await runCli(['--host=node-1', `--server=http://localhost:${serverPort}`, 'echo test']);
+    const res = await runCli(['exec', `--server=http://localhost:${serverPort}`, 'node-1', 'echo test']);
     expect(res.code).toBe(0);
     expect(res.stdout).toContain('Hello World');
   });
 
   it('forwards non-zero exit code from remote process', async () => {
-    const res = await runCli(['--host=node-fail', `--server=http://localhost:${serverPort}`, 'exit 42']);
+    const res = await runCli(['exec', `--server=http://localhost:${serverPort}`, 'node-fail', 'exit 42']);
     expect(res.code).toBe(42);
     expect(res.stderr).toContain('Command failed');
   });
 
   it('submits task in async mode without polling', async () => {
-    const res = await runCli(['--host=node-1', `--server=http://localhost:${serverPort}`, '--async', 'echo test']);
+    const res = await runCli(['exec', '-d', `--server=http://localhost:${serverPort}`, 'node-1', 'echo test']);
     expect(res.code).toBe(0);
     expect(res.stdout).toContain('task-123');
   });
 
   it('inspects task with status subcommand', async () => {
-    const res = await runCli(['status', '--host=node-1', `--server=http://localhost:${serverPort}`, 'task-123']);
+    const res = await runCli(['logs', `--server=http://localhost:${serverPort}`, 'node-1', 'task-123']);
     expect(res.code).toBe(0);
     expect(res.stdout).toContain('Task:');
     expect(res.stdout).toContain('task-123');
   });
 
   it('lists tasks with list subcommand', async () => {
-    const res = await runCli(['list', '--host=node-1', `--server=http://localhost:${serverPort}`]);
+    const res = await runCli(['ps', `--server=http://localhost:${serverPort}`, 'node-1']);
     expect(res.code).toBe(0);
     expect(res.stdout).toContain('task-123');
   });
 
   it('kills task with kill subcommand', async () => {
-    const res = await runCli(['kill', '--host=node-1', `--server=http://localhost:${serverPort}`, 'task-123']);
+    const res = await runCli(['kill', `--server=http://localhost:${serverPort}`, 'node-1', 'task-123']);
     expect(res.code).toBe(0);
     expect(res.stdout).toContain('Kill signal sent');
   });

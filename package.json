@@ -21,7 +21,7 @@
     "pm2:reload": "pm2 reload ecosystem.config.js",
     "pm2:stop": "pm2 stop ecosystem.config.js",
     "pm2:logs": "pm2 logs gemini-proxy",
-    "terminal-agent": "node scripts/terminal-agent.js",
+    "terminal-agent": "node scripts/gt.js agent",
     "terminal-exec": "node scripts/gt.js exec",
     "build:agent": "cd agent-rs && cargo build --release",
     "agent:rs": "./agent-rs/target/release/gt agent",

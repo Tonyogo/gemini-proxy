@@ -2,9 +2,9 @@ import fs from 'fs';
 import path from 'path';
 
 describe('Terminal Agent Script', () => {
-  const agentPath = path.resolve(__dirname, '../scripts/terminal-agent.js');
+  const agentPath = path.resolve(__dirname, '../scripts/gt.js');
 
-  test('terminal-agent script exists and is executable', () => {
+  test('gt script exists and contains embedded agent capabilities', () => {
     expect(fs.existsSync(agentPath)).toBe(true);
     const content = fs.readFileSync(agentPath, 'utf-8');
     expect(content).toContain('node-pty');
@@ -33,6 +33,6 @@ describe('Terminal Agent Script', () => {
   test('package.json includes terminal-agent script', () => {
     const pkg = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../package.json'), 'utf-8'));
     expect(pkg.scripts['terminal-agent']).toBeDefined();
-    expect(pkg.scripts['terminal-agent']).toContain('scripts/terminal-agent.js');
+    expect(pkg.scripts['terminal-agent']).toContain('scripts/gt.js agent');
   });
 });
