@@ -16,6 +16,7 @@ export interface LogItem {
   isStream?: boolean;
   duration?: number | null;
   model?: string | null;
+  account?: string | null;
 }
 
 export interface LogTreeStructure {
@@ -153,7 +154,8 @@ class LogService {
                   duration: parsed.duration !== undefined ? parsed.duration : null,
                   reqPath: parsed.path || null,
                   model: modelName,
-                  isStream: fallbackIsStream
+                  isStream: fallbackIsStream,
+                  account: parsed.account || null
                 });
               } catch {
                 // Ignore single file error
@@ -204,7 +206,8 @@ class LogService {
           status: rec.status,
           isStream: rec.isStream,
           duration: rec.duration,
-          model: rec.model
+          model: rec.model,
+          account: rec.account || null
         }));
 
         return {

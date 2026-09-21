@@ -18,6 +18,7 @@ export interface LogIndexRecord {
   reqPath: string | null;
   model: string | null;
   isStream: boolean;
+  account?: string | null;
 }
 
 class PayloadLogger {
@@ -111,7 +112,8 @@ class PayloadLogger {
     duration?: number,
     reqPath?: string,
     status?: number,
-    isStream?: boolean
+    isStream?: boolean,
+    account?: string | null
   ): Promise<void> {
     try {
       this.cleanupExpiredLogs().catch(() => {});
@@ -133,6 +135,7 @@ class PayloadLogger {
         path: reqPath || null,
         status: resolvedStatus,
         is_stream: resolvedIsStream,
+        account: account || null,
         client_req: sanitizeData(clientReq) || null,
         gem_req: sanitizeData(gemReq) || null,
         gem_res: sanitizeData(gemRes) || null,
@@ -158,7 +161,8 @@ class PayloadLogger {
         duration: duration !== undefined ? duration : null,
         reqPath: reqPath || null,
         model: modelName,
-        isStream: resolvedIsStream
+        isStream: resolvedIsStream,
+        account: account || null
       };
 
       const indexPath = path.join(targetDir, '..', 'index.jsonl');
