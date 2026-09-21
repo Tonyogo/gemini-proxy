@@ -739,10 +739,10 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
 
   const getTotalUsage = (usage?: AccountUsage): number => {
     if (!usage) return 0;
-    if (typeof usage.total === 'number') return usage.total;
     if (typeof usage.totalRequests === 'number') return usage.totalRequests;
+    if (typeof usage.total === 'number') return usage.total;
     if (usage.byModel) {
-      return Object.values(usage.byModel).reduce((sum, item) => sum + (item.usage || item.requests || 0), 0);
+      return Object.values(usage.byModel).reduce((sum, item) => sum + (item.requests || item.usage || 0), 0);
     }
     return 0;
   };
@@ -754,33 +754,41 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     success?: number;
     error?: number;
   }> => {
-    if (!usage) return [];
-    const list: Array<{
+    if (!usage?.byModel) return [];
+
+    const map = new Map<string, {
       model: string;
       count: number;
       limit?: number;
       success?: number;
       error?: number;
-    }> = [];
-    if (usage.byModel) {
-      for (const [model, item] of Object.entries(usage.byModel)) {
-        list.push({
+    }>();
+
+    for (const [rawModel, item] of Object.entries(usage.byModel)) {
+      const model = rawModel.replace(/^models\//, '').trim();
+      const count = item.usage ?? item.requests ?? 0;
+      const success = item.success ?? count;
+      const error = item.error ?? 0;
+      const limit = item.limit;
+
+      const existing = map.get(model);
+      if (existing) {
+        existing.count += count;
+        existing.success = (existing.success ?? 0) + success;
+        existing.error = (existing.error ?? 0) + error;
+        if (limit !== undefined) existing.limit = limit;
+      } else {
+        map.set(model, {
           model,
-          count: item.usage ?? item.requests ?? 0,
-          limit: item.limit,
-          success: item.success,
-          error: item.error
-        });
-      }
-    } else if (usage.models) {
-      for (const [model, item] of Object.entries(usage.models)) {
-        list.push({
-          model,
-          count: item.requests ?? 0
+          count,
+          limit,
+          success,
+          error
         });
       }
     }
-    return list.sort((a, b) => b.count - a.count);
+
+    return Array.from(map.values()).sort((a, b) => b.count - a.count);
   };
 
   // State Machine Badges with modern Linear styles
