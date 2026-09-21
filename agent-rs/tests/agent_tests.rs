@@ -46,7 +46,10 @@ fn test_host_id_deterministic_derivation() {
         name: Some("Ubuntu GPU Server".to_string()),
         shell: None,
     };
-    assert_eq!(cfg_name_only.get_host_id(), "ubuntu-gpu-server");
+    let host_id = cfg_name_only.get_host_id();
+    assert_eq!(host_id.len(), 12);
+    assert!(host_id.chars().all(|c| c.is_ascii_hexdigit()));
+    assert_eq!(cfg_name_only.get_host_name(), "ubuntu-gpu-server");
 
     let cfg_explicit_id = Config {
         server: "http://localhost:3000".to_string(),
@@ -56,6 +59,20 @@ fn test_host_id_deterministic_derivation() {
         shell: None,
     };
     assert_eq!(cfg_explicit_id.get_host_id(), "custom-box-id");
+    assert_eq!(cfg_explicit_id.get_host_name(), "demo");
+
+    let cfg_default_name = Config {
+        server: "http://localhost:3000".to_string(),
+        key: "".to_string(),
+        id: None,
+        name: None,
+        shell: None,
+    };
+    let auto_name = cfg_default_name.get_host_name();
+    let parts: Vec<&str> = auto_name.rsplitn(2, '-').collect();
+    assert_eq!(parts.len(), 2);
+    assert_eq!(parts[0].len(), 4);
+    assert!(parts[0].chars().all(|c| c.is_ascii_hexdigit()));
 }
 
 #[test]
@@ -68,6 +85,14 @@ fn test_control_message_parsing() {
     match parse_control_message("JSON:{\"type\":\"pong\"}") {
         Some(ControlMessage::Pong) => {}
         _ => panic!("Expected Pong"),
+    }
+
+    // Rejected
+    match parse_control_message("JSON:{\"type\":\"rejected\",\"reason\":\"Name already taken\"}") {
+        Some(ControlMessage::Rejected { reason }) => {
+            assert_eq!(reason, "Name already taken");
+        }
+        _ => panic!("Expected Rejected"),
     }
 
     // Reset

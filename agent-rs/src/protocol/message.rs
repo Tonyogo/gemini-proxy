@@ -11,6 +11,7 @@ pub enum ControlMessage {
     FileRpc(FileRpcRequest),
     CmdExec(CmdExecRequest),
     Reset,
+    Rejected { reason: String },
     Unknown(Value),
 }
 
@@ -43,6 +44,10 @@ pub fn parse_control_message(text: &str) -> Option<ControlMessage> {
         "cmd_exec" => {
             let req: CmdExecRequest = serde_json::from_value(parsed).ok()?;
             Some(ControlMessage::CmdExec(req))
+        }
+        "rejected" => {
+            let reason = parsed.get("reason").and_then(|r| r.as_str()).unwrap_or("Name conflict").to_string();
+            Some(ControlMessage::Rejected { reason })
         }
         _ => Some(ControlMessage::Unknown(parsed)),
     }

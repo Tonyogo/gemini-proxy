@@ -277,6 +277,11 @@ impl TerminalAgentClient {
                                             let _ = out_tx.send(Message::Text(res_str)).await;
                                         }
                                     }
+                                    ControlMessage::Rejected { reason } => {
+                                        eprintln!("\x1b[31m[Error] Registration rejected by server: {}\x1b[0m", reason);
+                                        eprintln!("Please choose a different name using --name=<unique-name>.");
+                                        std::process::exit(1);
+                                    }
                                     ControlMessage::Unknown(val) => {
                                         debug!("[Agent] Received unhandled control frame: {:?}", val);
                                     }
@@ -294,7 +299,7 @@ impl TerminalAgentClient {
                             // Raw binary bytes from user keyboard to PTY stdin
                             let lock = self.pty_session.read().await;
                             if let Some(pty) = lock.as_ref() {
-                                let _ = pty.write_all(&bin).await;
+                                    let _ = pty.write_all(&bin).await;
                             }
                         }
                         Some(Ok(Message::Ping(p))) => {
@@ -304,8 +309,15 @@ impl TerminalAgentClient {
                         Some(Ok(Message::Pong(_))) => {
                             waiting_for_pong = false;
                         }
-                        Some(Ok(Message::Close(_))) => {
+                        Some(Ok(Message::Close(close_frame))) => {
                             info!("[Agent] Upstream sent close frame");
+                            if let Some(ref cf) = close_frame {
+                                if u16::from(cf.code) == 4009 {
+                                    eprintln!("\x1b[31m[Error] Registration rejected by server (4009 Name Conflict): {}\x1b[0m", cf.reason);
+                                    eprintln!("Please choose a different name using --name=<unique-name>.");
+                                    std::process::exit(1);
+                                }
+                            }
                             break;
                         }
                         Some(Ok(Message::Frame(_))) => {}

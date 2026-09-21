@@ -53,14 +53,16 @@ impl Config {
         "127.0.0.1".to_string()
     }
 
-    pub fn get_host_name(&self) -> String {
-        self.name.clone().unwrap_or_else(|| self.get_hostname())
-    }
-
     pub fn get_host_id(&self) -> String {
         if let Some(ref id) = self.id {
             return id.clone();
         }
+        let mut bytes = [0u8; 6];
+        let _ = getrandom::getrandom(&mut bytes);
+        bytes.iter().map(|b| format!("{:02x}", b)).collect()
+    }
+
+    pub fn get_host_name(&self) -> String {
         if let Some(ref name) = self.name {
             let sanitized: String = name
                 .to_lowercase()
@@ -78,8 +80,13 @@ impl Config {
             .chars()
             .map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' { c } else { '-' })
             .collect();
-        let local_ip = self.get_local_ip().replace('.', "-");
-        format!("{}-{}", sanitized_hostname, local_ip)
+        let trimmed_host = sanitized_hostname.trim_matches('-');
+        let safe_host = if trimmed_host.is_empty() { "host" } else { trimmed_host };
+
+        let mut bytes = [0u8; 2];
+        let _ = getrandom::getrandom(&mut bytes);
+        let hex4: String = bytes.iter().map(|b| format!("{:02x}", b)).collect();
+        format!("{}-{}", safe_host, hex4)
     }
 
     pub fn get_shell(&self) -> String {
