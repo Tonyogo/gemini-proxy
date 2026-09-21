@@ -8,6 +8,7 @@
 const os = require('os');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const { spawn } = require('child_process');
 const WebSocket = require('ws');
 const pty = require('node-pty');
@@ -62,11 +63,15 @@ function getLocalIp() {
 }
 
 const localIp = getLocalIp();
-const hostName = options.name || hostname;
+const sanitizedHostname = hostname.toLowerCase().replace(/[^a-z0-9-_]/g, '-').replace(/^-+|-+$/g, '') || 'host';
+const random4Hex = crypto.randomBytes(2).toString('hex');
+const defaultName = `${sanitizedHostname}-${random4Hex}`;
+
 const sanitizedName = options.name
   ? options.name.toLowerCase().replace(/[^a-z0-9-_]/g, '-').replace(/^-+|-+$/g, '')
   : '';
-const hostId = options.id || options.hostId || (sanitizedName || `${hostname.toLowerCase().replace(/[^a-z0-9-_]/g, '-')}-${localIp.replace(/\./g, '-')}`);
+const hostName = sanitizedName || defaultName;
+const hostId = options.id || options.hostId || crypto.randomBytes(6).toString('hex');
 
 function getDefaultShell() {
   if (platform === 'win32') {
@@ -737,6 +742,15 @@ function connect() {
           console.log(`[Agent] Registered confirmed: hostId=${control.hostId}, status=${control.status}`);
           return;
         }
+        if (control.type === 'rejected') {
+          isExiting = true;
+          console.error(`\x1b[31m[Error] Registration rejected by server: ${control.reason || 'Name conflict'}\x1b[0m`);
+          console.error('Please choose a different name using --name=<unique-name>.');
+          if (ws) {
+            try { ws.close(); } catch {}
+          }
+          process.exit(1);
+        }
         return;
       }
 
@@ -753,6 +767,12 @@ function connect() {
   ws.on('close', (code, reason) => {
     if (connectTimeoutTimer) clearTimeout(connectTimeoutTimer);
     stopHeartbeat();
+    if (code === 4009) {
+      isExiting = true;
+      console.error(`\x1b[31m[Error] Registration rejected by server: ${reason?.toString() || 'Host name conflict'}\x1b[0m`);
+      console.error('Please choose a different name using --name=<unique-name>.');
+      process.exit(1);
+    }
     console.warn(`[Agent] Connection closed (code: ${code}, reason: ${reason || 'none'})`);
     ws = null;
     scheduleReconnect();
