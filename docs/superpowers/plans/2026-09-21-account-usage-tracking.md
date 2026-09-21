@@ -30,7 +30,7 @@
 **Interfaces:**
 - Produces: `ModelUsageStats`, `AccountUsageStats`, `PeriodUsageStore`
 
-- [ ] **Step 1: 创建 `src/types/accountUsage.ts`**
+- [x] **Step 1: 创建 `src/types/accountUsage.ts`**
 
 ```typescript
 // src/types/accountUsage.ts
@@ -58,18 +58,18 @@ export interface PeriodUsageStore {
 }
 ```
 
-- [ ] **Step 2: 在 `src/types/index.ts` 中导出**
+- [x] **Step 2: 在 `src/types/index.ts` 中导出**
 
 ```typescript
 export * from './accountUsage';
 ```
 
-- [ ] **Step 3: 运行 TypeScript 编译检查**
+- [x] **Step 3: 运行 TypeScript 编译检查**
 
 Run: `npx tsc --noEmit`
 Expected: 0 errors.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/types/accountUsage.ts src/types/index.ts
@@ -95,7 +95,7 @@ git commit -m "feat(types): add account usage data models and period interfaces"
   - `flush(): Promise<void>`
   - `resetForTest(): void`
 
-- [ ] **Step 1: 编写 `tests/accountUsageService.test.ts` 测试用例**
+- [x] **Step 1: 编写 `tests/accountUsageService.test.ts` 测试用例**
 
 ```typescript
 import accountUsageService from '../src/admin/services/accountUsageService';
@@ -179,12 +179,12 @@ describe('AccountUsageService', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试验证失败**
+- [x] **Step 2: 运行测试验证失败**
 
 Run: `npx jest tests/accountUsageService.test.ts`
 Expected: FAIL ("Cannot find module '../src/admin/services/accountUsageService'")
 
-- [ ] **Step 3: 实现 `src/admin/services/accountUsageService.ts`**
+- [x] **Step 3: 实现 `src/admin/services/accountUsageService.ts`**
 
 ```typescript
 import { promises as fs } from 'fs';
@@ -450,12 +450,12 @@ class AccountUsageService {
 export default new AccountUsageService();
 ```
 
-- [ ] **Step 4: 运行单元测试**
+- [x] **Step 4: 运行单元测试**
 
 Run: `npx jest tests/accountUsageService.test.ts`
 Expected: PASS with all test cases passed.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/admin/services/accountUsageService.ts tests/accountUsageService.test.ts
@@ -475,7 +475,7 @@ git commit -m "feat(admin): implement AccountUsageService with period tracking a
 - Consumes: `LogIndexRecord`
 - Produces: `saveTransaction(..., accountName?: string | null)`
 
-- [ ] **Step 1: 编写 `tests/payloadLoggerAccount.test.ts` 测试用例**
+- [x] **Step 1: 编写 `tests/payloadLoggerAccount.test.ts` 测试用例**
 
 ```typescript
 import payloadLogger from '../src/proxy/services/payloadLogger';
@@ -530,12 +530,12 @@ describe('PayloadLogger Account Recording', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试验证失败**
+- [x] **Step 2: 运行测试验证失败**
 
 Run: `npx jest tests/payloadLoggerAccount.test.ts`
 Expected: FAIL (assertion or parameter mismatch)
 
-- [ ] **Step 3: 修改 `src/proxy/services/payloadLogger.ts`**
+- [x] **Step 3: 修改 `src/proxy/services/payloadLogger.ts`**
 
 1. 更新 `LogIndexRecord` 接口：
 ```typescript
@@ -572,7 +572,7 @@ export interface LogIndexRecord {
 ```
 将 `account: account || null` 加入 `payload` 对象，并在 `indexRecord` 中设置 `account: account || null`。
 
-- [ ] **Step 4: 修改 `src/admin/services/logService.ts`**
+- [x] **Step 4: 修改 `src/admin/services/logService.ts`**
 
 在 `LogItem` 接口中添加 `account?: string | null`，并在 `listLogs` 的映射中读取 `record.account`：
 ```typescript
@@ -591,12 +591,12 @@ export interface LogItem {
 }
 ```
 
-- [ ] **Step 5: 运行测试**
+- [x] **Step 5: 运行测试**
 
 Run: `npx jest tests/payloadLoggerAccount.test.ts`
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/proxy/services/payloadLogger.ts src/admin/services/logService.ts tests/payloadLoggerAccount.test.ts
@@ -615,7 +615,7 @@ git commit -m "feat(logger): record account identifier in transaction details an
 **Interfaces:**
 - Consumes: `response.headers.get('x-account-name')`, `accountUsageService.record(...)`, `payloadLogger.saveTransaction(..., account)`
 
-- [ ] **Step 1: 编写 `tests/proxyAccountUsageIntegration.test.ts` 测试**
+- [x] **Step 1: 编写 `tests/proxyAccountUsageIntegration.test.ts` 测试**
 
 ```typescript
 import request from 'supertest';
@@ -687,12 +687,12 @@ describe('Proxy X-Account-Name Interception', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `npx jest tests/proxyAccountUsageIntegration.test.ts`
 Expected: FAIL
 
-- [ ] **Step 3: 更新 `claudeController.ts`**
+- [x] **Step 3: 更新 `claudeController.ts`**
 
 1. 引入 `accountUsageService`：
 ```typescript
@@ -718,19 +718,19 @@ accountUsageService.record(accountName, cleanModelName, response.ok);
 payloadLogger.saveTransaction(..., accountName);
 ```
 
-- [ ] **Step 4: 更新 `geminiController.ts`**
+- [x] **Step 4: 更新 `geminiController.ts`**
 
 1. 引入 `accountUsageService`。
 2. 提取 `const accountName = response.headers.get('x-account-name') || null;`。
 3. 流式：在非 ok、end 及 error 回调中调用 `accountUsageService.record(accountName, targetModelName || 'unknown', isSuccess)` 并传递给 `payloadLogger.saveTransaction`。
 4. 非流式：在响应解析后调用 `accountUsageService.record(accountName, targetModelName || 'unknown', response.ok)` 并传递给 `payloadLogger.saveTransaction`。
 
-- [ ] **Step 5: 运行测试**
+- [x] **Step 5: 运行测试**
 
 Run: `npx jest tests/proxyAccountUsageIntegration.test.ts`
 Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/proxy/controllers/claudeController.ts src/proxy/controllers/geminiController.ts tests/proxyAccountUsageIntegration.test.ts
@@ -752,7 +752,7 @@ git commit -m "feat(proxy): intercept X-Account-Name and track per-account reque
   - Augmented `GET /api/admin/accounts/status`
   - `GET /api/admin/accounts/usage`
 
-- [ ] **Step 1: 编写 `tests/accountStatusUsage.test.ts`**
+- [x] **Step 1: 编写 `tests/accountStatusUsage.test.ts`**
 
 ```typescript
 import request from 'supertest';
@@ -826,12 +826,12 @@ describe('Account Controller Usage Integration', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试验证失败**
+- [x] **Step 2: 运行测试验证失败**
 
 Run: `npx jest tests/accountStatusUsage.test.ts`
 Expected: FAIL
 
-- [ ] **Step 3: 修改 `src/admin/controllers/accountController.ts`**
+- [x] **Step 3: 修改 `src/admin/controllers/accountController.ts`**
 
 1. 引入 `accountUsageService`。
 2. 在 `getStatus` 方法中：
@@ -878,19 +878,19 @@ Expected: FAIL
   }
 ```
 
-- [ ] **Step 4: 修改 `src/admin/routes/adminRoutes.ts`**
+- [x] **Step 4: 修改 `src/admin/routes/adminRoutes.ts`**
 
 在 `adminRoutes.ts` 添加：
 ```typescript
 router.get('/accounts/usage', (req, res) => accountController.getUsage(req, res));
 ```
 
-- [ ] **Step 5: 运行测试**
+- [x] **Step 5: 运行测试**
 
 Run: `npx jest tests/accountStatusUsage.test.ts`
 Expected: PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/admin/controllers/accountController.ts src/admin/routes/adminRoutes.ts tests/accountStatusUsage.test.ts
@@ -905,12 +905,12 @@ git commit -m "feat(admin): merge local account usage into getStatus and add /ac
 - Modify: `frontend/src/components/LogsView.tsx`
 - Modify: `frontend/src/components/AccountsView.tsx`
 
-- [ ] **Step 1: 在 `LogsView.tsx` 中展示账号标识 (Account Badge)**
+- [x] **Step 1: 在 `LogsView.tsx` 中展示账号标识 (Account Badge)**
 
 在 LogItem 列表中，当 `log.account` 存在时，在模型名后方增加一个小巧的账号标识胶囊徽章（例如 `<User className="w-2.5 h-2.5 inline" /> {log.account}`）。
 在搜索框筛选中，支持根据 `log.account` 进行实时过滤。
 
-- [ ] **Step 2: 在 `AccountsView.tsx` 中增强错误用量展示**
+- [x] **Step 2: 在 `AccountsView.tsx` 中增强错误用量展示**
 
 在 `getModelBreakdowns()` 中，保留 `success` 与 `error` 字段：
 ```typescript
@@ -924,12 +924,12 @@ export interface ModelUsageDetail {
 ```
 在 Breakdown Popover 中：如果 `item.error > 0`，额外展示红色微型标记：`(${item.success} ok / ${item.error} err)`。
 
-- [ ] **Step 3: 运行前端构建测试**
+- [x] **Step 3: 运行前端构建测试**
 
 Run: `npm run build:frontend`
 Expected: 0 errors.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add frontend/src/components/LogsView.tsx frontend/src/components/AccountsView.tsx
@@ -943,26 +943,26 @@ git commit -m "feat(ui): display account tags in logs view and show error counts
 **Files:**
 - None (Verification step)
 
-- [ ] **Step 1: 运行后端 TypeScript 编译**
+- [x] **Step 1: 运行后端 TypeScript 编译**
 
 Run: `npm run build:backend`
 Expected: 0 errors.
 
-- [ ] **Step 2: 运行全部 Jest 自动化测试**
+- [x] **Step 2: 运行全部 Jest 自动化测试**
 
 Run: `npm test` (or `npx jest --runInBand`)
 Expected: 全部测试用例通过（0 failed）。
 
-- [ ] **Step 3: 运行前端构建**
+- [x] **Step 3: 运行前端构建**
 
 Run: `npm run build:frontend`
 Expected: 构建成功，生成 `dist/frontend`。
 
-- [ ] **Step 4: 启动与初始化生命周期检查**
+- [x] **Step 4: 启动与初始化生命周期检查**
 
 在 `src/index.ts` 启动时，调用 `await accountUsageService.init()` 确保服务启动时立即恢复持久化数据。
 
-- [ ] **Step 5: Commit 启动初始化变更**
+- [x] **Step 5: Commit 启动初始化变更**
 
 ```bash
 git add src/index.ts
