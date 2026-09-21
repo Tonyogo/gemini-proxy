@@ -87,6 +87,40 @@ describe('TaskManager & handleCmdExec', () => {
     expect(secondChunk.output).toBe('');
   });
 
+  it('correctly slices stdout and stderr independently when mixed output occurs', async () => {
+    const res = tm.startTask({
+      taskId: 'test-mixed',
+      command: 'echo "out1" && echo "err1" >&2 && echo "out2" && echo "err2" >&2',
+    });
+
+    expect(res.success).toBe(true);
+
+    // 等待执行结束
+    let poll: any;
+    for (let i = 0; i < 30; i++) {
+      await new Promise((r) => setTimeout(r, 100));
+      poll = tm.getTask('test-mixed', 0);
+      if (poll.status === 'completed' || poll.status === 'failed') break;
+    }
+
+    expect(poll.status).toBe('completed');
+    expect(poll.stdout).toContain('out1\nout2');
+    expect(poll.stderr).toContain('err1\nerr2');
+
+    // 模拟第一批已读取一半字节
+    const halfBytes = Math.floor(poll.totalBytes / 2);
+    const secondHalf = tm.getTask('test-mixed', halfBytes);
+    expect(secondHalf.outputOffset).toBe(poll.totalBytes);
+    expect(secondHalf.output.length).toBeGreaterThan(0);
+
+    // 模拟读取到末尾，再次轮询应返回空内容且 outputOffset 保持最新
+    const endChunk = tm.getTask('test-mixed', poll.totalBytes);
+    expect(endChunk.stdout).toBe('');
+    expect(endChunk.stderr).toBe('');
+    expect(endChunk.output).toBe('');
+    expect(endChunk.outputOffset).toBe(poll.totalBytes);
+  });
+
   it('kills a running command', async () => {
     const res = tm.startTask({
       taskId: 'test-kill',

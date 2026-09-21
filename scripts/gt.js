@@ -378,6 +378,8 @@ class TaskManager {
       stdout: '',
       stderr: '',
       output: '',
+      totalBytes: 0,
+      chunks: [],
       child,
       timeoutTimer: null,
       killTimer: null,
@@ -385,6 +387,12 @@ class TaskManager {
 
     const appendChunk = (type, chunk) => {
       const text = chunk.toString('utf-8');
+      const bytes = Buffer.byteLength(text, 'utf-8');
+      const startOffset = taskRecord.totalBytes;
+      const endOffset = startOffset + bytes;
+      taskRecord.totalBytes = endOffset;
+      taskRecord.chunks.push({ type, text, startOffset, endOffset });
+
       if (type === 'stdout') {
         taskRecord.stdout += text;
         if (taskRecord.stdout.length > this.MAX_BUFFER_SIZE) {
@@ -400,14 +408,17 @@ class TaskManager {
       if (taskRecord.output.length > this.MAX_BUFFER_SIZE) {
         taskRecord.output = taskRecord.output.slice(-this.MAX_BUFFER_SIZE);
       }
+
+      while (taskRecord.chunks.length > 1 && taskRecord.totalBytes - taskRecord.chunks[0].startOffset > this.MAX_BUFFER_SIZE) {
+        taskRecord.chunks.shift();
+      }
     };
 
     child.stdout.on('data', (chunk) => appendChunk('stdout', chunk));
     child.stderr.on('data', (chunk) => appendChunk('stderr', chunk));
 
     child.on('error', (err) => {
-      taskRecord.stderr += `\nProcess execution error: ${err.message}\n`;
-      taskRecord.output += `\nProcess execution error: ${err.message}\n`;
+      appendChunk('stderr', Buffer.from(`\nProcess execution error: ${err.message}\n`));
       taskRecord.status = 'failed';
       taskRecord.endTime = Date.now();
       if (taskRecord.timeoutTimer) clearTimeout(taskRecord.timeoutTimer);
@@ -434,8 +445,7 @@ class TaskManager {
         if (taskRecord.status === 'running' && taskRecord.child) {
           taskRecord.status = 'timeout';
           const timeoutMsg = `\n[Agent] Process timed out after ${timeoutMs}ms. Terminating...\n`;
-          taskRecord.stderr += timeoutMsg;
-          taskRecord.output += timeoutMsg;
+          appendChunk('stderr', Buffer.from(timeoutMsg));
           try {
             taskRecord.child.kill('SIGTERM');
           } catch {}
@@ -469,24 +479,45 @@ class TaskManager {
       return { success: false, error: `No such task: ${taskId}` };
     }
 
-    const totalBytes = Buffer.byteLength(task.output, 'utf-8');
-    const safeOffset = Math.max(0, Math.min(offset, totalBytes));
+    const numOffset = Math.max(0, parseInt(offset, 10) || 0);
+    const totalBytes = task.totalBytes !== undefined ? task.totalBytes : Buffer.byteLength(task.output, 'utf-8');
 
-    const sliceOutput = (str) => {
-      if (safeOffset === 0) return str;
-      const buf = Buffer.from(str, 'utf-8');
-      if (safeOffset >= buf.length) return '';
-      return buf.slice(safeOffset).toString('utf-8');
-    };
+    let incStdout = '';
+    let incStderr = '';
+    let incOutput = '';
+
+    if (numOffset === 0 && (!task.chunks || task.chunks.length === 0)) {
+      incStdout = task.stdout;
+      incStderr = task.stderr;
+      incOutput = task.output;
+    } else if (task.chunks && task.chunks.length > 0) {
+      for (const chunk of task.chunks) {
+        if (chunk.endOffset <= numOffset) {
+          continue;
+        }
+        let chunkText = chunk.text;
+        if (chunk.startOffset < numOffset) {
+          const byteSliceStart = numOffset - chunk.startOffset;
+          const buf = Buffer.from(chunk.text, 'utf-8');
+          chunkText = buf.slice(byteSliceStart).toString('utf-8');
+        }
+        if (chunk.type === 'stdout') {
+          incStdout += chunkText;
+        } else if (chunk.type === 'stderr') {
+          incStderr += chunkText;
+        }
+        incOutput += chunkText;
+      }
+    }
 
     return {
       success: true,
       taskId: task.taskId,
       status: task.status,
       exitCode: task.exitCode,
-      stdout: sliceOutput(task.stdout),
-      stderr: sliceOutput(task.stderr),
-      output: sliceOutput(task.output),
+      stdout: incStdout,
+      stderr: incStderr,
+      output: incOutput,
       offset: totalBytes,
       outputOffset: totalBytes,
       totalBytes,
@@ -1531,7 +1562,7 @@ async function main() {
               if (t.stdout) process.stdout.write(t.stdout);
               if (t.stderr) process.stderr.write(t.stderr);
 
-              offset = t.outputOffset !== undefined ? t.outputOffset : (offset + (t.stdout ? t.stdout.length : 0) + (t.stderr ? t.stderr.length : 0));
+              offset = t.outputOffset !== undefined ? t.outputOffset : (t.offset !== undefined ? t.offset : offset);
 
               if (t.status !== 'running') {
                 const durationSec = ((Date.now() - startTime) / 1000).toFixed(2);
