@@ -231,5 +231,17 @@ describe('gt agent embedded runtime exports', () => {
     expect(typeof parseControlMessage).toBe('function');
     expect(typeof resolveWebSocketUrl).toBe('function');
   });
+
+  it('ensures resolveWebSocketUrl omits secret keys from query string', () => {
+    const wsUrl = resolveWebSocketUrl('http://localhost:3000', {
+      hostId: 'host-1',
+      name: 'node-1',
+      key: 'super-secret',
+    });
+    expect(wsUrl).toContain('hostId=host-1');
+    expect(wsUrl).toContain('name=node-1');
+    expect(wsUrl).not.toContain('super-secret');
+    expect(wsUrl).not.toContain('key=');
+  });
 });
 

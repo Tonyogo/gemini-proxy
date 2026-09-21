@@ -32,7 +32,7 @@
   - `ConfigStore`: `load()`, `save(data)`, `clear()`, `get(key)`, `set(key, val)`, `getEffectiveConfig(cliOpts)`
   - CLI 命令: `gt login [server] [key]`, `gt logout`, `gt config <list|get|set> [key] [val]`
 
-- [ ] **Step 1: 编写 `tests/gtConfig.test.ts` 针对 `ConfigStore` 及相关 CLI 命令的单元测试**
+- [x] **Step 1: 编写 `tests/gtConfig.test.ts` 针对 `ConfigStore` 及相关 CLI 命令的单元测试**
 
 新建 `tests/gtConfig.test.ts`：
 ```typescript
@@ -151,12 +151,12 @@ describe('gt ConfigStore and login/logout/config commands', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试验证失败**
+- [x] **Step 2: 运行测试验证失败**
 
 Run: `npx jest tests/gtConfig.test.ts`
 Expected: FAIL（`gt login` 为未知命令）。
 
-- [ ] **Step 3: 在 `scripts/gt.js` 中实现 `ConfigStore` 及对应 CLI 命令**
+- [x] **Step 3: 在 `scripts/gt.js` 中实现 `ConfigStore` 及对应 CLI 命令**
 
 在 `scripts/gt.js` 中：
 1. 实现 `ConfigStore`：
@@ -211,12 +211,12 @@ Expected: FAIL（`gt login` 为未知命令）。
    - `config`: 处理 `list`（密码遮蔽）、`get`、`set`��
 4. 更新 `printHelp()` 文档。
 
-- [ ] **Step 4: 运行测试验证通过**
+- [x] **Step 4: 运行测试验证通过**
 
 Run: `npx jest tests/gtConfig.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: 提交 Task 1 代码**
+- [x] **Step 5: 提交 Task 1 代码**
 
 ```bash
 git add scripts/gt.js tests/gtConfig.test.ts
@@ -237,7 +237,7 @@ git commit -m "feat(gt): add ConfigStore and implement login, logout, and config
   - `getTask(taskId, offset)`: 基于有序 chunks 正确计算在 `[offset, totalBytes)` 之间的增量 `stdout`、`stderr` 和 `output`，以及精确的 `outputOffset`
   - `gt exec`: 严格使用服务端返回的 `t.outputOffset` 递进更新，保证长命令流式输出无截断无丢失
 
-- [ ] **Step 1: 在 `tests/terminalTaskManager.test.ts` 中编写针对 stdout 与 stderr 混合增量切片的测试**
+- [x] **Step 1: 在 `tests/terminalTaskManager.test.ts` 中编写针对 stdout 与 stderr 混合增量切片的测试**
 
 在 `tests/terminalTaskManager.test.ts` 中新增测试用例：
 ```typescript
@@ -276,12 +276,12 @@ it('correctly slices stdout and stderr independently when mixed output occurs', 
 });
 ```
 
-- [ ] **Step 2: 运行测试验证是否暴露问题**
+- [x] **Step 2: 运行测试验证是否暴露问题**
 
 Run: `npx jest tests/terminalTaskManager.test.ts`
-Expected: 运行对比旧代码切片行为。
+Expected: 运行对比旧代���切片行为。
 
-- [ ] **Step 3: 重构 `TaskManager` 内部缓冲与切片机制**
+- [x] **Step 3: 重构 `TaskManager` 内部缓冲与切片机制**
 
 在 `scripts/gt.js` 的 `TaskManager` 中：
 1. 为每个 `taskRecord` 维护按顺序追加的 `chunks: []` 列表，每个 chunk 包含 `{ type, text, startOffset, endOffset }`；
@@ -320,12 +320,12 @@ Expected: 运行对比旧代码切片行为。
    }
    ```
 
-- [ ] **Step 4: 运行 `terminalTaskManager` 与 `terminalAgentCommandExec` 测试验证**
+- [x] **Step 4: 运行 `terminalTaskManager` 与 `terminalAgentCommandExec` 测试验证**
 
 Run: `npx jest tests/terminalTaskManager.test.ts tests/terminalAgentCommandExec.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: 提交 Task 2 代码**
+- [x] **Step 5: 提交 Task 2 代码**
 
 ```bash
 git add scripts/gt.js tests/terminalTaskManager.test.ts
@@ -343,7 +343,7 @@ git commit -m "fix(gt): resolve incremental log slicing and align client offset 
 **Interfaces:**
 - Produces: `TaskManager.killTask(taskId, signal)` 确保整个进程树（包含后台派生子进程）被彻底终止
 
-- [ ] **Step 1: 在 `tests/terminalTaskManager.test.ts` 中编写验证子孙进程被杀死的测试用例**
+- [x] **Step 1: 在 `tests/terminalTaskManager.test.ts` 中编写验证子孙进程被杀死的测试用例**
 
 在 `tests/terminalTaskManager.test.ts` 中添加测试：
 ```typescript
@@ -373,12 +373,12 @@ it('terminates the entire process tree including spawned child processes on kill
 });
 ```
 
-- [ ] **Step 2: 运行测试验证行为**
+- [x] **Step 2: 运行测试验证行为**
 
 Run: `npx jest tests/terminalTaskManager.test.ts`
 Expected: 验证子进程退出状态。
 
-- [ ] **Step 3: 更新 `scripts/gt.js` 中的进程派生与终止逻辑**
+- [x] **Step 3: 更新 `scripts/gt.js` 中的进程派生与终止逻辑**
 
 1. 在 `startTask` 中：
    - 非 Windows 平台设置 `detached: true`；
@@ -387,12 +387,12 @@ Expected: 验证子进程退出状态。
    - Windows 平台：调用 `taskkill /pid ${task.child.pid} /T /F`；
 3. 处理捕获异常并清理计时器。
 
-- [ ] **Step 4: 运行测试验证**
+- [x] **Step 4: 运行测试验证**
 
 Run: `npx jest tests/terminalTaskManager.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: 提交 Task 3 代码**
+- [x] **Step 5: 提交 Task 3 代码**
 
 ```bash
 git add scripts/gt.js tests/terminalTaskManager.test.ts
@@ -410,28 +410,28 @@ git commit -m "fix(gt): spawn tasks with detached process group and terminate fu
 **Interfaces:**
 - Produces: WebSocket 连接安全传输（去除 Query String 中的 `key=`），全量回归测试通过
 
-- [ ] **Step 1: 移除 `resolveWebSocketUrl` 中的明文 key**
+- [x] **Step 1: 移除 `resolveWebSocketUrl` 中的明文 key**
 
 在 `scripts/gt.js` 中：
 1. `resolveWebSocketUrl` 仅将 `hostId`, `name`, `hostname`, `ip`, `platform` 加入 query string，不再携带 `key`；
-2. WebSocket 实例创建时已设置 `headers: { 'x-admin-key': adminKey }`，确保握手��段安全认证。
+2. WebSocket 实例创建时已设置 `headers: { 'x-admin-key': adminKey }`，确保握手阶段安全认证。
 
-- [ ] **Step 2: 运行所有 CLI 和 Agent 测试**
+- [x] **Step 2: 运行所有 CLI 和 Agent 测试**
 
 Run: `npx jest tests/gtCli.test.ts tests/terminalAgent.test.ts tests/terminalAgentCommandExec.test.ts tests/terminalAgentConflict.test.ts tests/terminalAgentKeepalive.test.ts`
 Expected: 100% PASS
 
-- [ ] **Step 3: 运行完整自动化测试套件**
+- [x] **Step 3: 运行完整自动化测试套件**
 
 Run: `npm test`
 Expected: 129 个测试套件全部通过（0 failures）。
 
-- [ ] **Step 4: 运行全量构建验证**
+- [x] **Step 4: 运行全量构建验证**
 
 Run: `npm run build`
 Expected: 前后端编译打包顺利完成。
 
-- [ ] **Step 5: 提交 Task 4 代码并确认工作区干净**
+- [x] **Step 5: 提交 Task 4 代码并确认工作区干净**
 
 ```bash
 git add scripts/gt.js

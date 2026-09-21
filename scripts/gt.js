@@ -204,7 +204,10 @@ function resolveWebSocketUrl(serverUrl, metadata = {}) {
     wsUrl = `ws://${wsUrl}`;
   }
   wsUrl = wsUrl.replace(/\/+$/, '');
-  const query = new URLSearchParams(metadata);
+  const cleanMeta = { ...metadata };
+  delete cleanMeta.key;
+  delete cleanMeta['x-admin-key'];
+  const query = new URLSearchParams(cleanMeta);
   const qs = query.toString();
   return qs ? `${wsUrl}/api/terminal/agent-ws?${qs}` : `${wsUrl}/api/terminal/agent-ws`;
 }
@@ -446,14 +449,11 @@ class TaskManager {
           taskRecord.status = 'timeout';
           const timeoutMsg = `\n[Agent] Process timed out after ${timeoutMs}ms. Terminating...\n`;
           appendChunk('stderr', Buffer.from(timeoutMsg));
-          try {
-            taskRecord.child.kill('SIGTERM');
-          } catch {}
+          this._killChild(taskRecord.child, 'SIGTERM');
+          if (taskRecord.killTimer) clearTimeout(taskRecord.killTimer);
           taskRecord.killTimer = setTimeout(() => {
             if (taskRecord.child) {
-              try {
-                taskRecord.child.kill('SIGKILL');
-              } catch {}
+              this._killChild(taskRecord.child, 'SIGKILL');
             }
           }, 3000);
           if (taskRecord.killTimer.unref) taskRecord.killTimer.unref();
@@ -527,6 +527,20 @@ class TaskManager {
     };
   }
 
+  _killChild(child, signal = 'SIGTERM') {
+    if (!child || !child.pid) return;
+    const isWindows = os.platform() === 'win32';
+    try {
+      if (isWindows) {
+        spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], { stdio: 'ignore' });
+      } else {
+        process.kill(-child.pid, signal);
+      }
+    } catch {
+      try { child.kill(signal); } catch {}
+    }
+  }
+
   killTask(taskId, signal = 'SIGTERM') {
     const task = this.tasks.get(taskId);
     if (!task) {
@@ -537,29 +551,12 @@ class TaskManager {
     }
 
     task.status = 'killed';
-    const isWindows = os.platform() === 'win32';
+    this._killChild(task.child, signal || 'SIGTERM');
 
-    try {
-      if (isWindows) {
-        spawn('taskkill', ['/pid', String(task.child.pid), '/T', '/F'], { stdio: 'ignore' });
-      } else {
-        process.kill(-task.child.pid, signal || 'SIGTERM');
-      }
-    } catch {
-      try { task.child.kill(signal || 'SIGTERM'); } catch {}
-    }
-
+    if (task.killTimer) clearTimeout(task.killTimer);
     task.killTimer = setTimeout(() => {
       if (task.child) {
-        try {
-          if (isWindows) {
-            spawn('taskkill', ['/pid', String(task.child.pid), '/T', '/F'], { stdio: 'ignore' });
-          } else {
-            process.kill(-task.child.pid, 'SIGKILL');
-          }
-        } catch {
-          try { task.child.kill('SIGKILL'); } catch {}
-        }
+        this._killChild(task.child, 'SIGKILL');
       }
     }, 3000);
     if (task.killTimer.unref) task.killTimer.unref();
