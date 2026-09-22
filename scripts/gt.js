@@ -1907,6 +1907,7 @@ async function main() {
 
           let offset = 0;
           let consecutiveErrors = 0;
+          const MAX_CONSECUTIVE_ERRORS = 30;
 
           const poll = async () => {
             try {
@@ -1918,6 +1919,9 @@ async function main() {
               });
 
               if (pollRes.data && pollRes.data.success) {
+                if (consecutiveErrors >= 3) {
+                  process.stderr.write(`\n[${hostId}] Connection restored, continuing stream...\n`);
+                }
                 consecutiveErrors = 0;
                 const t = pollRes.data;
                 if (t.stdout) process.stdout.write(t.stdout);
@@ -1937,9 +1941,11 @@ async function main() {
               consecutiveErrors++;
             }
 
-            if (consecutiveErrors >= 5) {
-              console.error(`\n<<< [${hostId}] Connection lost while streaming task [${taskId}]. Aborting.`);
+            if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+              console.error(`\n<<< [${hostId}] Connection lost after ${MAX_CONSECUTIVE_ERRORS} retries while streaming task [${taskId}]. Aborting.`);
               process.exit(1);
+            } else if (consecutiveErrors === 3) {
+              process.stderr.write(`\n[${hostId}] Server temporarily unavailable, waiting for reconnection...\n`);
             }
 
             setTimeout(poll, pollInterval);
@@ -2181,6 +2187,7 @@ async function main() {
         let offset = 0;
         let isTerminated = false;
         let consecutiveErrors = 0;
+        const MAX_CONSECUTIVE_ERRORS = 30; // ~15 seconds buffer (at 500ms intervals) for server reload or network blips
 
         process.on('SIGINT', async () => {
           if (isTerminated) process.exit(130);
@@ -2208,6 +2215,9 @@ async function main() {
             });
 
             if (pollRes.data && pollRes.data.success) {
+              if (consecutiveErrors >= 3) {
+                process.stderr.write(`\n[${targetHost}] Connection restored, continuing stream...\n`);
+              }
               consecutiveErrors = 0;
               const t = pollRes.data;
               if (t.stdout) process.stdout.write(t.stdout);
@@ -2235,9 +2245,11 @@ async function main() {
             consecutiveErrors++;
           }
 
-          if (consecutiveErrors >= 5) {
-            console.error(`\n<<< [${targetHost}] Connection lost while streaming task [${taskId}]. Aborting.`);
+          if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+            console.error(`\n<<< [${targetHost}] Connection lost after ${MAX_CONSECUTIVE_ERRORS} retries while streaming task [${taskId}]. Aborting.`);
             process.exit(1);
+          } else if (consecutiveErrors === 3) {
+            process.stderr.write(`\n[${targetHost}] Server temporarily unavailable, waiting for reconnection...\n`);
           }
 
           setTimeout(poll, pollInterval);

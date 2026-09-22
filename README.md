@@ -36,7 +36,7 @@
 gemini-proxy/
 ├── .github/
 │   └── workflows/
-│       └── deploy.yml         # GitHub Actions: 基于 Cloudflare SSH 隧道的自动部署流水线
+│       └── deploy.yml         # GitHub Actions: 基于 Gemini Terminal (gt) 的自动化部署流水线
 ├── config/
 │   ├── default.ts             # 配置文件读取、基础默认配置项与热重载
 │   └── models.json            # 核心配置文件：受支持的模型列表及到 Gemini 的映射规则
@@ -161,7 +161,7 @@ npm run dev:frontend
 
 ## 🚀 生产部署与 CI/CD 自动化流水线
 
-项目支持 **PM2 零停机平滑部署** 与 **GitHub Actions (Cloudflare SSH 隧道) 自动化流水线**。
+项目支持 **PM2 零停机平滑部署** 与 **GitHub Actions (基于 Gemini Terminal `gt` 命令) 自动化流水线**。
 
 ### 1. 服务器端一键部署 (PM2)
 
@@ -182,21 +182,22 @@ pm2 logs gemini-proxy            # 查看实时运行日志
 
 ### 2. GitHub Actions 自动部署流水线
 
-项目内置了 [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)，支持在代码推送到 `main` 分支或手动点击 `workflow_dispatch` 时，通过 **Cloudflare SSH 隧道** 自动穿透内网完成部署。
+项目内置了 [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)，支持在代码推送到 `main` 分支或手动点击 `workflow_dispatch` 时，通过项目内置的 **Gemini Terminal (`gt exec`)** 自动化远程触发服务器部署，完全无需配置 SSH 密钥或 Cloudflare SSH 隧道。
+
+流水线内置并发队列控制（`concurrency`），同一时间仅允许一个流水线执行部署，并自带 PM2 reload 期间的断线自动重连容错（容忍最多 30 次轮询重试）。
 
 #### GitHub Repository Secrets 配置
 
-在 GitHub 仓库中进入 **Settings -> Secrets and variables -> Actions -> New repository secret** 配置以下变量：
+在 GitHub 仓库中进入 **Settings -> Secrets and variables -> Actions -> New repository secret** 配置以下变量（与服务器端 `.env` 保持一致）：
 
 | Secret 变量名 | 必填 | 说明与示例 |
 | :--- | :--- | :--- |
-| `SSH_HOST` | **是** | Cloudflare Tunnel 绑定的 SSH 域名（如 `ssh.yourdomain.com`） |
-| `SSH_USER` | **是** | 服务器登录用户名（如 `yogo`） |
-| `SSH_KEY` | **是** | SSH 私钥内容（对应的公钥已加至服务器 `~/.ssh/authorized_keys`） |
+| `TERMINAL_SERVER` | **是** | Gemini Proxy Hub 服务访问地址（如 `https://proxy.yourdomain.com`） |
+| `ADMIN_SECRET_KEY` | **是** | 管理员密钥（与服务器端 `.env` 中配置的 `ADMIN_SECRET_KEY` 相同） |
 | `DEPLOY_PATH` | **是** | 目标服务器上的部署绝对路径（如 `/home/yogo/gemini-proxy`） |
-| `SSH_PORT` | 否 | SSH 端口（默认 `22`） |
+| `GT_HOST` | 否 | 目标 Agent 主机标识/名称（选填，默认约定固定为 `gemini-proxy-server`） |
 
-配置完成后，推送代码到 `main` 分支即可全自动触发构建与热重载。
+配置完成后，推送代码到 `main` 分支即可全自动触发构建、平滑热重载并在 GitHub Actions 中实时回显部署流式日志。
 
 ---
 

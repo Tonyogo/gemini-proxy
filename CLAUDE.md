@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Build Frontend**: `npm run build:frontend` (compiles Vite React SPA in `frontend/`)
 - **Build Backend**: `npm run build:backend` (compiles TypeScript server code via `tsc`)
 - **Deploy**: `npm run deploy` (executes `scripts/deploy.sh`: pulls latest code from `origin/main`, installs dependencies, builds all assets, and reloads PM2 with zero downtime)
-- **CI/CD Deployment**: `.github/workflows/deploy.yml` (GitHub Actions workflow connecting to target VPS via Cloudflare Tunnel SSH and running `npm run deploy`. Requires Secrets: `SSH_HOST`, `SSH_USER`, `SSH_KEY`, `DEPLOY_PATH`)
+- **CI/CD Deployment**: `.github/workflows/deploy.yml` (GitHub Actions workflow connecting to target VPS via Gemini Terminal CLI `gt exec` and running `npm run deploy`. Requires Secrets: `TERMINAL_SERVER`, `ADMIN_SECRET_KEY`, `DEPLOY_PATH`, and optional `GT_HOST` defaulting to `gemini-proxy-server`)
 - **PM2 Process Management**: `pm2 start ecosystem.config.js` / `pm2 reload ecosystem.config.js` / `pm2 stop gemini-proxy` / `pm2 logs gemini-proxy`
 - **Start Production**: `npm start` (automatically builds before running `dist/src/index.js`)
 - **Dev Mode Backend**: `npm run dev` (starts hot-reloading development server via `ts-node-dev`)
