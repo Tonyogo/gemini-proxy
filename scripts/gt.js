@@ -1072,6 +1072,99 @@ function runAgent(agentArgs = [], globalOpts = {}) {
 }
 
 // --------------------------------------------------------------------------
+// Shell quoting and CLI Parsing Helpers
+// --------------------------------------------------------------------------
+
+function quoteShellArg(arg) {
+  if (typeof arg !== 'string') return '';
+  if (/^[a-zA-Z0-9_.\-\/=:@]+$/.test(arg)) {
+    return arg;
+  }
+  return `'${arg.replace(/'/g, `'\\''`)}'`;
+}
+
+function parseExecArgs(args) {
+  let detach = false;
+  let workdir = undefined;
+  let timeoutMs = 300000;
+  let quiet = false;
+  let pollInterval = 500;
+  const envVars = {};
+  let host = '';
+  const commandParts = [];
+
+  let i = 0;
+  // Phase 1: parse gt exec options until host is found or -- is encountered
+  while (i < args.length) {
+    const a = args[i];
+    if (a === '--') {
+      i++;
+      if (!host && i < args.length) {
+        host = args[i++];
+      }
+      break;
+    }
+    if (a === '-d' || a === '--detach' || a === '-a' || a === '--async') {
+      detach = true;
+    } else if (a === '-q' || a === '--quiet') {
+      quiet = true;
+    } else if (a === '-w' || a === '--workdir' || a === '--cwd') {
+      workdir = args[++i];
+    } else if (a.startsWith('-w=')) {
+      workdir = a.slice(3);
+    } else if (a.startsWith('--workdir=')) {
+      workdir = a.slice(10);
+    } else if (a.startsWith('--cwd=')) {
+      workdir = a.slice(6);
+    } else if (a === '-t' || a === '--timeout') {
+      timeoutMs = parseInt(args[++i], 10);
+    } else if (a.startsWith('--timeout=')) {
+      timeoutMs = parseInt(a.slice(10), 10);
+    } else if (a === '--poll-interval') {
+      pollInterval = parseInt(args[++i], 10);
+    } else if (a === '-e' || a === '--env') {
+      const pair = args[++i] || '';
+      const eq = pair.indexOf('=');
+      if (eq !== -1) {
+        envVars[pair.slice(0, eq).trim()] = pair.slice(eq + 1).trim();
+      }
+    } else if (a.startsWith('-e=')) {
+      const pair = a.slice(3);
+      const eq = pair.indexOf('=');
+      if (eq !== -1) envVars[pair.slice(0, eq).trim()] = pair.slice(eq + 1).trim();
+    } else if (a.startsWith('-')) {
+      // Unknown option before host
+      throw new Error(`Unknown option before host: ${a}`);
+    } else {
+      host = a;
+      i++;
+      break;
+    }
+    i++;
+  }
+
+  // If a double dash directly follows host (e.g. gt exec node-1 -- cmd), skip it
+  if (i < args.length && args[i] === '--') {
+    i++;
+  }
+
+  // Phase 2: everything after host is remote command arguments
+  while (i < args.length) {
+    commandParts.push(args[i++]);
+  }
+
+  const fullCommand = commandParts.length === 1
+    ? commandParts[0].trim()
+    : commandParts.map(quoteShellArg).join(' ').trim();
+  return {
+    host,
+    fullCommand,
+    commandParts,
+    options: { detach, workdir, timeoutMs, quiet, pollInterval, env: envVars }
+  };
+}
+
+// --------------------------------------------------------------------------
 // Main CLI Dispatcher
 // --------------------------------------------------------------------------
 
@@ -1432,70 +1525,21 @@ async function main() {
     }
 
     case 'exec': {
-      let detach = false;
-      let workdir = undefined;
-      let timeoutMs = 300000;
-      let quiet = false;
-      let pollInterval = 500;
-      const envVars = {};
-
-      let host = '';
-      const commandParts = [];
-      let isPassthrough = false;
-
-      for (let i = 0; i < cmdArgs.length; i++) {
-        const a = cmdArgs[i];
-        if (isPassthrough) {
-          commandParts.push(a);
-          continue;
-        }
-
-        if (a === '--') {
-          isPassthrough = true;
-          continue;
-        }
-
-        if (a === '-d' || a === '--detach' || a === '-a' || a === '--async') {
-          detach = true;
-        } else if (a === '-q' || a === '--quiet') {
-          quiet = true;
-        } else if (a === '-w' || a === '--workdir' || a === '--cwd') {
-          workdir = cmdArgs[++i];
-        } else if (a.startsWith('-w=')) {
-          workdir = a.slice(3);
-        } else if (a.startsWith('--workdir=')) {
-          workdir = a.slice(10);
-        } else if (a.startsWith('--cwd=')) {
-          workdir = a.slice(6);
-        } else if (a === '-t' || a === '--timeout') {
-          timeoutMs = parseInt(cmdArgs[++i], 10);
-        } else if (a.startsWith('--timeout=')) {
-          timeoutMs = parseInt(a.slice(10), 10);
-        } else if (a === '--poll-interval') {
-          pollInterval = parseInt(cmdArgs[++i], 10);
-        } else if (a === '-e' || a === '--env') {
-          const pair = cmdArgs[++i] || '';
-          const eq = pair.indexOf('=');
-          if (eq !== -1) {
-            envVars[pair.slice(0, eq).trim()] = pair.slice(eq + 1).trim();
-          }
-        } else if (a.startsWith('-e=')) {
-          const pair = a.slice(3);
-          const eq = pair.indexOf('=');
-          if (eq !== -1) envVars[pair.slice(0, eq).trim()] = pair.slice(eq + 1).trim();
-        } else if (!host) {
-          host = a;
-        } else {
-          commandParts.push(a);
-        }
+      let parsed;
+      try {
+        parsed = parseExecArgs(cmdArgs);
+      } catch (err) {
+        console.error(`Error: ${err.message}`);
+        process.exit(1);
       }
+      const { host, fullCommand, options } = parsed;
+      const { detach, workdir, timeoutMs, quiet, pollInterval, env: envVars } = options;
 
       if (!host) {
         console.error('Error: Missing target host. Usage: gt exec [OPTIONS] HOST COMMAND [ARGS...]');
         process.exit(1);
       }
 
-      const fullCommand = commandParts.join(' ').trim();
       if (!fullCommand) {
         console.error('Error: Missing command to execute.');
         process.exit(1);
@@ -1626,6 +1670,8 @@ module.exports = {
   makeRequest,
   parseControlMessage,
   resolveWebSocketUrl,
+  quoteShellArg,
+  parseExecArgs,
   HANDSHAKE_TIMEOUT_MS,
   HEARTBEAT_INTERVAL_MS,
   HEARTBEAT_TIMEOUT_MS,

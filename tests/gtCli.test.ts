@@ -216,10 +216,22 @@ describe('gt CLI Mock Server Integration', () => {
     expect(res.code).toBe(0);
     expect(res.stdout).toContain('Kill signal sent to task');
   });
+
+  it('does not absorb remote flags like -t or -w after host is specified', async () => {
+    const res = await runGt(['exec', '--server', `http://127.0.0.1:${serverPort}`, 'node-1', 'curl', '-t', '10', 'http://example.com']);
+    expect(res.code).toBe(0);
+    expect(res.stderr).toContain('curl -t 10 http://example.com');
+  });
+
+  it('preserves spaces and quotes in arguments safely', async () => {
+    const res = await runGt(['exec', '--server', `http://127.0.0.1:${serverPort}`, 'node-1', 'grep', 'hello world', 'app.log']);
+    expect(res.code).toBe(0);
+    expect(res.stderr).toContain("grep 'hello world' app.log");
+  });
 });
 
 describe('gt agent embedded runtime exports', () => {
-  const { TaskManager, parseControlMessage, resolveWebSocketUrl } = require('../scripts/gt.js');
+  const { TaskManager, parseControlMessage, resolveWebSocketUrl, quoteShellArg, parseExecArgs } = require('../scripts/gt.js');
 
   it('exports TaskManager with startTask and getTask', () => {
     const tm = new TaskManager();
@@ -242,6 +254,22 @@ describe('gt agent embedded runtime exports', () => {
     expect(wsUrl).toContain('name=node-1');
     expect(wsUrl).not.toContain('super-secret');
     expect(wsUrl).not.toContain('key=');
+  });
+
+  it('quotes shell arguments properly', () => {
+    expect(quoteShellArg('simple')).toBe('simple');
+    expect(quoteShellArg('with space')).toBe("'with space'");
+    expect(quoteShellArg("don't")).toBe("'don'\\''t'");
+    expect(quoteShellArg('')).toBe("''");
+  });
+
+  it('parses exec arguments accurately across phases', () => {
+    const parsed = parseExecArgs(['-d', '-w', '/var/log', '--timeout', '60000', 'srv-1', 'grep', 'error msg', 'server.log']);
+    expect(parsed.host).toBe('srv-1');
+    expect(parsed.options.detach).toBe(true);
+    expect(parsed.options.workdir).toBe('/var/log');
+    expect(parsed.options.timeoutMs).toBe(60000);
+    expect(parsed.fullCommand).toBe("grep 'error msg' server.log");
   });
 });
 
