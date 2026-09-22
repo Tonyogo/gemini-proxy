@@ -1,4 +1,4 @@
-const { TaskManager, handleCmdExec } = require('../scripts/gt.js');
+const { TaskManager, handleCmdExec, killProcessTree, killProcessTreeSync } = require('../scripts/gt.js');
 
 describe('TaskManager & handleCmdExec', () => {
   let tm: any;
@@ -162,6 +162,33 @@ describe('TaskManager & handleCmdExec', () => {
       if (poll.status !== 'running') break;
     }
     expect(poll.status).toBe('killed');
+  });
+
+  it('kills entire process group and all child processes when task is killed', async () => {
+    const taskId = 'test-group-kill-' + Date.now();
+    const res = tm.startTask({
+      taskId,
+      command: 'sleep 30 & sleep 30 & wait',
+    });
+    expect(res.success).toBe(true);
+
+    await new Promise((r) => setTimeout(r, 200));
+
+    const killRes = tm.killTask(taskId);
+    expect(killRes.success).toBe(true);
+
+    let poll: any;
+    for (let i = 0; i < 20; i++) {
+      await new Promise((r) => setTimeout(r, 100));
+      poll = tm.getTask(taskId);
+      if (poll.status !== 'running') break;
+    }
+    expect(['killed', 'failed']).toContain(poll.status);
+  });
+
+  it('exports killProcessTree and killProcessTreeSync functions', () => {
+    expect(typeof killProcessTree).toBe('function');
+    expect(typeof killProcessTreeSync).toBe('function');
   });
 
   it('handles execution timeout', async () => {

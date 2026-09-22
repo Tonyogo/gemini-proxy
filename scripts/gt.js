@@ -12,7 +12,7 @@ const crypto = require('crypto');
 const http = require('http');
 const https = require('https');
 const url = require('url');
-const { spawn } = require('child_process');
+const { spawn, execSync } = require('child_process');
 const WebSocket = require('ws');
 let pty = null;
 try {
@@ -308,6 +308,40 @@ class ConfigStore {
   }
 }
 
+function killProcessTree(child, signal = 'SIGTERM') {
+  if (!child) return;
+  const pid = typeof child === 'number' ? child : child.pid;
+  if (!pid) return;
+  const isWindows = os.platform() === 'win32';
+  try {
+    if (isWindows) {
+      spawn('taskkill', ['/pid', String(pid), '/T', '/F'], { stdio: 'ignore' });
+    } else {
+      process.kill(-pid, signal);
+    }
+  } catch (e) {
+    if (child && typeof child.kill === 'function') {
+      try { child.kill(signal); } catch {}
+    } else {
+      try { process.kill(pid, signal); } catch {}
+    }
+  }
+}
+
+function killProcessTreeSync(pid, signal = 'SIGTERM') {
+  if (!pid) return;
+  const isWindows = os.platform() === 'win32';
+  try {
+    if (isWindows) {
+      execSync(`taskkill /pid ${pid} /T /F`, { stdio: 'ignore' });
+    } else {
+      process.kill(-pid, signal);
+    }
+  } catch (e) {
+    try { process.kill(pid, signal); } catch {}
+  }
+}
+
 class TaskManager {
   constructor() {
     this.tasks = new Map();
@@ -453,13 +487,13 @@ class TaskManager {
           taskRecord.status = 'timeout';
           const timeoutMsg = `\n[Agent] Process timed out after ${timeoutMs}ms. Terminating...\n`;
           appendChunk('stderr', Buffer.from(timeoutMsg));
-          this._killChild(taskRecord.child, 'SIGTERM');
+          killProcessTree(taskRecord.child, 'SIGTERM');
           if (taskRecord.killTimer) clearTimeout(taskRecord.killTimer);
           taskRecord.killTimer = setTimeout(() => {
             if (taskRecord.child) {
-              this._killChild(taskRecord.child, 'SIGKILL');
+              killProcessTree(taskRecord.child, 'SIGKILL');
             }
-          }, 3000);
+          }, 1000);
           if (taskRecord.killTimer.unref) taskRecord.killTimer.unref();
         }
       }, timeoutMs);
@@ -532,17 +566,7 @@ class TaskManager {
   }
 
   _killChild(child, signal = 'SIGTERM') {
-    if (!child || !child.pid) return;
-    const isWindows = os.platform() === 'win32';
-    try {
-      if (isWindows) {
-        spawn('taskkill', ['/pid', String(child.pid), '/T', '/F'], { stdio: 'ignore' });
-      } else {
-        process.kill(-child.pid, signal);
-      }
-    } catch {
-      try { child.kill(signal); } catch {}
-    }
+    return killProcessTree(child, signal);
   }
 
   killTask(taskId, signal = 'SIGTERM') {
@@ -555,14 +579,14 @@ class TaskManager {
     }
 
     task.status = 'killed';
-    this._killChild(task.child, signal || 'SIGTERM');
+    killProcessTree(task.child, signal || 'SIGTERM');
 
     if (task.killTimer) clearTimeout(task.killTimer);
     task.killTimer = setTimeout(() => {
       if (task.child) {
-        this._killChild(task.child, 'SIGKILL');
+        killProcessTree(task.child, 'SIGKILL');
       }
-    }, 3000);
+    }, 1000);
     if (task.killTimer.unref) task.killTimer.unref();
 
     return { success: true, taskId, status: 'killed', message: `Signal ${signal} sent` };
@@ -1049,6 +1073,7 @@ function runAgent(agentArgs = [], globalOpts = {}) {
   }
 
   function cleanup() {
+    if (isExiting) return;
     isExiting = true;
     stopHeartbeat();
     console.log('\n[Agent] Shutting down agent...');
@@ -1056,18 +1081,35 @@ function runAgent(agentArgs = [], globalOpts = {}) {
       try { ws.close(); } catch {}
     }
     if (ptyProcess) {
-      try { ptyProcess.kill(); } catch {}
+      try { ptyProcess.kill('SIGTERM'); } catch {}
     }
     for (const task of taskManager.tasks.values()) {
       if (task.status === 'running' && task.child) {
-        try { task.child.kill('SIGTERM'); } catch {}
+        killProcessTree(task.child, 'SIGTERM');
+        setTimeout(() => {
+          if (task.child) killProcessTree(task.child, 'SIGKILL');
+        }, 500);
       }
     }
-    process.exit(0);
+    setTimeout(() => process.exit(0), 600);
   }
 
   process.on('SIGINT', cleanup);
   process.on('SIGTERM', cleanup);
+  process.on('SIGHUP', cleanup);
+  process.on('uncaughtException', (err) => {
+    console.error('\n[Agent] Uncaught exception:', err);
+    cleanup();
+  });
+  process.on('exit', () => {
+    for (const task of taskManager.tasks.values()) {
+      if (task.status === 'running' && task.child && task.child.pid) {
+        try {
+          killProcessTreeSync(task.child.pid, 'SIGKILL');
+        } catch {}
+      }
+    }
+  });
 
   if (pty) {
     spawnPty();
@@ -1749,6 +1791,8 @@ module.exports = {
   ConfigStore,
   TaskManager,
   taskManager,
+  killProcessTree,
+  killProcessTreeSync,
   handleFileRpc,
   handleCmdExec,
   runAgent,
