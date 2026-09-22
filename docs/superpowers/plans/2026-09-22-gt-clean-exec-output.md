@@ -33,7 +33,7 @@
   - `getExecutionStatus`: tracks finished tasks in a Set (`loggedFinishedTasks`) so completion is logged once: `[Exec] Task <taskId> on [<hostId>] finished: status=<status>, exitCode=<exitCode>, duration=<durationMs>ms`.
   - `killExecution`: logs `[Exec] Sent kill signal <signal> to task <taskId> on [<hostId>]`.
 
-- [ ] **Step 1: Write the failing unit tests for server execution audit logging**
+- [x] **Step 1: Write the failing unit tests for server execution audit logging**
 
 Create `tests/terminalExecAuditLogs.test.ts`:
 ```typescript
@@ -119,12 +119,12 @@ describe('TerminalExecService audit logging', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/terminalExecAuditLogs.test.ts`
 Expected: FAIL
 
-- [ ] **Step 3: Implement execution audit logging in terminalExecService.ts**
+- [x] **Step 3: Implement execution audit logging in terminalExecService.ts**
 
 Update `src/terminal/services/terminalExecService.ts`:
 ```typescript
@@ -309,12 +309,12 @@ export const terminalExecService = new TerminalExecService();
 export default terminalExecService;
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/terminalExecAuditLogs.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit changes**
+- [x] **Step 5: Commit changes**
 
 ```bash
 git add src/terminal/services/terminalExecService.ts tests/terminalExecAuditLogs.test.ts
@@ -336,7 +336,7 @@ git commit -m "feat(terminal): add server-side execution audit logs in terminalE
   - Default: zero banner prints (no `>>> [host] $ cmd` and no `<<< [host] Command completed`). Direct output stream.
   - With `--verbose`: prints `>>> [host] $ cmd` on start and `<<< [host] Command completed with code ...` on finish to `stderr`.
 
-- [ ] **Step 1: Write tests for pure stream output and verbose mode**
+- [x] **Step 1: Write tests for pure stream output and verbose mode**
 
 Create `tests/gtExecPureStream.test.ts`:
 ```typescript
@@ -438,12 +438,12 @@ describe('gt exec pure stream output', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/gtExecPureStream.test.ts`
 Expected: FAIL (default output currently still contains `>>>` in stderr)
 
-- [ ] **Step 3: Update scripts/gt.js parseExecArgs and main**
+- [x] **Step 3: Update scripts/gt.js parseExecArgs and main**
 
 In `scripts/gt.js`:
 Update `parseExecArgs`:
@@ -569,7 +569,7 @@ Exec Options:
   --poll-interval <ms>    Polling interval for log stream in ms (Default: 500)
 ```
 
-- [ ] **Step 4: Update tests/gtCli.test.ts assertions for banners**
+- [x] **Step 4: Update tests/gtCli.test.ts assertions for banners**
 
 In `tests/gtCli.test.ts`, update the tests that verified exec banners to pass `--verbose` when asserting on `>>>`:
 ```typescript
@@ -592,12 +592,12 @@ In `tests/gtCli.test.ts`, update the tests that verified exec banners to pass `-
   });
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `npx jest tests/gtExecPureStream.test.ts tests/gtCli.test.ts`
 Expected: PASS
 
-- [ ] **Step 6: Commit changes**
+- [x] **Step 6: Commit changes**
 
 ```bash
 git add scripts/gt.js tests/gtCli.test.ts tests/gtExecPureStream.test.ts
@@ -612,16 +612,16 @@ git commit -m "feat(gt): make exec output pure stream by default and add --verbo
 - Test: all test files (`tests/*.test.ts`)
 - Modify: `CLAUDE.md`, `README.md`
 
-- [ ] **Step 1: Run complete test suite**
+- [x] **Step 1: Run complete test suite**
 
 Run: `npm test`
 Expected: 135+ test suites pass with 0 failures.
 
-- [ ] **Step 2: Update documentation in CLAUDE.md and README.md**
+- [x] **Step 2: Update documentation in CLAUDE.md and README.md**
 
 Update `CLAUDE.md` and `README.md` to reflect the updated `gt exec` options (replacing `-q/--quiet` with `--verbose`).
 
-- [ ] **Step 3: Commit documentation updates**
+- [x] **Step 3: Commit documentation updates**
 
 ```bash
 git add CLAUDE.md README.md
