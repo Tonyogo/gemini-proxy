@@ -124,15 +124,16 @@ export class RemoteAgentTerminalSession implements ITerminalSession {
     this.agentWs = null;
   }
 
-  public handleData(data: string): void {
+  public handleData(data: string | Buffer): void {
     if (typeof data === 'string' && data.startsWith('JSON:')) {
       return;
     }
-    this.historyBuffer.push(data);
-    this.totalBufferSize += data.length;
+    const text = typeof data === 'string' ? data : data.toString('utf-8');
+    this.historyBuffer.push(text);
+    this.totalBufferSize += text.length;
 
     // If stream contains terminal clear scrollback sequence (\x1b[3J or \x1bc), compact buffer to purge stale screen history
-    if (data.includes('\x1b[3J') || data.includes('\x1bc')) {
+    if (text.includes('\x1b[3J') || text.includes('\x1bc')) {
       const combined = this.historyBuffer.join('');
       const lastClearIdx = Math.max(combined.lastIndexOf('\x1b[3J'), combined.lastIndexOf('\x1bc'));
       if (lastClearIdx !== -1) {
@@ -355,8 +356,7 @@ export class TerminalHostManager {
   public handleAgentData(hostId: string, data: any): void {
     const session = this.sessions.get(hostId);
     if (session) {
-      const text = typeof data === 'string' ? data : data.toString();
-      session.handleData(text);
+      session.handleData(data);
     }
 
     const host = this.hosts.get(hostId);

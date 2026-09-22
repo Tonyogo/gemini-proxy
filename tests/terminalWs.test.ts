@@ -155,4 +155,36 @@ describe('Terminal WebSocket Gateway', () => {
       }
     });
   });
+
+  it('treats raw JSON output in binary or text frame as terminal output rather than control command', (done) => {
+    const originalKey = config.adminSecretKey;
+    config.adminSecretKey = 'valid-key';
+    const testHostId = 'agent-raw-json-test';
+
+    const agentWs = new WebSocket(
+      `ws://127.0.0.1:${port}/api/admin/terminal/agent-ws?hostId=${testHostId}&name=JsonNode&key=valid-key`
+    );
+
+    agentWs.on('open', () => {
+      const clientWs = new WebSocket(
+        `ws://127.0.0.1:${port}/api/admin/terminal/ws?hostId=${testHostId}&key=valid-key`
+      );
+
+      let receivedOnClient = '';
+      clientWs.on('message', (msg) => {
+        receivedOnClient += msg.toString();
+        if (receivedOnClient.includes('{"type":"reset"}')) {
+          agentWs.close();
+          clientWs.close();
+          config.adminSecretKey = originalKey;
+          done();
+        }
+      });
+
+      clientWs.on('open', () => {
+        // Send raw JSON without JSON: prefix from agent as binary frame
+        agentWs.send(Buffer.from('{"type":"reset"}'));
+      });
+    });
+  });
 });

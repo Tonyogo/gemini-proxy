@@ -89,9 +89,14 @@ export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
     logger.info(`[TerminalWS:Agent] Agent connected: ${hostId} (${host.name}) from ${ip}`);
     ws.send(`JSON:${JSON.stringify({ type: 'registered', hostId, status: 'online' })}`);
 
-    ws.on('message', (message: RawData) => {
+    ws.on('message', (message: RawData, isBinary: boolean) => {
       try {
-        const msgStr = message.toString();
+        if (isBinary) {
+          terminalHostManager.handleAgentData(hostId, message);
+          return;
+        }
+
+        const msgStr = typeof message === 'string' ? message : message.toString('utf-8');
         if (msgStr.startsWith('JSON:')) {
           const control = JSON.parse(msgStr.slice(5));
           if (control.type === 'ping') {

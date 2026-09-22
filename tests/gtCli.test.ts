@@ -251,6 +251,12 @@ describe('gt agent embedded runtime exports', () => {
     expect(typeof resolveWebSocketUrl).toBe('function');
   });
 
+  it('does not parse bare JSON without JSON: prefix', () => {
+    expect(parseControlMessage('{"type":"ping"}')).toBeNull();
+    expect(parseControlMessage('{"type":"reset"}')).toBeNull();
+    expect(parseControlMessage('JSON:{"type":"ping"}')).toEqual({ type: 'ping' });
+  });
+
   it('ensures resolveWebSocketUrl omits secret keys from query string', () => {
     const wsUrl = resolveWebSocketUrl('http://localhost:3000', {
       hostId: 'host-1',

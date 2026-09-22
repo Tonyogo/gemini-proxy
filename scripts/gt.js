@@ -226,14 +226,6 @@ function parseControlMessage(msgStr) {
       return null;
     }
   }
-  if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
-    try {
-      const parsed = JSON.parse(trimmed);
-      if (parsed && typeof parsed.type === 'string') {
-        return parsed;
-      }
-    } catch {}
-  }
   return null;
 }
 
@@ -912,7 +904,10 @@ function runAgent(agentArgs = [], globalOpts = {}) {
 
       ptyProcess.onData((data) => {
         if (ws && ws.readyState === WebSocket.OPEN) {
-          try { ws.send(data); } catch {}
+          try {
+            const buf = Buffer.isBuffer(data) ? data : Buffer.from(data, 'utf-8');
+            ws.send(buf);
+          } catch {}
         }
       });
 
