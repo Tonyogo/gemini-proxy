@@ -65,13 +65,13 @@ describe('gt ConfigStore and login/logout/config commands', () => {
   });
 
   it('rejects login with invalid key (401)', async () => {
-    const res = await runGt(['login', serverUrl, 'wrong-key']);
+    const res = await runGt(['auth', 'login', serverUrl, 'wrong-key']);
     expect(res.code).toBe(1);
     expect(res.stderr).toContain('Authentication failed');
   });
 
   it('successfully logs in and creates ~/.gt/config.json with 0600 permissions', async () => {
-    const res = await runGt(['login', serverUrl, 'valid-secret']);
+    const res = await runGt(['auth', 'login', serverUrl, 'valid-secret']);
     expect(res.code).toBe(0);
     expect(res.stdout).toContain('Successfully verified and logged in');
     expect(fs.existsSync(configFile)).toBe(true);
@@ -103,7 +103,7 @@ describe('gt ConfigStore and login/logout/config commands', () => {
   });
 
   it('runs logout and removes credentials from config.json', async () => {
-    const res = await runGt(['logout']);
+    const res = await runGt(['auth', 'logout']);
     expect(res.code).toBe(0);
     expect(res.stdout).toContain('Successfully logged out');
 

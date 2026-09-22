@@ -60,53 +60,39 @@ gt (Gemini Terminal) - Unified Docker-Style Terminal CLI
 Usage:
   gt [GLOBAL_OPTIONS] COMMAND [ARGS...]
 
+Management Commands:
+  host ls [OPTIONS]              List connected terminal agent hosts (like 'docker node ls')
+  host prune                     Remove disconnected/offline agent hosts
+  task ls <host> [OPTIONS]       List tasks on a host (like 'docker ps')
+  task logs [OPTIONS] <h> <id>   View or follow execution logs (like 'docker logs')
+  task kill <host> <task_id>     Terminate a running task on a host (like 'docker kill')
+  auth login [SERVER] [KEY]      Verify and save admin credentials (like 'docker login')
+  auth logout                    Remove stored credentials (like 'docker logout')
+
 Commands:
-  hosts                   List connected terminal agent hosts (like 'docker node ls')
-  exec [OPTIONS] HOST CMD Execute a command on a remote host (like 'docker exec')
-  ps HOST                 List active and recent tasks on a host (like 'docker ps')
-  logs [OPTIONS] HOST TASK_ID  View execution logs for a task (like 'docker logs')
-  kill HOST TASK_ID       Terminate a running task on a host (like 'docker kill')
-  login [SERVER] [KEY]    Verify credentials and save to ~/.gt/config.json
-  logout                  Remove credentials from ~/.gt/config.json
-  config <list|get|set>   View or modify ~/.gt/config.json settings
-  agent [OPTIONS]         Run reverse terminal agent daemon on this machine
+  exec [OPTIONS] <host> <cmd...> Execute a command on a remote host (like 'docker exec')
+  cp <src> <dest>                Copy files between local and remote host (like 'docker cp')
+  config <list|get|set>          Manage local client configuration settings
+  agent [OPTIONS]                Run reverse terminal agent daemon
 
 Global Options:
-  -s, --server <url>      Proxy server URL (Default: env TERMINAL_SERVER or http://localhost:3000)
-  -k, --key <secret>      Admin secret key (Default: env ADMIN_SECRET_KEY)
-  --json                  Output in JSON format
-  -v, --version           Print version information
-  -h, --help              Show this help menu
-
-Exec Options:
-  -d, --detach            Run command in background and print task ID (alias: -a, --async)
-  -w, --workdir <dir>     Working directory on remote host (alias: --cwd)
-  -t, --timeout <ms>      Execution timeout in ms (Default: 300000 / 5 min)
-  -e, --env <KEY=VAL>     Set remote environment variable (can be repeated)
-  -q, --quiet             Suppress execution header and footer banners
-  --poll-interval <ms>    Polling interval for log stream in ms (Default: 500)
-
-Logs Options:
-  -f, --follow            Follow log output (stream updates until task finishes)
-  --poll-interval <ms>    Polling interval for log stream in ms (Default: 500)
-
-Agent Options:
-  --server=<url>          Target proxy server URL
-  --key=<secret>          Admin secret key
-  --name=<name>           Friendly node identifier (default: <hostname>-<4hex>)
-  --id=<hostId>           Explicit unique host ID (default: 12-char random hex)
-  --shell=<path>          Shell executable to spawn (default: /bin/bash or $SHELL)
+  -s, --server <url>             Hub server URL (Default: env TERMINAL_SERVER or http://localhost:3000)
+  -k, --key <secret>             Admin secret key (Default: env ADMIN_SECRET_KEY)
+  --json                         Output in JSON format
+  --format <template>            Format output using Go/Docker template (e.g. 'table {{.ID}}\\t{{.Name}}')
+  -v, --version                  Print version information
+  -h, --help                     Show this help menu
 
 Examples:
-  gt hosts
+  gt host ls
+  gt host prune
+  gt task ls my-server
+  gt task logs -f my-server task-123
+  gt task kill my-server task-123
   gt exec my-server uptime
-  gt exec -w /var/www my-server ls -la
-  gt exec my-server -- curl -s https://example.com
-  gt exec -d my-server "sleep 60 && echo done"
-  gt ps my-server
-  gt logs my-server task-1726830000-abc123
-  gt kill my-server task-1726830000-abc123
-  gt agent --server=http://proxy:3000 --key=admin --name=my-server
+  gt cp local.txt my-server:/tmp/remote.txt
+  gt auth login http://localhost:3000 secret
+  gt auth logout
 `);
 }
 
@@ -1454,6 +1440,7 @@ function quoteShellArg(arg) {
 
 function parseExecArgs(args) {
   let detach = false;
+  let interactive = false;
   let workdir = undefined;
   let timeoutMs = 300000;
   let quiet = false;
@@ -1475,6 +1462,8 @@ function parseExecArgs(args) {
     }
     if (a === '-d' || a === '--detach' || a === '-a' || a === '--async') {
       detach = true;
+    } else if (a === '-i' || a === '--interactive' || a === '--stdin') {
+      interactive = true;
     } else if (a === '-q' || a === '--quiet') {
       quiet = true;
     } else if (a === '-w' || a === '--workdir' || a === '--cwd') {
@@ -1529,7 +1518,7 @@ function parseExecArgs(args) {
     host,
     fullCommand,
     commandParts,
-    options: { detach, workdir, timeoutMs, quiet, pollInterval, env: envVars }
+    options: { detach, interactive, workdir, timeoutMs, quiet, pollInterval, env: envVars }
   };
 }
 
@@ -1543,6 +1532,7 @@ async function main() {
   let cliServer = null;
   let cliKey = null;
   let jsonOutput = false;
+  let formatTemplateStr = null;
 
   const filteredArgs = [];
   let foundDoubleDash = false;
@@ -1565,6 +1555,10 @@ async function main() {
       process.exit(0);
     } else if (a === '--json') {
       jsonOutput = true;
+    } else if (a === '--format') {
+      formatTemplateStr = rawArgs[++i];
+    } else if (a.startsWith('--format=')) {
+      formatTemplateStr = a.slice(9);
     } else if (a === '-s' || a === '--server') {
       cliServer = rawArgs[++i];
     } else if (a.startsWith('--server=')) {
@@ -1590,150 +1584,43 @@ async function main() {
   const command = filteredArgs[0].toLowerCase();
   const cmdArgs = filteredArgs.slice(1);
 
+  const legacyMap = {
+    hosts: "gt host ls",
+    nodes: "gt host ls",
+    ps: "gt task ls",
+    logs: "gt task logs",
+    kill: "gt task kill",
+    login: "gt auth login",
+    logout: "gt auth logout",
+  };
+
+  if (legacyMap[command]) {
+    console.error(`Error: 'gt ${command}' has been deprecated. Use '${legacyMap[command]}' instead.`);
+    console.error(`Run 'gt --help' for modern command usage.`);
+    process.exit(125);
+  }
+
   switch (command) {
-    case 'hosts':
-    case 'nodes': {
-      try {
-        const res = await makeRequest({
-          serverUrl: server,
-          endpoint: '/api/terminal/hosts',
-          method: 'GET',
-          apiKey: key,
-        });
+    case 'host': {
+      const subCommand = (cmdArgs[0] || '').toLowerCase();
+      const subArgs = cmdArgs.slice(1);
 
-        if (jsonOutput) {
-          console.log(JSON.stringify(res.data, null, 2));
-          process.exit(0);
-        }
-
-        if (res.data && Array.isArray(res.data.hosts)) {
-          const hosts = res.data.hosts;
-          if (hosts.length === 0) {
-            console.log('No connected terminal agent hosts found.');
-            process.exit(0);
-          }
-
-          console.log(
-            'HOST ID'.padEnd(20) +
-            'NAME'.padEnd(20) +
-            'STATUS'.padEnd(12) +
-            'PLATFORM'.padEnd(12) +
-            'IP'.padEnd(18) +
-            'LAST SEEN'
-          );
-          console.log('-'.repeat(90));
-
-          for (const h of hosts) {
-            const statusStr = h.status === 'online' ? 'online' : 'offline';
-            console.log(
-              (h.id || '').padEnd(20) +
-              (h.name || h.hostname || '').padEnd(20) +
-              statusStr.padEnd(12) +
-              (h.platform || '').padEnd(12) +
-              (h.ip || '').padEnd(18) +
-              formatRelativeTime(h.lastSeen)
-            );
-          }
-        } else {
-          console.error(`Error: ${res.data?.error || `HTTP ${res.status}`}`);
-          process.exit(1);
-        }
-      } catch (err) {
-        console.error(`Failed to query hosts: ${err.message}`);
-        process.exit(1);
-      }
-      break;
-    }
-
-    case 'ps':
-    case 'list': {
-      if (cmdArgs.length === 0) {
-        console.error('Error: Missing target host. Usage: gt ps HOST');
-        process.exit(1);
-      }
-      const hostId = cmdArgs[0];
-      try {
-        const res = await makeRequest({
-          serverUrl: server,
-          endpoint: `/api/terminal/exec/${encodeURIComponent(hostId)}`,
-          method: 'GET',
-          apiKey: key,
-        });
-
-        if (jsonOutput) {
-          console.log(JSON.stringify(res.data, null, 2));
-          process.exit(0);
-        }
-
-        if (res.data && res.data.success && Array.isArray(res.data.tasks)) {
-          const tasks = res.data.tasks;
-          if (tasks.length === 0) {
-            console.log(`No recent tasks recorded on [${hostId}].`);
-            process.exit(0);
-          }
-
-          console.log(
-            'TASK ID'.padEnd(26) +
-            'STATUS'.padEnd(12) +
-            'EXIT'.padEnd(8) +
-            'START TIME'.padEnd(14) +
-            'COMMAND'
-          );
-          console.log('-'.repeat(80));
-
-          for (const t of tasks) {
-            const timeStr = new Date(t.startTime).toLocaleTimeString();
-            const exitStr = t.exitCode !== null && t.exitCode !== undefined ? String(t.exitCode) : '-';
-            console.log(
-              t.taskId.padEnd(26) +
-              t.status.padEnd(12) +
-              exitStr.padEnd(8) +
-              timeStr.padEnd(14) +
-              t.command
-            );
-          }
-        } else {
-          console.error(`Error: ${res.data?.error || `HTTP ${res.status}`}`);
-          process.exit(1);
-        }
-      } catch (err) {
-        console.error(`Failed to list tasks on [${hostId}]: ${err.message}`);
-        process.exit(1);
-      }
-      break;
-    }
-
-    case 'logs':
-    case 'status': {
-      let follow = false;
-      let pollInterval = 500;
-      const positional = [];
-
-      for (let i = 0; i < cmdArgs.length; i++) {
-        const a = cmdArgs[i];
-        if (a === '-f' || a === '--follow') {
-          follow = true;
-        } else if (a === '--poll-interval') {
-          pollInterval = parseInt(cmdArgs[++i], 10) || 500;
-        } else if (a.startsWith('--poll-interval=')) {
-          pollInterval = parseInt(a.slice(16), 10) || 500;
-        } else {
-          positional.push(a);
-        }
+      for (let i = 0; i < subArgs.length; i++) {
+        if (subArgs[i] === '--json') jsonOutput = true;
+        else if (subArgs[i] === '--format') formatTemplateStr = subArgs[++i];
+        else if (subArgs[i].startsWith('--format=')) formatTemplateStr = subArgs[i].slice(9);
       }
 
-      if (positional.length < 2) {
-        console.error('Error: Missing arguments. Usage: gt logs [OPTIONS] HOST TASK_ID');
-        process.exit(1);
+      if (!subCommand) {
+        console.error('Error: Missing host subcommand. Usage: gt host <ls|prune> [OPTIONS]');
+        process.exit(125);
       }
-      const hostId = positional[0];
-      const taskId = positional[1];
 
-      if (!follow) {
+      if (subCommand === 'ls' || subCommand === 'list') {
         try {
           const res = await makeRequest({
             serverUrl: server,
-            endpoint: `/api/terminal/exec/${encodeURIComponent(hostId)}/${encodeURIComponent(taskId)}`,
+            endpoint: '/api/terminal/hosts',
             method: 'GET',
             apiKey: key,
           });
@@ -1743,17 +1630,39 @@ async function main() {
             process.exit(0);
           }
 
-          if (res.data && res.data.success) {
-            const d = res.data;
-            console.log(`Task:     ${d.taskId}`);
-            console.log(`Host:     ${d.hostId}`);
-            console.log(`Status:   ${d.status}`);
-            console.log(`ExitCode: ${d.exitCode !== null && d.exitCode !== undefined ? d.exitCode : 'N/A'}`);
-            const outputText = d.output !== undefined ? d.output : (d.stdout || '');
-            if (outputText) {
-              console.log('\n--- Output ---');
-              process.stdout.write(outputText);
-              if (!outputText.endsWith('\n')) console.log();
+          if (res.data && Array.isArray(res.data.hosts)) {
+            const hosts = res.data.hosts;
+            if (formatTemplateStr) {
+              const formatted = formatTemplate(formatTemplateStr, hosts);
+              if (formatted) console.log(formatted);
+              process.exit(0);
+            }
+
+            if (hosts.length === 0) {
+              console.log('No connected terminal agent hosts found.');
+              process.exit(0);
+            }
+
+            console.log(
+              'HOST ID'.padEnd(20) +
+              'NAME'.padEnd(20) +
+              'STATUS'.padEnd(12) +
+              'PLATFORM'.padEnd(12) +
+              'IP'.padEnd(18) +
+              'LAST SEEN'
+            );
+            console.log('-'.repeat(90));
+
+            for (const h of hosts) {
+              const statusStr = h.status === 'online' ? 'online' : 'offline';
+              console.log(
+                (h.id || '').padEnd(20) +
+                (h.name || h.hostname || '').padEnd(20) +
+                statusStr.padEnd(12) +
+                (h.platform || '').padEnd(12) +
+                (h.ip || '').padEnd(18) +
+                formatRelativeTime(h.lastSeen)
+              );
             }
             process.exit(0);
           } else {
@@ -1761,148 +1670,561 @@ async function main() {
             process.exit(1);
           }
         } catch (err) {
-          console.error(`Failed to get logs for [${taskId}]: ${err.message}`);
+          console.error(`Failed to query hosts: ${err.message}`);
           process.exit(1);
         }
-        break;
+      } else if (subCommand === 'prune') {
+        try {
+          const res = await makeRequest({
+            serverUrl: server,
+            endpoint: '/api/terminal/hosts/offline',
+            method: 'DELETE',
+            apiKey: key,
+          });
+
+          if (jsonOutput) {
+            console.log(JSON.stringify(res.data, null, 2));
+            process.exit(0);
+          }
+
+          if (res.status === 200 && res.data && res.data.success) {
+            console.log(`Pruned ${res.data.prunedCount ?? res.data.removed ?? 0} offline host(s).`);
+            process.exit(0);
+          } else {
+            console.error(`Failed to prune offline hosts: ${res.data?.error || `HTTP ${res.status}`}`);
+            process.exit(1);
+          }
+        } catch (err) {
+          console.error(`Failed to prune offline hosts: ${err.message}`);
+          process.exit(1);
+        }
+      } else {
+        console.error(`Error: Unknown host subcommand: '${subCommand}'.`);
+        console.error("Usage: gt host <ls|prune> [OPTIONS]");
+        process.exit(125);
+      }
+      break;
+    }
+
+    case 'task': {
+      const subCommand = (cmdArgs[0] || '').toLowerCase();
+      const subArgs = cmdArgs.slice(1);
+
+      if (!subCommand) {
+        console.error('Error: Missing task subcommand. Usage: gt task <ls|logs|kill> [ARGS...]');
+        process.exit(125);
       }
 
-      process.on('SIGINT', () => {
-        process.exit(130);
-      });
+      if (subCommand === 'ls' || subCommand === 'list') {
+        let targetHost = null;
+        for (let i = 0; i < subArgs.length; i++) {
+          if (subArgs[i] === '--json') jsonOutput = true;
+          else if (subArgs[i] === '--format') formatTemplateStr = subArgs[++i];
+          else if (subArgs[i].startsWith('--format=')) formatTemplateStr = subArgs[i].slice(9);
+          else if (!targetHost) targetHost = subArgs[i];
+        }
 
-      let offset = 0;
-      let consecutiveErrors = 0;
+        if (!targetHost) {
+          console.error('Error: Missing target host. Usage: gt task ls <host> [OPTIONS]');
+          process.exit(125);
+        }
 
-      const poll = async () => {
+        let resolvedHost;
         try {
-          const pollRes = await makeRequest({
+          resolvedHost = await resolveHost(server, key, targetHost);
+        } catch (err) {
+          console.error(`Error: ${err.message}`);
+          process.exit(1);
+        }
+
+        try {
+          const res = await makeRequest({
             serverUrl: server,
-            endpoint: `/api/terminal/exec/${encodeURIComponent(hostId)}/${encodeURIComponent(taskId)}?offset=${offset}`,
+            endpoint: `/api/terminal/exec/${encodeURIComponent(resolvedHost.id)}`,
             method: 'GET',
             apiKey: key,
           });
 
-          if (pollRes.data && pollRes.data.success) {
-            consecutiveErrors = 0;
-            const t = pollRes.data;
-            if (t.stdout) process.stdout.write(t.stdout);
-            if (t.stderr) process.stderr.write(t.stderr);
-            if (!t.stdout && !t.stderr && t.output) process.stdout.write(t.output);
+          if (jsonOutput) {
+            console.log(JSON.stringify(res.data, null, 2));
+            process.exit(0);
+          }
 
-            offset = t.outputOffset !== undefined ? t.outputOffset : (t.offset !== undefined ? t.offset : offset);
-
-            if (t.status !== 'running') {
-              const exitCode = t.exitCode !== null && t.exitCode !== undefined ? t.exitCode : (t.status === 'completed' ? 0 : 1);
-              process.exit(exitCode);
+          if (res.data && res.data.success && Array.isArray(res.data.tasks)) {
+            const tasks = res.data.tasks;
+            if (formatTemplateStr) {
+              const formatted = formatTemplate(formatTemplateStr, tasks);
+              if (formatted) console.log(formatted);
+              process.exit(0);
             }
+
+            if (tasks.length === 0) {
+              console.log(`No recent tasks recorded on [${resolvedHost.id}].`);
+              process.exit(0);
+            }
+
+            console.log(
+              'TASK ID'.padEnd(26) +
+              'STATUS'.padEnd(12) +
+              'EXIT'.padEnd(8) +
+              'START TIME'.padEnd(14) +
+              'COMMAND'
+            );
+            console.log('-'.repeat(80));
+
+            for (const t of tasks) {
+              const timeStr = new Date(t.startTime).toLocaleTimeString();
+              const exitStr = t.exitCode !== null && t.exitCode !== undefined ? String(t.exitCode) : '-';
+              console.log(
+                t.taskId.padEnd(26) +
+                t.status.padEnd(12) +
+                exitStr.padEnd(8) +
+                timeStr.padEnd(14) +
+                t.command
+              );
+            }
+            process.exit(0);
           } else {
-            consecutiveErrors++;
+            console.error(`Error: ${res.data?.error || `HTTP ${res.status}`}`);
+            process.exit(1);
           }
         } catch (err) {
-          consecutiveErrors++;
+          console.error(`Failed to list tasks on [${resolvedHost.id}]: ${err.message}`);
+          process.exit(1);
+        }
+      } else if (subCommand === 'logs') {
+        let follow = false;
+        let pollInterval = 500;
+        const positional = [];
+
+        for (let i = 0; i < subArgs.length; i++) {
+          const a = subArgs[i];
+          if (a === '-f' || a === '--follow') {
+            follow = true;
+          } else if (a === '--poll-interval') {
+            pollInterval = parseInt(subArgs[++i], 10) || 500;
+          } else if (a.startsWith('--poll-interval=')) {
+            pollInterval = parseInt(a.slice(16), 10) || 500;
+          } else {
+            positional.push(a);
+          }
         }
 
-        if (consecutiveErrors >= 5) {
-          console.error(`\n<<< [${hostId}] Connection lost while streaming task [${taskId}]. Aborting.`);
+        if (positional.length < 2) {
+          console.error('Error: Missing arguments. Usage: gt task logs [OPTIONS] <host> <task_id>');
+          process.exit(125);
+        }
+
+        const [hostInput, taskInput] = positional;
+        let resolvedHost;
+        try {
+          resolvedHost = await resolveHost(server, key, hostInput);
+        } catch (err) {
+          console.error(`Error: ${err.message}`);
           process.exit(1);
         }
 
-        setTimeout(poll, pollInterval);
-      };
+        let taskId = taskInput;
+        try {
+          const taskListRes = await makeRequest({
+            serverUrl: server,
+            endpoint: `/api/terminal/exec/${encodeURIComponent(resolvedHost.id)}`,
+            method: 'GET',
+            apiKey: key,
+          });
+          if (taskListRes.data && taskListRes.data.success && Array.isArray(taskListRes.data.tasks)) {
+            taskId = resolveTaskId(taskListRes.data.tasks, taskInput);
+          }
+        } catch (err) {
+          if (err.message && (err.message.includes('Ambiguous') || err.message.includes('No such task'))) {
+            console.error(`Error: ${err.message}`);
+            process.exit(1);
+          }
+        }
 
-      poll();
+        const hostId = resolvedHost.id;
+
+        if (!follow) {
+          try {
+            const res = await makeRequest({
+              serverUrl: server,
+              endpoint: `/api/terminal/exec/${encodeURIComponent(hostId)}/${encodeURIComponent(taskId)}`,
+              method: 'GET',
+              apiKey: key,
+            });
+
+            if (jsonOutput) {
+              console.log(JSON.stringify(res.data, null, 2));
+              process.exit(0);
+            }
+
+            if (res.data && res.data.success) {
+              const d = res.data;
+              console.log(`Task:     ${d.taskId}`);
+              console.log(`Host:     ${d.hostId}`);
+              console.log(`Status:   ${d.status}`);
+              console.log(`ExitCode: ${d.exitCode !== null && d.exitCode !== undefined ? d.exitCode : 'N/A'}`);
+              const outputText = d.output !== undefined ? d.output : (d.stdout || '');
+              if (outputText) {
+                console.log('\n--- Output ---');
+                process.stdout.write(outputText);
+                if (!outputText.endsWith('\n')) console.log();
+              }
+              process.exit(0);
+            } else {
+              console.error(`Error: ${res.data?.error || `HTTP ${res.status}`}`);
+              process.exit(1);
+            }
+          } catch (err) {
+            console.error(`Failed to get logs for [${taskId}]: ${err.message}`);
+            process.exit(1);
+          }
+        } else {
+          process.on('SIGINT', () => {
+            process.exit(130);
+          });
+
+          let offset = 0;
+          let consecutiveErrors = 0;
+
+          const poll = async () => {
+            try {
+              const pollRes = await makeRequest({
+                serverUrl: server,
+                endpoint: `/api/terminal/exec/${encodeURIComponent(hostId)}/${encodeURIComponent(taskId)}?offset=${offset}`,
+                method: 'GET',
+                apiKey: key,
+              });
+
+              if (pollRes.data && pollRes.data.success) {
+                consecutiveErrors = 0;
+                const t = pollRes.data;
+                if (t.stdout) process.stdout.write(t.stdout);
+                if (t.stderr) process.stderr.write(t.stderr);
+                if (!t.stdout && !t.stderr && t.output) process.stdout.write(t.output);
+
+                offset = t.outputOffset !== undefined ? t.outputOffset : (t.offset !== undefined ? t.offset : offset);
+
+                if (t.status !== 'running') {
+                  const exitCode = t.exitCode !== null && t.exitCode !== undefined ? t.exitCode : (t.status === 'completed' ? 0 : 1);
+                  process.exit(exitCode);
+                }
+              } else {
+                consecutiveErrors++;
+              }
+            } catch (err) {
+              consecutiveErrors++;
+            }
+
+            if (consecutiveErrors >= 5) {
+              console.error(`\n<<< [${hostId}] Connection lost while streaming task [${taskId}]. Aborting.`);
+              process.exit(1);
+            }
+
+            setTimeout(poll, pollInterval);
+          };
+
+          poll();
+        }
+      } else if (subCommand === 'kill') {
+        if (subArgs.length < 2) {
+          console.error('Error: Missing arguments. Usage: gt task kill <host> <task_id>');
+          process.exit(125);
+        }
+
+        const [hostInput, taskInput] = subArgs;
+        let resolvedHost;
+        try {
+          resolvedHost = await resolveHost(server, key, hostInput);
+        } catch (err) {
+          console.error(`Error: ${err.message}`);
+          process.exit(1);
+        }
+
+        let taskId = taskInput;
+        try {
+          const taskListRes = await makeRequest({
+            serverUrl: server,
+            endpoint: `/api/terminal/exec/${encodeURIComponent(resolvedHost.id)}`,
+            method: 'GET',
+            apiKey: key,
+          });
+          if (taskListRes.data && taskListRes.data.success && Array.isArray(taskListRes.data.tasks)) {
+            taskId = resolveTaskId(taskListRes.data.tasks, taskInput);
+          }
+        } catch (err) {
+          if (err.message && (err.message.includes('Ambiguous') || err.message.includes('No such task'))) {
+            console.error(`Error: ${err.message}`);
+            process.exit(1);
+          }
+        }
+
+        const hostId = resolvedHost.id;
+
+        try {
+          const res = await makeRequest({
+            serverUrl: server,
+            endpoint: `/api/terminal/exec/${encodeURIComponent(hostId)}/${encodeURIComponent(taskId)}/kill`,
+            method: 'POST',
+            body: { signal: 'SIGTERM' },
+            apiKey: key,
+          });
+
+          if (jsonOutput) {
+            console.log(JSON.stringify(res.data, null, 2));
+            process.exit(0);
+          }
+
+          if (res.data && res.data.success) {
+            console.log(`Kill signal sent to task [${taskId}] on host [${hostId}].`);
+            process.exit(0);
+          } else {
+            console.error(`Error: ${res.data?.error || `HTTP ${res.status}`}`);
+            process.exit(1);
+          }
+        } catch (err) {
+          console.error(`Failed to kill task [${taskId}]: ${err.message}`);
+          process.exit(1);
+        }
+      } else {
+        console.error(`Error: Unknown task subcommand: '${subCommand}'.`);
+        console.error("Usage: gt task <ls|logs|kill> [ARGS...]");
+        process.exit(125);
+      }
       break;
     }
 
-    case 'kill': {
+    case 'auth': {
+      const subCommand = (cmdArgs[0] || '').toLowerCase();
+      const subArgs = cmdArgs.slice(1);
+
+      if (!subCommand) {
+        console.error('Error: Missing auth subcommand. Usage: gt auth <login|logout> [ARGS...]');
+        process.exit(125);
+      }
+
+      if (subCommand === 'login') {
+        let targetServer = subArgs[0] || server;
+        let targetKey = subArgs[1] || key;
+
+        if (subArgs.length === 1) {
+          if (subArgs[0].startsWith('http://') || subArgs[0].startsWith('https://')) {
+            targetServer = subArgs[0];
+            targetKey = key;
+          } else {
+            targetKey = subArgs[0];
+            targetServer = server;
+          }
+        }
+
+        if (!targetKey) {
+          console.error('Error: Missing secret key. Usage: gt auth login [server] [key]');
+          process.exit(1);
+        }
+
+        targetServer = targetServer.replace(/\/+$/, '');
+
+        try {
+          const res = await makeRequest({
+            serverUrl: targetServer,
+            endpoint: '/api/terminal/hosts',
+            method: 'GET',
+            apiKey: targetKey,
+          });
+
+          if (res.status === 200) {
+            const config = ConfigStore.load();
+            config.server = targetServer;
+            config.key = targetKey;
+            ConfigStore.save(config);
+            console.log(`Successfully verified and logged in to ${targetServer}`);
+            process.exit(0);
+          } else {
+            console.error(`Authentication failed: HTTP ${res.status} ${res.data?.error || 'Unauthorized'}`);
+            process.exit(1);
+          }
+        } catch (err) {
+          console.error(`Authentication failed: ${err.message}`);
+          process.exit(1);
+        }
+      } else if (subCommand === 'logout') {
+        const config = ConfigStore.load();
+        delete config.key;
+        ConfigStore.save(config);
+        console.log('Successfully logged out.');
+        process.exit(0);
+      } else {
+        console.error(`Error: Unknown auth subcommand: '${subCommand}'.`);
+        console.error("Usage: gt auth <login|logout> [ARGS...]");
+        process.exit(125);
+      }
+      break;
+    }
+
+    case 'cp': {
       if (cmdArgs.length < 2) {
-        console.error('Error: Missing arguments. Usage: gt kill HOST TASK_ID');
+        console.error('Error: Missing arguments. Usage: gt cp <src> <dest>');
+        process.exit(125);
+      }
+      try {
+        const code = await runCp(server, key, cmdArgs);
+        process.exit(code);
+      } catch (err) {
+        console.error(`Error: ${err.message}`);
         process.exit(1);
       }
-      const hostId = cmdArgs[0];
-      const taskId = cmdArgs[1];
+      break;
+    }
+
+    case 'exec': {
+      let parsed;
+      try {
+        parsed = parseExecArgs(cmdArgs);
+      } catch (err) {
+        console.error(`Error: ${err.message}`);
+        process.exit(1);
+      }
+      const { host, fullCommand, options } = parsed;
+      const { detach, interactive, workdir, timeoutMs, quiet, pollInterval, env: envVars } = options;
+
+      if (!host) {
+        console.error('Error: Missing target host. Usage: gt exec [OPTIONS] HOST COMMAND [ARGS...]');
+        process.exit(1);
+      }
+
+      if (!fullCommand) {
+        console.error('Error: Missing command to execute.');
+        process.exit(1);
+      }
+
+      let resolvedHost;
+      try {
+        resolvedHost = await resolveHost(server, key, host);
+      } catch (err) {
+        resolvedHost = { id: host, name: host };
+      }
+      const targetHost = resolvedHost.id;
+
+      let stdinPayload = undefined;
+      if (interactive) {
+        stdinPayload = await new Promise((resolve) => {
+          let buf = '';
+          process.stdin.setEncoding('utf-8');
+          process.stdin.on('data', (chunk) => { buf += chunk; });
+          process.stdin.on('end', () => { resolve(buf); });
+          process.stdin.on('error', () => { resolve(buf); });
+          process.stdin.resume();
+        });
+      }
+
+      const startTime = Date.now();
+
+      if (!quiet) {
+        process.stderr.write(`>>> [${targetHost}] $ ${fullCommand}\n`);
+      }
 
       try {
-        const res = await makeRequest({
+        const startRes = await makeRequest({
           serverUrl: server,
-          endpoint: `/api/terminal/exec/${encodeURIComponent(hostId)}/${encodeURIComponent(taskId)}/kill`,
+          endpoint: `/api/terminal/exec/${encodeURIComponent(targetHost)}`,
           method: 'POST',
-          body: { signal: 'SIGTERM' },
+          body: {
+            command: fullCommand,
+            cwd: workdir,
+            timeoutMs,
+            env: envVars,
+            stdin: stdinPayload,
+          },
           apiKey: key,
         });
 
-        if (jsonOutput) {
-          console.log(JSON.stringify(res.data, null, 2));
+        if (!startRes.data || !startRes.data.success) {
+          console.error(`Error starting task on [${targetHost}]: ${startRes.data?.error || `HTTP ${startRes.status}`}`);
+          process.exit(1);
+        }
+
+        const { taskId } = startRes.data;
+
+        if (detach) {
+          if (jsonOutput) {
+            console.log(JSON.stringify(startRes.data, null, 2));
+          } else {
+            console.log(taskId);
+          }
           process.exit(0);
         }
 
-        if (res.data && res.data.success) {
-          console.log(`Kill signal sent to task [${taskId}] on host [${hostId}].`);
-        } else {
-          console.error(`Error: ${res.data?.error || `HTTP ${res.status}`}`);
-          process.exit(1);
-        }
-      } catch (err) {
-        console.error(`Failed to kill task [${taskId}]: ${err.message}`);
-        process.exit(1);
-      }
-      break;
-    }
+        let offset = 0;
+        let isTerminated = false;
+        let consecutiveErrors = 0;
 
-    case 'login': {
-      let targetServer = cmdArgs[0] || server;
-      let targetKey = cmdArgs[1] || key;
-
-      if (cmdArgs.length === 1) {
-        if (cmdArgs[0].startsWith('http://') || cmdArgs[0].startsWith('https://')) {
-          targetServer = cmdArgs[0];
-          targetKey = key;
-        } else {
-          targetKey = cmdArgs[0];
-          targetServer = server;
-        }
-      }
-
-      if (!targetKey) {
-        console.error('Error: Missing secret key. Usage: gt login [server] [key]');
-        process.exit(1);
-      }
-
-      targetServer = targetServer.replace(/\/+$/, '');
-
-      try {
-        const res = await makeRequest({
-          serverUrl: targetServer,
-          endpoint: '/api/terminal/hosts',
-          method: 'GET',
-          apiKey: targetKey,
+        process.on('SIGINT', async () => {
+          if (isTerminated) process.exit(130);
+          isTerminated = true;
+          process.stderr.write(`\n[Interrupted] Terminating remote task [${taskId}]...\n`);
+          try {
+            await makeRequest({
+              serverUrl: server,
+              endpoint: `/api/terminal/exec/${encodeURIComponent(targetHost)}/${encodeURIComponent(taskId)}/kill`,
+              method: 'POST',
+              body: { signal: 'SIGTERM' },
+              apiKey: key,
+            });
+          } catch {}
+          process.exit(130);
         });
 
-        if (res.status === 200) {
-          const config = ConfigStore.load();
-          config.server = targetServer;
-          config.key = targetKey;
-          ConfigStore.save(config);
-          console.log(`Successfully verified and logged in to ${targetServer}`);
-          process.exit(0);
-        } else {
-          console.error(`Authentication failed: HTTP ${res.status} ${res.data?.error || 'Unauthorized'}`);
-          process.exit(1);
-        }
+        const poll = async () => {
+          try {
+            const pollRes = await makeRequest({
+              serverUrl: server,
+              endpoint: `/api/terminal/exec/${encodeURIComponent(targetHost)}/${encodeURIComponent(taskId)}?offset=${offset}`,
+              method: 'GET',
+              apiKey: key,
+            });
+
+            if (pollRes.data && pollRes.data.success) {
+              consecutiveErrors = 0;
+              const t = pollRes.data;
+              if (t.stdout) process.stdout.write(t.stdout);
+              if (t.stderr) process.stderr.write(t.stderr);
+
+              offset = t.outputOffset !== undefined ? t.outputOffset : (t.offset !== undefined ? t.offset : offset);
+
+              if (t.status !== 'running') {
+                const durationSec = ((Date.now() - startTime) / 1000).toFixed(2);
+                const exitCode = t.exitCode !== null && t.exitCode !== undefined ? t.exitCode : (t.status === 'completed' ? 0 : 1);
+
+                if (!quiet) {
+                  if (exitCode === 0) {
+                    process.stderr.write(`<<< [${targetHost}] Command completed with code 0 (took ${durationSec}s)\n`);
+                  } else {
+                    process.stderr.write(`<<< [${targetHost}] Command failed with code ${exitCode} (${t.status}, took ${durationSec}s)\n`);
+                  }
+                }
+                process.exit(exitCode);
+              }
+            } else {
+              consecutiveErrors++;
+            }
+          } catch (err) {
+            consecutiveErrors++;
+          }
+
+          if (consecutiveErrors >= 5) {
+            console.error(`\n<<< [${targetHost}] Connection lost while streaming task [${taskId}]. Aborting.`);
+            process.exit(1);
+          }
+
+          setTimeout(poll, pollInterval);
+        };
+
+        poll();
       } catch (err) {
-        console.error(`Authentication failed: ${err.message}`);
+        console.error(`Failed to execute on [${targetHost}]: ${err.message}`);
         process.exit(1);
       }
       break;
-    }
-
-    case 'logout': {
-      const config = ConfigStore.load();
-      delete config.key;
-      ConfigStore.save(config);
-      console.log('Successfully logged out.');
-      process.exit(0);
     }
 
     case 'config': {
@@ -1957,136 +2279,6 @@ async function main() {
 
     case 'agent': {
       runAgent(cmdArgs, { server, key });
-      break;
-    }
-
-    case 'exec': {
-      let parsed;
-      try {
-        parsed = parseExecArgs(cmdArgs);
-      } catch (err) {
-        console.error(`Error: ${err.message}`);
-        process.exit(1);
-      }
-      const { host, fullCommand, options } = parsed;
-      const { detach, workdir, timeoutMs, quiet, pollInterval, env: envVars } = options;
-
-      if (!host) {
-        console.error('Error: Missing target host. Usage: gt exec [OPTIONS] HOST COMMAND [ARGS...]');
-        process.exit(1);
-      }
-
-      if (!fullCommand) {
-        console.error('Error: Missing command to execute.');
-        process.exit(1);
-      }
-
-      const startTime = Date.now();
-
-      if (!quiet) {
-        process.stderr.write(`>>> [${host}] $ ${fullCommand}\n`);
-      }
-
-      try {
-        const startRes = await makeRequest({
-          serverUrl: server,
-          endpoint: `/api/terminal/exec/${encodeURIComponent(host)}`,
-          method: 'POST',
-          body: {
-            command: fullCommand,
-            cwd: workdir,
-            timeoutMs,
-            env: envVars,
-          },
-          apiKey: key,
-        });
-
-        if (!startRes.data || !startRes.data.success) {
-          console.error(`Error starting task on [${host}]: ${startRes.data?.error || `HTTP ${startRes.status}`}`);
-          process.exit(1);
-        }
-
-        const { taskId } = startRes.data;
-
-        if (detach) {
-          if (jsonOutput) {
-            console.log(JSON.stringify(startRes.data, null, 2));
-          } else {
-            console.log(taskId);
-          }
-          process.exit(0);
-        }
-
-        let offset = 0;
-        let isTerminated = false;
-        let consecutiveErrors = 0;
-
-        process.on('SIGINT', async () => {
-          if (isTerminated) process.exit(130);
-          isTerminated = true;
-          process.stderr.write(`\n[Interrupted] Terminating remote task [${taskId}]...\n`);
-          try {
-            await makeRequest({
-              serverUrl: server,
-              endpoint: `/api/terminal/exec/${encodeURIComponent(host)}/${encodeURIComponent(taskId)}/kill`,
-              method: 'POST',
-              body: { signal: 'SIGTERM' },
-              apiKey: key,
-            });
-          } catch {}
-          process.exit(130);
-        });
-
-        const poll = async () => {
-          try {
-            const pollRes = await makeRequest({
-              serverUrl: server,
-              endpoint: `/api/terminal/exec/${encodeURIComponent(host)}/${encodeURIComponent(taskId)}?offset=${offset}`,
-              method: 'GET',
-              apiKey: key,
-            });
-
-            if (pollRes.data && pollRes.data.success) {
-              consecutiveErrors = 0;
-              const t = pollRes.data;
-              if (t.stdout) process.stdout.write(t.stdout);
-              if (t.stderr) process.stderr.write(t.stderr);
-
-              offset = t.outputOffset !== undefined ? t.outputOffset : (t.offset !== undefined ? t.offset : offset);
-
-              if (t.status !== 'running') {
-                const durationSec = ((Date.now() - startTime) / 1000).toFixed(2);
-                const exitCode = t.exitCode !== null && t.exitCode !== undefined ? t.exitCode : (t.status === 'completed' ? 0 : 1);
-
-                if (!quiet) {
-                  if (exitCode === 0) {
-                    process.stderr.write(`<<< [${host}] Command completed with code 0 (took ${durationSec}s)\n`);
-                  } else {
-                    process.stderr.write(`<<< [${host}] Command failed with code ${exitCode} (${t.status}, took ${durationSec}s)\n`);
-                  }
-                }
-                process.exit(exitCode);
-              }
-            } else {
-              consecutiveErrors++;
-            }
-          } catch (err) {
-            consecutiveErrors++;
-          }
-
-          if (consecutiveErrors >= 5) {
-            console.error(`\n<<< [${host}] Connection lost while streaming task [${taskId}]. Aborting.`);
-            process.exit(1);
-          }
-
-          setTimeout(poll, pollInterval);
-        };
-
-        poll();
-      } catch (err) {
-        console.error(`Failed to execute on [${host}]: ${err.message}`);
-        process.exit(1);
-      }
       break;
     }
 

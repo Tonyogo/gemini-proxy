@@ -23,11 +23,11 @@ describe('gt (Gemini Terminal) CLI', () => {
     const res = await runGt(['--help']);
     expect(res.code).toBe(0);
     expect(res.stdout).toContain('gt [GLOBAL_OPTIONS] COMMAND [ARGS...]');
-    expect(res.stdout).toContain('hosts');
+    expect(res.stdout).toContain('host ls');
     expect(res.stdout).toContain('exec');
-    expect(res.stdout).toContain('ps');
-    expect(res.stdout).toContain('logs');
-    expect(res.stdout).toContain('kill');
+    expect(res.stdout).toContain('task ls');
+    expect(res.stdout).toContain('task logs');
+    expect(res.stdout).toContain('task kill');
     expect(res.stdout).toContain('agent');
   });
 
@@ -151,7 +151,7 @@ describe('gt CLI Mock Server Integration', () => {
   });
 
   it('queries and prints formatted hosts table', async () => {
-    const res = await runGt(['hosts', `--server=http://localhost:${serverPort}`]);
+    const res = await runGt(['host', 'ls', `--server=http://localhost:${serverPort}`]);
     expect(res.code).toBe(0);
     expect(res.stdout).toContain('node-1');
     expect(res.stdout).toContain('online');
@@ -159,7 +159,7 @@ describe('gt CLI Mock Server Integration', () => {
   });
 
   it('queries hosts in JSON format with --json', async () => {
-    const res = await runGt(['hosts', '--json', `--server=http://localhost:${serverPort}`]);
+    const res = await runGt(['host', 'ls', '--json', `--server=http://localhost:${serverPort}`]);
     expect(res.code).toBe(0);
     const parsed = JSON.parse(res.stdout);
     expect(Array.isArray(parsed.hosts)).toBe(true);
@@ -199,27 +199,27 @@ describe('gt CLI Mock Server Integration', () => {
     expect(res.stdout.trim()).toBe('task-ok');
   });
 
-  it('lists tasks with gt ps', async () => {
-    const res = await runGt(['ps', `--server=http://localhost:${serverPort}`, 'node-1']);
+  it('lists tasks with gt task ls', async () => {
+    const res = await runGt(['task', 'ls', `--server=http://localhost:${serverPort}`, 'node-1']);
     expect(res.code).toBe(0);
     expect(res.stdout).toContain('task-ok');
   });
 
-  it('views task logs with gt logs', async () => {
-    const res = await runGt(['logs', `--server=http://localhost:${serverPort}`, 'node-1', 'task-ok']);
+  it('views task logs with gt task logs', async () => {
+    const res = await runGt(['task', 'logs', `--server=http://localhost:${serverPort}`, 'node-1', 'task-ok']);
     expect(res.code).toBe(0);
     expect(res.stdout).toContain('Hello From Remote');
   });
 
   it('supports follow mode with -f flag on logs', async () => {
-    const res = await runGt(['logs', '--server', `http://127.0.0.1:${serverPort}`, 'node-1', 'task-ok', '-f']);
+    const res = await runGt(['task', 'logs', '--server', `http://127.0.0.1:${serverPort}`, 'node-1', 'task-ok', '-f']);
     expect(res.code).toBe(0);
     expect(res.stdout).toContain('Hello From Remote');
     expect(res.stdout).not.toContain('--- Output ---');
   });
 
-  it('terminates task with gt kill', async () => {
-    const res = await runGt(['kill', `--server=http://localhost:${serverPort}`, 'node-1', 'task-ok']);
+  it('terminates task with gt task kill', async () => {
+    const res = await runGt(['task', 'kill', `--server=http://localhost:${serverPort}`, 'node-1', 'task-ok']);
     expect(res.code).toBe(0);
     expect(res.stdout).toContain('Kill signal sent to task');
   });
