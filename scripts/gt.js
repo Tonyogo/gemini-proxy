@@ -79,6 +79,15 @@ Commands:
   config <list|get|set>          Manage local client configuration settings
   agent [OPTIONS]                Run reverse terminal agent daemon
 
+Exec Options:
+  -i, --interactive       Keep STDIN open for piped input
+  -d, --detach            Run command in background and print task ID
+  -w, --workdir <dir>     Working directory on remote host
+  -t, --timeout <ms>      Execution timeout in ms (Default: 300000 / 5 min)
+  -e, --env <KEY=VAL>     Set remote environment variable (can be repeated)
+  --verbose               Show execution header and duration footer banners
+  --poll-interval <ms>    Polling interval for log stream in ms (Default: 500)
+
 Global Options:
   -s, --server <url>             Hub server URL (Default: env TERMINAL_SERVER or http://localhost:3000)
   -k, --key <secret>             Admin secret key (Default: env ADMIN_SECRET_KEY)
@@ -1444,11 +1453,11 @@ function quoteShellArg(arg) {
 
 function parseExecArgs(args) {
   let detach = false;
-  let interactive = false;
   let workdir = undefined;
   let timeoutMs = 300000;
-  let quiet = false;
+  let verbose = false;
   let pollInterval = 500;
+  let interactive = false;
   const envVars = {};
   let host = '';
   const commandParts = [];
@@ -1466,10 +1475,12 @@ function parseExecArgs(args) {
     }
     if (a === '-d' || a === '--detach' || a === '-a' || a === '--async') {
       detach = true;
+    } else if (a === '--verbose') {
+      verbose = true;
+    } else if (a === '-q' || a === '--quiet') {
+      // Retained for backward flag compatibility (now default behavior)
     } else if (a === '-i' || a === '--interactive' || a === '--stdin') {
       interactive = true;
-    } else if (a === '-q' || a === '--quiet') {
-      quiet = true;
     } else if (a === '-w' || a === '--workdir' || a === '--cwd') {
       workdir = args[++i];
     } else if (a.startsWith('-w=')) {
@@ -1522,7 +1533,7 @@ function parseExecArgs(args) {
     host,
     fullCommand,
     commandParts,
-    options: { detach, interactive, workdir, timeoutMs, quiet, pollInterval, env: envVars }
+    options: { detach, workdir, timeoutMs, verbose, pollInterval, env: envVars, interactive }
   };
 }
 
@@ -2098,7 +2109,7 @@ async function main() {
         process.exit(1);
       }
       const { host, fullCommand, options } = parsed;
-      const { detach, interactive, workdir, timeoutMs, quiet, pollInterval, env: envVars } = options;
+      const { detach, workdir, timeoutMs, verbose, pollInterval, env: envVars, interactive } = options;
 
       if (!host) {
         console.error('Error: Missing target host. Usage: gt exec [OPTIONS] HOST COMMAND [ARGS...]');
@@ -2132,7 +2143,7 @@ async function main() {
 
       const startTime = Date.now();
 
-      if (!quiet) {
+      if (verbose) {
         process.stderr.write(`>>> [${targetHost}] $ ${fullCommand}\n`);
       }
 
@@ -2208,7 +2219,7 @@ async function main() {
                 const durationSec = ((Date.now() - startTime) / 1000).toFixed(2);
                 const exitCode = t.exitCode !== null && t.exitCode !== undefined ? t.exitCode : (t.status === 'completed' ? 0 : 1);
 
-                if (!quiet) {
+                if (verbose) {
                   if (exitCode === 0) {
                     process.stderr.write(`<<< [${targetHost}] Command completed with code 0 (took ${durationSec}s)\n`);
                   } else {

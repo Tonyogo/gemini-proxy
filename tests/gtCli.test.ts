@@ -166,29 +166,34 @@ describe('gt CLI Mock Server Integration', () => {
     expect(parsed.hosts[0].id).toBe('node-1');
   });
 
-  it('runs command in streaming mode, prints banners to stderr, and stdout to stdout', async () => {
-    const res = await runGt(['exec', `--server=http://localhost:${serverPort}`, 'node-1', 'echo hi']);
+  it('runs command in streaming mode, prints banners to stderr with --verbose, and stdout to stdout', async () => {
+    const res = await runGt(['exec', '--verbose', `--server=http://localhost:${serverPort}`, 'node-1', 'echo hi']);
     expect(res.code).toBe(0);
     expect(res.stdout).toBe('Hello From Remote\n');
     expect(res.stderr).toContain('>>> [node-1] $ echo hi');
     expect(res.stderr).toContain('<<< [node-1] Command completed with code 0');
   });
 
-  it('suppresses banners with -q / --quiet', async () => {
-    const res = await runGt(['exec', '-q', `--server=http://localhost:${serverPort}`, 'node-1', 'echo hi']);
+  it('outputs pure stdout with zero banners by default or with -q / --quiet', async () => {
+    const res = await runGt(['exec', `--server=http://localhost:${serverPort}`, 'node-1', 'echo hi']);
     expect(res.code).toBe(0);
     expect(res.stdout).toBe('Hello From Remote\n');
     expect(res.stderr).toBe('');
+
+    const resQuiet = await runGt(['exec', '-q', `--server=http://localhost:${serverPort}`, 'node-1', 'echo hi']);
+    expect(resQuiet.code).toBe(0);
+    expect(resQuiet.stdout).toBe('Hello From Remote\n');
+    expect(resQuiet.stderr).toBe('');
   });
 
   it('supports -- separator to pass flags safely to remote command without collision', async () => {
-    const res = await runGt(['exec', `--server=http://localhost:${serverPort}`, 'node-1', '--', 'curl', '-s', '-a']);
+    const res = await runGt(['exec', '--verbose', `--server=http://localhost:${serverPort}`, 'node-1', '--', 'curl', '-s', '-a']);
     expect(res.code).toBe(0);
     expect(res.stderr).toContain('>>> [node-1] $ curl -s -a');
   });
 
   it('forwards non-zero remote exit code', async () => {
-    const res = await runGt(['exec', `--server=http://localhost:${serverPort}`, 'node-1', 'fail-command']);
+    const res = await runGt(['exec', '--verbose', `--server=http://localhost:${serverPort}`, 'node-1', 'fail-command']);
     expect(res.code).toBe(42);
     expect(res.stderr).toContain('Command failed with code 42');
   });
@@ -225,13 +230,13 @@ describe('gt CLI Mock Server Integration', () => {
   });
 
   it('does not absorb remote flags like -t or -w after host is specified', async () => {
-    const res = await runGt(['exec', '--server', `http://127.0.0.1:${serverPort}`, 'node-1', 'curl', '-t', '10', 'http://example.com']);
+    const res = await runGt(['exec', '--verbose', '--server', `http://127.0.0.1:${serverPort}`, 'node-1', 'curl', '-t', '10', 'http://example.com']);
     expect(res.code).toBe(0);
     expect(res.stderr).toContain('curl -t 10 http://example.com');
   });
 
   it('preserves spaces and quotes in arguments safely', async () => {
-    const res = await runGt(['exec', '--server', `http://127.0.0.1:${serverPort}`, 'node-1', 'grep', 'hello world', 'app.log']);
+    const res = await runGt(['exec', '--verbose', '--server', `http://127.0.0.1:${serverPort}`, 'node-1', 'grep', 'hello world', 'app.log']);
     expect(res.code).toBe(0);
     expect(res.stderr).toContain("grep 'hello world' app.log");
   });
