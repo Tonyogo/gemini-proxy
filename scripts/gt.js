@@ -175,6 +175,67 @@ function formatRelativeTime(timestamp) {
   return `${Math.floor(diff / 86400000)}d ago`;
 }
 
+function formatTemplate(template, items = []) {
+  if (typeof template !== 'string' || !template.trim()) return '';
+  const isTable = /^table\s+/i.test(template.trim());
+  const rawPattern = isTable ? template.trim().slice(5).trim() : template.trim();
+
+  // Extract placeholder keys: {{.Field}}
+  const keyMatches = [];
+  const regex = /\{\{\s*\.([a-zA-Z0-9_]+)\s*\}\}/g;
+  let match;
+  while ((match = regex.exec(rawPattern)) !== null) {
+    keyMatches.push({ raw: match[0], key: match[1] });
+  }
+
+  const resolveVal = (item, key) => {
+    const lowerKey = key.toLowerCase();
+    for (const [k, v] of Object.entries(item)) {
+      if (k.toLowerCase() === lowerKey) {
+        return v !== null && v !== undefined ? String(v) : '';
+      }
+    }
+    // Fallback aliases
+    if (lowerKey === 'taskid' && item.id) return String(item.id);
+    if (lowerKey === 'id' && item.taskId) return String(item.taskId);
+    if (lowerKey === 'exitcode' && item.exitCode !== undefined) return String(item.exitCode);
+    return '';
+  };
+
+  if (!isTable) {
+    return items.map((item) => {
+      let line = rawPattern;
+      for (const { raw, key } of keyMatches) {
+        line = line.split(raw).join(resolveVal(item, key));
+      }
+      return line.replace(/\\t/g, '\t').replace(/\\n/g, '\n');
+    }).join('\n');
+  }
+
+  // Table formatting
+  const headerKeys = keyMatches.map(m => m.key);
+  const headers = headerKeys.map(k => k.replace(/([a-z])([A-Z])/g, '$1 $2').toUpperCase());
+
+  const rows = items.map(item => headerKeys.map(k => resolveVal(item, k)));
+  const allRows = [headers, ...rows];
+
+  const colWidths = headers.map((_, colIdx) => {
+    let max = 0;
+    for (const row of allRows) {
+      const len = (row[colIdx] || '').length;
+      if (len > max) max = len;
+    }
+    return max;
+  });
+
+  return allRows.map((row) => {
+    return row.map((cell, colIdx) => {
+      if (colIdx === row.length - 1) return cell;
+      return (cell || '').padEnd(colWidths[colIdx] + 3);
+    }).join('').trimEnd();
+  }).join('\n');
+}
+
 // --------------------------------------------------------------------------
 // Agent Daemon Subsystem (Embedded)
 // --------------------------------------------------------------------------
@@ -1779,6 +1840,7 @@ if (require.main === module) {
 
 module.exports = {
   formatRelativeTime,
+  formatTemplate,
   makeRequest,
   parseControlMessage,
   resolveWebSocketUrl,
