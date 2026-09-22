@@ -4,17 +4,20 @@ import { WebSocketServer, WebSocket, RawData } from 'ws';
 import config from '../../../config/default';
 import logger from '../../utils/logger';
 import { terminalHostManager } from '../services/terminalHostManager';
+import { terminalExecBridge } from '../services/terminalExecBridge';
 
 export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
   const wss = new WebSocketServer({ noServer: true });
   const agentWss = new WebSocketServer({ noServer: true });
+  const execWss = new WebSocketServer({ noServer: true });
 
   const onUpgrade = (req: http.IncomingMessage, socket: any, head: Buffer) => {
     const reqUrl = req.url || '';
     const isClientWs = reqUrl.startsWith('/api/terminal/ws') || reqUrl.startsWith('/api/admin/terminal/ws');
     const isAgentWs = reqUrl.startsWith('/api/terminal/agent-ws') || reqUrl.startsWith('/api/admin/terminal/agent-ws');
+    const isExecWs = reqUrl.startsWith('/api/terminal/exec-ws') || reqUrl.startsWith('/api/admin/terminal/exec-ws');
 
-    if (!isClientWs && !isAgentWs) {
+    if (!isClientWs && !isAgentWs && !isExecWs) {
       return;
     }
 
@@ -38,6 +41,10 @@ export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
       agentWss.handleUpgrade(req, socket, head, (ws) => {
         agentWss.emit('connection', ws, req);
       });
+    } else if (isExecWs) {
+      execWss.handleUpgrade(req, socket, head, (ws) => {
+        terminalExecBridge.handleCliConnection(ws, req);
+      });
     } else {
       wss.handleUpgrade(req, socket, head, (ws) => {
         wss.emit('connection', ws, req);
@@ -50,6 +57,7 @@ export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
   wss.on('close', () => {
     try {
       agentWss.close();
+      execWss.close();
     } catch {}
     server.removeListener('upgrade', onUpgrade);
   });
@@ -129,6 +137,10 @@ export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
             terminalHostManager.handleAgentCmdRpcResponse(control);
             return;
           }
+          if (control.type === 'cmd_stream_data' || control.type === 'cmd_stream_exit') {
+            terminalExecBridge.handleAgentStreamMessage(hostId, control);
+            return;
+          }
           if (control.type === 'reset') {
             const session = terminalHostManager.getSession(hostId);
             if (session) {
@@ -147,11 +159,13 @@ export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
 
     ws.on('close', () => {
       logger.info(`[TerminalWS:Agent] Agent disconnected: ${hostId}`);
+      terminalExecBridge.handleAgentDisconnected(hostId);
       terminalHostManager.unregisterAgent(hostId);
     });
 
     ws.on('error', (err) => {
       logger.error(`[TerminalWS:Agent] Agent socket error (${hostId}): ${err.message}`);
+      terminalExecBridge.handleAgentDisconnected(hostId);
       terminalHostManager.unregisterAgent(hostId);
     });
   });
