@@ -23,6 +23,3 @@ config/runtime*.json
 *.swp
 .DS_Store
 .superpowers/
-
-# Rust / Cargo
-agent-rs/target/

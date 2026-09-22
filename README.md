@@ -279,13 +279,11 @@ pm2 logs gemini-proxy            # 查看实时运行日志
 在宿主机或局域网内任意 Linux、macOS 或 Windows 主机上执行：
 
 ```bash
-# 方式 1: 使用 npm 脚本 (或本地安装后的 gt 命令)
+# 使用 npm 脚本 (或本地安装后的 gt 命令)
 npm run gt -- agent --server=http://<proxy-ip>:3000 --key=<ADMIN_SECRET_KEY> --name="Ubuntu-GPU-Server"
 
-# 方式 2: 使用 Rust 原生极速二进制
-npm run gt:rs -- agent --server=http://<proxy-ip>:3000 --key=<ADMIN_SECRET_KEY> --name="NAS-Storage"
-# 或者直接运行编译出的二进制
-./agent-rs/target/release/gt agent --server=http://<proxy-ip>:3000 --key=<ADMIN_SECRET_KEY> --name="NAS-Storage"
+# 或者直接使用一键安装后的全局 gt 命令
+gt agent --server=http://<proxy-ip>:3000 --key=<ADMIN_SECRET_KEY> --name="Ubuntu-GPU-Server"
 ```
 
 #### B. Agent 参数列表

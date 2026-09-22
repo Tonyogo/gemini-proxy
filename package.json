@@ -8,7 +8,6 @@
   },
   "scripts": {
     "gt": "node scripts/gt.js",
-    "gt:rs": "./agent-rs/target/release/gt",
     "build:frontend": "cd frontend && npm run build",
     "build:backend": "tsc",
     "build": "npm run build:frontend && npm run build:backend",
@@ -18,7 +17,6 @@
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "test": "jest --detectOpenHandles --forceExit",
     "deploy": "bash scripts/deploy.sh",
-    "build:agent": "cd agent-rs && cargo build --release",
     "clean": "rm -rf dist"
   },
   "dependencies": {
