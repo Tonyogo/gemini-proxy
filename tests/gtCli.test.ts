@@ -211,6 +211,13 @@ describe('gt CLI Mock Server Integration', () => {
     expect(res.stdout).toContain('Hello From Remote');
   });
 
+  it('supports follow mode with -f flag on logs', async () => {
+    const res = await runGt(['logs', '--server', `http://127.0.0.1:${serverPort}`, 'node-1', 'task-ok', '-f']);
+    expect(res.code).toBe(0);
+    expect(res.stdout).toContain('Hello From Remote');
+    expect(res.stdout).not.toContain('--- Output ---');
+  });
+
   it('terminates task with gt kill', async () => {
     const res = await runGt(['kill', `--server=http://localhost:${serverPort}`, 'node-1', 'task-ok']);
     expect(res.code).toBe(0);

@@ -64,7 +64,7 @@ Commands:
   hosts                   List connected terminal agent hosts (like 'docker node ls')
   exec [OPTIONS] HOST CMD Execute a command on a remote host (like 'docker exec')
   ps HOST                 List active and recent tasks on a host (like 'docker ps')
-  logs HOST TASK_ID       View execution logs for a task (like 'docker logs')
+  logs [OPTIONS] HOST TASK_ID  View execution logs for a task (like 'docker logs')
   kill HOST TASK_ID       Terminate a running task on a host (like 'docker kill')
   login [SERVER] [KEY]    Verify credentials and save to ~/.gt/config.json
   logout                  Remove credentials from ~/.gt/config.json
@@ -84,6 +84,10 @@ Exec Options:
   -t, --timeout <ms>      Execution timeout in ms (Default: 300000 / 5 min)
   -e, --env <KEY=VAL>     Set remote environment variable (can be repeated)
   -q, --quiet             Suppress execution header and footer banners
+  --poll-interval <ms>    Polling interval for log stream in ms (Default: 500)
+
+Logs Options:
+  -f, --follow            Follow log output (stream updates until task finishes)
   --poll-interval <ms>    Polling interval for log stream in ms (Default: 500)
 
 Agent Options:
@@ -1336,46 +1340,113 @@ async function main() {
 
     case 'logs':
     case 'status': {
-      if (cmdArgs.length < 2) {
-        console.error('Error: Missing arguments. Usage: gt logs HOST TASK_ID');
+      let follow = false;
+      let pollInterval = 500;
+      const positional = [];
+
+      for (let i = 0; i < cmdArgs.length; i++) {
+        const a = cmdArgs[i];
+        if (a === '-f' || a === '--follow') {
+          follow = true;
+        } else if (a === '--poll-interval') {
+          pollInterval = parseInt(cmdArgs[++i], 10) || 500;
+        } else if (a.startsWith('--poll-interval=')) {
+          pollInterval = parseInt(a.slice(16), 10) || 500;
+        } else {
+          positional.push(a);
+        }
+      }
+
+      if (positional.length < 2) {
+        console.error('Error: Missing arguments. Usage: gt logs [OPTIONS] HOST TASK_ID');
         process.exit(1);
       }
-      const hostId = cmdArgs[0];
-      const taskId = cmdArgs[1];
+      const hostId = positional[0];
+      const taskId = positional[1];
 
-      try {
-        const res = await makeRequest({
-          serverUrl: server,
-          endpoint: `/api/terminal/exec/${encodeURIComponent(hostId)}/${encodeURIComponent(taskId)}`,
-          method: 'GET',
-          apiKey: key,
-        });
+      if (!follow) {
+        try {
+          const res = await makeRequest({
+            serverUrl: server,
+            endpoint: `/api/terminal/exec/${encodeURIComponent(hostId)}/${encodeURIComponent(taskId)}`,
+            method: 'GET',
+            apiKey: key,
+          });
 
-        if (jsonOutput) {
-          console.log(JSON.stringify(res.data, null, 2));
-          process.exit(0);
-        }
-
-        if (res.data && res.data.success) {
-          const d = res.data;
-          console.log(`Task:     ${d.taskId}`);
-          console.log(`Host:     ${d.hostId}`);
-          console.log(`Status:   ${d.status}`);
-          console.log(`ExitCode: ${d.exitCode !== null && d.exitCode !== undefined ? d.exitCode : 'N/A'}`);
-          const outputText = d.output !== undefined ? d.output : (d.stdout || '');
-          if (outputText) {
-            console.log('\n--- Output ---');
-            process.stdout.write(outputText);
-            if (!outputText.endsWith('\n')) console.log();
+          if (jsonOutput) {
+            console.log(JSON.stringify(res.data, null, 2));
+            process.exit(0);
           }
-        } else {
-          console.error(`Error: ${res.data?.error || `HTTP ${res.status}`}`);
+
+          if (res.data && res.data.success) {
+            const d = res.data;
+            console.log(`Task:     ${d.taskId}`);
+            console.log(`Host:     ${d.hostId}`);
+            console.log(`Status:   ${d.status}`);
+            console.log(`ExitCode: ${d.exitCode !== null && d.exitCode !== undefined ? d.exitCode : 'N/A'}`);
+            const outputText = d.output !== undefined ? d.output : (d.stdout || '');
+            if (outputText) {
+              console.log('\n--- Output ---');
+              process.stdout.write(outputText);
+              if (!outputText.endsWith('\n')) console.log();
+            }
+            process.exit(0);
+          } else {
+            console.error(`Error: ${res.data?.error || `HTTP ${res.status}`}`);
+            process.exit(1);
+          }
+        } catch (err) {
+          console.error(`Failed to get logs for [${taskId}]: ${err.message}`);
           process.exit(1);
         }
-      } catch (err) {
-        console.error(`Failed to get logs for [${taskId}]: ${err.message}`);
-        process.exit(1);
+        break;
       }
+
+      process.on('SIGINT', () => {
+        process.exit(130);
+      });
+
+      let offset = 0;
+      let consecutiveErrors = 0;
+
+      const poll = async () => {
+        try {
+          const pollRes = await makeRequest({
+            serverUrl: server,
+            endpoint: `/api/terminal/exec/${encodeURIComponent(hostId)}/${encodeURIComponent(taskId)}?offset=${offset}`,
+            method: 'GET',
+            apiKey: key,
+          });
+
+          if (pollRes.data && pollRes.data.success) {
+            consecutiveErrors = 0;
+            const t = pollRes.data;
+            if (t.stdout) process.stdout.write(t.stdout);
+            if (t.stderr) process.stderr.write(t.stderr);
+            if (!t.stdout && !t.stderr && t.output) process.stdout.write(t.output);
+
+            offset = t.outputOffset !== undefined ? t.outputOffset : (t.offset !== undefined ? t.offset : offset);
+
+            if (t.status !== 'running') {
+              const exitCode = t.exitCode !== null && t.exitCode !== undefined ? t.exitCode : (t.status === 'completed' ? 0 : 1);
+              process.exit(exitCode);
+            }
+          } else {
+            consecutiveErrors++;
+          }
+        } catch (err) {
+          consecutiveErrors++;
+        }
+
+        if (consecutiveErrors >= 5) {
+          console.error(`\n<<< [${hostId}] Connection lost while streaming task [${taskId}]. Aborting.`);
+          process.exit(1);
+        }
+
+        setTimeout(poll, pollInterval);
+      };
+
+      poll();
       break;
     }
 
