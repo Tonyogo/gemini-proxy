@@ -236,6 +236,63 @@ function formatTemplate(template, items = []) {
   }).join('\n');
 }
 
+function resolveTaskId(tasks, input) {
+  if (!input || typeof input !== 'string') {
+    throw new Error('Task identifier is required');
+  }
+  const cleanInput = input.trim();
+  // 1. Exact match
+  const exact = tasks.find(t => t.taskId === cleanInput);
+  if (exact) return exact.taskId;
+
+  // 2. Prefix match
+  const matches = tasks.filter(t => t.taskId.startsWith(cleanInput) || t.taskId.includes(cleanInput));
+  if (matches.length === 1) return matches[0].taskId;
+  if (matches.length > 1) {
+    const candidates = matches.map(m => `  - ${m.taskId}`).join('\n');
+    throw new Error(`Ambiguous task identifier '${cleanInput}': matches multiple tasks:\n${candidates}`);
+  }
+  throw new Error(`No such task: '${cleanInput}'`);
+}
+
+async function resolveHost(serverUrl, apiKey, input) {
+  if (!input || typeof input !== 'string') {
+    throw new Error('Host identifier is required');
+  }
+  const cleanInput = input.trim();
+  const res = await makeRequest({
+    serverUrl,
+    endpoint: '/api/terminal/hosts',
+    method: 'GET',
+    apiKey,
+  });
+
+  if (!res.data || !Array.isArray(res.data.hosts)) {
+    throw new Error(`Failed to query hosts from server: ${res.data?.error || `HTTP ${res.status}`}`);
+  }
+
+  const hosts = res.data.hosts;
+  // 1. Exact match on id or name
+  const exact = hosts.find(h => h.id === cleanInput || (h.name && h.name.toLowerCase() === cleanInput.toLowerCase()));
+  if (exact) return { id: exact.id, name: exact.name || exact.id };
+
+  // 2. Prefix match on id or name
+  const matches = hosts.filter(h => {
+    const idHit = h.id && h.id.toLowerCase().startsWith(cleanInput.toLowerCase());
+    const nameHit = h.name && h.name.toLowerCase().startsWith(cleanInput.toLowerCase());
+    return idHit || nameHit;
+  });
+
+  if (matches.length === 1) {
+    return { id: matches[0].id, name: matches[0].name || matches[0].id };
+  }
+  if (matches.length > 1) {
+    const candidates = matches.map(m => `  - ${m.id} (${m.name || 'unnamed'})`).join('\n');
+    throw new Error(`Ambiguous host identifier '${cleanInput}': matches multiple hosts:\n${candidates}`);
+  }
+  throw new Error(`No such host: '${cleanInput}'`);
+}
+
 // --------------------------------------------------------------------------
 // Agent Daemon Subsystem (Embedded)
 // --------------------------------------------------------------------------
@@ -1841,6 +1898,8 @@ if (require.main === module) {
 module.exports = {
   formatRelativeTime,
   formatTemplate,
+  resolveTaskId,
+  resolveHost,
   makeRequest,
   parseControlMessage,
   resolveWebSocketUrl,
