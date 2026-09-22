@@ -293,6 +293,212 @@ async function resolveHost(serverUrl, apiKey, input) {
   throw new Error(`No such host: '${cleanInput}'`);
 }
 
+function isRemoteSpec(str) {
+  if (typeof str !== 'string') return false;
+  // Exclude Windows drive letters: C:\ or D:/
+  if (/^[a-zA-Z]:[\\/]/.test(str)) return false;
+  const colonIdx = str.indexOf(':');
+  return colonIdx > 0;
+}
+
+function parseRemoteSpec(str) {
+  const colonIdx = str.indexOf(':');
+  return {
+    host: str.slice(0, colonIdx).trim(),
+    path: str.slice(colonIdx + 1).trim() || '.',
+  };
+}
+
+function parseCpArgs(args) {
+  if (!args || args.length < 2) {
+    throw new Error('Usage: gt cp <src> <dest>');
+  }
+  const [srcArg, destArg] = args;
+  const srcIsRemote = isRemoteSpec(srcArg);
+  const destIsRemote = isRemoteSpec(destArg);
+
+  if (!srcIsRemote && !destIsRemote) {
+    throw new Error('Invalid arguments: at least one argument must be remote (<host>:<path>)');
+  }
+  if (srcIsRemote && destIsRemote) {
+    throw new Error('Invalid arguments: cannot copy between two remote hosts directly');
+  }
+
+  const src = srcIsRemote
+    ? { isRemote: true, ...parseRemoteSpec(srcArg) }
+    : { isRemote: false, path: srcArg };
+
+  const dest = destIsRemote
+    ? { isRemote: true, ...parseRemoteSpec(destArg) }
+    : { isRemote: false, path: destArg };
+
+  return { src, dest };
+}
+
+async function uploadLocalFile({ serverUrl, apiKey, hostId, localPath, remotePath }) {
+  if (!fs.existsSync(localPath)) {
+    throw new Error(`Local file not found: ${localPath}`);
+  }
+  const stat = fs.statSync(localPath);
+  if (stat.isDirectory()) {
+    throw new Error(`Directory upload is not supported in single-file cp: ${localPath}`);
+  }
+
+  const filename = path.basename(localPath);
+  const fileContent = fs.readFileSync(localPath);
+  const boundary = `----GtFormBoundary${crypto.randomBytes(8).toString('hex')}`;
+
+  const head = Buffer.from(
+    `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${filename}"\r\nContent-Type: application/octet-stream\r\n\r\n`
+  );
+  const tail = Buffer.from(`\r\n--${boundary}--\r\n`);
+  const payload = Buffer.concat([head, fileContent, tail]);
+
+  const endpoint = `/api/terminal/files/upload?hostId=${encodeURIComponent(hostId)}&path=${encodeURIComponent(remotePath || '.')}`;
+
+  const normalizedUrl = serverUrl.startsWith('http://') || serverUrl.startsWith('https://')
+    ? serverUrl
+    : `http://${serverUrl}`;
+  const serverParsed = new url.URL(normalizedUrl);
+  const isHttps = serverParsed.protocol === 'https:';
+  const client = isHttps ? https : http;
+
+  const [epPath, epQuery] = endpoint.split('?');
+  const basePath = serverParsed.pathname.replace(/\/+$/, '');
+  const finalPathname = (basePath + '/' + epPath.replace(/^\/+/, '')).replace(/\/+/g, '/');
+  const finalSearch = epQuery ? `?${epQuery}` : '';
+
+  const headers = {
+    'Content-Type': `multipart/form-data; boundary=${boundary}`,
+    'Content-Length': payload.length,
+  };
+  if (apiKey) {
+    headers['x-admin-key'] = apiKey;
+  }
+
+  return new Promise((resolve, reject) => {
+    const req = client.request({
+      protocol: serverParsed.protocol,
+      hostname: serverParsed.hostname,
+      port: serverParsed.port || (isHttps ? 443 : 80),
+      path: `${finalPathname}${finalSearch}`,
+      method: 'POST',
+      headers,
+    }, (res) => {
+      let data = '';
+      res.on('data', (chunk) => { data += chunk; });
+      res.on('end', () => {
+        let json = null;
+        try { json = JSON.parse(data); } catch { json = { raw: data }; }
+        if (res.statusCode >= 400 || (json && json.success === false)) {
+          return reject(new Error(`Upload failed: ${json?.error || `HTTP ${res.statusCode}`}`));
+        }
+        console.log(`Successfully copied ${localPath} -> [${hostId}]:${remotePath} (${(stat.size / 1024).toFixed(1)} KB)`);
+        resolve(0);
+      });
+    });
+    req.on('error', reject);
+    req.write(payload);
+    req.end();
+  });
+}
+
+async function downloadRemoteFile({ serverUrl, apiKey, hostId, remotePath, localPath }) {
+  const endpoint = `/api/terminal/files/download?hostId=${encodeURIComponent(hostId)}&path=${encodeURIComponent(remotePath)}`;
+
+  const normalizedUrl = serverUrl.startsWith('http://') || serverUrl.startsWith('https://')
+    ? serverUrl
+    : `http://${serverUrl}`;
+  const serverParsed = new url.URL(normalizedUrl);
+  const isHttps = serverParsed.protocol === 'https:';
+  const client = isHttps ? https : http;
+
+  const [epPath, epQuery] = endpoint.split('?');
+  const basePath = serverParsed.pathname.replace(/\/+$/, '');
+  const finalPathname = (basePath + '/' + epPath.replace(/^\/+/, '')).replace(/\/+/g, '/');
+  const finalSearch = epQuery ? `?${epQuery}` : '';
+
+  const headers = {};
+  if (apiKey) {
+    headers['x-admin-key'] = apiKey;
+  }
+
+  let destFile = localPath;
+  if (fs.existsSync(localPath) && fs.statSync(localPath).isDirectory()) {
+    destFile = path.join(localPath, path.basename(remotePath));
+  } else if (localPath.endsWith('/') || localPath.endsWith('\\')) {
+    fs.mkdirSync(localPath, { recursive: true });
+    destFile = path.join(localPath, path.basename(remotePath));
+  }
+
+  const parentDir = path.dirname(destFile);
+  if (!fs.existsSync(parentDir)) {
+    fs.mkdirSync(parentDir, { recursive: true });
+  }
+
+  return new Promise((resolve, reject) => {
+    const req = client.request({
+      protocol: serverParsed.protocol,
+      hostname: serverParsed.hostname,
+      port: serverParsed.port || (isHttps ? 443 : 80),
+      path: `${finalPathname}${finalSearch}`,
+      method: 'GET',
+      headers,
+    }, (res) => {
+      if (res.statusCode >= 400) {
+        let data = '';
+        res.on('data', (chunk) => { data += chunk; });
+        res.on('end', () => {
+          let json = null;
+          try { json = JSON.parse(data); } catch { json = { raw: data }; }
+          reject(new Error(`Download failed: ${json?.error || `HTTP ${res.statusCode}`}`));
+        });
+        return;
+      }
+
+      const writeStream = fs.createWriteStream(destFile);
+      let totalBytes = 0;
+      res.on('data', (chunk) => {
+        totalBytes += chunk.length;
+      });
+      res.pipe(writeStream);
+      writeStream.on('finish', () => {
+        console.log(`Successfully copied [${hostId}]:${remotePath} -> ${destFile} (${(totalBytes / 1024).toFixed(1)} KB)`);
+        resolve(0);
+      });
+      writeStream.on('error', (err) => {
+        reject(new Error(`Failed to write local file: ${err.message}`));
+      });
+    });
+    req.on('error', reject);
+    req.end();
+  });
+}
+
+async function runCp(serverUrl, apiKey, args) {
+  const { src, dest } = parseCpArgs(args);
+
+  if (src.isRemote) {
+    const resolved = await resolveHost(serverUrl, apiKey, src.host);
+    return await downloadRemoteFile({
+      serverUrl,
+      apiKey,
+      hostId: resolved.id,
+      remotePath: src.path,
+      localPath: dest.path,
+    });
+  } else {
+    const resolved = await resolveHost(serverUrl, apiKey, dest.host);
+    return await uploadLocalFile({
+      serverUrl,
+      apiKey,
+      hostId: resolved.id,
+      localPath: src.path,
+      remotePath: dest.path,
+    });
+  }
+}
+
 // --------------------------------------------------------------------------
 // Agent Daemon Subsystem (Embedded)
 // --------------------------------------------------------------------------
@@ -1900,6 +2106,12 @@ module.exports = {
   formatTemplate,
   resolveTaskId,
   resolveHost,
+  isRemoteSpec,
+  parseRemoteSpec,
+  parseCpArgs,
+  uploadLocalFile,
+  downloadRemoteFile,
+  runCp,
   makeRequest,
   parseControlMessage,
   resolveWebSocketUrl,
