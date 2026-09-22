@@ -21,10 +21,10 @@ describe('Terminal Agent Keepalive & Control Protocol', () => {
       expect(parsed).toEqual({ type: 'ping' });
     });
 
-    it('should parse bare JSON control messages without leaking', () => {
+    it('should reject bare JSON control messages to avoid stream confusion', () => {
       const msg = '{"type":"pong"}';
       const parsed = parseControlMessage(msg);
-      expect(parsed).toEqual({ type: 'pong' });
+      expect(parsed).toBeNull();
     });
 
     it('should return null for non-control shell text', () => {
