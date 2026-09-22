@@ -1733,8 +1733,11 @@ async function main() {
         try {
           resolvedHost = await resolveHost(server, key, targetHost);
         } catch (err) {
-          console.error(`Error: ${err.message}`);
-          process.exit(1);
+          if (err.message && (err.message.includes('Ambiguous') || err.message.includes('No such host'))) {
+            console.error(`Error: ${err.message}`);
+            process.exit(1);
+          }
+          resolvedHost = { id: targetHost, name: targetHost };
         }
 
         try {
@@ -1820,8 +1823,11 @@ async function main() {
         try {
           resolvedHost = await resolveHost(server, key, hostInput);
         } catch (err) {
-          console.error(`Error: ${err.message}`);
-          process.exit(1);
+          if (err.message && (err.message.includes('Ambiguous') || err.message.includes('No such host'))) {
+            console.error(`Error: ${err.message}`);
+            process.exit(1);
+          }
+          resolvedHost = { id: hostInput, name: hostInput };
         }
 
         let taskId = taskInput;
@@ -1937,8 +1943,11 @@ async function main() {
         try {
           resolvedHost = await resolveHost(server, key, hostInput);
         } catch (err) {
-          console.error(`Error: ${err.message}`);
-          process.exit(1);
+          if (err.message && (err.message.includes('Ambiguous') || err.message.includes('No such host'))) {
+            console.error(`Error: ${err.message}`);
+            process.exit(1);
+          }
+          resolvedHost = { id: hostInput, name: hostInput };
         }
 
         let taskId = taskInput;

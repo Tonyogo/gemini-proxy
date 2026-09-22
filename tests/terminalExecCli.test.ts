@@ -152,20 +152,20 @@ describe('Terminal Exec CLI Integration', () => {
   });
 
   it('inspects task with status subcommand', async () => {
-    const res = await runCli(['logs', `--server=http://localhost:${serverPort}`, 'node-1', 'task-123']);
+    const res = await runCli(['task', 'logs', `--server=http://localhost:${serverPort}`, 'node-1', 'task-123']);
     expect(res.code).toBe(0);
     expect(res.stdout).toContain('Task:');
     expect(res.stdout).toContain('task-123');
   });
 
   it('lists tasks with list subcommand', async () => {
-    const res = await runCli(['ps', `--server=http://localhost:${serverPort}`, 'node-1']);
+    const res = await runCli(['task', 'ls', `--server=http://localhost:${serverPort}`, 'node-1']);
     expect(res.code).toBe(0);
     expect(res.stdout).toContain('task-123');
   });
 
   it('kills task with kill subcommand', async () => {
-    const res = await runCli(['kill', `--server=http://localhost:${serverPort}`, 'node-1', 'task-123']);
+    const res = await runCli(['task', 'kill', `--server=http://localhost:${serverPort}`, 'node-1', 'task-123']);
     expect(res.code).toBe(0);
     expect(res.stdout).toContain('Kill signal sent');
   });

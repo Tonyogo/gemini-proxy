@@ -34,7 +34,7 @@
 - `executeCmdRpc` payload for `action: 'start'`: include `stdin?: string`
 - Agent `TaskManager.startTask`: if `options.stdin` is provided, spawn with pipe stdin and write payload to process stdin
 
-- [ ] **Step 1: Write the failing integration test for stdin in command execution**
+- [x] **Step 1: Write the failing integration test for stdin in command execution**
 
 Create `tests/terminalExecStdin.test.ts`:
 ```typescript
@@ -65,12 +65,12 @@ describe('terminalExecService with stdin support', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/terminalExecStdin.test.ts`
 Expected: FAIL (or `stdin` not recognized / not passed in payload)
 
-- [ ] **Step 3: Update terminalExecService, terminalExecController, and scripts/gt.js TaskManager**
+- [x] **Step 3: Update terminalExecService, terminalExecController, and scripts/gt.js TaskManager**
 
 Update `src/terminal/services/terminalExecService.ts`:
 ```typescript
@@ -130,12 +130,12 @@ Update `scripts/gt.js` `TaskManager.startTask`:
     }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/terminalExecStdin.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit changes**
+- [x] **Step 5: Commit changes**
 
 ```bash
 git add src/terminal/services/terminalExecService.ts src/terminal/controllers/terminalExecController.ts scripts/gt.js tests/terminalExecStdin.test.ts
@@ -157,7 +157,7 @@ git commit -m "feat(terminal): add stdin pipeline support in exec service and ag
   - Supports `table {{.ID}}\t{{.Name}}\t{{.Status}}` with auto-capitalized header names and column width padding.
   - Resolves nested or transformed fields (e.g. `{{.ExitCode}}`, `{{.StartTime}}`, `{{.LastSeen}}`).
 
-- [ ] **Step 1: Write unit tests for formatTemplate**
+- [x] **Step 1: Write unit tests for formatTemplate**
 
 Create `tests/gtFormatTemplate.test.ts`:
 ```typescript
@@ -194,12 +194,12 @@ describe('gt formatTemplate evaluator', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/gtFormatTemplate.test.ts`
 Expected: FAIL (`formatTemplate is not a function`)
 
-- [ ] **Step 3: Implement formatTemplate in scripts/gt.js**
+- [x] **Step 3: Implement formatTemplate in scripts/gt.js**
 
 Add to `scripts/gt.js`:
 ```javascript
@@ -266,12 +266,12 @@ function formatTemplate(template, items = []) {
 ```
 Export `formatTemplate` in `module.exports`.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/gtFormatTemplate.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit changes**
+- [x] **Step 5: Commit changes**
 
 ```bash
 git add scripts/gt.js tests/gtFormatTemplate.test.ts
@@ -293,7 +293,7 @@ git commit -m "feat(gt): implement go/docker style format template engine"
 - `resolveTaskId(tasks: Array<{ taskId: string }>, input: string): string`
   - Resolves target task by exact or prefix match.
 
-- [ ] **Step 1: Write unit tests for resolver functions**
+- [x] **Step 1: Write unit tests for resolver functions**
 
 Create `tests/gtResolver.test.ts`:
 ```typescript
@@ -326,12 +326,12 @@ describe('gt resolveTaskId', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/gtResolver.test.ts`
 Expected: FAIL (`resolveTaskId is not a function`)
 
-- [ ] **Step 3: Implement resolveHost and resolveTaskId in scripts/gt.js**
+- [x] **Step 3: Implement resolveHost and resolveTaskId in scripts/gt.js**
 
 Add to `scripts/gt.js`:
 ```javascript
@@ -394,12 +394,12 @@ async function resolveHost(serverUrl, apiKey, input) {
 ```
 Export both functions in `module.exports`.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/gtResolver.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit changes**
+- [x] **Step 5: Commit changes**
 
 ```bash
 git add scripts/gt.js tests/gtResolver.test.ts
@@ -420,7 +420,7 @@ git commit -m "feat(gt): add prefix matching and ambiguous resolution for hosts 
 - `runCp(serverUrl: string, apiKey: string, args: string[]): Promise<number>`
   - Executes remote download or upload.
 
-- [ ] **Step 1: Write tests for parseCpArgs**
+- [x] **Step 1: Write tests for parseCpArgs**
 
 Create `tests/gtCpCommand.test.ts`:
 ```typescript
@@ -460,12 +460,12 @@ describe('gt parseCpArgs', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/gtCpCommand.test.ts`
 Expected: FAIL (`parseCpArgs is not a function`)
 
-- [ ] **Step 3: Implement parseCpArgs, download and upload logic in scripts/gt.js**
+- [x] **Step 3: Implement parseCpArgs, download and upload logic in scripts/gt.js**
 
 Add to `scripts/gt.js`:
 ```javascript
@@ -553,12 +553,12 @@ async function uploadLocalFile({ serverUrl, apiKey, hostId, localPath, remotePat
 ```
 Implement `downloadRemoteFile` using `/api/terminal/files/download` and pipe into local destination. Export `parseCpArgs` in `module.exports`.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/gtCpCommand.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit changes**
+- [x] **Step 5: Commit changes**
 
 ```bash
 git add scripts/gt.js tests/gtCpCommand.test.ts
@@ -590,7 +590,7 @@ git commit -m "feat(gt): implement cp arguments parsing and bidirectional file t
 - Disallowed legacy flat commands (`hosts`, `ps`, `logs`, `kill`, `login`, `logout`):
   - Exit code `125` with error: `Error: 'gt <cmd>' is deprecated and replaced by 'gt <object> <verb>'. See 'gt --help'.`
 
-- [ ] **Step 1: Write integration tests for two-level commands and legacy deprecation**
+- [x] **Step 1: Write integration tests for two-level commands and legacy deprecation**
 
 Create `tests/gtManagementCommands.test.ts`:
 ```typescript
@@ -648,12 +648,12 @@ describe('gt management commands & legacy deprecation', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/gtManagementCommands.test.ts`
 Expected: FAIL (legacy commands still execute old handlers, help menu still lists old commands)
 
-- [ ] **Step 3: Refactor printHelp and main in scripts/gt.js**
+- [x] **Step 3: Refactor printHelp and main in scripts/gt.js**
 
 Update `printHelp()`:
 ```javascript
@@ -711,16 +711,16 @@ Update legacy rejection in `main()`:
 
 Implement the subcommands under `host`, `task`, `auth`, `exec`, `cp` using the resolvers and `--format` engine from earlier tasks.
 
-- [ ] **Step 4: Update tests/gtCli.test.ts for new commands**
+- [x] **Step 4: Update tests/gtCli.test.ts for new commands**
 
 Update `tests/gtCli.test.ts` to assert against `gt host ls`, `gt task ls`, and updated help text.
 
-- [ ] **Step 5: Run all CLI tests to verify they pass**
+- [x] **Step 5: Run all CLI tests to verify they pass**
 
 Run: `npx jest tests/gtManagementCommands.test.ts tests/gtCli.test.ts`
 Expected: PASS
 
-- [ ] **Step 6: Commit changes**
+- [x] **Step 6: Commit changes**
 
 ```bash
 git add scripts/gt.js tests/gtCli.test.ts tests/gtManagementCommands.test.ts
@@ -735,12 +735,12 @@ git commit -m "feat(gt): reorganize CLI into Docker-style management command hie
 - Test: `tests/*gt*.test.ts`
 - Modify: `CLAUDE.md` (Update CLI command documentation)
 
-- [ ] **Step 1: Run complete CLI test suite**
+- [x] **Step 1: Run complete CLI test suite**
 
 Run: `npx jest tests/gt*`
 Expected: All tests pass.
 
-- [ ] **Step 2: Update CLAUDE.md documentation**
+- [x] **Step 2: Update CLAUDE.md documentation**
 
 Update `CLAUDE.md` to document the new Docker-style commands:
 - `gt host ls [--format] [--json]`
@@ -752,12 +752,12 @@ Update `CLAUDE.md` to document the new Docker-style commands:
 - `gt cp <src> <dest>`
 - `gt auth login / logout`
 
-- [ ] **Step 3: Run full backend and terminal test suite**
+- [x] **Step 3: Run full backend and terminal test suite**
 
 Run: `npm test`
 Expected: All tests pass with no regressions.
 
-- [ ] **Step 4: Commit documentation and plan completion**
+- [x] **Step 4: Commit documentation and plan completion**
 
 ```bash
 git add CLAUDE.md docs/superpowers/plans/2026-09-22-gt-cli-docker-alignment.md
