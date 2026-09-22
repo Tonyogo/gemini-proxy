@@ -13,7 +13,11 @@ const http = require('http');
 const https = require('https');
 const url = require('url');
 const { spawn, execSync } = require('child_process');
-const WebSocket = require('ws');
+let WebSocket = typeof globalThis.WebSocket !== 'undefined' ? globalThis.WebSocket : null;
+try {
+  const wsPkg = require('ws');
+  if (wsPkg) WebSocket = wsPkg;
+} catch {}
 let pty = null;
 try {
   pty = require('node-pty');
