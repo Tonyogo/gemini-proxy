@@ -43,16 +43,24 @@ describe('gt (Gemini Terminal) CLI', () => {
     expect(res.stderr).toContain('Unknown command: unknown-cmd');
   });
 
-  it('requires HOST argument for exec', async () => {
-    const res = await runGt(['exec']);
-    expect(res.code).toBe(1);
-    expect(res.stderr).toContain('Missing target host');
+  it('parses -it, -ti, -i, -t, and --tty flags correctly for exec', async () => {
+    const res = await runGt(['exec', '-it', 'srv-1', 'bash']);
+    expect(res.stderr).not.toContain('requires at least 2 arguments');
+    expect(res.stderr).not.toContain('Unknown option');
   });
 
-  it('requires COMMAND argument for exec', async () => {
-    const res = await runGt(['exec', 'my-server']);
-    expect(res.code).toBe(1);
-    expect(res.stderr).toContain('Missing command to execute');
+  it('strictly requires both host and command for exec', async () => {
+    const resNoArgs = await runGt(['exec']);
+    expect(resNoArgs.code).toBe(1);
+    expect(resNoArgs.stderr).toContain('"gt exec" requires at least 2 arguments');
+
+    const resNoCmd = await runGt(['exec', 'srv-1']);
+    expect(resNoCmd.code).toBe(1);
+    expect(resNoCmd.stderr).toContain('"gt exec" requires at least 2 arguments');
+
+    const resWithFlagsNoCmd = await runGt(['exec', '-it', 'srv-1']);
+    expect(resWithFlagsNoCmd.code).toBe(1);
+    expect(resWithFlagsNoCmd.stderr).toContain('"gt exec" requires at least 2 arguments');
   });
 });
 
@@ -239,6 +247,13 @@ describe('gt CLI Mock Server Integration', () => {
     const res = await runGt(['exec', '--verbose', '--server', `http://127.0.0.1:${serverPort}`, 'node-1', 'grep', 'hello world', 'app.log']);
     expect(res.code).toBe(0);
     expect(res.stderr).toContain("grep 'hello world' app.log");
+  });
+
+  it('treats -t as --tty, not as timeout', async () => {
+    const res = await runGt(['exec', '--timeout', '60000', '-t', 'node-1', 'echo hi'], {
+      TERMINAL_SERVER: `http://localhost:${serverPort}`,
+    });
+    expect(res.stderr).not.toContain('Unknown option');
   });
 });
 

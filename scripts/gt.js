@@ -1458,6 +1458,7 @@ function parseExecArgs(args) {
   let verbose = false;
   let pollInterval = 500;
   let interactive = false;
+  let tty = false;
   const envVars = {};
   let host = '';
   const commandParts = [];
@@ -1479,8 +1480,13 @@ function parseExecArgs(args) {
       verbose = true;
     } else if (a === '-q' || a === '--quiet') {
       // Retained for backward flag compatibility (now default behavior)
+    } else if (a === '-it' || a === '-ti') {
+      interactive = true;
+      tty = true;
     } else if (a === '-i' || a === '--interactive' || a === '--stdin') {
       interactive = true;
+    } else if (a === '-t' || a === '--tty') {
+      tty = true;
     } else if (a === '-w' || a === '--workdir' || a === '--cwd') {
       workdir = args[++i];
     } else if (a.startsWith('-w=')) {
@@ -1489,7 +1495,7 @@ function parseExecArgs(args) {
       workdir = a.slice(10);
     } else if (a.startsWith('--cwd=')) {
       workdir = a.slice(6);
-    } else if (a === '-t' || a === '--timeout') {
+    } else if (a === '--timeout') {
       timeoutMs = parseInt(args[++i], 10);
     } else if (a.startsWith('--timeout=')) {
       timeoutMs = parseInt(a.slice(10), 10);
@@ -1533,7 +1539,7 @@ function parseExecArgs(args) {
     host,
     fullCommand,
     commandParts,
-    options: { detach, workdir, timeoutMs, verbose, pollInterval, env: envVars, interactive }
+    options: { detach, workdir, timeoutMs, verbose, pollInterval, env: envVars, interactive, tty }
   };
 }
 
@@ -2114,16 +2120,12 @@ async function main() {
         console.error(`Error: ${err.message}`);
         process.exit(1);
       }
-      const { host, fullCommand, options } = parsed;
-      const { detach, workdir, timeoutMs, verbose, pollInterval, env: envVars, interactive } = options;
+      const { host, fullCommand, commandParts, options } = parsed;
+      const { detach, workdir, timeoutMs, verbose, pollInterval, env: envVars, interactive, tty } = options;
 
-      if (!host) {
-        console.error('Error: Missing target host. Usage: gt exec [OPTIONS] HOST COMMAND [ARGS...]');
-        process.exit(1);
-      }
-
-      if (!fullCommand) {
-        console.error('Error: Missing command to execute.');
+      if (!host || commandParts.length === 0) {
+        console.error('Error: "gt exec" requires at least 2 arguments.');
+        console.error('Usage: gt exec [OPTIONS] <host> <command...>');
         process.exit(1);
       }
 
@@ -2136,7 +2138,7 @@ async function main() {
       const targetHost = resolvedHost.id;
 
       let stdinPayload = undefined;
-      if (interactive) {
+      if (interactive && !tty) {
         stdinPayload = await new Promise((resolve) => {
           let buf = '';
           process.stdin.setEncoding('utf-8');
