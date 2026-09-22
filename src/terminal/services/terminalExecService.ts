@@ -1,4 +1,5 @@
 import { terminalHostManager } from './terminalHostManager';
+import terminalLogService from './terminalLogService';
 
 export interface StartExecutionOptions {
   command: string;
@@ -9,6 +10,8 @@ export interface StartExecutionOptions {
 }
 
 export class TerminalExecService {
+  private loggedFinishedTasks = new Set<string>();
+
   public async startExecution(hostId: string, options: StartExecutionOptions): Promise<any> {
     if (!hostId || !hostId.trim()) {
       return { success: false, error: 'hostId is required' };
@@ -19,11 +22,13 @@ export class TerminalExecService {
 
     const taskId = `task-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const timeoutMs = Math.min(Math.max(options.timeoutMs || 300000, 1000), 3600000); // 1s to 1 hour
+    const trimmedHost = hostId.trim();
+    const trimmedCmd = options.command.trim();
 
-    const res = await terminalHostManager.executeCmdRpc(hostId.trim(), {
+    const res = await terminalHostManager.executeCmdRpc(trimmedHost, {
       action: 'start',
       taskId,
-      command: options.command.trim(),
+      command: trimmedCmd,
       cwd: options.cwd ? options.cwd.trim() : undefined,
       timeoutMs,
       env: options.env || {},
@@ -31,17 +36,25 @@ export class TerminalExecService {
     });
 
     if (res && res.success && res.data) {
+      const effectiveTaskId = res.data.taskId || taskId;
+      const logMsg = `[Exec] Started task ${effectiveTaskId} on [${trimmedHost}]: ${trimmedCmd} (timeout: ${timeoutMs}ms${options.cwd ? `, cwd: ${options.cwd.trim()}` : ''})`;
+      terminalLogService.addLog('info', logMsg);
+
       return {
         success: true,
-        taskId,
-        hostId: hostId.trim(),
+        taskId: effectiveTaskId,
+        hostId: trimmedHost,
         ...res.data,
       };
     }
 
+    const errorMsg = res?.error || 'Failed to start command on agent';
+    const failLog = `[Exec] Failed to start command on [${trimmedHost}]: ${errorMsg} (cmd: ${trimmedCmd})`;
+    terminalLogService.addLog('error', failLog);
+
     return {
       success: false,
-      error: res?.error || 'Failed to start command on agent',
+      error: errorMsg,
     };
   }
 
@@ -53,17 +66,37 @@ export class TerminalExecService {
       return { success: false, error: 'taskId is required' };
     }
 
-    const res = await terminalHostManager.executeCmdRpc(hostId.trim(), {
+    const trimmedHost = hostId.trim();
+    const trimmedTaskId = taskId.trim();
+
+    const res = await terminalHostManager.executeCmdRpc(trimmedHost, {
       action: 'poll',
-      taskId: taskId.trim(),
+      taskId: trimmedTaskId,
       offset: Math.max(0, offset || 0),
     });
 
     if (res && res.success && res.data) {
+      const data = res.data;
+      if (data.status && data.status !== 'running') {
+        const taskKey = `${trimmedHost}:${trimmedTaskId}`;
+        if (!this.loggedFinishedTasks.has(taskKey)) {
+          this.loggedFinishedTasks.add(taskKey);
+          if (this.loggedFinishedTasks.size > 2000) {
+            const firstKey = this.loggedFinishedTasks.values().next().value;
+            if (firstKey) this.loggedFinishedTasks.delete(firstKey);
+          }
+
+          const isSuccess = data.exitCode === 0 || data.status === 'completed';
+          const level = isSuccess ? 'info' : 'warn';
+          const finishMsg = `[Exec] Task ${trimmedTaskId} on [${trimmedHost}] finished: status=${data.status}, exitCode=${data.exitCode !== null && data.exitCode !== undefined ? data.exitCode : 'N/A'}, duration=${data.durationMs ?? 0}ms`;
+          terminalLogService.addLog(level, finishMsg);
+        }
+      }
+
       return {
         success: true,
-        hostId: hostId.trim(),
-        ...res.data,
+        hostId: trimmedHost,
+        ...data,
       };
     }
 
@@ -81,16 +114,23 @@ export class TerminalExecService {
       return { success: false, error: 'taskId is required' };
     }
 
-    const res = await terminalHostManager.executeCmdRpc(hostId.trim(), {
+    const trimmedHost = hostId.trim();
+    const trimmedTaskId = taskId.trim();
+    const targetSignal = signal === 'SIGKILL' ? 'SIGKILL' : 'SIGTERM';
+
+    const res = await terminalHostManager.executeCmdRpc(trimmedHost, {
       action: 'kill',
-      taskId: taskId.trim(),
-      signal: signal === 'SIGKILL' ? 'SIGKILL' : 'SIGTERM',
+      taskId: trimmedTaskId,
+      signal: targetSignal,
     });
+
+    const killMsg = `[Exec] Sent kill signal ${targetSignal} to task ${trimmedTaskId} on [${trimmedHost}]`;
+    terminalLogService.addLog('warn', killMsg);
 
     if (res && res.success) {
       return {
         success: true,
-        taskId: taskId.trim(),
+        taskId: trimmedTaskId,
         status: 'killed',
         message: res.data?.message || 'Kill signal sent to task',
       };
