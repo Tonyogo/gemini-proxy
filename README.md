@@ -48,7 +48,7 @@ gemini-proxy/
 │       └── utils/             # 移动端视口计算、按键编码器、终端过滤器等
 ├── scripts/
 │   ├── deploy.sh              # 统一步署脚本 (Git 拉取、依赖安装、前后端编译、PM2 平滑重载)
-│   └── gt.js                  # 统一 Docker 风格终端 CLI 与反向 Agent 引擎 (gt hosts / exec / agent)
+│   └── gt.js                  # 统一 Docker 风格终端 CLI 与反向 Agent 引擎 (gt host / task / exec / cp / agent)
 ├── src/
 │   ├── admin/                 # 管理控制台后端逻辑 (状态、统计、日志审计、全局配置、账号)
 │   │   ├── controllers/       # AdminController, AccountController
@@ -378,6 +378,34 @@ curl -X POST "http://localhost:3000/api/admin/terminal/exec/Ubuntu-GPU-Server/ta
 ```bash
 curl "http://localhost:3000/api/admin/terminal/exec/Ubuntu-GPU-Server?limit=20" \
      -H "x-admin-key: YOUR_ADMIN_SECRET_KEY"
+```
+
+#### E. `gt` 命令行工具 (Docker 风格统一客户端)
+
+除了 HTTP REST API，本项目提供了类似 Docker 的标准终端管理工具 `gt`（位于 `scripts/gt.js`，支持全局软链接或通过 `npm run gt -- <cmd>` 调用）：
+
+```bash
+# 1. 节点与认证管理
+gt auth login [server] [key]     # 校验凭据并保存至 ~/.gt/config.json
+gt auth logout                   # 清理本地凭据缓存
+gt host ls                       # 查看当前在线的所有 Agent 节点
+gt host ls --format "table {{.ID}}\t{{.Name}}\t{{.IP}}\t{{.Status}}" # 自定义表格格式
+gt host prune                    # 清理离线的节点记录
+
+# 2. 远程命令执行 (支持短 ID 解析与 Stdin 管道)
+gt exec my-host uptime
+gt exec -w /var/www my-host ls -la
+cat deploy.sh | gt exec -i my-host bash          # 标准输入流管道支持
+gt exec -d my-host "sleep 60 && echo done"       # 后台异步执行并返回 Task ID
+
+# 3. 任务与日志追踪
+gt task ls my-host                               # 查看节点上的最近任务
+gt task logs -f my-host task-1726671234000       # 实时跟踪任务日志流
+gt task kill my-host task-1726671234000          # 中断或强杀正在运行的任务
+
+# 4. 双向文件拷贝 (类似 docker cp)
+gt cp my-host:/var/log/app.log ./local.log       # 远程文件下载到本地
+gt cp ./config.json my-host:/app/config.json     # 本地文件上传到远程
 ```
 
 ---
