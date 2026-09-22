@@ -404,9 +404,10 @@ gt host ls                       # 查看当前在线的所有 Agent 节点
 gt host ls --format "table {{.ID}}\t{{.Name}}\t{{.IP}}\t{{.Status}}" # 自定义表格格式
 gt host prune                    # 清理离线的节点记录
 
-# 2. 远程命令执行 (支持短 ID 解析与 Stdin 管道)
+# 2. 远程命令执行 (纯净流式输出，支持短 ID 解析与 Stdin 管道)
 gt exec my-host uptime
 gt exec -w /var/www my-host ls -la
+gt exec --verbose my-host echo "hello"        # 详细模式 (显示开始与耗时 Banner)
 cat deploy.sh | gt exec -i my-host bash          # 标准输入流管道支持
 gt exec -d my-host "sleep 60 && echo done"       # 后台异步执行并返回 Task ID
 
