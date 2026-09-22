@@ -27,7 +27,7 @@
 **Interfaces:**
 - Produces: Updated `parseExecArgs(args)` returning `{ host, fullCommand, commandParts, options: { detach, workdir, timeoutMs, verbose, pollInterval, env, interactive, tty } }`.
 
-- [ ] **Step 1: Write the failing test in `tests/gtCli.test.ts`**
+- [x] **Step 1: Write the failing test in `tests/gtCli.test.ts`**
 
 Add unit tests for interactive flags, argument validation, and `--timeout` disambiguation:
 
@@ -65,12 +65,12 @@ Add unit tests for interactive flags, argument validation, and `--timeout` disam
   });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/gtCli.test.ts`
 Expected: FAIL because `parseExecArgs` still requires single command and errors with `Missing command to execute`, does not support `-it`, and treats `-t` as timeout.
 
-- [ ] **Step 3: Update `parseExecArgs` in `scripts/gt.js`**
+- [x] **Step 3: Update `parseExecArgs` in `scripts/gt.js`**
 
 Modify `parseExecArgs` in `scripts/gt.js`:
 ```javascript
@@ -179,12 +179,12 @@ Update the argument check in `case 'exec'` (`scripts/gt.js`):
       }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/gtCli.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add scripts/gt.js tests/gtCli.test.ts
@@ -209,7 +209,7 @@ git commit -m "feat(gt): support -t/--tty and -it composite flags and require co
   - `terminalHostManager.getHost(hostId)`
   - `terminalHostManager.getSession(hostId)`
 
-- [ ] **Step 1: Write the failing test for `TerminalExecBridge`**
+- [x] **Step 1: Write the failing test for `TerminalExecBridge`**
 
 Create `tests/terminalExecBridge.test.ts`:
 ```typescript
@@ -311,12 +311,12 @@ describe('TerminalExecBridge', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/terminalExecBridge.test.ts`
 Expected: FAIL with `Cannot find module '../src/terminal/services/terminalExecBridge'`.
 
-- [ ] **Step 3: Create `src/terminal/services/terminalExecBridge.ts`**
+- [x] **Step 3: Create `src/terminal/services/terminalExecBridge.ts`**
 
 Implement `TerminalExecBridge`:
 ```typescript
@@ -522,12 +522,12 @@ export const terminalExecBridge = new TerminalExecBridge();
 export default terminalExecBridge;
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/terminalExecBridge.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/terminal/services/terminalExecBridge.ts tests/terminalExecBridge.test.ts
@@ -546,7 +546,7 @@ git commit -m "feat(terminal): add TerminalExecBridge service for interactive ex
 - Consumes: `terminalExecBridge`
 - Produces: Upgraded WebSocket endpoints for `/api/terminal/exec-ws` and `/api/admin/terminal/exec-ws`.
 
-- [ ] **Step 1: Write failing test in `tests/terminalExecWsRoute.test.ts`**
+- [x] **Step 1: Write failing test in `tests/terminalExecWsRoute.test.ts`**
 
 Create `tests/terminalExecWsRoute.test.ts`:
 ```typescript
@@ -606,12 +606,12 @@ describe('Exec WebSocket Route Upgrade', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/terminalExecWsRoute.test.ts`
 Expected: FAIL because `/api/terminal/exec-ws` is not recognized and upgrade is ignored.
 
-- [ ] **Step 3: Modify `src/terminal/routes/terminalWs.ts`**
+- [x] **Step 3: Modify `src/terminal/routes/terminalWs.ts`**
 
 1. Create `execWss = new WebSocketServer({ noServer: true });`
 2. Add `isExecWs = reqUrl.startsWith('/api/terminal/exec-ws') || reqUrl.startsWith('/api/admin/terminal/exec-ws')`
@@ -620,12 +620,12 @@ Expected: FAIL because `/api/terminal/exec-ws` is not recognized and upgrade is 
    - Route `control.type === 'cmd_stream_data'` and `control.type === 'cmd_stream_exit'` to `terminalExecBridge.handleAgentStreamMessage(hostId, control)`.
    - On agent `close` / `error`, call `terminalExecBridge.handleAgentDisconnected(hostId)`.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/terminalExecWsRoute.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/terminal/routes/terminalWs.ts tests/terminalExecWsRoute.test.ts
@@ -648,7 +648,7 @@ git commit -m "feat(terminal): integrate /api/terminal/exec-ws route and agent e
   - `cmd_stream_kill` (killProcessTree)
   - Automatic session cleanup on exit
 
-- [ ] **Step 1: Write the failing test for Agent StreamSessionManager**
+- [x] **Step 1: Write the failing test for Agent StreamSessionManager**
 
 Create `tests/gtAgentStream.test.ts`:
 ```typescript
@@ -732,12 +732,12 @@ describe('Agent StreamSessionManager', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/gtAgentStream.test.ts`
 Expected: FAIL with timeout or unknown action `start_stream`.
 
-- [ ] **Step 3: Implement `StreamSessionManager` in `scripts/gt.js`**
+- [x] **Step 3: Implement `StreamSessionManager` in `scripts/gt.js`**
 
 Add `StreamSessionManager` to `scripts/gt.js`:
 ```javascript
@@ -897,12 +897,12 @@ Integrate into `runAgent`:
 - Handle `type === 'cmd_stream_input'`, `type === 'cmd_stream_resize'`, `type === 'cmd_stream_kill'`.
 - Call `streamSessionManager.killAll()` in `cleanup()` and on WS disconnect.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/gtAgentStream.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add scripts/gt.js tests/gtAgentStream.test.ts
@@ -921,7 +921,7 @@ git commit -m "feat(gt): implement StreamSessionManager in agent for isolated PT
 - Produces: `runInteractiveExec({ serverUrl, apiKey, hostId, fullCommand, options })` in `scripts/gt.js`.
 - Handles raw mode toggling, SIGWINCH resize sync, binary I/O piping, and clean terminal exit code return.
 
-- [ ] **Step 1: Write integration test for CLI interactive exec**
+- [x] **Step 1: Write integration test for CLI interactive exec**
 
 Create `tests/gtInteractiveCli.test.ts`:
 ```typescript
@@ -991,12 +991,12 @@ describe('gt exec -it CLI runner', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/gtInteractiveCli.test.ts`
 Expected: FAIL because `gt exec -it` currently falls into the non-interactive HTTP POST polling branch.
 
-- [ ] **Step 3: Implement `runInteractiveExec` in `scripts/gt.js`**
+- [x] **Step 3: Implement `runInteractiveExec` in `scripts/gt.js`**
 
 Implement `runInteractiveExec`:
 ```javascript
@@ -1134,12 +1134,12 @@ In `case 'exec'` dispatcher:
       }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/gtInteractiveCli.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add scripts/gt.js tests/gtInteractiveCli.test.ts
@@ -1155,7 +1155,7 @@ git commit -m "feat(gt): add runInteractiveExec with raw mode and resize event f
 - Test: `tests/gtCli.test.ts`
 - Run: `npm test`
 
-- [ ] **Step 1: Update CLI documentation in `CLAUDE.md` and `gt --help`**
+- [x] **Step 1: Update CLI documentation in `CLAUDE.md` and `gt --help`**
 
 Ensure `CLAUDE.md` and `scripts/gt.js` printHelp clearly reflect:
 - `gt exec [-it] [-d] [-w <dir>] [--timeout <ms>] <host> [--] <cmd...>`
@@ -1164,12 +1164,12 @@ Ensure `CLAUDE.md` and `scripts/gt.js` printHelp clearly reflect:
 - `-it`: Interactive pseudo-terminal session (like `docker exec -it`)
 - `--timeout <ms>`: Execution timeout
 
-- [ ] **Step 2: Run all test suites across the project**
+- [x] **Step 2: Run all test suites across the project**
 
 Run: `npm test`
 Expected: PASS (all tests green, no regressions)
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add CLAUDE.md scripts/gt.js
