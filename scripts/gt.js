@@ -929,6 +929,155 @@ class TaskManager {
   }
 }
 
+class StreamSessionManager {
+  constructor(sendFn) {
+    this.send = sendFn;
+    this.sessions = new Map();
+  }
+
+  startStream({ taskId, command, cwd, env = {}, cols = 80, rows = 24, timeoutMs = 0, tty = true }) {
+    const workingDir = cwd ? path.resolve(cwd) : (process.env.HOME || process.cwd());
+    const isWindows = os.platform() === 'win32';
+    const shell = getDefaultShell();
+    const taskEnv = {
+      ...process.env,
+      ...env,
+      TERM: 'xterm-256color',
+      COLORTERM: 'truecolor',
+      LANG: process.env.LANG || 'en_US.UTF-8',
+    };
+
+    let ptyProc = null;
+    let childProc = null;
+    const isPty = Boolean(tty && pty);
+
+    if (isPty) {
+      const shellArgs = isWindows
+        ? (shell.toLowerCase().includes('powershell') ? ['-Command', command] : ['/c', command])
+        : ['-c', command];
+      try {
+        ptyProc = pty.spawn(shell, shellArgs, {
+          name: 'xterm-256color',
+          cols: cols || 80,
+          rows: rows || 24,
+          cwd: workingDir,
+          env: taskEnv,
+        });
+      } catch (err) {
+        ptyProc = null;
+      }
+    }
+
+    if (!ptyProc) {
+      if (tty && !pty) {
+        const warnMsg = Buffer.from('\r\n\x1b[33m[Warning] node-pty not available on agent; running in streaming pipe mode.\x1b[0m\r\n');
+        this.send({ type: 'cmd_stream_data', taskId, data: warnMsg.toString('base64') });
+      }
+      const shellArgs = isWindows
+        ? (shell.toLowerCase().includes('powershell') ? ['-Command', command] : ['/c', command])
+        : ['-c', command];
+      try {
+        childProc = spawn(shell, shellArgs, {
+          cwd: workingDir,
+          env: taskEnv,
+          stdio: ['pipe', 'pipe', 'pipe'],
+          detached: !isWindows,
+        });
+      } catch (err) {
+        this.send({ type: 'cmd_stream_exit', taskId, exitCode: 1, signal: null });
+        return;
+      }
+    }
+
+    const session = {
+      taskId,
+      isPty: Boolean(ptyProc),
+      proc: ptyProc || childProc,
+      timeoutTimer: null,
+    };
+
+    if (timeoutMs > 0) {
+      session.timeoutTimer = setTimeout(() => {
+        this.kill(taskId, 'SIGTERM');
+      }, timeoutMs);
+    }
+
+    const onData = (chunk) => {
+      const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk, 'utf-8');
+      this.send({
+        type: 'cmd_stream_data',
+        taskId,
+        data: buf.toString('base64'),
+      });
+    };
+
+    const onExit = (code, signal) => {
+      if (session.timeoutTimer) clearTimeout(session.timeoutTimer);
+      this.sessions.delete(taskId);
+      this.send({
+        type: 'cmd_stream_exit',
+        taskId,
+        exitCode: code !== null && code !== undefined ? code : (signal ? 130 : 0),
+        signal: signal || null,
+      });
+    };
+
+    if (ptyProc) {
+      ptyProc.onData(onData);
+      ptyProc.onExit(({ exitCode, signal }) => onExit(exitCode, signal));
+    } else if (childProc) {
+      childProc.stdout.on('data', onData);
+      childProc.stderr.on('data', onData);
+      childProc.on('close', (code, signal) => onExit(code, signal));
+    }
+
+    this.sessions.set(taskId, session);
+  }
+
+  writeInput(taskId, base64Data) {
+    const session = this.sessions.get(taskId);
+    if (!session || !session.proc) return;
+    try {
+      const buf = Buffer.from(base64Data, 'base64');
+      if (session.isPty) {
+        session.proc.write(buf.toString('utf-8'));
+      } else if (session.proc.stdin) {
+        session.proc.stdin.write(buf);
+      }
+    } catch {}
+  }
+
+  resize(taskId, cols, rows) {
+    const session = this.sessions.get(taskId);
+    if (!session || !session.proc) return;
+    if (session.isPty && typeof session.proc.resize === 'function') {
+      try {
+        session.proc.resize(Math.max(10, cols || 80), Math.max(5, rows || 24));
+      } catch {}
+    }
+  }
+
+  kill(taskId, signal = 'SIGTERM') {
+    const session = this.sessions.get(taskId);
+    if (!session || !session.proc) return;
+    try {
+      if (session.isPty) {
+        session.proc.kill(signal);
+      } else {
+        killProcessTree(session.proc, signal);
+      }
+    } catch {}
+    if (session.timeoutTimer) clearTimeout(session.timeoutTimer);
+    this.sessions.delete(taskId);
+  }
+
+  killAll() {
+    for (const taskId of this.sessions.keys()) {
+      this.kill(taskId, 'SIGTERM');
+    }
+  }
+}
+
 const taskManager = new TaskManager();
 
 function handleFileRpc(control, targetWs) {
@@ -1147,6 +1296,7 @@ function runAgent(agentArgs = [], globalOpts = {}) {
 
   let ptyProcess = null;
   let ws = null;
+  let streamSessionManager = null;
   let reconnectAttempts = 0;
   let isExiting = false;
   let connectTimeoutTimer = null;
@@ -1293,6 +1443,12 @@ function runAgent(agentArgs = [], globalOpts = {}) {
       }
 
       try {
+        streamSessionManager = new StreamSessionManager((data) => {
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send('JSON:' + JSON.stringify(data));
+          }
+        });
+
         if (isFirstSpawn) {
           ws.send(`JSON:${JSON.stringify({ type: 'reset' })}`);
         }
@@ -1313,7 +1469,31 @@ function runAgent(agentArgs = [], globalOpts = {}) {
             return;
           }
           if (control.type === 'cmd_exec') {
+            if (control.action === 'start_stream') {
+              if (streamSessionManager) {
+                streamSessionManager.startStream(control);
+              }
+              return;
+            }
             handleCmdExec(control, ws);
+            return;
+          }
+          if (control.type === 'cmd_stream_input') {
+            if (streamSessionManager) {
+              streamSessionManager.writeInput(control.taskId, control.data);
+            }
+            return;
+          }
+          if (control.type === 'cmd_stream_resize') {
+            if (streamSessionManager) {
+              streamSessionManager.resize(control.taskId, control.cols, control.rows);
+            }
+            return;
+          }
+          if (control.type === 'cmd_stream_kill') {
+            if (streamSessionManager) {
+              streamSessionManager.kill(control.taskId, control.signal);
+            }
             return;
           }
           if (control.type === 'resize') {
@@ -1367,6 +1547,9 @@ function runAgent(agentArgs = [], globalOpts = {}) {
     ws.on('close', (code, reason) => {
       if (connectTimeoutTimer) clearTimeout(connectTimeoutTimer);
       stopHeartbeat();
+      if (streamSessionManager) {
+        streamSessionManager.killAll();
+      }
       if (code === 4009) {
         isExiting = true;
         console.error(`\x1b[31m[Error] Registration rejected by server: ${reason?.toString() || 'Host name conflict'}\x1b[0m`);
@@ -1401,6 +1584,9 @@ function runAgent(agentArgs = [], globalOpts = {}) {
     console.log('\n[Agent] Shutting down agent...');
     if (ws) {
       try { ws.close(); } catch {}
+    }
+    if (streamSessionManager) {
+      streamSessionManager.killAll();
     }
     if (ptyProcess) {
       try { ptyProcess.kill('SIGTERM'); } catch {}
@@ -2353,6 +2539,7 @@ module.exports = {
   ConfigStore,
   TaskManager,
   taskManager,
+  StreamSessionManager,
   killProcessTree,
   killProcessTreeSync,
   handleFileRpc,
