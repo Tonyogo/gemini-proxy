@@ -5,6 +5,7 @@ export interface StartExecutionOptions {
   cwd?: string;
   timeoutMs?: number;
   env?: Record<string, string>;
+  stdin?: string;
 }
 
 export class TerminalExecService {
@@ -26,6 +27,7 @@ export class TerminalExecService {
       cwd: options.cwd ? options.cwd.trim() : undefined,
       timeoutMs,
       env: options.env || {},
+      stdin: typeof options.stdin === 'string' ? options.stdin : undefined,
     });
 
     if (res && res.success && res.data) {

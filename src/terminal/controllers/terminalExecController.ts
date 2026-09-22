@@ -4,7 +4,7 @@ import terminalExecService from '../services/terminalExecService';
 class TerminalExecController {
   public async startExec(req: Request, res: Response): Promise<any> {
     const hostId = Array.isArray(req.params.hostId) ? req.params.hostId[0] : req.params.hostId;
-    const { command, cwd, timeoutMs, env } = req.body || {};
+    const { command, cwd, timeoutMs, env, stdin } = req.body || {};
 
     if (!command || typeof command !== 'string' || !command.trim()) {
       return res.status(400).json({ success: false, error: 'Field "command" is required' });
@@ -15,6 +15,7 @@ class TerminalExecController {
       cwd,
       timeoutMs: timeoutMs !== undefined ? parseInt(String(timeoutMs), 10) : undefined,
       env: typeof env === 'object' && env !== null ? env : undefined,
+      stdin: typeof stdin === 'string' ? stdin : undefined,
     });
 
     if (!result.success) {

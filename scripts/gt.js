@@ -360,7 +360,7 @@ class TaskManager {
     }
   }
 
-  startTask({ taskId, command, cwd, timeoutMs = 300000, env = {} }) {
+  startTask({ taskId, command, cwd, timeoutMs = 300000, env = {}, stdin = null }) {
     this.pruneOldTasks();
 
     if (this.tasks.has(taskId)) {
@@ -393,9 +393,13 @@ class TaskManager {
       child = spawn(shell, shellArgs, {
         cwd: workingDir,
         env: taskEnv,
-        stdio: ['ignore', 'pipe', 'pipe'],
+        stdio: [stdin !== null && stdin !== undefined ? 'pipe' : 'ignore', 'pipe', 'pipe'],
         detached: !isWindows,
       });
+      if (child.stdin && stdin !== null && stdin !== undefined) {
+        child.stdin.write(stdin);
+        child.stdin.end();
+      }
     } catch (err) {
       return { success: false, error: `Failed to spawn process: ${err.message}` };
     }
@@ -722,7 +726,7 @@ function handleFileRpc(control, targetWs) {
 }
 
 function handleCmdExec(control, targetWs) {
-  const { reqId, action, taskId, command, cwd, timeoutMs, env, offset, signal, limit } = control;
+  const { reqId, action, taskId, command, cwd, timeoutMs, env, stdin, offset, signal, limit } = control;
 
   const reply = (success, data = null, error = null) => {
     if (targetWs && targetWs.readyState === WebSocket.OPEN) {
@@ -741,7 +745,7 @@ function handleCmdExec(control, targetWs) {
 
   try {
     if (action === 'start') {
-      const res = taskManager.startTask({ taskId, command, cwd, timeoutMs, env });
+      const res = taskManager.startTask({ taskId, command, cwd, timeoutMs, env, stdin });
       if (res.success) {
         return reply(true, res);
       }
