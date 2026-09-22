@@ -32,7 +32,7 @@
   - `parseExecArgs(cmdArgs: string[]): { host: string, fullCommand: string, options: ExecOptions }`
   - `quoteShellArg(arg: string): string`
 
-- [ ] **Step 1: 编写重现参数贪婪拦截及引号丢失的失败测试用例**
+- [x] **Step 1: 编写重现参数贪婪拦截及引号丢失的失败测试用例**
 
 在 `tests/gtCli.test.ts` 中添加测试：
 ```typescript
@@ -48,12 +48,12 @@ it('preserves spaces and quotes in arguments safely', async () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试并验证其失败或异常行为**
+- [x] **Step 2: 运行测试并验证其失败或异常行为**
 
 运行: `npx jest tests/gtCli.test.ts -t "does not absorb remote flags"`
 期望: 测试失败或显示 `-t 10` 被拦截为 `gt` 的 `--timeout 10`。
 
-- [ ] **Step 3: 在 `scripts/gt.js` 中实现状态机解析与参数转义**
+- [x] **Step 3: 在 `scripts/gt.js` 中实现状态机解析与参数转义**
 
 在 `scripts/gt.js` 中重写 `gt exec` 参数处理：
 ```javascript
@@ -141,12 +141,12 @@ function parseExecArgs(args) {
 ```
 并在 CLI 分发器中使用该解析函数。
 
-- [ ] **Step 4: 运行测试验证通过**
+- [x] **Step 4: 运行测试验证通过**
 
 运行: `npx jest tests/gtCli.test.ts`
 期望: 所有 CLI 测试全部通过 (PASS)。
 
-- [ ] **Step 5: 提交更改**
+- [x] **Step 5: 提交更改**
 
 ```bash
 git add scripts/gt.js tests/gtCli.test.ts
@@ -165,7 +165,7 @@ git commit -m "fix(gt): implement two-phase cli argument parser and safe shell q
 - Consumes: `gt logs <host> <taskId> [-f|--follow]`
 - Produces: 类似 `gt exec` 的流式日志轮询，直到任务完成。
 
-- [ ] **Step 1: 编写 `gt logs -f` 功能的测试用例**
+- [x] **Step 1: 编写 `gt logs -f` 功能的测试用例**
 
 在 `tests/gtCli.test.ts` 中添加：
 ```typescript
@@ -176,24 +176,24 @@ it('supports follow mode with -f flag on logs', async () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试并验证其失败**
+- [x] **Step 2: 运行测试并验证其失败**
 
 运行: `npx jest tests/gtCli.test.ts -t "supports follow mode with -f"`
 期望: FAIL (当前未处理 `-f`，将参数识别错或仅打印一次快照)。
 
-- [ ] **Step 3: 在 `scripts/gt.js` 的 `logs` 分支中实现跟随轮询逻辑**
+- [x] **Step 3: 在 `scripts/gt.js` 的 `logs` 分支中实现跟随轮询逻辑**
 
 在 `scripts/gt.js` 中扩展 `logs`：
 - 解析出 `hostId`、`taskId` 以及可选的 `-f / --follow`、`--poll-interval` 参数；
 - 如果未指定 `-f`，保留现有的快照获取逻辑；
 - 如果指定了 `-f`，使用循环增量拉取（`offset` 轮询），一旦 `status !== 'running'` 且输出完全打印后优雅退出。
 
-- [ ] **Step 4: 运行测试验证通过**
+- [x] **Step 4: 运行测试验证通过**
 
 运行: `npx jest tests/gtCli.test.ts -t "supports follow mode with -f"`
 期望: PASS。
 
-- [ ] **Step 5: 提交代码**
+- [x] **Step 5: 提交代码**
 
 ```bash
 git add scripts/gt.js tests/gtCli.test.ts
@@ -215,7 +215,7 @@ git commit -m "feat(gt): add follow mode (-f/--follow) to gt logs"
   - `killProcessTreeSync(pid: number, signal?: string): void`
   - Agent 全局退出钩子绑定（`SIGINT`, `SIGTERM`, `SIGHUP`, `exit`, `uncaughtException`）
 
-- [ ] **Step 1: 编写验证衍生子进程级联终止的测试用例**
+- [x] **Step 1: 编写验证衍生子进程级联终止的测试用例**
 
 在 `tests/terminalTaskManager.test.ts` 中添加针对派生子进程的测试：
 ```typescript
@@ -241,12 +241,12 @@ it('kills entire process group and all child processes when task is killed', asy
 });
 ```
 
-- [ ] **Step 2: 运行测试确认当前实现存在不足或完善边界检查**
+- [x] **Step 2: 运行测试确认当前实现存在不足或完善边界检查**
 
 运行: `npx jest tests/terminalTaskManager.test.ts -t "kills entire process group"`
 期望: 检查当前 killChild 的行为。
 
-- [ ] **Step 3: 实现 `killProcessTree` 与两阶段退出逻辑，并在 Agent 退出时全局清理**
+- [x] **Step 3: 实现 `killProcessTree` 与两阶段退出逻辑，并在 Agent 退出时全局清理**
 
 在 `scripts/gt.js` 中：
 1. 编写跨平台进程组终止函数：
@@ -295,12 +295,12 @@ process.on('SIGTERM', cleanup);
 process.on('SIGHUP', cleanup);
 ```
 
-- [ ] **Step 4: 运行全部任务管理测试验证通过**
+- [x] **Step 4: 运行全部任务管理测试验证通过**
 
 运行: `npx jest tests/terminalTaskManager.test.ts`
 期望: 所有 TaskManager 测试顺利通过 (PASS)。
 
-- [ ] **Step 5: 提交代码**
+- [x] **Step 5: 提交代码**
 
 ```bash
 git add scripts/gt.js tests/terminalTaskManager.test.ts
@@ -321,7 +321,7 @@ git commit -m "fix(gt): enhance process group termination and register exit hook
   - Agent 发送 PTY 输出时统一调用 `ws.send(Buffer.from(data))` (Binary Frame)
   - 服务端与 Agent 仅识别 `JSON:` 前缀的控制信令，彻底废除裸 JSON 字符串判断
 
-- [ ] **Step 1: 编写终端打印裸 JSON 字符串不被误识别为信令的测试用例**
+- [x] **Step 1: 编写终端打印裸 JSON 字符串不被误识别为信令的测试用例**
 
 在 `tests/terminalWs.test.ts` 中添加测试：
 ```typescript
@@ -331,12 +331,12 @@ it('treats raw JSON output in binary or text frame as terminal output rather tha
 });
 ```
 
-- [ ] **Step 2: 运行测试并验证其在当前旧逻辑下会误触发或失败**
+- [x] **Step 2: 运行测试并验证其在当前旧逻辑下会误触发或失败**
 
 运行: `npx jest tests/terminalWs.test.ts -t "treats raw JSON output"`
 期望: 在旧逻辑下因为存在裸 JSON 嗅探而发生误判。
 
-- [ ] **Step 3: 修改 `scripts/gt.js`、`terminalWs.ts` 和 `terminalHostManager.ts`**
+- [x] **Step 3: 修改 `scripts/gt.js`、`terminalWs.ts` 和 `terminalHostManager.ts`**
 
 1. 在 `scripts/gt.js` 中：
    - 彻底移除 `parseControlMessage` 中的 `startsWith('{') && endsWith('}')` 裸 JSON 嗅探分支；控制消息必须以 `JSON:` 开头。
@@ -348,12 +348,12 @@ it('treats raw JSON output in binary or text frame as terminal output rather tha
 3. 在 `src/terminal/services/terminalHostManager.ts` 中：
    - `RemoteAgentTerminalSession.handleData` 支持处理 `Buffer | string`，并保持原有逻辑，安全追加到历史缓冲区。
 
-- [ ] **Step 4: 运行相关终端与 WebSocket 测试验证通过**
+- [x] **Step 4: 运行相关终端与 WebSocket 测试验证通过**
 
 运行: `npx jest tests/terminalWs.test.ts tests/terminalAgent.test.ts`
 期望: 所有测试通过 (PASS)。
 
-- [ ] **Step 5: 提交代码**
+- [x] **Step 5: 提交代码**
 
 ```bash
 git add scripts/gt.js src/terminal/routes/terminalWs.ts src/terminal/services/terminalHostManager.ts tests/terminalWs.test.ts tests/terminalAgent.test.ts
@@ -367,17 +367,17 @@ git commit -m "fix(terminal): isolate pty binary stream from json control messag
 **Files:**
 - Test: `tests/gtCli.test.ts`, `tests/terminalTaskManager.test.ts`, `tests/terminalWs.test.ts`, `tests/terminalExecCli.test.ts`
 
-- [ ] **Step 1: 运行全量单元测试与集成测试**
+- [x] **Step 1: 运行全量单元测试与集成测试**
 
 运行: `npx jest --runInBand tests/gtCli.test.ts tests/terminalTaskManager.test.ts tests/terminalWs.test.ts tests/terminalExecCli.test.ts`
 期望: 全部测试集 100% 通过。
 
-- [ ] **Step 2: 编译前后端并验证构建无错误**
+- [x] **Step 2: 编译前后端并验证构建无错误**
 
 运行: `npm run build`
 期望: TypeScript 编译成功，Vite 构建成功，无类型报错。
 
-- [ ] **Step 3: 提交并标记修复完成**
+- [x] **Step 3: 提交并标记修复完成**
 
 ```bash
 git commit --allow-empty -m "chore(gt): complete signaling isolation, process tree cleanup, and cli parsing verification"
