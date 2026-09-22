@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express';
 import path from 'path';
+import fs from 'fs';
 import claudeRoutes from './proxy/routes/claudeRoutes';
 import geminiRoutes from './proxy/routes/geminiRoutes';
 import adminRoutes from './admin/routes/adminRoutes';
@@ -10,12 +11,32 @@ const app = express();
 
 app.use(express.json({ limit: '50mb' }));
 
+function resolveScriptFile(filename: string): string | null {
+  const candidates = [
+    path.join(__dirname, '../scripts', filename),
+    path.join(__dirname, '../../scripts', filename),
+    path.join(process.cwd(), 'scripts', filename),
+  ];
+  return candidates.find((p) => fs.existsSync(p)) || null;
+}
+
 // Public direct download endpoints for gt CLI and installer
-app.get('/install.sh', (req: Request, res: Response) => {
-  res.sendFile(path.join(__dirname, '../scripts/install-gt.sh'));
+app.get(['/install.sh', '/api/terminal/install'], (req: Request, res: Response) => {
+  const scriptPath = resolveScriptFile('install-gt.sh');
+  if (scriptPath) {
+    res.sendFile(scriptPath);
+  } else {
+    res.status(404).send('Installer script not found.');
+  }
 });
-app.get('/gt', (req: Request, res: Response) => {
-  res.sendFile(path.join(__dirname, '../scripts/gt.js'));
+
+app.get(['/gt', '/api/terminal/gt'], (req: Request, res: Response) => {
+  const scriptPath = resolveScriptFile('gt.js');
+  if (scriptPath) {
+    res.sendFile(scriptPath);
+  } else {
+    res.status(404).send('gt.js script not found.');
+  }
 });
 
 app.use('/v1beta', geminiRoutes);
@@ -37,7 +58,9 @@ if (config.enableUi) {
       req.path.startsWith('/api') ||
       req.path === '/health' ||
       req.path === '/install.sh' ||
-      req.path === '/gt'
+      req.path === '/gt' ||
+      req.path === '/api/terminal/install' ||
+      req.path === '/api/terminal/gt'
     ) {
       return next();
     }

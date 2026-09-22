@@ -68,27 +68,50 @@ TARGET_BIN="$TARGET_DIR/gt"
 TEMP_FILE=$(mktemp /tmp/gt.XXXXXX)
 
 # 3. Determine download URL
-# Default from GitHub raw; can be overridden by GT_DOWNLOAD_URL environment variable
+# Priority:
+# 1. Environment variable GT_DOWNLOAD_URL
+# 2. Origin proxy server (if installed via curl http://server/install.sh | bash)
+# 3. Official GitHub raw repository
 DEFAULT_URL="https://raw.githubusercontent.com/Tonyogo/gemini-proxy/main/scripts/gt.js"
-DOWNLOAD_URL="${GT_DOWNLOAD_URL:-$DEFAULT_URL}"
+if [ -n "$GT_DOWNLOAD_URL" ]; then
+  DOWNLOAD_URL="$GT_DOWNLOAD_URL"
+elif [ -n "$GT_SERVER_URL" ]; then
+  DOWNLOAD_URL="${GT_SERVER_URL%/}/gt"
+else
+  DOWNLOAD_URL="$DEFAULT_URL"
+fi
 
 echo -e "Downloading gt CLI from ${BLUE}$DOWNLOAD_URL${NC}..."
 
-if command -v curl >/dev/null 2>&1; then
-  curl -fsSL "$DOWNLOAD_URL" -o "$TEMP_FILE"
-elif command -v wget >/dev/null 2>&1; then
-  wget -qO "$TEMP_FILE" "$DOWNLOAD_URL"
-else
-  echo -e "${RED}[Error] Neither curl nor wget was found. Please install curl or wget.${NC}" >&2
-  rm -f "$TEMP_FILE"
-  exit 1
-fi
+# Try to download from primary URL, fallback to GitHub raw if primary fails
+download_file() {
+  local target_url="$1"
+  local dest="$2"
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL "$target_url" -o "$dest" 2>/dev/null || return 1
+  elif command -v wget >/dev/null 2>&1; then
+    wget -qO "$dest" "$target_url" 2>/dev/null || return 1
+  else
+    echo -e "${RED}[Error] Neither curl nor wget was found.${NC}" >&2
+    return 1
+  fi
+  grep -q "gt (Gemini Terminal)" "$dest" || return 1
+  return 0
+}
 
-# Ensure downloaded file is valid and contains gt identifier
-if ! grep -q "gt (Gemini Terminal)" "$TEMP_FILE"; then
-  echo -e "${RED}[Error] Downloaded script verification failed.${NC}" >&2
-  rm -f "$TEMP_FILE"
-  exit 1
+if ! download_file "$DOWNLOAD_URL" "$TEMP_FILE"; then
+  if [ "$DOWNLOAD_URL" != "$DEFAULT_URL" ]; then
+    echo -e "${YELLOW}[Warning] Failed to download from $DOWNLOAD_URL. Retrying via official GitHub repository...${NC}"
+    if ! download_file "$DEFAULT_URL" "$TEMP_FILE"; then
+      echo -e "${RED}[Error] Failed to download gt CLI from all sources.${NC}" >&2
+      rm -f "$TEMP_FILE"
+      exit 1
+    fi
+  else
+    echo -e "${RED}[Error] Failed to download gt CLI from $DEFAULT_URL.${NC}" >&2
+    rm -f "$TEMP_FILE"
+    exit 1
+  fi
 fi
 
 chmod +x "$TEMP_FILE"
