@@ -2433,6 +2433,11 @@ async function main() {
 
       if (!host || commandParts.length === 0) {
         console.error('Error: "gt exec" requires at least 2 arguments.');
+        if (!host) {
+          console.error('Missing target host.');
+        } else {
+          console.error('Missing command to execute.');
+        }
         console.error('Usage: gt exec [OPTIONS] <host> <command...>');
         process.exit(1);
       }
