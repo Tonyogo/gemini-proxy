@@ -19,7 +19,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - `gt config <list|get|set> [key] [value]`: Manages persistent client configuration
   - `gt host ls [--json] [--format <template>]`: Lists connected agent hosts / nodes (supports Go/Docker templates e.g. `'table {{.ID}}\t{{.Name}}'`)
   - `gt host prune`: Removes disconnected/offline agent hosts
-  - `gt exec [-i] [-d] [-w <dir>] [-t <ms>] [--verbose] <host> [--] <cmd...>`: Executes remote command with pure streaming output (no prefix/suffix banners by default, `--verbose` to enable banners), stdin piping (`-i`), and exit code forwarding
+  - `gt exec [-it] [-d] [-w <dir>] [--timeout <ms>] [--verbose] <host> [--] <cmd...>`: Executes remote command supporting Docker-style interactive pseudo-terminal (`-it` / `-t` / `-i`), background detached mode (`-d`), live stdin piping, pure streaming output (no banners by default, `--verbose` to enable banners), and remote exit code forwarding
   - `gt cp <src> <dest>`: Copies files bidirectionally between local and remote host (`<host>:<path>`)
   - `gt task ls <host> [--json] [--format <template>]`: Lists active and recent execution tasks on target host
   - `gt task logs [-f] <host> <taskId> [--json]`: Inspects or follows execution logs for a task

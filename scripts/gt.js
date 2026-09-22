@@ -80,10 +80,12 @@ Commands:
   agent [OPTIONS]                Run reverse terminal agent daemon
 
 Exec Options:
-  -i, --interactive       Keep STDIN open for piped input
+  -i, --interactive       Keep STDIN open for live or piped input
+  -t, --tty               Allocate a pseudo-TTY with raw terminal input
+  -it                     Interactive pseudo-terminal session (like 'docker exec -it')
   -d, --detach            Run command in background and print task ID
   -w, --workdir <dir>     Working directory on remote host
-  -t, --timeout <ms>      Execution timeout in ms (Default: 300000 / 5 min)
+  --timeout <ms>          Execution timeout in ms (Default: 300000 / 5 min)
   -e, --env <KEY=VAL>     Set remote environment variable (can be repeated)
   --verbose               Show execution header and duration footer banners
   --poll-interval <ms>    Polling interval for log stream in ms (Default: 500)
@@ -103,6 +105,7 @@ Examples:
   gt task logs -f my-server task-123
   gt task kill my-server task-123
   gt exec my-server uptime
+  gt exec -it my-server bash
   gt cp local.txt my-server:/tmp/remote.txt
   gt auth login http://localhost:3000 secret
   gt auth logout

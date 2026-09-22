@@ -7,7 +7,7 @@ const gtPath = path.resolve(__dirname, '../scripts/gt.js');
 function runGt(args: string[], env: Record<string, string> = {}): Promise<{ code: number; stdout: string; stderr: string }> {
   return new Promise((resolve) => {
     execFile('node', [gtPath, ...args], {
-      env: { ...process.env, ...env },
+      env: { TERMINAL_SERVER: 'http://127.0.0.1:59999', ...process.env, ...env },
     }, (error, stdout, stderr) => {
       resolve({
         code: error ? (typeof error.code === 'number' ? error.code : 1) : 0,
