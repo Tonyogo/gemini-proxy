@@ -10,6 +10,14 @@ const app = express();
 
 app.use(express.json({ limit: '50mb' }));
 
+// Public direct download endpoints for gt CLI and installer
+app.get('/install.sh', (req: Request, res: Response) => {
+  res.sendFile(path.join(__dirname, '../scripts/install-gt.sh'));
+});
+app.get('/gt', (req: Request, res: Response) => {
+  res.sendFile(path.join(__dirname, '../scripts/gt.js'));
+});
+
 app.use('/v1beta', geminiRoutes);
 app.use('/v1', claudeRoutes);
 app.use('/api/terminal', terminalRoutes);
@@ -23,7 +31,14 @@ if (config.enableUi) {
   const frontendDist = path.join(__dirname, '../../dist/frontend');
   app.use(express.static(frontendDist));
   app.get('*', (req: Request, res: Response, next) => {
-    if (req.path.startsWith('/v1beta') || req.path.startsWith('/v1') || req.path.startsWith('/api') || req.path === '/health') {
+    if (
+      req.path.startsWith('/v1beta') ||
+      req.path.startsWith('/v1') ||
+      req.path.startsWith('/api') ||
+      req.path === '/health' ||
+      req.path === '/install.sh' ||
+      req.path === '/gt'
+    ) {
       return next();
     }
     res.sendFile(path.join(frontendDist, 'index.html'), (err) => {

@@ -382,8 +382,20 @@ curl "http://localhost:3000/api/admin/terminal/exec/Ubuntu-GPU-Server?limit=20" 
 
 #### E. `gt` 命令行工具 (Docker 风格统一客户端)
 
-除了 HTTP REST API，本项目提供了类似 Docker 的标准终端管理工具 `gt`（位于 `scripts/gt.js`，支持全局软链接或通过 `npm run gt -- <cmd>` 调用）：
+除了 HTTP REST API，本项目提供了类似 Docker 的标准终端管理工具 `gt`。
 
+##### 一键全局安装：
+任何安装了 Node.js (v18+) 的机器，只需执行以下命令之一即可一键安装 `gt`：
+
+```bash
+# 方式 1: 从 GitHub 官方仓库一键安装
+curl -fsSL https://raw.githubusercontent.com/Tonyogo/gemini-proxy/main/scripts/install-gt.sh | bash
+
+# 方式 2: 从您已部署的 Gemini-Proxy 服务节点一键安装
+curl -fsSL http://<your-proxy-server>:3000/install.sh | bash
+```
+
+##### 核心指令与示例：
 ```bash
 # 1. 节点与认证管理
 gt auth login [server] [key]     # 校验凭据并保存至 ~/.gt/config.json
