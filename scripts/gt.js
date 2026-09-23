@@ -866,6 +866,33 @@ class AgentDaemonManager {
     }
   }
 
+  static printAgentsTable() {
+    const all = this.getAllAgents();
+    if (all.length === 0) {
+      console.log('No agent daemons found.');
+      process.exit(0);
+    }
+    console.log(
+      'NAME'.padEnd(20) +
+      'STATUS'.padEnd(12) +
+      'PID'.padEnd(10) +
+      'TARGET HUB'.padEnd(30) +
+      'STARTED'
+    );
+    console.log('-'.repeat(95));
+    for (const a of all) {
+      const statusStr = a.running ? 'Running' : 'Stopped';
+      console.log(
+        (a.name || '').padEnd(20) +
+        statusStr.padEnd(12) +
+        String(a.pid || '').padEnd(10) +
+        (a.server || '').padEnd(30) +
+        (a.startTime || '')
+      );
+    }
+    process.exit(0);
+  }
+
   static saveStatus(nameOrState, maybeState) {
     let name, state;
     if (typeof nameOrState === 'string') {
@@ -1961,7 +1988,11 @@ async function runAgent(agentArgs = [], globalOpts = {}) {
   }
 
   // Lifecycle subcommands that don't start the agent
-  if (subCmd === 'status' || subCmd === 'ps') {
+  if (subCmd === 'ps') {
+    AgentDaemonManager.printAgentsTable();
+  }
+
+  if (subCmd === 'status') {
     const all = AgentDaemonManager.getAllAgents();
     const running = all.filter(a => a.running);
     if (running.length === 0) {
@@ -2120,8 +2151,8 @@ async function runAgent(agentArgs = [], globalOpts = {}) {
   const isInternalDaemon = agentArgs.includes('--internal-daemon');
   const isDaemon = subCmd === 'start' || subCmd === 'restart' || agentArgs.includes('-d') || agentArgs.includes('--detach');
 
-  if (isDaemon && !isInternalDaemon) {
-    if (!options.name && !positionalName) {
+  if (!isInternalDaemon) {
+    if (isDaemon && !options.name && !positionalName) {
       const running = AgentDaemonManager.getAllAgents().filter(a => a.running);
       if (running.length > 0) {
         const cur = running[0];
@@ -2135,7 +2166,9 @@ async function runAgent(agentArgs = [], globalOpts = {}) {
       console.error(`Error: Agent "${hostName}" is already running (PID: ${current.pid}). Use 'gt stop ${hostName}' or 'gt restart ${hostName}'.`);
       process.exit(1);
     }
+  }
 
+  if (isDaemon && !isInternalDaemon) {
     const cleanArgs = [];
     for (let i = 0; i < agentArgs.length; i++) {
       const a = agentArgs[i];
@@ -2188,6 +2221,23 @@ async function runAgent(agentArgs = [], globalOpts = {}) {
     console.log(`Run 'gt stop ${hostName}' to stop agent.`);
     process.exit(0);
   }
+
+  if (!isDaemon && !isInternalDaemon) {
+    AgentDaemonManager.saveStatus(hostName, {
+      pid: process.pid,
+      name: hostName,
+      id: hostId,
+      server: effectiveServer,
+      startTime: new Date().toISOString(),
+    });
+    const cleanupFg = () => {
+      AgentDaemonManager.clearStatus(hostName);
+    };
+    process.on('exit', cleanupFg);
+    process.on('SIGINT', cleanupFg);
+    process.on('SIGTERM', cleanupFg);
+  }
+
   const platform = os.platform();
   const localIp = getLocalIp();
 
@@ -3549,30 +3599,8 @@ async function main() {
     }
 
     case 'ps': {
-      const all = AgentDaemonManager.getAllAgents();
-      if (all.length === 0) {
-        console.log('No agent daemons found.');
-        process.exit(0);
-      }
-      console.log(
-        'NAME'.padEnd(20) +
-        'STATUS'.padEnd(12) +
-        'PID'.padEnd(10) +
-        'TARGET HUB'.padEnd(30) +
-        'STARTED'
-      );
-      console.log('-'.repeat(95));
-      for (const a of all) {
-        const statusStr = a.running ? 'Running' : 'Stopped';
-        console.log(
-          (a.name || '').padEnd(20) +
-          statusStr.padEnd(12) +
-          String(a.pid || '').padEnd(10) +
-          (a.server || '').padEnd(30) +
-          (a.startTime || '')
-        );
-      }
-      process.exit(0);
+      AgentDaemonManager.printAgentsTable();
+      break;
     }
 
     case 'logs': {

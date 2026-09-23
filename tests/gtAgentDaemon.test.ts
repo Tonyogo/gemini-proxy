@@ -382,6 +382,67 @@ describe('gt agent unified authentication and parameter guards', () => {
     expect(stopAll.stdout).toContain('stopped');
   });
 
+  it('enforces conflict check for foreground agents and tracks them in gt ps', () => {
+    fs.writeFileSync(path.join(testConfigDir, 'config.json'), JSON.stringify({
+      server: 'http://127.0.0.1:3000',
+      key: 'mock-key',
+    }));
+
+    // Start background agent worker-fg
+    const runRes = spawnSync('node', [gtPath, 'run', '-d', 'worker-fg'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(runRes.status).toBe(0);
+
+    // Attempt to start foreground agent with same name
+    const fgRes = spawnSync('node', [gtPath, 'run', 'worker-fg'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(fgRes.status).toBe(1);
+    expect(fgRes.stderr).toContain('already running');
+    expect(fgRes.stderr).toContain('worker-fg');
+
+    // Clean up
+    const { AgentDaemonManager } = require('../scripts/gt.js');
+    process.env.GT_CONFIG_DIR = testConfigDir;
+    const a = AgentDaemonManager.getAgent('worker-fg');
+    if (a && a.pid) process.kill(a.pid, 'SIGKILL');
+  });
+
+  it('ensures gt agent ps and gt ps output identical format including stopped agents', () => {
+    fs.writeFileSync(path.join(testConfigDir, 'config.json'), JSON.stringify({
+      server: 'http://127.0.0.1:3000',
+      key: 'mock-key',
+    }));
+
+    const { AgentDaemonManager } = require('../scripts/gt.js');
+    process.env.GT_CONFIG_DIR = testConfigDir;
+    AgentDaemonManager.saveStatus('test-stopped', { pid: 99999999, name: 'test-stopped', server: 'http://hub1' });
+
+    const psRes = spawnSync('node', [gtPath, 'ps'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    const agentPsRes = spawnSync('node', [gtPath, 'agent', 'ps'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+
+    expect(psRes.status).toBe(0);
+    expect(agentPsRes.status).toBe(0);
+    expect(agentPsRes.stdout).toContain('Stopped');
+    expect(agentPsRes.stdout).toContain('test-stopped');
+    expect(agentPsRes.stdout.trim()).toBe(psRes.stdout.trim());
+
+    AgentDaemonManager.remove('test-stopped');
+  });
+
   it('outputs Docker-style command guidelines in gt --help', () => {
     const helpRes = spawnSync('node', [gtPath, '--help'], {
       encoding: 'utf-8',
@@ -394,6 +455,7 @@ describe('gt agent unified authentication and parameter guards', () => {
     expect(helpRes.stdout).toContain('stop [NAME] [--all]');
   });
 });
+
 
 
 
