@@ -1386,7 +1386,7 @@ class StreamSessionManager {
 
     if (!driver) {
       // 3. Layer 3: InteractivePipeDriver (纯管道兜底)
-      if (tty && !pty) {
+      if (tty && (!pty || _forcePipeFallback)) {
         const warnMsg = Buffer.from('\r\n\x1b[33m[Warning] node-pty not available on agent; running in interactive pipe mode.\x1b[0m\r\n');
         this.send({ type: 'cmd_stream_data', taskId, data: warnMsg.toString('base64') });
       }
