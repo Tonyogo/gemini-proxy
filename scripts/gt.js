@@ -655,7 +655,7 @@ function parseControlMessage(msgStr) {
 
 class ConfigStore {
   static getConfigDir() {
-    return path.join(os.homedir(), '.gt');
+    return process.env.GT_CONFIG_DIR || path.join(os.homedir(), '.gt');
   }
 
   static getConfigFile() {
@@ -1641,8 +1641,28 @@ function runAgent(agentArgs = [], globalOpts = {}) {
     }
   }
 
-  const serverArg = options.server || globalOpts.server || process.env.TERMINAL_SERVER || process.env.GEMINI_PROXY_URL || 'http://localhost:3000';
-  const adminKey = options.key || globalOpts.key || process.env.ADMIN_SECRET_KEY || '';
+  // 1. Check for removed flags
+  if ((globalOpts.cliServer !== null && globalOpts.cliServer !== undefined) || options.server || agentArgs.some(a => a === '-s' || a.startsWith('--server') || a.startsWith('-s='))) {
+    console.error("Error: '--server' is removed. Please use 'gt auth login <server> <key>' to authenticate.");
+    process.exit(1);
+  }
+  if ((globalOpts.cliKey !== null && globalOpts.cliKey !== undefined) || options.key || agentArgs.some(a => a === '-k' || a.startsWith('--key') || a.startsWith('-k='))) {
+    console.error("Error: '--key' is removed. Please use 'gt auth login <server> <key>' to authenticate.");
+    process.exit(1);
+  }
+
+  // 2. Enforce authentication from ConfigStore
+  const stored = ConfigStore.load();
+  const effectiveServer = stored.server || process.env.TERMINAL_SERVER || process.env.GEMINI_PROXY_URL;
+  const effectiveKey = stored.key || process.env.ADMIN_SECRET_KEY;
+
+  if (!effectiveServer || !effectiveKey) {
+    console.error("Error: No authenticated server found. Please run 'gt auth login <server> <key>' first.");
+    process.exit(1);
+  }
+
+  const serverArg = effectiveServer;
+  const adminKey = effectiveKey;
   const hostname = os.hostname();
   const platform = os.platform();
   const localIp = getLocalIp();
@@ -3012,7 +3032,7 @@ async function main() {
     }
 
     case 'agent': {
-      runAgent(cmdArgs, { server, key });
+      runAgent(cmdArgs, { server, key, cliServer, cliKey });
       break;
     }
 
