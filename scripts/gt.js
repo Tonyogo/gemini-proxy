@@ -758,6 +758,146 @@ function killProcessTreeSync(pid, signal = 'SIGTERM') {
   }
 }
 
+class AgentDaemonManager {
+  static getStatusFile() {
+    return path.join(ConfigStore.getConfigDir(), 'agent.json');
+  }
+
+  static getLogFile() {
+    return path.join(ConfigStore.getConfigDir(), 'agent.log');
+  }
+
+  static isProcessAlive(pid) {
+    if (!pid || typeof pid !== 'number') return false;
+    try {
+      process.kill(pid, 0);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  static getStatus() {
+    const p = this.getStatusFile();
+    if (!fs.existsSync(p)) return { running: false };
+    try {
+      const state = JSON.parse(fs.readFileSync(p, 'utf-8'));
+      if (this.isProcessAlive(state.pid)) {
+        return { running: true, ...state };
+      } else {
+        // Stale state file, clean it up
+        try { fs.unlinkSync(p); } catch {}
+        return { running: false, stale: true, ...state };
+      }
+    } catch {
+      return { running: false };
+    }
+  }
+
+  static saveStatus(state) {
+    const dir = ConfigStore.getConfigDir();
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+    const file = this.getStatusFile();
+    fs.writeFileSync(file, JSON.stringify(state, null, 2), { encoding: 'utf-8', mode: 0o600 });
+    if (os.platform() !== 'win32') {
+      try { fs.chmodSync(file, 0o600); } catch {}
+      try { fs.chmodSync(dir, 0o700); } catch {}
+    }
+  }
+
+  static clearStatus() {
+    try {
+      const p = this.getStatusFile();
+      if (fs.existsSync(p)) fs.unlinkSync(p);
+    } catch {}
+  }
+
+  static async stop() {
+    const status = this.getStatus();
+    if (!status.running) {
+      this.clearStatus();
+      return { success: true, message: 'Agent is not running.' };
+    }
+
+    const pid = status.pid;
+    try {
+      process.kill(pid, 'SIGTERM');
+    } catch {}
+
+    const start = Date.now();
+    while (Date.now() - start < 3000) {
+      if (!this.isProcessAlive(pid)) {
+        this.clearStatus();
+        return { success: true, pid, message: `Agent (PID: ${pid}) stopped successfully.` };
+      }
+      await new Promise(r => setTimeout(r, 100));
+    }
+
+    // Force kill if still alive
+    killProcessTreeSync(pid, 'SIGKILL');
+    this.clearStatus();
+    return { success: true, pid, message: `Agent (PID: ${pid}) forcibly terminated.` };
+  }
+
+  static async getLogs(lines = 50, follow = false) {
+    const logFile = this.getLogFile();
+    if (!fs.existsSync(logFile)) {
+      console.log('No logs found for agent daemon.');
+      return;
+    }
+
+    const content = fs.readFileSync(logFile, 'utf-8');
+    const allLines = content.split('\n');
+    if (allLines.length > 0 && allLines[allLines.length - 1] === '') {
+      allLines.pop();
+    }
+    const count = parseInt(lines, 10) || 50;
+    const slice = allLines.slice(-count);
+    if (slice.length > 0) {
+      process.stdout.write(slice.join('\n') + '\n');
+    }
+
+    if (!follow) return;
+
+    let currentSize = fs.statSync(logFile).size;
+    const pollInterval = 200;
+
+    await new Promise((resolve) => {
+      const timer = setInterval(() => {
+        try {
+          if (!fs.existsSync(logFile)) return;
+          const newSize = fs.statSync(logFile).size;
+          if (newSize > currentSize) {
+            const stream = fs.createReadStream(logFile, {
+              start: currentSize,
+              end: newSize - 1,
+              encoding: 'utf-8',
+            });
+            stream.on('data', chunk => process.stdout.write(chunk));
+            currentSize = newSize;
+          } else if (newSize < currentSize) {
+            currentSize = newSize;
+          }
+        } catch {}
+      }, pollInterval);
+
+      const cleanup = () => {
+        clearInterval(timer);
+        resolve();
+      };
+
+      process.on('SIGINT', () => {
+        cleanup();
+        process.exit(0);
+      });
+      process.on('SIGTERM', () => {
+        cleanup();
+        process.exit(0);
+      });
+    });
+  }
+}
+
 class TaskManager {
   constructor() {
     this.tasks = new Map();
@@ -3067,6 +3207,7 @@ module.exports = {
   HEARTBEAT_INTERVAL_MS,
   HEARTBEAT_TIMEOUT_MS,
   ConfigStore,
+  AgentDaemonManager,
   TaskManager,
   taskManager,
   StreamSessionManager,

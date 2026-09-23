@@ -55,4 +55,25 @@ describe('gt agent unified authentication and parameter guards', () => {
     expect(res.status).toBe(1);
     expect(res.stderr).toContain("Error: No authenticated server found. Please run 'gt auth login <server> <key>' first.");
   });
+
+  it('detects process alive correctly and manages agent state file', () => {
+    process.env.GT_CONFIG_DIR = testConfigDir;
+    const { AgentDaemonManager } = require('../scripts/gt.js');
+    expect(AgentDaemonManager.isProcessAlive(process.pid)).toBe(true);
+    expect(AgentDaemonManager.isProcessAlive(99999999)).toBe(false);
+
+    // Save and check alive status
+    AgentDaemonManager.saveStatus({ pid: process.pid, name: 'test-agent' });
+    const status = AgentDaemonManager.getStatus();
+    expect(status.running).toBe(true);
+    expect(status.pid).toBe(process.pid);
+    expect(status.name).toBe('test-agent');
+
+    // Save dead PID and verify stale cleanup
+    AgentDaemonManager.saveStatus({ pid: 99999999, name: 'dead-agent' });
+    const staleStatus = AgentDaemonManager.getStatus();
+    expect(staleStatus.running).toBe(false);
+    expect(staleStatus.stale).toBe(true);
+    expect(fs.existsSync(AgentDaemonManager.getStatusFile())).toBe(false);
+  });
 });
