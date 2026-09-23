@@ -1766,9 +1766,74 @@ function handleCmdExec(control, targetWs) {
   }
 }
 
-function runAgent(agentArgs = [], globalOpts = {}) {
+async function runAgent(agentArgs = [], globalOpts = {}) {
+  const firstArg = agentArgs[0];
+  const subCmd = (firstArg && !firstArg.startsWith('-')) ? firstArg.toLowerCase() : null;
+
+  // Lifecycle subcommands that don't start the agent
+  if (subCmd === 'status' || subCmd === 'ps') {
+    const status = AgentDaemonManager.getStatus();
+    if (!status.running) {
+      console.log('No background agent running.');
+      process.exit(0);
+    }
+    console.log(
+      'STATUS'.padEnd(12) +
+      'PID'.padEnd(10) +
+      'HOST NAME'.padEnd(25) +
+      'TARGET HUB'.padEnd(30) +
+      'STARTED'
+    );
+    console.log('-'.repeat(95));
+    console.log(
+      'Running'.padEnd(12) +
+      String(status.pid).padEnd(10) +
+      (status.name || '').padEnd(25) +
+      (status.server || '').padEnd(30) +
+      (status.startTime || '')
+    );
+    process.exit(0);
+  }
+
+  if (subCmd === 'stop') {
+    const res = await AgentDaemonManager.stop();
+    console.log(res.message);
+    process.exit(0);
+  }
+
+  if (subCmd === 'logs') {
+    let lines = 50;
+    let follow = false;
+    const logArgs = agentArgs.slice(1);
+    for (let i = 0; i < logArgs.length; i++) {
+      const a = logArgs[i];
+      if (a === '-f' || a === '--follow') {
+        follow = true;
+      } else if (a === '-n' || a === '--lines') {
+        lines = parseInt(logArgs[++i], 10) || 50;
+      } else if (a.startsWith('-n=')) {
+        lines = parseInt(a.slice(3), 10) || 50;
+      } else if (a.startsWith('--lines=')) {
+        lines = parseInt(a.slice(8), 10) || 50;
+      }
+    }
+    await AgentDaemonManager.getLogs(lines, follow);
+    process.exit(0);
+  }
+
+  if (subCmd && !['start', 'restart'].includes(subCmd)) {
+    console.error(`Error: Unknown agent subcommand: '${subCmd}'.`);
+    console.error("Usage: gt agent [start|-d|status|ps|stop|restart|logs] [OPTIONS]");
+    process.exit(1);
+  }
+
+  if (subCmd === 'restart') {
+    await AgentDaemonManager.stop();
+  }
+
   const options = {};
-  for (const arg of agentArgs) {
+  for (let i = 0; i < agentArgs.length; i++) {
+    const arg = agentArgs[i];
     if (arg.startsWith('--')) {
       const eqIdx = arg.indexOf('=');
       if (eqIdx !== -1) {
@@ -1776,7 +1841,17 @@ function runAgent(agentArgs = [], globalOpts = {}) {
         const v = arg.slice(eqIdx + 1).trim();
         options[k] = v;
       } else {
-        options[arg.slice(2).trim()] = true;
+        const k = arg.slice(2).trim();
+        if (i + 1 < agentArgs.length && !agentArgs[i + 1].startsWith('-')) {
+          options[k] = agentArgs[++i];
+        } else {
+          options[k] = true;
+        }
+      }
+    } else if (arg.startsWith('-') && arg !== '-d') {
+      const k = arg.slice(1);
+      if (i + 1 < agentArgs.length && !agentArgs[i + 1].startsWith('-')) {
+        options[k] = agentArgs[++i];
       }
     }
   }
@@ -1803,6 +1878,80 @@ function runAgent(agentArgs = [], globalOpts = {}) {
 
   const serverArg = effectiveServer;
   const adminKey = effectiveKey;
+
+  const isInternalDaemon = agentArgs.includes('--internal-daemon');
+  const isDaemon = subCmd === 'start' || subCmd === 'restart' || agentArgs.includes('-d') || agentArgs.includes('--detach');
+
+  if (isDaemon && !isInternalDaemon) {
+    const currentStatus = AgentDaemonManager.getStatus();
+    if (currentStatus.running) {
+      console.error(`Error: Agent daemon is already running (PID: ${currentStatus.pid}). Use 'gt agent stop' or 'gt agent restart'.`);
+      process.exit(1);
+    }
+
+    const hostname = os.hostname();
+    const sanitizedHostname = hostname.toLowerCase().replace(/[^a-z0-9-_]/g, '-').replace(/^-+|-+$/g, '') || 'host';
+    const random4Hex = crypto.randomBytes(2).toString('hex');
+    const defaultName = `${sanitizedHostname}-${random4Hex}`;
+    const sanitizedName = options.name
+      ? options.name.toLowerCase().replace(/[^a-z0-9-_]/g, '-').replace(/^-+|-+$/g, '')
+      : '';
+    const hostName = sanitizedName || defaultName;
+    const hostId = options.id || options.hostId || crypto.randomBytes(6).toString('hex');
+
+    const cleanArgs = [];
+    for (let i = 0; i < agentArgs.length; i++) {
+      const a = agentArgs[i];
+      if (a === 'start' || a === 'restart' || a === '-d' || a === '--detach' || a === '--internal-daemon') {
+        continue;
+      }
+      if (a === '--name' || a === '--id' || a === '--hostId') {
+        i++;
+        continue;
+      }
+      if (a.startsWith('--name=') || a.startsWith('--id=') || a.startsWith('--hostId=')) {
+        continue;
+      }
+      cleanArgs.push(a);
+    }
+    cleanArgs.push(`--name=${hostName}`);
+    cleanArgs.push(`--id=${hostId}`);
+
+    const configDir = ConfigStore.getConfigDir();
+    if (!fs.existsSync(configDir)) {
+      fs.mkdirSync(configDir, { recursive: true, mode: 0o700 });
+    }
+    const logFile = AgentDaemonManager.getLogFile();
+    const logFd = fs.openSync(logFile, 'a', 0o600);
+
+    const child = spawn(
+      process.execPath,
+      [path.resolve(__filename), 'agent', '--internal-daemon', ...cleanArgs],
+      {
+        detached: true,
+        stdio: ['ignore', logFd, logFd],
+        env: { ...process.env },
+      }
+    );
+
+    AgentDaemonManager.saveStatus({
+      pid: child.pid,
+      name: hostName,
+      id: hostId,
+      server: effectiveServer,
+      startTime: new Date().toISOString(),
+      logFile: logFile,
+    });
+
+    child.unref();
+    fs.closeSync(logFd);
+
+    console.log(`Agent started in background (PID: ${child.pid}, Host: ${hostName})`);
+    console.log(`Logs: ${logFile}`);
+    console.log("Run 'gt agent logs -f' to follow logs.");
+    console.log("Run 'gt agent stop' to stop agent.");
+    process.exit(0);
+  }
   const hostname = os.hostname();
   const platform = os.platform();
   const localIp = getLocalIp();
@@ -2117,6 +2266,9 @@ function runAgent(agentArgs = [], globalOpts = {}) {
     isExiting = true;
     stopHeartbeat();
     console.log('\n[Agent] Shutting down agent...');
+    if (isInternalDaemon) {
+      AgentDaemonManager.clearStatus();
+    }
     if (ws) {
       try { ws.close(); } catch {}
     }
@@ -2145,6 +2297,9 @@ function runAgent(agentArgs = [], globalOpts = {}) {
     cleanup();
   });
   process.on('exit', () => {
+    if (isInternalDaemon) {
+      AgentDaemonManager.clearStatus();
+    }
     for (const task of taskManager.tasks.values()) {
       if (task.status === 'running' && task.child && task.child.pid) {
         try {
@@ -3172,7 +3327,7 @@ async function main() {
     }
 
     case 'agent': {
-      runAgent(cmdArgs, { server, key, cliServer, cliKey });
+      await runAgent(cmdArgs, { server, key, cliServer, cliKey });
       break;
     }
 
