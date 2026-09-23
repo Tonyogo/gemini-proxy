@@ -175,7 +175,13 @@ Commands:
   exec [OPTIONS] <host> <cmd...> Execute a command on a remote host (like 'docker exec')
   cp <src> <dest>                Copy files between local and remote host (like 'docker cp')
   config <list|get|set>          Manage local client configuration settings
-  agent [OPTIONS]                Run reverse terminal agent daemon
+  agent [SUBCOMMAND] [OPTIONS]   Run reverse terminal agent (foreground or daemon)
+    gt agent                     Run in foreground (logs to console)
+    gt agent start / -d          Start agent daemon in background
+    gt agent status / ps         Show background agent status
+    gt agent stop                Stop background agent
+    gt agent restart             Restart background agent
+    gt agent logs [-f] [-n 50]   View background agent logs
 
 Exec Options:
   -i, --interactive       Keep STDIN open for live or piped input
@@ -207,6 +213,10 @@ Examples:
   gt cp local.txt my-server:/tmp/remote.txt
   gt auth login http://localhost:3000 secret
   gt auth logout
+  gt agent start
+  gt agent status
+  gt agent logs -f
+  gt agent stop
 `);
 }
 
