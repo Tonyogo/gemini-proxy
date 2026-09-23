@@ -275,6 +275,113 @@ describe('gt agent unified authentication and parameter guards', () => {
     if (agent1 && agent1.pid) process.kill(agent1.pid, 'SIGKILL');
     if (agent2 && agent2.pid) process.kill(agent2.pid, 'SIGKILL');
   });
+
+  it('provides full Docker-style top-level command workflow: run, ps, logs, stop, rm', async () => {
+    fs.writeFileSync(path.join(testConfigDir, 'config.json'), JSON.stringify({
+      server: 'http://127.0.0.1:3000',
+      key: 'mock-key',
+    }));
+
+    // 1. gt run -d app-node
+    const runRes = spawnSync('node', [gtPath, 'run', '-d', 'app-node'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(runRes.status).toBe(0);
+    expect(runRes.stdout).toContain('Agent started in background');
+
+    // 2. gt ps
+    const psRes = spawnSync('node', [gtPath, 'ps'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(psRes.status).toBe(0);
+    expect(psRes.stdout).toContain('app-node');
+    expect(psRes.stdout).toContain('Running');
+
+    // 3. gt logs app-node
+    const logsRes = spawnSync('node', [gtPath, 'logs', 'app-node', '-n', '10'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(logsRes.status).toBe(0);
+
+    // 4. gt stop app-node (or auto-target since only 1 running)
+    const stopRes = spawnSync('node', [gtPath, 'stop'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(stopRes.status).toBe(0);
+    expect(stopRes.stdout).toContain('stopped');
+
+    // 5. gt ps should show Stopped / Stale or empty running
+    const psStopped = spawnSync('node', [gtPath, 'ps'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(psStopped.status).toBe(0);
+    expect(psStopped.stdout).toContain('Stopped');
+
+    // 6. gt rm app-node
+    const rmRes = spawnSync('node', [gtPath, 'rm', 'app-node'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(rmRes.status).toBe(0);
+    expect(rmRes.stdout).toContain('removed');
+
+    // Now ps shows nothing
+    const psEmpty = spawnSync('node', [gtPath, 'ps'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(psEmpty.stdout).toContain('No agent daemons found');
+  });
+
+  it('enforces explicit NAME when multiple agents are running for stop and logs', () => {
+    fs.writeFileSync(path.join(testConfigDir, 'config.json'), JSON.stringify({
+      server: 'http://127.0.0.1:3000',
+      key: 'mock-key',
+    }));
+
+    // Start two agents
+    spawnSync('node', [gtPath, 'run', '-d', 'worker-multi-1'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    spawnSync('node', [gtPath, 'run', '-d', 'worker-multi-2'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+
+    // Call gt stop without name -> should fail with ambiguity error
+    const ambiguousStop = spawnSync('node', [gtPath, 'stop'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(ambiguousStop.status).toBe(1);
+    expect(ambiguousStop.stderr).toContain('Multiple running agents');
+
+    // Stop with --all
+    const stopAll = spawnSync('node', [gtPath, 'stop', '--all'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(stopAll.status).toBe(0);
+    expect(stopAll.stdout).toContain('stopped');
+  });
 });
+
 
 

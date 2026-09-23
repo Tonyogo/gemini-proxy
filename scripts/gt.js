@@ -834,9 +834,6 @@ class AgentDaemonManager {
   static getStatus(name) {
     const res = this.resolveTarget(name, 'status');
     if (res.agent) {
-      if (res.agent.stale) {
-        this.clearStatus(res.agent.name);
-      }
       return res.agent;
     }
     return { running: false };
@@ -881,9 +878,11 @@ class AgentDaemonManager {
   }
 
   static clearStatus(name) {
+    if (!name) return;
     const sName = this.sanitizeName(name);
+    if (!sName) return;
     try {
-      const p = sName ? path.join(this.getAgentsDir(), `${sName}.json`) : this.getStatusFile();
+      const p = path.join(this.getAgentsDir(), `${sName}.json`);
       if (fs.existsSync(p)) fs.unlinkSync(p);
     } catch {}
   }
@@ -1919,63 +1918,6 @@ async function runAgent(agentArgs = [], globalOpts = {}) {
   const firstArg = agentArgs[0];
   const subCmd = (firstArg && !firstArg.startsWith('-')) ? firstArg.toLowerCase() : null;
 
-  // Lifecycle subcommands that don't start the agent
-  if (subCmd === 'status' || subCmd === 'ps') {
-    const status = AgentDaemonManager.getStatus();
-    if (!status.running) {
-      console.log('No background agent running.');
-      process.exit(0);
-    }
-    console.log(
-      'STATUS'.padEnd(12) +
-      'PID'.padEnd(10) +
-      'HOST NAME'.padEnd(25) +
-      'TARGET HUB'.padEnd(30) +
-      'STARTED'
-    );
-    console.log('-'.repeat(95));
-    console.log(
-      'Running'.padEnd(12) +
-      String(status.pid).padEnd(10) +
-      (status.name || '').padEnd(25) +
-      (status.server || '').padEnd(30) +
-      (status.startTime || '')
-    );
-    process.exit(0);
-  }
-
-  if (subCmd === 'stop') {
-    const res = await AgentDaemonManager.stop();
-    console.log(res.message);
-    process.exit(0);
-  }
-
-  if (subCmd === 'logs') {
-    let lines = 50;
-    let follow = false;
-    const logArgs = agentArgs.slice(1);
-    for (let i = 0; i < logArgs.length; i++) {
-      const a = logArgs[i];
-      if (a === '-f' || a === '--follow') {
-        follow = true;
-      } else if (a === '-n' || a === '--lines') {
-        lines = parseInt(logArgs[++i], 10) || 50;
-      } else if (a.startsWith('-n=')) {
-        lines = parseInt(a.slice(3), 10) || 50;
-      } else if (a.startsWith('--lines=')) {
-        lines = parseInt(a.slice(8), 10) || 50;
-      }
-    }
-    await AgentDaemonManager.getLogs(lines, follow);
-    process.exit(0);
-  }
-
-  if (subCmd && !['start', 'restart', 'run'].includes(subCmd)) {
-    console.error(`Error: Unknown agent subcommand: '${subCmd}'.`);
-    console.error("Usage: gt agent [start|-d|status|ps|stop|restart|logs] [OPTIONS]");
-    process.exit(1);
-  }
-
   const options = {};
   let positionalName = null;
   const knownSubCmds = ['start', 'restart', 'run', 'status', 'ps', 'stop', 'logs', 'rm'];
@@ -2006,6 +1948,125 @@ async function runAgent(agentArgs = [], globalOpts = {}) {
         positionalName = arg;
       }
     }
+  }
+
+  // Lifecycle subcommands that don't start the agent
+  if (subCmd === 'status' || subCmd === 'ps') {
+    const all = AgentDaemonManager.getAllAgents();
+    const running = all.filter(a => a.running);
+    if (running.length === 0) {
+      console.log('No background agent running.');
+      process.exit(0);
+    }
+    console.log(
+      'STATUS'.padEnd(12) +
+      'PID'.padEnd(10) +
+      'HOST NAME'.padEnd(25) +
+      'TARGET HUB'.padEnd(30) +
+      'STARTED'
+    );
+    console.log('-'.repeat(95));
+    for (const status of running) {
+      console.log(
+        'Running'.padEnd(12) +
+        String(status.pid).padEnd(10) +
+        (status.name || '').padEnd(25) +
+        (status.server || '').padEnd(30) +
+        (status.startTime || '')
+      );
+    }
+    process.exit(0);
+  }
+
+  if (subCmd === 'stop') {
+    const hasAll = agentArgs.includes('--all') || agentArgs.includes('-a');
+    if (hasAll) {
+      const results = await AgentDaemonManager.stopAll();
+      if (results.length === 0) {
+        console.log('No running agents to stop.');
+      } else {
+        for (const r of results) {
+          console.log(r.message);
+        }
+      }
+      process.exit(0);
+    }
+
+    const resolved = AgentDaemonManager.resolveTarget(positionalName, 'stop');
+    if (resolved.error) {
+      console.error(resolved.error);
+      process.exit(1);
+    }
+
+    const res = await AgentDaemonManager.stop(resolved.agent.name);
+    console.log(res.message);
+    process.exit(0);
+  }
+
+  if (subCmd === 'logs') {
+    let lines = 50;
+    let follow = false;
+    let targetName = positionalName;
+    const logArgs = agentArgs.slice(1);
+    for (let i = 0; i < logArgs.length; i++) {
+      const a = logArgs[i];
+      if (a === '-f' || a === '--follow') {
+        follow = true;
+      } else if (a === '-n' || a === '--lines') {
+        lines = parseInt(logArgs[++i], 10) || 50;
+      } else if (a.startsWith('-n=')) {
+        lines = parseInt(a.slice(3), 10) || 50;
+      } else if (a.startsWith('--lines=')) {
+        lines = parseInt(a.slice(8), 10) || 50;
+      } else if (!a.startsWith('-') && !targetName) {
+        targetName = a;
+      }
+    }
+    const resolved = AgentDaemonManager.resolveTarget(targetName, 'logs');
+    if (resolved.error) {
+      console.error(resolved.error);
+      process.exit(1);
+    }
+    await AgentDaemonManager.getLogs(resolved.agent.name, lines, follow);
+    process.exit(0);
+  }
+
+  if (subCmd === 'rm') {
+    const hasAll = agentArgs.includes('--all') || agentArgs.includes('-a');
+    if (hasAll) {
+      const { removed } = AgentDaemonManager.removeAll();
+      if (removed.length === 0) {
+        console.log('No stopped agents to remove.');
+      } else {
+        console.log(`Removed agents: ${removed.join(', ')}`);
+      }
+      process.exit(0);
+    }
+
+    let targetName = positionalName;
+    if (!targetName) {
+      const resolved = AgentDaemonManager.resolveTarget(undefined, 'remove');
+      if (resolved.agent) {
+        targetName = resolved.agent.name;
+      } else {
+        console.error('Error: Please specify agent NAME to remove (e.g. gt agent rm <NAME>).');
+        process.exit(1);
+      }
+    }
+
+    const res = AgentDaemonManager.remove(targetName, { removeLogs: true });
+    if (!res.success) {
+      console.error(res.message);
+      process.exit(1);
+    }
+    console.log(res.message);
+    process.exit(0);
+  }
+
+  if (subCmd && !['start', 'restart', 'run'].includes(subCmd)) {
+    console.error(`Error: Unknown agent subcommand: '${subCmd}'.`);
+    console.error("Usage: gt agent [start|-d|status|ps|stop|restart|logs|rm] [OPTIONS]");
+    process.exit(1);
   }
 
   const hostname = os.hostname();
@@ -2420,9 +2481,6 @@ async function runAgent(agentArgs = [], globalOpts = {}) {
     isExiting = true;
     stopHeartbeat();
     console.log('\n[Agent] Shutting down agent...');
-    if (isInternalDaemon) {
-      AgentDaemonManager.clearStatus();
-    }
     if (ws) {
       try { ws.close(); } catch {}
     }
@@ -2451,9 +2509,6 @@ async function runAgent(agentArgs = [], globalOpts = {}) {
     cleanup();
   });
   process.on('exit', () => {
-    if (isInternalDaemon) {
-      AgentDaemonManager.clearStatus();
-    }
     for (const task of taskManager.tasks.values()) {
       if (task.status === 'running' && task.child && task.child.pid) {
         try {
@@ -2757,8 +2812,6 @@ async function main() {
   const legacyMap = {
     hosts: "gt host ls",
     nodes: "gt host ls",
-    ps: "gt task ls",
-    logs: "gt task logs",
     kill: "gt task kill",
     login: "gt auth login",
     logout: "gt auth logout",
@@ -3483,6 +3536,153 @@ async function main() {
     case 'run': {
       await runAgent(['run', ...cmdArgs], { server, key, cliServer, cliKey });
       break;
+    }
+
+    case 'ps': {
+      const all = AgentDaemonManager.getAllAgents();
+      if (all.length === 0) {
+        console.log('No agent daemons found.');
+        process.exit(0);
+      }
+      console.log(
+        'NAME'.padEnd(20) +
+        'STATUS'.padEnd(12) +
+        'PID'.padEnd(10) +
+        'TARGET HUB'.padEnd(30) +
+        'STARTED'
+      );
+      console.log('-'.repeat(95));
+      for (const a of all) {
+        const statusStr = a.running ? 'Running' : 'Stopped';
+        console.log(
+          (a.name || '').padEnd(20) +
+          statusStr.padEnd(12) +
+          String(a.pid || '').padEnd(10) +
+          (a.server || '').padEnd(30) +
+          (a.startTime || '')
+        );
+      }
+      process.exit(0);
+    }
+
+    case 'logs': {
+      let lines = 50;
+      let follow = false;
+      let targetName = null;
+      for (let i = 0; i < cmdArgs.length; i++) {
+        const a = cmdArgs[i];
+        if (a === '-f' || a === '--follow') {
+          follow = true;
+        } else if (a === '-n' || a === '--lines') {
+          lines = parseInt(cmdArgs[++i], 10) || 50;
+        } else if (a.startsWith('-n=')) {
+          lines = parseInt(a.slice(3), 10) || 50;
+        } else if (a.startsWith('--lines=')) {
+          lines = parseInt(a.slice(8), 10) || 50;
+        } else if (!a.startsWith('-')) {
+          if (!targetName) targetName = a;
+        }
+      }
+      const resolved = AgentDaemonManager.resolveTarget(targetName, 'logs');
+      if (resolved.error) {
+        console.error(resolved.error);
+        process.exit(1);
+      }
+      await AgentDaemonManager.getLogs(resolved.agent.name, lines, follow);
+      process.exit(0);
+    }
+
+    case 'stop': {
+      const hasAll = cmdArgs.includes('--all') || cmdArgs.includes('-a');
+      if (hasAll) {
+        const results = await AgentDaemonManager.stopAll();
+        if (results.length === 0) {
+          console.log('No running agents to stop.');
+        } else {
+          for (const r of results) {
+            console.log(r.message);
+          }
+        }
+        process.exit(0);
+      }
+
+      let targetName = null;
+      for (const a of cmdArgs) {
+        if (!a.startsWith('-')) {
+          targetName = a;
+          break;
+        }
+      }
+
+      const resolved = AgentDaemonManager.resolveTarget(targetName, 'stop');
+      if (resolved.error) {
+        console.error(resolved.error);
+        process.exit(1);
+      }
+
+      const res = await AgentDaemonManager.stop(resolved.agent.name);
+      console.log(res.message);
+      process.exit(0);
+    }
+
+    case 'restart': {
+      let targetName = null;
+      for (const a of cmdArgs) {
+        if (!a.startsWith('-')) {
+          targetName = a;
+          break;
+        }
+      }
+
+      const resolved = AgentDaemonManager.resolveTarget(targetName, 'restart');
+      if (resolved.error) {
+        console.error(resolved.error);
+        process.exit(1);
+      }
+
+      const sName = resolved.agent.name;
+      await AgentDaemonManager.stop(sName);
+      await runAgent(['start', `--name=${sName}`], { server, key, cliServer, cliKey });
+      break;
+    }
+
+    case 'rm': {
+      const hasAll = cmdArgs.includes('--all') || cmdArgs.includes('-a');
+      if (hasAll) {
+        const { removed } = AgentDaemonManager.removeAll();
+        if (removed.length === 0) {
+          console.log('No stopped agents to remove.');
+        } else {
+          console.log(`Removed agents: ${removed.join(', ')}`);
+        }
+        process.exit(0);
+      }
+
+      let targetName = null;
+      for (const a of cmdArgs) {
+        if (!a.startsWith('-')) {
+          targetName = a;
+          break;
+        }
+      }
+
+      if (!targetName) {
+        const resolved = AgentDaemonManager.resolveTarget(undefined, 'remove');
+        if (resolved.agent) {
+          targetName = resolved.agent.name;
+        } else {
+          console.error('Error: Please specify agent NAME to remove (e.g. gt rm <NAME>).');
+          process.exit(1);
+        }
+      }
+
+      const res = AgentDaemonManager.remove(targetName, { removeLogs: true });
+      if (!res.success) {
+        console.error(res.message);
+        process.exit(1);
+      }
+      console.log(res.message);
+      process.exit(0);
     }
 
     case 'agent': {
