@@ -116,7 +116,9 @@ if (!WebSocketImpl && typeof globalThis.WebSocket !== 'undefined') {
 const WebSocket = WebSocketImpl;
 let pty = null;
 try {
-  pty = require('node-pty');
+  if (!process.env.GT_DISABLE_NODE_PTY) {
+    pty = require('node-pty');
+  }
 } catch {}
 
 let dotenv;
