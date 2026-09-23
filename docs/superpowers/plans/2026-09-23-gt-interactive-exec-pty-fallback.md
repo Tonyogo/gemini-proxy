@@ -27,7 +27,7 @@
 - Consumes: `StreamSessionManager` from `scripts/gt.js`
 - Produces: 验证无 `node-pty` 环境下的交互测试（输入换行规范化、Prompt 回显、进程退出与清理）
 
-- [ ] **Step 1: 创建测试文件并编写针对降级模式的测试用例**
+- [x] **Step 1: 创建测试文件并编写针对降级模式的测试用例**
 
 ```typescript
 import { StreamSessionManager } from '../scripts/gt.js';
@@ -82,12 +82,12 @@ describe('StreamSessionManager PTY Fallback & Interactive Execution', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试验证失败 (Red)**
+- [x] **Step 2: 运行测试验证失败 (Red)**
 
 Run: `npx jest tests/gtAgentPtyFallback.test.ts`
 Expected: FAIL（因为当前 `StreamSessionManager` 尚不支持 `_forceFallback` 参数，并且收到 `\r` 时在普通管道下会报错或无法触发执行）。
 
-- [ ] **Step 3: 提交测试文件骨架**
+- [x] **Step 3: 提交测试文件骨架**
 
 ```bash
 git add tests/gtAgentPtyFallback.test.ts
@@ -105,7 +105,7 @@ git commit -m "test(gt): add failing tests for interactive exec pty fallback"
 - Produces: `hasSystemPython3(): boolean` 探测函数
 - Produces: `PosixPtyDriver` 类：负责通过 Python3 `pty.openpty()` 建立真实主从伪终端，处理输入输出流与进程清理
 
-- [ ] **Step 1: 在 `scripts/gt.js` 中实现 Python3 探测与 PosixPtyDriver 类**
+- [x] **Step 1: 在 `scripts/gt.js` 中实现 Python3 探测与 PosixPtyDriver 类**
 
 在 `scripts/gt.js` 中新增系统 Python3 探测与 `PosixPtyDriver`：
 ```javascript
@@ -244,12 +244,12 @@ else:
 }
 ```
 
-- [ ] **Step 2: 运行测试或单测验证 Python 脚本正确运行**
+- [x] **Step 2: 运行测试或单测验证 Python 脚本正确运行**
 
 Run: `node -e 'require("./scripts/gt.js")'`
 Expected: 语法校验通过，无抛错。
 
-- [ ] **Step 3: 提交代码**
+- [x] **Step 3: 提交代码**
 
 ```bash
 git add scripts/gt.js
@@ -266,7 +266,7 @@ git commit -m "feat(gt): implement PosixPtyDriver using system python3 pty"
 **Interfaces:**
 - Produces: `InteractivePipeDriver` 类：负责处理最底层的管道兜底，拦截终端 raw mode 按键（`\r` ➜ `\n`），处理 `-i` 参数注入与 Ctrl+C/Ctrl+D 信号模拟
 
-- [ ] **Step 1: 编写 InteractivePipeDriver 实现**
+- [x] **Step 1: 编写 InteractivePipeDriver 实现**
 
 ```javascript
 class InteractivePipeDriver {
@@ -337,7 +337,7 @@ class InteractivePipeDriver {
 }
 ```
 
-- [ ] **Step 2: 重构 `StreamSessionManager.startStream` 串联三层驱动**
+- [x] **Step 2: 重构 `StreamSessionManager.startStream` 串联三层驱动**
 
 在 `StreamSessionManager.startStream` 中组织三层驱动优先级：
 ```javascript
@@ -385,12 +385,12 @@ class InteractivePipeDriver {
     }
 ```
 
-- [ ] **Step 3: 运行自动化测试验证 (Green)**
+- [x] **Step 3: 运行自动化测试验证 (Green)**
 
 Run: `npx jest tests/gtAgentPtyFallback.test.ts`
 Expected: PASS（包含通过回退驱动成功执行 bash 交互命令，换行与 exit 均正常工作）。
 
-- [ ] **Step 4: 提交代码**
+- [x] **Step 4: 提交代码**
 
 ```bash
 git add scripts/gt.js
@@ -407,14 +407,14 @@ git commit -m "feat(gt): integrate three-tier pty driver hierarchy in StreamSess
 - Test: `tests/gtCli.test.ts`
 - Test: `tests/gtAgentStream.test.ts`
 
-- [ ] **Step 1: 在测试中补充管道交互 (InteractivePipeDriver) 模式针对 `\r` 与 Ctrl+C 信���的专项断言**
+- [x] **Step 1: 在测试中补充管道交互 (InteractivePipeDriver) 模式针对 `\r` 与 Ctrl+C 信号的专项断言**
 
-- [ ] **Step 2: 运行全量终端测试套件**
+- [x] **Step 2: 运行全量终端测试套件**
 
 Run: `npx jest tests/gtAgentPtyFallback.test.ts tests/gtCli.test.ts tests/gtAgentStream.test.ts tests/terminalExecBridge.test.ts`
 Expected: 全部测试 PASS。
 
-- [ ] **Step 3: 提交完整测试套件**
+- [x] **Step 3: 提交完整测试套件**
 
 ```bash
 git add tests/gtAgentPtyFallback.test.ts
@@ -425,6 +425,6 @@ git commit -m "test(gt): add comprehensive test suite for interactive pty fallba
 
 ### Task 5: 最终人工与集成验证
 
-- [ ] **Step 1: 在本地模拟无 node-pty 的 agent 启动，并执行 `gt exec -it` 命令**
-- [ ] **Step 2: 确认用户看到的终端能够正常显示 Shell Prompt、响应键盘回车及命令输入，键入 `exit` 正常退出**
-- [ ] **Step 3: 检查没有遗留后台僵尸进程**
+- [x] **Step 1: 在本地模拟无 node-pty 的 agent 启动，并执行 `gt exec -it` 命令**
+- [x] **Step 2: 确认用户看到的终端能够正常显示 Shell Prompt、响应键盘回车及命令输入，键入 `exit` 正常退出**
+- [x] **Step 3: 检查没有遗留后台僵尸进程**
