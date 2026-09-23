@@ -1970,17 +1970,16 @@ async function runAgent(agentArgs = [], globalOpts = {}) {
     process.exit(0);
   }
 
-  if (subCmd && !['start', 'restart'].includes(subCmd)) {
+  if (subCmd && !['start', 'restart', 'run'].includes(subCmd)) {
     console.error(`Error: Unknown agent subcommand: '${subCmd}'.`);
     console.error("Usage: gt agent [start|-d|status|ps|stop|restart|logs] [OPTIONS]");
     process.exit(1);
   }
 
-  if (subCmd === 'restart') {
-    await AgentDaemonManager.stop();
-  }
-
   const options = {};
+  let positionalName = null;
+  const knownSubCmds = ['start', 'restart', 'run', 'status', 'ps', 'stop', 'logs', 'rm'];
+
   for (let i = 0; i < agentArgs.length; i++) {
     const arg = agentArgs[i];
     if (arg.startsWith('--')) {
@@ -2002,7 +2001,26 @@ async function runAgent(agentArgs = [], globalOpts = {}) {
       if (i + 1 < agentArgs.length && !agentArgs[i + 1].startsWith('-')) {
         options[k] = agentArgs[++i];
       }
+    } else if (!arg.startsWith('-')) {
+      if (!knownSubCmds.includes(arg.toLowerCase()) && !positionalName) {
+        positionalName = arg;
+      }
     }
+  }
+
+  const hostname = os.hostname();
+  const sanitizedHostname = hostname.toLowerCase().replace(/[^a-z0-9-_]/g, '-').replace(/^-+|-+$/g, '') || 'host';
+  const random4Hex = crypto.randomBytes(2).toString('hex');
+  const defaultName = `${sanitizedHostname}-${random4Hex}`;
+
+  const sanitizedName = options.name
+    ? AgentDaemonManager.sanitizeName(options.name)
+    : (positionalName ? AgentDaemonManager.sanitizeName(positionalName) : '');
+  const hostName = sanitizedName || defaultName;
+  const hostId = options.id || options.hostId || crypto.randomBytes(6).toString('hex');
+
+  if (subCmd === 'restart') {
+    await AgentDaemonManager.stop(hostName);
   }
 
   // 1. Check for removed flags
@@ -2032,26 +2050,25 @@ async function runAgent(agentArgs = [], globalOpts = {}) {
   const isDaemon = subCmd === 'start' || subCmd === 'restart' || agentArgs.includes('-d') || agentArgs.includes('--detach');
 
   if (isDaemon && !isInternalDaemon) {
-    const currentStatus = AgentDaemonManager.getStatus();
-    if (currentStatus.running) {
-      console.error(`Error: Agent daemon is already running (PID: ${currentStatus.pid}). Use 'gt agent stop' or 'gt agent restart'.`);
-      process.exit(1);
+    if (!options.name && !positionalName) {
+      const running = AgentDaemonManager.getAllAgents().filter(a => a.running);
+      if (running.length > 0) {
+        const cur = running[0];
+        console.error(`Error: Agent daemon is already running (PID: ${cur.pid}, Name: "${cur.name}"). Use 'gt stop ${cur.name}' or 'gt restart ${cur.name}'.`);
+        process.exit(1);
+      }
     }
 
-    const hostname = os.hostname();
-    const sanitizedHostname = hostname.toLowerCase().replace(/[^a-z0-9-_]/g, '-').replace(/^-+|-+$/g, '') || 'host';
-    const random4Hex = crypto.randomBytes(2).toString('hex');
-    const defaultName = `${sanitizedHostname}-${random4Hex}`;
-    const sanitizedName = options.name
-      ? options.name.toLowerCase().replace(/[^a-z0-9-_]/g, '-').replace(/^-+|-+$/g, '')
-      : '';
-    const hostName = sanitizedName || defaultName;
-    const hostId = options.id || options.hostId || crypto.randomBytes(6).toString('hex');
+    const current = AgentDaemonManager.getAgent(hostName);
+    if (current && current.running) {
+      console.error(`Error: Agent "${hostName}" is already running (PID: ${current.pid}). Use 'gt stop ${hostName}' or 'gt restart ${hostName}'.`);
+      process.exit(1);
+    }
 
     const cleanArgs = [];
     for (let i = 0; i < agentArgs.length; i++) {
       const a = agentArgs[i];
-      if (a === 'start' || a === 'restart' || a === '-d' || a === '--detach' || a === '--internal-daemon') {
+      if (knownSubCmds.includes(a.toLowerCase()) || a === '-d' || a === '--detach' || a === '--internal-daemon') {
         continue;
       }
       if (a === '--name' || a === '--id' || a === '--hostId') {
@@ -2061,16 +2078,15 @@ async function runAgent(agentArgs = [], globalOpts = {}) {
       if (a.startsWith('--name=') || a.startsWith('--id=') || a.startsWith('--hostId=')) {
         continue;
       }
+      if (a === positionalName) {
+        continue;
+      }
       cleanArgs.push(a);
     }
     cleanArgs.push(`--name=${hostName}`);
     cleanArgs.push(`--id=${hostId}`);
 
-    const configDir = ConfigStore.getConfigDir();
-    if (!fs.existsSync(configDir)) {
-      fs.mkdirSync(configDir, { recursive: true, mode: 0o700 });
-    }
-    const logFile = AgentDaemonManager.getLogFile();
+    const logFile = AgentDaemonManager.getLogFile(hostName);
     const logFd = fs.openSync(logFile, 'a', 0o600);
 
     const child = spawn(
@@ -2083,7 +2099,7 @@ async function runAgent(agentArgs = [], globalOpts = {}) {
       }
     );
 
-    AgentDaemonManager.saveStatus({
+    AgentDaemonManager.saveStatus(hostName, {
       pid: child.pid,
       name: hostName,
       id: hostId,
@@ -2097,23 +2113,12 @@ async function runAgent(agentArgs = [], globalOpts = {}) {
 
     console.log(`Agent started in background (PID: ${child.pid}, Host: ${hostName})`);
     console.log(`Logs: ${logFile}`);
-    console.log("Run 'gt agent logs -f' to follow logs.");
-    console.log("Run 'gt agent stop' to stop agent.");
+    console.log(`Run 'gt logs -f ${hostName}' to follow logs.`);
+    console.log(`Run 'gt stop ${hostName}' to stop agent.`);
     process.exit(0);
   }
-  const hostname = os.hostname();
   const platform = os.platform();
   const localIp = getLocalIp();
-
-  const sanitizedHostname = hostname.toLowerCase().replace(/[^a-z0-9-_]/g, '-').replace(/^-+|-+$/g, '') || 'host';
-  const random4Hex = crypto.randomBytes(2).toString('hex');
-  const defaultName = `${sanitizedHostname}-${random4Hex}`;
-
-  const sanitizedName = options.name
-    ? options.name.toLowerCase().replace(/[^a-z0-9-_]/g, '-').replace(/^-+|-+$/g, '')
-    : '';
-  const hostName = sanitizedName || defaultName;
-  const hostId = options.id || options.hostId || crypto.randomBytes(6).toString('hex');
 
   if (fs.existsSync(envPath)) {
     console.log('[Agent] Loaded .env configuration');
@@ -3472,6 +3477,11 @@ async function main() {
         console.error('Usage: gt config <list|get|set> [key] [val]');
         process.exit(1);
       }
+      break;
+    }
+
+    case 'run': {
+      await runAgent(['run', ...cmdArgs], { server, key, cliServer, cliKey });
       break;
     }
 

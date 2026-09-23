@@ -227,5 +227,54 @@ describe('gt agent unified authentication and parameter guards', () => {
     AgentDaemonManager.remove('worker-b');
     expect(AgentDaemonManager.getAgent('worker-b')).toBeNull();
   });
+
+  it('supports positional [NAME] argument and prevents duplicate running instances', () => {
+    fs.writeFileSync(path.join(testConfigDir, 'config.json'), JSON.stringify({
+      server: 'http://127.0.0.1:3000',
+      key: 'mock-key',
+    }));
+
+    // Start agent with positional name 'worker-pos'
+    const res1 = spawnSync('node', [gtPath, 'run', '-d', 'worker-pos'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(res1.status).toBe(0);
+    expect(res1.stdout).toContain('Agent started in background');
+    expect(res1.stdout).toContain('worker-pos');
+
+    // Verify state file created in agents/worker-pos.json
+    const statePath = path.join(testConfigDir, 'agents', 'worker-pos.json');
+    expect(fs.existsSync(statePath)).toBe(true);
+
+    // Attempt duplicate start with same name 'worker-pos'
+    const dupRes = spawnSync('node', [gtPath, 'run', '-d', 'worker-pos'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(dupRes.status).toBe(1);
+    expect(dupRes.stderr).toContain('already running');
+    expect(dupRes.stderr).toContain('worker-pos');
+
+    // Start another agent with different name 'worker-pos-2'
+    const res2 = spawnSync('node', [gtPath, 'run', '-d', 'worker-pos-2'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(res2.status).toBe(0);
+    expect(res2.stdout).toContain('worker-pos-2');
+
+    // Stop both
+    const { AgentDaemonManager } = require('../scripts/gt.js');
+    process.env.GT_CONFIG_DIR = testConfigDir;
+    const agent1 = AgentDaemonManager.getAgent('worker-pos');
+    const agent2 = AgentDaemonManager.getAgent('worker-pos-2');
+    if (agent1 && agent1.pid) process.kill(agent1.pid, 'SIGKILL');
+    if (agent2 && agent2.pid) process.kill(agent2.pid, 'SIGKILL');
+  });
 });
+
 
