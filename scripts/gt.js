@@ -2137,8 +2137,8 @@ async function runAgent(agentArgs = [], globalOpts = {}) {
 
   // 2. Enforce authentication from ConfigStore
   const stored = ConfigStore.load();
-  const effectiveServer = stored.server || process.env.TERMINAL_SERVER || process.env.GEMINI_PROXY_URL;
-  const effectiveKey = stored.key || process.env.ADMIN_SECRET_KEY;
+  const effectiveServer = process.env.TERMINAL_SERVER || process.env.GEMINI_PROXY_URL || stored.server;
+  const effectiveKey = process.env.ADMIN_SECRET_KEY || stored.key;
 
   if (!effectiveServer || !effectiveKey) {
     console.error("Error: No authenticated server found. Please run 'gt auth login <server> <key>' first.");
