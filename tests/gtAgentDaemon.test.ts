@@ -454,6 +454,52 @@ describe('gt agent unified authentication and parameter guards', () => {
     expect(helpRes.stdout).toContain('logs [-f] [NAME]');
     expect(helpRes.stdout).toContain('stop [NAME] [--all]');
   });
+
+  it('supports gt rm to remove stopped agents and gt rm --all to clean up all stopped agents', () => {
+    fs.writeFileSync(path.join(testConfigDir, 'config.json'), JSON.stringify({
+      server: 'http://127.0.0.1:3000',
+      key: 'mock-key',
+    }));
+
+    const { AgentDaemonManager } = require('../scripts/gt.js');
+    process.env.GT_CONFIG_DIR = testConfigDir;
+
+    AgentDaemonManager.saveStatus('stopped-1', { pid: 99999991, name: 'stopped-1', server: 'http://hub1' });
+    AgentDaemonManager.saveStatus('stopped-2', { pid: 99999992, name: 'stopped-2', server: 'http://hub1' });
+    AgentDaemonManager.saveStatus('running-1', { pid: process.pid, name: 'running-1', server: 'http://hub1' });
+
+    // Removing running agent should fail
+    const rmRunningRes = spawnSync('node', [gtPath, 'rm', 'running-1'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(rmRunningRes.status).toBe(1);
+    expect(rmRunningRes.stderr).toContain('Cannot remove running agent');
+
+    // Remove single stopped agent
+    const rmOneRes = spawnSync('node', [gtPath, 'rm', 'stopped-1'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(rmOneRes.status).toBe(0);
+    expect(rmOneRes.stdout).toContain('Agent "stopped-1" removed');
+    expect(AgentDaemonManager.getAgent('stopped-1')).toBeNull();
+
+    // Remove all remaining stopped agents
+    const rmAllRes = spawnSync('node', [gtPath, 'rm', '--all'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(rmAllRes.status).toBe(0);
+    expect(rmAllRes.stdout).toContain('stopped-2');
+    expect(AgentDaemonManager.getAgent('stopped-2')).toBeNull();
+    expect(AgentDaemonManager.getAgent('running-1')).not.toBeNull();
+
+    AgentDaemonManager.clearStatus('running-1');
+  });
 });
 
 

@@ -280,21 +280,32 @@ pm2 logs gemini-proxy            # 查看实时运行日志
 在宿主机或局域网内任意 Linux、macOS 或 Windows 主机上执行：
 
 ```bash
-# 使用 npm 脚本 (或本地安装后的 gt 命令)
-npm run gt -- agent --server=http://<proxy-ip>:3000 --key=<ADMIN_SECRET_KEY> --name="Ubuntu-GPU-Server"
+# 1. 登录并持久化连接凭据 (像 docker login 一样，保存在 ~/.gt/config.json)
+gt auth login http://<proxy-ip>:3000 <ADMIN_SECRET_KEY>
 
-# 或者直接使用一键安装后的全局 gt 命令
-gt agent --server=http://<proxy-ip>:3000 --key=<ADMIN_SECRET_KEY> --name="Ubuntu-GPU-Server"
+# 2. 启动 Agent 节点 (Docker 风格多实例运行，-d 代表后台守护进程)
+gt run -d Ubuntu-GPU-Server
+
+# 3. 常用生命周期操作
+gt ps                               # 查看本机运行的 Agent 实例状态
+gt logs -f Ubuntu-GPU-Server        # 实时跟踪 Agent 运行日志
+gt stop Ubuntu-GPU-Server           # 停止 Agent
+gt restart Ubuntu-GPU-Server        # 重启 Agent
+gt rm Ubuntu-GPU-Server             # 清理已停止的 Agent 记录
 ```
 
-#### B. Agent 参数列表
-| 参数选项 | 说明 | 默认值 / 示例 |
+#### B. Agent 命令与参数说明
+| 命令 / 选项 | 说明 | 示例 |
 | :--- | :--- | :--- |
-| `--server` | Gemini-Proxy 服务地址 (必填) | `http://192.168.1.100:3000` |
-| `--key` | 管理密钥 (与服务端 `ADMIN_SECRET_KEY` 一致) | `your_secret_key` |
-| `--name` | 在控制台顶部下拉框显示的主机名称 | 默认为机器 Hostname |
-| `--id` | 主机唯一标识 | 默认为 `agent-<hash>` |
-| `--shell` | 指定调起的 Shell 程序路径 | 自动检测 (bash/zsh/PowerShell) |
+| `gt run [-d] [NAME]` | 运行 Agent (前台控制台输出，或 `-d` / `--detach` 后台常驻) | `gt run -d worker-1` |
+| `gt ps` | 列出本地所有 Agent 实例状态 (Running / Stopped / PID / Hub / 启动时间) | `gt ps` |
+| `gt logs [-f] [-n 50] [NAME]` | 查看或实时跟踪 (`-f`) Agent 运行日志 | `gt logs -f worker-1` |
+| `gt stop [NAME] [--all]` | 优雅终止 Agent 进程 (支持 `--all` 停止全部) | `gt stop worker-1` |
+| `gt restart [NAME]` | 重启指定的 Agent 守护进程 | `gt restart worker-1` |
+| `gt rm [NAME] [--all]` | 删除已停止的 Agent 状态文件及日志记录 (支持 `--all`) | `gt rm worker-1` |
+| `--name=<name>` | 显式指定 Agent 名称 (优先级高于位置参数 `NAME`) | `--name="my-box"` |
+| `--id=<id>` | 主机唯一标识 | 默认为自动生成的 12 位十六进制短 ID |
+| `--shell=<path>` | 指定调起的 Shell 程序路径 | 自动检测 (bash/zsh/PowerShell) |
 
 #### C. 特性保障
 - **自动检测内网 IP**：Agent 自动探测并上报主机的真实局域网 IPv4 地址与操作系统平台；
@@ -418,6 +429,14 @@ gt task kill my-host task-1726671234000          # 中断或强杀正在运行�
 # 4. 双向文件拷贝 (类似 docker cp)
 gt cp my-host:/var/log/app.log ./local.log       # 远程文件下载到本地
 gt cp ./config.json my-host:/app/config.json     # 本地文件上传到远程
+
+# 5. 本地 Agent 守护进程管理 (Docker 风格多实例)
+gt run -d worker-1                               # 启动后台常驻 Agent 守护进程
+gt ps                                            # 查看本地所有 Agent 实例状态 (Running / Stopped)
+gt logs -f worker-1                              # 实时查看/跟踪 Agent 运行日志
+gt stop worker-1                                 # 停止指定的 Agent (支持 --all 停止全部)
+gt restart worker-1                              # 重启指定的 Agent
+gt rm worker-1                                   # 清理已停止的 Agent 记录与日志 (支持 --all)
 ```
 
 ---
