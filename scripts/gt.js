@@ -13,11 +13,107 @@ const http = require('http');
 const https = require('https');
 const url = require('url');
 const { spawn, execSync } = require('child_process');
-let WebSocket = typeof globalThis.WebSocket !== 'undefined' ? globalThis.WebSocket : null;
+function createWebSocketAdapter() {
+  class NativeWebSocketAdapter {
+    constructor(url, options = {}) {
+      this._ws = new globalThis.WebSocket(url, options);
+      this._ws.binaryType = 'arraybuffer';
+      this._listeners = new Map();
+
+      this._ws.addEventListener('open', (e) => this._emit('open', e));
+      this._ws.addEventListener('close', (e) => this._emit('close', e.code, e.reason));
+      this._ws.addEventListener('error', (e) => {
+        this._emit('error', e.error || new Error(e.message || 'WebSocket error'));
+      });
+      this._ws.addEventListener('message', (e) => {
+        let data = e.data;
+        const isBinary = data instanceof ArrayBuffer;
+        if (isBinary) {
+          data = Buffer.from(data);
+        }
+        this._emit('message', data, isBinary);
+      });
+    }
+
+    get readyState() {
+      return this._ws.readyState;
+    }
+
+    send(data) {
+      return this._ws.send(data);
+    }
+
+    close(code, reason) {
+      if (code !== undefined) {
+        return this._ws.close(code, reason);
+      }
+      return this._ws.close();
+    }
+
+    terminate() {
+      return this._ws.close();
+    }
+
+    on(event, handler) {
+      if (!this._listeners.has(event)) {
+        this._listeners.set(event, []);
+      }
+      this._listeners.get(event).push(handler);
+      return this;
+    }
+
+    once(event, handler) {
+      const onceWrapper = (...args) => {
+        this.off(event, onceWrapper);
+        handler(...args);
+      };
+      onceWrapper.listener = handler;
+      return this.on(event, onceWrapper);
+    }
+
+    off(event, handler) {
+      const list = this._listeners.get(event);
+      if (list) {
+        const idx = list.findIndex((h) => h === handler || h.listener === handler);
+        if (idx !== -1) list.splice(idx, 1);
+      }
+      return this;
+    }
+
+    removeListener(event, handler) {
+      return this.off(event, handler);
+    }
+
+    _emit(event, ...args) {
+      const handlers = (this._listeners.get(event) || []).slice();
+      for (const h of handlers) {
+        try {
+          h(...args);
+        } catch (err) {
+          console.error(`[WebSocket error in ${event}]:`, err);
+        }
+      }
+    }
+  }
+
+  NativeWebSocketAdapter.prototype.CONNECTING = NativeWebSocketAdapter.CONNECTING = 0;
+  NativeWebSocketAdapter.prototype.OPEN = NativeWebSocketAdapter.OPEN = 1;
+  NativeWebSocketAdapter.prototype.CLOSING = NativeWebSocketAdapter.CLOSING = 2;
+  NativeWebSocketAdapter.prototype.CLOSED = NativeWebSocketAdapter.CLOSED = 3;
+
+  return NativeWebSocketAdapter;
+}
+
+let WebSocketImpl = null;
 try {
-  const wsPkg = require('ws');
-  if (wsPkg) WebSocket = wsPkg;
+  WebSocketImpl = require('ws');
 } catch {}
+
+if (!WebSocketImpl && typeof globalThis.WebSocket !== 'undefined') {
+  WebSocketImpl = createWebSocketAdapter();
+}
+
+const WebSocket = WebSocketImpl;
 let pty = null;
 try {
   pty = require('node-pty');
@@ -2684,4 +2780,5 @@ module.exports = {
   handleCmdExec,
   runAgent,
   runInteractiveExec,
+  createWebSocketAdapter,
 };
