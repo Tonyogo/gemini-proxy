@@ -23,17 +23,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - `gt cp <src> <dest>`: Copies files bidirectionally between local and remote host (`<host>:<path>`)
   - `gt task ls <host> [--json] [--format <template>]`: Lists active and recent execution tasks on target host
   - `gt task logs [-f] <host> <taskId> [--json]`: Inspects or follows execution logs for a task
-  - `gt agent [SUBCOMMAND] [OPTIONS]`: Launches reverse terminal agent (foreground or background daemon):
-    - `gt agent`: Run agent in foreground (logs to console)
-    - `gt agent start / -d [--name <name>]`: Start agent daemon in background (persists PID in `~/.gt/agent.json`, logs to `~/.gt/agent.log`)
-    - `gt agent status / ps`: Check background daemon status
-    - `gt agent stop`: Stop background agent daemon
-    - `gt agent restart`: Restart background agent daemon
-    - `gt agent logs [-f] [-n 50]`: View or follow daemon log stream
+  - **Docker-Style Multi-Instance Agent Commands**:
+    - `gt run [-d] [NAME]`: Run agent in foreground or background daemon (persists state in `~/.gt/agents/<name>.json`, logs to `~/.gt/agents/<name>.log`)
+    - `gt ps`: List local agent daemons with status, PID, target hub, and start time
+    - `gt logs [-f] [-n 50] [NAME]`: View or follow agent daemon logs
+    - `gt stop [NAME] [--all]`: Stop running agent daemon(s)
+    - `gt restart [NAME]`: Restart agent daemon
+    - `gt rm [NAME] [--all]`: Remove stopped agent daemon records and logs
+    - `gt agent [SUBCOMMAND] [OPTIONS]`: Subcommand aliases for agent management (`run`, `start`, `ps`, `status`, `logs`, `stop`, `restart`, `rm`)
 - **Configuration Hierarchy**:
   - Global commands: `CLI flag (--server/--key) > Environment variable (TERMINAL_SERVER/ADMIN_SECRET_KEY) > Persistent config (~/.gt/config.json) > Default fallback (http://localhost:3000 / empty key)`
-  - Agent commands: Exclusively uses persistent credentials authenticated via `gt auth login [server] [key]` (or `TERMINAL_SERVER` / `ADMIN_SECRET_KEY`). `--server` and `--key` flags are strictly disallowed on `gt agent` to prevent multi-source conflicts.
-- **Terminal Agent Daemon**: `gt auth login http://<host>:3000 <admin-key> && gt agent start --name="Node-Name"`
+  - Agent commands: Exclusively uses persistent credentials authenticated via `gt auth login [server] [key]` (or `TERMINAL_SERVER` / `ADMIN_SECRET_KEY`). `--server` and `--key` flags are strictly disallowed on `gt agent` / `gt run` to prevent multi-source conflicts.
+- **Terminal Agent Daemon**: `gt auth login http://<host>:3000 <admin-key> && gt run -d Node-Name`
 - **Run All Tests**: `npm test` (runs complete Jest test suite; use `npx jest --runInBand` if experiencing SIGSEGV clustering issues)
 - **Run Single Test**: `npx jest tests/<test-name>.test.ts` (e.g., `npx jest tests/claudeTranslator.test.ts`)
 

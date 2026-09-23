@@ -381,7 +381,20 @@ describe('gt agent unified authentication and parameter guards', () => {
     expect(stopAll.status).toBe(0);
     expect(stopAll.stdout).toContain('stopped');
   });
+
+  it('outputs Docker-style command guidelines in gt --help', () => {
+    const helpRes = spawnSync('node', [gtPath, '--help'], {
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(helpRes.status).toBe(0);
+    expect(helpRes.stdout).toContain('run [-d] [NAME]');
+    expect(helpRes.stdout).toContain('ps');
+    expect(helpRes.stdout).toContain('logs [-f] [NAME]');
+    expect(helpRes.stdout).toContain('stop [NAME] [--all]');
+  });
 });
+
 
 
 

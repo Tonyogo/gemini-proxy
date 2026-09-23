@@ -171,6 +171,14 @@ Management Commands:
   auth login [SERVER] [KEY]      Verify and save admin credentials (like 'docker login')
   auth logout                    Remove stored credentials (like 'docker logout')
 
+Agent Commands (Docker-Style):
+  run [-d] [NAME]                Run agent in foreground or background daemon
+  ps                             List local agent daemons (like 'docker ps')
+  logs [-f] [NAME]               View or follow agent logs (like 'docker logs')
+  stop [NAME] [--all]            Stop running agent daemon(s) (like 'docker stop')
+  restart [NAME]                 Restart agent daemon (like 'docker restart')
+  rm [NAME] [--all]              Remove stopped agent records (like 'docker rm')
+
 Commands:
   exec [OPTIONS] <host> <cmd...> Execute a command on a remote host (like 'docker exec')
   cp <src> <dest>                Copy files between local and remote host (like 'docker cp')
@@ -182,6 +190,7 @@ Commands:
     gt agent stop                Stop background agent
     gt agent restart             Restart background agent
     gt agent logs [-f] [-n 50]   View background agent logs
+    gt agent rm [NAME]           Remove stopped agent daemon record
 
 Exec Options:
   -i, --interactive       Keep STDIN open for live or piped input
@@ -198,7 +207,7 @@ Global Options:
   -s, --server <url>             Hub server URL (Default: env TERMINAL_SERVER or http://localhost:3000)
   -k, --key <secret>             Admin secret key (Default: env ADMIN_SECRET_KEY)
   --json                         Output in JSON format
-  --format <template>            Format output using Go/Docker template (e.g. 'table {{.ID}}\\t{{.Name}}')
+  --format <template>            Format output using Go/Docker template (e.g. 'table {{.ID}}\t{{.Name}}')
   -v, --version                  Print version information
   -h, --help                     Show this help menu
 
@@ -213,10 +222,11 @@ Examples:
   gt cp local.txt my-server:/tmp/remote.txt
   gt auth login http://localhost:3000 secret
   gt auth logout
-  gt agent start
-  gt agent status
-  gt agent logs -f
-  gt agent stop
+  gt run -d worker-1
+  gt ps
+  gt logs -f worker-1
+  gt stop worker-1
+  gt rm worker-1
 `);
 }
 
