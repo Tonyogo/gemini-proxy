@@ -30,7 +30,7 @@
 - Consumes: `ConfigStore` from `scripts/gt.js`
 - Produces: 验证 `gt agent` 阻断 `--server`/`--key`、在未登录时阻断并提示 `gt auth login`，在已登录时允许启动
 
-- [ ] **Step 1: 编写测试用例**
+- [x] **Step 1: 编写测试用例**
 
 ```typescript
 import path from 'path';
@@ -90,12 +90,12 @@ describe('gt agent unified authentication and parameter guards', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试验证失败 (Red)**
+- [x] **Step 2: 运行测试验证失败 (Red)**
 
 Run: `npx jest tests/gtAgentDaemon.test.ts`
 Expected: FAIL（因为当前 `gt agent` 仍接受 `--server` / `--key`，且未登录时默认 fallback 到 `http://localhost:3000`）。
 
-- [ ] **Step 3: 提交失败测试**
+- [x] **Step 3: 提交失败测试**
 
 ```bash
 git add tests/gtAgentDaemon.test.ts
@@ -114,7 +114,7 @@ git commit -m "test(gt): add failing tests for agent auth guards and removed fla
 - Produces: `ConfigStore.getConfigDir()` 支持 `process.env.GT_CONFIG_DIR`
 - Produces: `validateAgentAuth(options)`: 严格阻断 `--server`/`--key`，并校验是否有已认证凭证，否则退出码 1
 
-- [ ] **Step 1: 修改 ConfigStore 支持自定义配置目录**
+- [x] **Step 1: 修改 ConfigStore 支持自定义配置目录**
 
 ```javascript
   static getConfigDir() {
@@ -122,7 +122,7 @@ git commit -m "test(gt): add failing tests for agent auth guards and removed fla
   }
 ```
 
-- [ ] **Step 2: 在 `runAgent` 中添加参数校验与单一认证源检查**
+- [x] **Step 2: 在 `runAgent` 中添加参数校验与单一认证源检查**
 
 在 `runAgent` 顶部：
 ```javascript
@@ -150,12 +150,12 @@ git commit -m "test(gt): add failing tests for agent auth guards and removed fla
   const adminKey = effectiveKey;
 ```
 
-- [ ] **Step 3: 运行单测验证通过 (Green)**
+- [x] **Step 3: 运行单测验证通过 (Green)**
 
 Run: `npx jest tests/gtAgentDaemon.test.ts`
 Expected: PASS（参数拦截与未登录拦截生效）。
 
-- [ ] **Step 4: 提交代码**
+- [x] **Step 4: 提交代码**
 
 ```bash
 git add scripts/gt.js
@@ -178,7 +178,7 @@ git commit -m "feat(gt): enforce unified auth login in gt agent and remove --ser
 - Produces: `AgentDaemonManager.stop()`: 优雅停止并清理状态
 - Produces: `AgentDaemonManager.getLogs(lines, follow)`: 读取或持续跟踪日志
 
-- [ ] **Step 1: 编写针对 DaemonManager 的单元测试**
+- [x] **Step 1: 编写针对 DaemonManager 的单元测试**
 
 在 `tests/gtAgentDaemon.test.ts` 中增加测试用例：
 ```typescript
@@ -190,7 +190,7 @@ git commit -m "feat(gt): enforce unified auth login in gt agent and remove --ser
   });
 ```
 
-- [ ] **Step 2: 在 `scripts/gt.js` 中实现 `AgentDaemonManager` 类**
+- [x] **Step 2: 在 `scripts/gt.js` 中实现 `AgentDaemonManager` 类**
 
 ```javascript
 class AgentDaemonManager {
@@ -271,12 +271,12 @@ class AgentDaemonManager {
 }
 ```
 
-- [ ] **Step 3: 运行单测验证**
+- [x] **Step 3: 运行单测验证**
 
 Run: `npx jest tests/gtAgentDaemon.test.ts`
 Expected: PASS
 
-- [ ] **Step 4: 提交代码**
+- [x] **Step 4: 提交代码**
 
 ```bash
 git add scripts/gt.js tests/gtAgentDaemon.test.ts
@@ -295,7 +295,7 @@ git commit -m "feat(gt): implement AgentDaemonManager for state and process cont
 **Interfaces:**
 - Produces: CLI 支持 `gt agent -d`, `gt agent start`, `gt agent status` (或 `ps`), `gt agent stop`, `gt agent restart`, `gt agent logs`
 
-- [ ] **Step 1: 在 `tests/gtAgentDaemon.test.ts` 中编写集成测试**
+- [x] **Step 1: 在 `tests/gtAgentDaemon.test.ts` 中编写集成测试**
 
 ```typescript
   it('supports background execution via gt agent -d and lifecycle management', async () => {
@@ -360,7 +360,7 @@ git commit -m "feat(gt): implement AgentDaemonManager for state and process cont
   });
 ```
 
-- [ ] **Step 2: 在 `scripts/gt.js` 中实现后台派生与子命令分发**
+- [x] **Step 2: 在 `scripts/gt.js` 中实现后台派生与子命令分发**
 
 在 `runAgent` 中添加后台派生判断：
 - 当用户调用 `gt agent -d` 或 `gt agent start` 时：
@@ -383,12 +383,12 @@ git commit -m "feat(gt): implement AgentDaemonManager for state and process cont
 - `gt agent restart`: 先 `stop()`，再拉起新后台进程。
 - `gt agent logs`: 输出尾部日志（`-n`），支持 `-f` 实时跟踪。
 
-- [ ] **Step 3: 运行自动化测试验证 (Green)**
+- [x] **Step 3: 运行自动化测试验证 (Green)**
 
 Run: `npx jest tests/gtAgentDaemon.test.ts`
 Expected: PASS
 
-- [ ] **Step 4: 提交代码**
+- [x] **Step 4: 提交代码**
 
 ```bash
 git add scripts/gt.js tests/gtAgentDaemon.test.ts
@@ -406,7 +406,7 @@ git commit -m "feat(gt): support daemon lifecycle subcommands start, status, sto
 - Test: `tests/gtAgentPtyFallback.test.ts`
 - Test: `tests/gtAgentDaemon.test.ts`
 
-- [ ] **Step 1: 在 `printHelp()` 中补充后台 agent 操作说明**
+- [x] **Step 1: 在 `printHelp()` 中补充后台 agent 操作说明**
 
 ```text
   agent [SUBCOMMAND] [OPTIONS]   Run reverse terminal agent (foreground or daemon)
@@ -418,12 +418,12 @@ git commit -m "feat(gt): support daemon lifecycle subcommands start, status, sto
     gt agent logs [-f] [-n 50]   View background agent logs
 ```
 
-- [ ] **Step 2: 运行全量终端相关测试套件进行全面回归**
+- [x] **Step 2: 运行全量终端相关测试套件进行全面回归**
 
 Run: `npx jest tests/gtCli.test.ts tests/gtAgentPtyFallback.test.ts tests/gtAgentDaemon.test.ts`
 Expected: ALL PASS
 
-- [ ] **Step 3: 提交代码**
+- [x] **Step 3: 提交代码**
 
 ```bash
 git add scripts/gt.js CLAUDE.md
