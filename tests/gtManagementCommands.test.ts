@@ -32,16 +32,16 @@ describe('gt management commands & legacy deprecation', () => {
     expect(res.stderr).toContain("Use 'gt host ls'");
   });
 
-  it('rejects legacy "ps" command with code 125 and migration guidance', async () => {
-    const res = await runGt(['ps', 'my-host']);
-    expect(res.code).toBe(125);
-    expect(res.stderr).toContain("Use 'gt task ls'");
+  it('treats "ps" as a valid top-level Docker-style agent command', async () => {
+    const res = await runGt(['ps']);
+    expect(res.code).toBe(0);
+    expect(res.code).not.toBe(125);
   });
 
-  it('rejects legacy "logs" command with code 125 and migration guidance', async () => {
-    const res = await runGt(['logs', 'my-host', 'task-1']);
-    expect(res.code).toBe(125);
-    expect(res.stderr).toContain("Use 'gt task logs'");
+  it('treats "logs" as a valid top-level Docker-style agent command', async () => {
+    const res = await runGt(['logs', 'non-existent-agent']);
+    expect(res.code).not.toBe(125);
+    expect(res.stderr).toContain('not found');
   });
 
   it('rejects legacy "kill" command with code 125 and migration guidance', async () => {
