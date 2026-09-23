@@ -63,18 +63,19 @@ describe('gt agent unified authentication and parameter guards', () => {
     expect(AgentDaemonManager.isProcessAlive(99999999)).toBe(false);
 
     // Save and check alive status
-    AgentDaemonManager.saveStatus({ pid: process.pid, name: 'test-agent' });
-    const status = AgentDaemonManager.getStatus();
+    AgentDaemonManager.saveStatus('test-agent', { pid: process.pid, name: 'test-agent' });
+    const status = AgentDaemonManager.getAgent('test-agent');
     expect(status.running).toBe(true);
     expect(status.pid).toBe(process.pid);
     expect(status.name).toBe('test-agent');
 
-    // Save dead PID and verify stale cleanup
-    AgentDaemonManager.saveStatus({ pid: 99999999, name: 'dead-agent' });
-    const staleStatus = AgentDaemonManager.getStatus();
+    // Save dead PID and verify stale
+    AgentDaemonManager.saveStatus('dead-agent', { pid: 99999999, name: 'dead-agent' });
+    const staleStatus = AgentDaemonManager.getAgent('dead-agent');
     expect(staleStatus.running).toBe(false);
     expect(staleStatus.stale).toBe(true);
-    expect(fs.existsSync(AgentDaemonManager.getStatusFile())).toBe(false);
+    AgentDaemonManager.remove('dead-agent');
+    expect(fs.existsSync(AgentDaemonManager.getStatusFile('dead-agent'))).toBe(false);
   });
 
   it('supports background execution via gt agent -d and lifecycle management', async () => {
@@ -187,4 +188,44 @@ describe('gt agent unified authentication and parameter guards', () => {
       timeout: 5000,
     });
   });
+
+  it('manages multiple named agent status files and processes independently', () => {
+    process.env.GT_CONFIG_DIR = testConfigDir;
+    const { AgentDaemonManager } = require('../scripts/gt.js');
+
+    const agentsDir = AgentDaemonManager.getAgentsDir();
+    expect(agentsDir).toBe(path.join(testConfigDir, 'agents'));
+
+    // Save two different agents
+    AgentDaemonManager.saveStatus('worker-a', { pid: process.pid, name: 'worker-a', server: 'http://hub1' });
+    AgentDaemonManager.saveStatus('worker-b', { pid: 99999999, name: 'worker-b', server: 'http://hub2' });
+
+    const agentA = AgentDaemonManager.getAgent('worker-a');
+    expect(agentA).not.toBeNull();
+    expect(agentA.running).toBe(true);
+    expect(agentA.name).toBe('worker-a');
+
+    const agentB = AgentDaemonManager.getAgent('worker-b');
+    expect(agentB).not.toBeNull();
+    expect(agentB.running).toBe(false); // PID 99999999 is dead
+    expect(agentB.stale).toBe(true);
+
+    const all = AgentDaemonManager.getAllAgents();
+    expect(all.length).toBe(2);
+
+    // Test target resolution
+    // 1 running agent (worker-a) -> resolveTarget() without name resolves to worker-a
+    const resolved = AgentDaemonManager.resolveTarget(undefined, 'stop');
+    expect(resolved.error).toBeUndefined();
+    expect(resolved.agent.name).toBe('worker-a');
+
+    // Explicit name resolves
+    const resolvedExplicit = AgentDaemonManager.resolveTarget('worker-b', 'stop');
+    expect(resolvedExplicit.agent.name).toBe('worker-b');
+
+    // Remove worker-b
+    AgentDaemonManager.remove('worker-b');
+    expect(AgentDaemonManager.getAgent('worker-b')).toBeNull();
+  });
 });
+

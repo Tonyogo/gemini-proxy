@@ -769,12 +769,37 @@ function killProcessTreeSync(pid, signal = 'SIGTERM') {
 }
 
 class AgentDaemonManager {
-  static getStatusFile() {
-    return path.join(ConfigStore.getConfigDir(), 'agent.json');
+  static getAgentsDir() {
+    const dir = path.join(ConfigStore.getConfigDir(), 'agents');
+    if (!fs.existsSync(dir)) {
+      try { fs.mkdirSync(dir, { recursive: true, mode: 0o700 }); } catch {}
+    }
+    return dir;
   }
 
-  static getLogFile() {
-    return path.join(ConfigStore.getConfigDir(), 'agent.log');
+  static sanitizeName(name) {
+    if (!name || typeof name !== 'string') return '';
+    return name.toLowerCase().replace(/[^a-z0-9-_]/g, '-').replace(/^-+|-+$/g, '');
+  }
+
+  static getStatusFile(name) {
+    let sName = this.sanitizeName(name);
+    if (!sName) {
+      const all = this.getAllAgents();
+      if (all.length > 0) sName = all[0].name;
+      else sName = 'agent';
+    }
+    return path.join(this.getAgentsDir(), `${sName}.json`);
+  }
+
+  static getLogFile(name) {
+    let sName = this.sanitizeName(name);
+    if (!sName) {
+      const all = this.getAllAgents();
+      if (all.length > 0) sName = all[0].name;
+      else sName = 'agent';
+    }
+    return path.join(this.getAgentsDir(), `${sName}.log`);
   }
 
   static isProcessAlive(pid) {
@@ -787,49 +812,123 @@ class AgentDaemonManager {
     }
   }
 
-  static getStatus() {
-    const p = this.getStatusFile();
-    if (!fs.existsSync(p)) return { running: false };
+  static getAgent(name) {
+    const sName = this.sanitizeName(name);
+    if (!sName) return null;
+    const p = path.join(this.getAgentsDir(), `${sName}.json`);
+    if (!fs.existsSync(p)) return null;
     try {
       const state = JSON.parse(fs.readFileSync(p, 'utf-8'));
-      if (this.isProcessAlive(state.pid)) {
-        return { running: true, ...state };
-      } else {
-        // Stale state file, clean it up
-        try { fs.unlinkSync(p); } catch {}
-        return { running: false, stale: true, ...state };
-      }
+      const alive = this.isProcessAlive(state.pid);
+      return {
+        name: sName,
+        running: alive,
+        stale: !alive,
+        ...state,
+      };
     } catch {
-      return { running: false };
+      return null;
     }
   }
 
-  static saveStatus(state) {
-    const dir = ConfigStore.getConfigDir();
+  static getStatus(name) {
+    const res = this.resolveTarget(name, 'status');
+    if (res.agent) {
+      if (res.agent.stale) {
+        this.clearStatus(res.agent.name);
+      }
+      return res.agent;
+    }
+    return { running: false };
+  }
+
+  static getAllAgents() {
+    const dir = this.getAgentsDir();
+    if (!fs.existsSync(dir)) return [];
+    try {
+      const files = fs.readdirSync(dir).filter(f => f.endsWith('.json'));
+      const list = [];
+      for (const file of files) {
+        const name = file.slice(0, -5);
+        const agent = this.getAgent(name);
+        if (agent) list.push(agent);
+      }
+      return list.sort((a, b) => a.name.localeCompare(b.name));
+    } catch {
+      return [];
+    }
+  }
+
+  static saveStatus(nameOrState, maybeState) {
+    let name, state;
+    if (typeof nameOrState === 'string') {
+      name = nameOrState;
+      state = maybeState || {};
+    } else {
+      state = nameOrState || {};
+      name = state.name;
+    }
+    const sName = this.sanitizeName(name) || 'agent';
+    const dir = this.getAgentsDir();
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
-    const file = this.getStatusFile();
-    fs.writeFileSync(file, JSON.stringify(state, null, 2), { encoding: 'utf-8', mode: 0o600 });
+    const file = path.join(dir, `${sName}.json`);
+    const data = { name: sName, ...state };
+    fs.writeFileSync(file, JSON.stringify(data, null, 2), { encoding: 'utf-8', mode: 0o600 });
     if (os.platform() !== 'win32') {
       try { fs.chmodSync(file, 0o600); } catch {}
       try { fs.chmodSync(dir, 0o700); } catch {}
     }
   }
 
-  static clearStatus() {
+  static clearStatus(name) {
+    const sName = this.sanitizeName(name);
     try {
-      const p = this.getStatusFile();
+      const p = sName ? path.join(this.getAgentsDir(), `${sName}.json`) : this.getStatusFile();
       if (fs.existsSync(p)) fs.unlinkSync(p);
     } catch {}
   }
 
-  static async stop() {
-    const status = this.getStatus();
-    if (!status.running) {
-      this.clearStatus();
-      return { success: true, message: 'Agent is not running.' };
+  static resolveTarget(name, actionName = 'operate') {
+    if (name) {
+      const sName = this.sanitizeName(name);
+      const agent = this.getAgent(sName);
+      if (!agent) {
+        return { agent: null, error: `Error: Agent "${sName}" not found.` };
+      }
+      return { agent };
     }
 
-    const pid = status.pid;
+    const all = this.getAllAgents();
+    const running = all.filter(a => a.running);
+    if (running.length === 1) {
+      return { agent: running[0] };
+    }
+    if (running.length === 0) {
+      if (all.length === 1) return { agent: all[0] };
+      return { agent: null, error: `No active agent found to ${actionName}.` };
+    }
+
+    const names = running.map(a => `"${a.name}"`).join(', ');
+    return {
+      agent: null,
+      error: `Error: Multiple running agents (${names}). Please specify agent NAME (e.g. gt ${actionName} <NAME>).`,
+    };
+  }
+
+  static async stop(name) {
+    const sName = this.sanitizeName(name);
+    let agent = sName ? this.getAgent(sName) : null;
+    if (!agent) {
+      const resolved = this.resolveTarget(undefined, 'stop');
+      if (resolved.agent) agent = resolved.agent;
+    }
+    if (!agent || !agent.running) {
+      const display = sName || (agent ? agent.name : 'daemon');
+      return { success: true, message: `Agent "${display}" is not running.` };
+    }
+
+    const realName = agent.name;
+    const pid = agent.pid;
     try {
       process.kill(pid, 'SIGTERM');
     } catch {}
@@ -837,22 +936,62 @@ class AgentDaemonManager {
     const start = Date.now();
     while (Date.now() - start < 3000) {
       if (!this.isProcessAlive(pid)) {
-        this.clearStatus();
-        return { success: true, pid, message: `Agent (PID: ${pid}) stopped successfully.` };
+        return { success: true, pid, name: realName, message: `Agent "${realName}" (PID: ${pid}) stopped successfully.` };
       }
       await new Promise(r => setTimeout(r, 100));
     }
 
-    // Force kill if still alive
     killProcessTreeSync(pid, 'SIGKILL');
-    this.clearStatus();
-    return { success: true, pid, message: `Agent (PID: ${pid}) forcibly terminated.` };
+    return { success: true, pid, name: realName, message: `Agent "${realName}" (PID: ${pid}) forcibly terminated.` };
   }
 
-  static async getLogs(lines = 50, follow = false) {
-    const logFile = this.getLogFile();
+  static async stopAll() {
+    const all = this.getAllAgents();
+    const running = all.filter(a => a.running);
+    const results = [];
+    for (const a of running) {
+      results.push(await this.stop(a.name));
+    }
+    return results;
+  }
+
+  static remove(name, { removeLogs = false } = {}) {
+    const sName = this.sanitizeName(name);
+    const agent = this.getAgent(sName);
+    if (agent && agent.running) {
+      return { success: false, message: `Error: Cannot remove running agent "${sName}". Stop it first.` };
+    }
+    this.clearStatus(sName);
+    if (removeLogs) {
+      try {
+        const lf = path.join(this.getAgentsDir(), `${sName}.log`);
+        if (fs.existsSync(lf)) fs.unlinkSync(lf);
+      } catch {}
+    }
+    return { success: true, message: `Agent "${sName}" removed.` };
+  }
+
+  static removeAll() {
+    const all = this.getAllAgents();
+    const removed = [];
+    for (const a of all) {
+      if (!a.running) {
+        this.remove(a.name, { removeLogs: true });
+        removed.push(a.name);
+      }
+    }
+    return { removed };
+  }
+
+  static async getLogs(name, lines = 50, follow = false) {
+    let sName = this.sanitizeName(name);
+    if (!sName) {
+      const resolved = this.resolveTarget(undefined, 'logs');
+      if (resolved.agent) sName = resolved.agent.name;
+    }
+    const logFile = path.join(this.getAgentsDir(), `${sName || 'agent'}.log`);
     if (!fs.existsSync(logFile)) {
-      console.log('No logs found for agent daemon.');
+      console.log(`No logs found for agent "${sName || 'daemon'}".`);
       return;
     }
 
