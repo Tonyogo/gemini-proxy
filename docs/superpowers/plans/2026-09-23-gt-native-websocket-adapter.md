@@ -27,7 +27,7 @@
 - Consumes: `createWebSocketAdapter()` from `../scripts/gt.js`
 - Produces: Verified `NativeWebSocketAdapter` class with standard WebSocket constants and EventEmitter methods (`on`, `once`, `off`, `send`, `close`, `terminate`).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/gtNativeWebSocket.test.ts`:
 ```typescript
@@ -115,7 +115,7 @@ describe('NativeWebSocketAdapter', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/gtNativeWebSocket.test.ts`
 Expected: FAIL with `createWebSocketAdapter is not a function`
@@ -132,7 +132,7 @@ Expected: FAIL with `createWebSocketAdapter is not a function`
 - Consumes: `globalThis.WebSocket`
 - Produces: `createWebSocketAdapter(): class NativeWebSocketAdapter` and initializes fallback `WebSocket` variable when `ws` is unavailable.
 
-- [ ] **Step 1: Implement `createWebSocketAdapter` and initialize fallback in `scripts/gt.js`**
+- [x] **Step 1: Implement `createWebSocketAdapter` and initialize fallback in `scripts/gt.js`**
 
 Add `createWebSocketAdapter` implementation near top of `scripts/gt.js`:
 ```javascript
@@ -237,12 +237,12 @@ const WebSocket = WebSocketImpl;
 
 Export `createWebSocketAdapter` at bottom of `scripts/gt.js`.
 
-- [ ] **Step 2: Run test to verify it passes**
+- [x] **Step 2: Run test to verify it passes**
 
 Run: `npx jest tests/gtNativeWebSocket.test.ts`
 Expected: PASS
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add tests/gtNativeWebSocket.test.ts scripts/gt.js
@@ -261,7 +261,7 @@ git commit -m "feat(gt): implement NativeWebSocketAdapter for zero-dependency st
 - Consumes: `ws` instance in `runAgent`
 - Produces: Safe `upgrade` event handling without throwing on undefined `ws._socket`.
 
-- [ ] **Step 1: Write test for once, off, removeListener, and upgrade listener safety**
+- [x] **Step 1: Write test for once, off, removeListener, and upgrade listener safety**
 
 Add tests in `tests/gtNativeWebSocket.test.ts`:
 ```typescript
@@ -283,17 +283,17 @@ Add tests in `tests/gtNativeWebSocket.test.ts`:
   });
 ```
 
-- [ ] **Step 2: Run test and ensure existing tests pass**
+- [x] **Step 2: Run test and ensure existing tests pass**
 
 Run: `npx jest tests/gtNativeWebSocket.test.ts`
 Expected: PASS
 
-- [ ] **Step 3: Verify full test suite**
+- [x] **Step 3: Verify full test suite**
 
 Run: `npm test`
 Expected: All test suites pass (140 passed).
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add scripts/gt.js tests/gtNativeWebSocket.test.ts
