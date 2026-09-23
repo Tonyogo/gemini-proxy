@@ -53,7 +53,7 @@
   - `AgentDaemonManager.removeAll(): { removed: string[] }`
   - `AgentDaemonManager.resolveTarget(name?: string, actionName?: string): { agent: object | null, error?: string }`
 
-- [ ] **Step 1: Write the failing tests for `AgentDaemonManager` multi-instance operations**
+- [x] **Step 1: Write the failing tests for `AgentDaemonManager` multi-instance operations**
 
 Edit `tests/gtAgentDaemon.test.ts` to test multi-instance methods:
 
@@ -98,12 +98,12 @@ it('manages multiple named agent status files and processes independently', () =
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/gtAgentDaemon.test.ts -t "manages multiple named agent status files"`
 Expected: FAIL (`AgentDaemonManager.getAgentsDir is not a function` or similar)
 
-- [ ] **Step 3: Implement `AgentDaemonManager` multi-instance methods in `scripts/gt.js`**
+- [x] **Step 3: Implement `AgentDaemonManager` multi-instance methods in `scripts/gt.js`**
 
 Replace `AgentDaemonManager` class in `scripts/gt.js` with multi-instance implementation:
 
@@ -345,12 +345,12 @@ class AgentDaemonManager {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/gtAgentDaemon.test.ts -t "manages multiple named agent status files"`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add scripts/gt.js tests/gtAgentDaemon.test.ts
@@ -369,7 +369,7 @@ git commit -m "feat(gt): redesign AgentDaemonManager for multi-instance named ag
 - Consumes: `AgentDaemonManager.getAgent(name)`, `AgentDaemonManager.saveStatus(name, state)`, `AgentDaemonManager.getLogFile(name)`
 - Produces: `runAgent(agentArgs, globalOpts)` with positional `[NAME]` argument and duplicate running prevention.
 
-- [ ] **Step 1: Write failing tests for positional `NAME` and conflict rejection in `gt run`**
+- [x] **Step 1: Write failing tests for positional `NAME` and conflict rejection in `gt run`**
 
 Add tests to `tests/gtAgentDaemon.test.ts`:
 
@@ -423,12 +423,12 @@ it('supports positional [NAME] argument and prevents duplicate running instances
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/gtAgentDaemon.test.ts -t "supports positional \[NAME\] argument"`
 Expected: FAIL (`Unknown command: run` or positional name not handled)
 
-- [ ] **Step 3: Update `runAgent` in `scripts/gt.js` to parse positional `[NAME]` and enforce conflict checks**
+- [x] **Step 3: Update `runAgent` in `scripts/gt.js` to parse positional `[NAME]` and enforce conflict checks**
 
 Update `runAgent` in `scripts/gt.js`:
 - Extract options (`--name`, `--detach`, `-d`, etc.) and positional arguments.
@@ -441,12 +441,12 @@ Update `runAgent` in `scripts/gt.js`:
   - Spawn detached process redirecting stdio to `AgentDaemonManager.getLogFile(hostName)`.
   - Save status using `AgentDaemonManager.saveStatus(hostName, { pid: child.pid, ... })`.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/gtAgentDaemon.test.ts -t "supports positional \[NAME\] argument"`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add scripts/gt.js tests/gtAgentDaemon.test.ts
@@ -465,7 +465,7 @@ git commit -m "feat(gt): support positional [NAME] argument and instance conflic
 - Consumes: `AgentDaemonManager`, `runAgent`
 - Produces: Top-level CLI routing for `run`, `ps`, `logs`, `stop`, `restart`, `rm`.
 
-- [ ] **Step 1: Write failing tests for top-level Docker-style commands**
+- [x] **Step 1: Write failing tests for top-level Docker-style commands**
 
 Add tests to `tests/gtAgentDaemon.test.ts`:
 
@@ -577,12 +577,12 @@ it('enforces explicit NAME when multiple agents are running for stop and logs', 
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/gtAgentDaemon.test.ts -t "provides full Docker-style top-level command workflow"`
 Expected: FAIL (`Unknown command: run`)
 
-- [ ] **Step 3: Implement top-level command handlers in `scripts/gt.js`**
+- [x] **Step 3: Implement top-level command handlers in `scripts/gt.js`**
 
 In `scripts/gt.js`:
 1. In `main()`, add top-level switch cases:
@@ -606,12 +606,12 @@ console.log(
 console.log('-'.repeat(95));
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npx jest tests/gtAgentDaemon.test.ts`
 Expected: All tests PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add scripts/gt.js tests/gtAgentDaemon.test.ts
@@ -626,7 +626,7 @@ git commit -m "feat(gt): add Docker-style top-level commands run, ps, logs, stop
 - Modify: `scripts/gt.js:160-230` (Help text)
 - Modify: `CLAUDE.md`
 
-- [ ] **Step 1: Write test to verify `gt --help` outputs Docker-style commands**
+- [x] **Step 1: Write test to verify `gt --help` outputs Docker-style commands**
 
 Add to `tests/gtAgentDaemon.test.ts`:
 
@@ -644,12 +644,12 @@ it('outputs Docker-style command guidelines in gt --help', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/gtAgentDaemon.test.ts -t "outputs Docker-style command guidelines"`
 Expected: FAIL
 
-- [ ] **Step 3: Update `gt --help` in `scripts/gt.js` and `CLAUDE.md`**
+- [x] **Step 3: Update `gt --help` in `scripts/gt.js` and `CLAUDE.md`**
 
 In `scripts/gt.js`:
 Update usage text:
@@ -666,12 +666,12 @@ Agent Commands (Docker-Style):
 In `CLAUDE.md`:
 Update the `gt` CLI reference section to document `gt run [-d] [NAME]`, `gt ps`, `gt logs`, `gt stop`, `gt restart`, `gt rm`.
 
-- [ ] **Step 4: Run full test suite to verify everything passes**
+- [x] **Step 4: Run full test suite to verify everything passes**
 
 Run: `npx jest tests/gtAgentDaemon.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add scripts/gt.js CLAUDE.md tests/gtAgentDaemon.test.ts
