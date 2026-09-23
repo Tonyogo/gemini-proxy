@@ -1524,7 +1524,7 @@ function runAgent(agentArgs = [], globalOpts = {}) {
     });
 
     ws.on('upgrade', (response) => {
-      if (ws._socket && typeof ws._socket.setKeepAlive === 'function') {
+      if (ws && ws._socket && typeof ws._socket.setKeepAlive === 'function') {
         ws._socket.setKeepAlive(true, 10000);
       }
     });

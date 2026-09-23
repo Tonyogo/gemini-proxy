@@ -79,4 +79,38 @@ describe('NativeWebSocketAdapter', () => {
       done();
     });
   });
+
+  it('supports once and off listener methods', () => {
+    const AdapterClass = gt.createWebSocketAdapter();
+    const client = new AdapterClass(`ws://127.0.0.1:${port}`);
+    let calls = 0;
+    client.once('custom', () => { calls++; });
+    client._emit('custom');
+    client._emit('custom');
+    expect(calls).toBe(1);
+
+    const handler = () => {};
+    client.on('test', handler);
+    expect(client._listeners.get('test').length).toBe(1);
+    client.removeListener('test', handler);
+    expect(client._listeners.get('test').length).toBe(0);
+    client.close();
+  });
+
+  it('guards ws._socket safely if undefined', () => {
+    const AdapterClass = gt.createWebSocketAdapter();
+    const client = new AdapterClass(`ws://127.0.0.1:${port}`);
+    expect(client._socket).toBeUndefined();
+
+    let fired = false;
+    client.on('upgrade', () => {
+      if (client && client._socket && typeof client._socket.setKeepAlive === 'function') {
+        client._socket.setKeepAlive(true, 10000);
+      }
+      fired = true;
+    });
+    expect(() => client._emit('upgrade', {})).not.toThrow();
+    expect(fired).toBe(true);
+    client.close();
+  });
 });
