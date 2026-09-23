@@ -1028,15 +1028,308 @@ class TaskManager {
   }
 }
 
+let _cachedHasPython3 = undefined;
+function hasSystemPython3(forceRefresh = false) {
+  if (!forceRefresh && _cachedHasPython3 !== undefined) return _cachedHasPython3;
+  if (os.platform() === 'win32') {
+    _cachedHasPython3 = false;
+    return false;
+  }
+  try {
+    const res = execSync('python3 -c "import pty; print(1)"', { stdio: 'pipe', timeout: 1000 });
+    _cachedHasPython3 = res.toString().trim() === '1';
+  } catch {
+    _cachedHasPython3 = false;
+  }
+  return _cachedHasPython3;
+}
+
+class NodePtyDriver {
+  constructor({ command, shell, cwd, env, cols, rows, onData, onExit }) {
+    this.onData = onData;
+    this.onExit = onExit;
+    const isWindows = os.platform() === 'win32';
+    const shellArgs = isWindows
+      ? (shell.toLowerCase().includes('powershell') ? ['-Command', command] : ['/c', command])
+      : ['-c', command];
+
+    this.proc = pty.spawn(shell, shellArgs, {
+      name: 'xterm-256color',
+      cols: cols || 80,
+      rows: rows || 24,
+      cwd,
+      env,
+    });
+
+    this.proc.onData((data) => this.onData(data));
+    this.proc.onExit(({ exitCode, signal }) => this.onExit(exitCode, signal));
+  }
+
+  write(buf) {
+    if (this.proc) {
+      try {
+        const str = Buffer.isBuffer(buf) ? buf.toString('utf-8') : String(buf);
+        this.proc.write(str);
+      } catch {}
+    }
+  }
+
+  resize(cols, rows) {
+    if (this.proc && typeof this.proc.resize === 'function') {
+      try {
+        this.proc.resize(Math.max(10, cols || 80), Math.max(5, rows || 24));
+      } catch {}
+    }
+  }
+
+  kill(signal = 'SIGTERM') {
+    if (this.proc) {
+      try {
+        this.proc.kill(signal);
+      } catch {}
+    }
+  }
+}
+
+class PosixPtyDriver {
+  constructor({ command, shell, cwd, env, cols, rows, onData, onExit }) {
+    this.onData = onData;
+    this.onExit = onExit;
+    this.cols = cols || 80;
+    this.rows = rows || 24;
+
+    const pyScript = `
+import os, sys, pty, termios, fcntl, struct, select, signal, atexit
+
+cols, rows = int(sys.argv[1]), int(sys.argv[2])
+cmd_to_run = sys.argv[3:]
+
+master, slave = pty.openpty()
+try:
+    fcntl.ioctl(slave, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
+except:
+    pass
+
+pid = os.fork()
+if pid == 0:
+    os.close(master)
+    os.setsid()
+    try:
+        fcntl.ioctl(slave, termios.TIOCSCTTY, 0)
+    except:
+        pass
+    os.dup2(slave, 0)
+    os.dup2(slave, 1)
+    os.dup2(slave, 2)
+    os.close(slave)
+    os.execvp(cmd_to_run[0], cmd_to_run)
+else:
+    os.close(slave)
+    def sig_resize(signum, frame):
+        pass
+    signal.signal(signal.SIGWINCH, sig_resize)
+
+    def cleanup():
+        try:
+            os.killpg(pid, signal.SIGKILL)
+        except:
+            try:
+                os.kill(pid, signal.SIGKILL)
+            except:
+                pass
+    atexit.register(cleanup)
+
+    def sig_cleanup(signum, frame):
+        cleanup()
+        sys.exit(128 + signum)
+    signal.signal(signal.SIGTERM, sig_cleanup)
+    signal.signal(signal.SIGINT, sig_cleanup)
+
+    # Non-blocking IO loop between sys.stdin/stdout and master
+    fl = fcntl.fcntl(master, fcntl.F_GETFL)
+    fcntl.fcntl(master, fcntl.F_SETFL, fl | os.O_NONBLOCK)
+
+    stdin_fileno = sys.stdin.fileno()
+    stdin_closed = False
+
+    while True:
+        read_fds = [master]
+        if not stdin_closed:
+            read_fds.append(stdin_fileno)
+        try:
+            r, w, x = select.select(read_fds, [], [], 0.05)
+        except (InterruptedError, select.error):
+            continue
+
+        if not stdin_closed and stdin_fileno in r:
+            try:
+                data = os.read(stdin_fileno, 4096)
+                if not data:
+                    stdin_closed = True
+                else:
+                    os.write(master, data)
+            except (OSError, EOFError):
+                stdin_closed = True
+
+        if master in r:
+            try:
+                data = os.read(master, 4096)
+                if not data:
+                    break
+                os.write(sys.stdout.fileno(), data)
+                sys.stdout.flush()
+            except (BlockingIOError, OSError):
+                pass
+
+        # Check child status
+        wpid, status = os.waitpid(pid, os.WNOHANG)
+        if wpid != 0:
+            # Drain remaining
+            try:
+                while True:
+                    data = os.read(master, 4096)
+                    if not data: break
+                    os.write(sys.stdout.fileno(), data)
+                    sys.stdout.flush()
+            except:
+                pass
+            if hasattr(os, "waitstatus_to_exitcode"):
+                exit_code = os.waitstatus_to_exitcode(status)
+            else:
+                exit_code = os.WEXITSTATUS(status) if os.WIFEXITED(status) else (128 + os.WTERMSIG(status))
+            sys.exit(exit_code)
+
+    try:
+        _, status = os.waitpid(pid, 0)
+        if hasattr(os, "waitstatus_to_exitcode"):
+            exit_code = os.waitstatus_to_exitcode(status)
+        else:
+            exit_code = os.WEXITSTATUS(status) if os.WIFEXITED(status) else (128 + os.WTERMSIG(status))
+    except:
+        exit_code = 0
+    sys.exit(exit_code)
+`;
+
+    const trimmed = (command || '').trim();
+    const isSimpleShell = ['bash', 'sh', 'zsh'].includes(trimmed) ||
+      ['/bin/bash', '/bin/sh', '/bin/zsh', '/usr/bin/bash', '/usr/bin/sh', '/usr/bin/zsh'].includes(trimmed);
+    const targetArgs = isSimpleShell ? [trimmed, '-i'] : [shell, '-c', command];
+
+    this.proc = spawn('python3', [
+      '-c', pyScript,
+      String(this.cols),
+      String(this.rows),
+      ...targetArgs
+    ], {
+      cwd,
+      env,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      detached: true,
+    });
+
+    this.proc.stdout.on('data', (chunk) => this.onData(chunk));
+    this.proc.stderr.on('data', (chunk) => this.onData(chunk));
+    this.proc.on('close', (code, signal) => this.onExit(code, signal));
+  }
+
+  write(buf) {
+    if (this.proc && this.proc.stdin && !this.proc.stdin.destroyed && !this.proc.stdin.writableEnded) {
+      try {
+        const buffer = Buffer.isBuffer(buf) ? buf : Buffer.from(buf);
+        this.proc.stdin.write(buffer);
+      } catch {}
+    }
+  }
+
+  resize(cols, rows) {
+    this.cols = cols;
+    this.rows = rows;
+  }
+
+  kill(signal = 'SIGTERM') {
+    if (this.proc) {
+      killProcessTree(this.proc, signal);
+    }
+  }
+}
+
+class InteractivePipeDriver {
+  constructor({ command, shell, cwd, env, onData, onExit }) {
+    this.onData = onData;
+    this.onExit = onExit;
+
+    const isWindows = os.platform() === 'win32';
+    const trimmed = (command || '').trim();
+    const isSimpleShell = ['bash', 'sh', 'zsh'].includes(trimmed) ||
+      ['/bin/bash', '/bin/sh', '/bin/zsh', '/usr/bin/bash', '/usr/bin/sh', '/usr/bin/zsh'].includes(trimmed);
+
+    let spawnCmd = shell;
+    let spawnArgs = [];
+
+    if (isWindows) {
+      spawnArgs = shell.toLowerCase().includes('powershell') ? ['-Command', command] : ['/c', command];
+    } else {
+      if (isSimpleShell) {
+        spawnCmd = trimmed;
+        spawnArgs = ['-i'];
+      } else {
+        spawnArgs = ['-c', command];
+      }
+    }
+
+    this.proc = spawn(spawnCmd, spawnArgs, {
+      cwd,
+      env,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      detached: !isWindows,
+    });
+
+    this.proc.stdout.on('data', (chunk) => this.onData(chunk));
+    this.proc.stderr.on('data', (chunk) => this.onData(chunk));
+    this.proc.on('close', (code, signal) => this.onExit(code, signal));
+  }
+
+  write(buf) {
+    if (!this.proc || !this.proc.stdin || this.proc.stdin.destroyed || this.proc.stdin.writableEnded) return;
+    try {
+      const buffer = Buffer.isBuffer(buf) ? buf : Buffer.from(buf);
+      // 规范化: 如果收到 Ctrl+C (0x03)，向进程发送 SIGINT
+      if (buffer.length === 1 && buffer[0] === 0x03) {
+        this.kill('SIGINT');
+        return;
+      }
+      // 如果收到 Ctrl+D (0x04)，结束输入
+      if (buffer.length === 1 && buffer[0] === 0x04) {
+        this.proc.stdin.end();
+        return;
+      }
+
+      // CR '\r' (0x0d) 转换为 LF '\n' (0x0a)
+      const normalized = Buffer.allocUnsafe(buffer.length);
+      for (let i = 0; i < buffer.length; i++) {
+        normalized[i] = buffer[i] === 0x0d ? 0x0a : buffer[i];
+      }
+      this.proc.stdin.write(normalized);
+    } catch {}
+  }
+
+  resize(cols, rows) {}
+
+  kill(signal = 'SIGTERM') {
+    if (this.proc) {
+      killProcessTree(this.proc, signal);
+    }
+  }
+}
+
 class StreamSessionManager {
   constructor(sendFn) {
     this.send = sendFn;
     this.sessions = new Map();
   }
 
-  startStream({ taskId, command, cwd, env = {}, cols = 80, rows = 24, timeoutMs = 0, tty = true }) {
+  startStream({ taskId, command, cwd, env = {}, cols = 80, rows = 24, timeoutMs = 0, tty = true, interactive = false, _forceFallback = false, _forcePipeFallback = false }) {
     const workingDir = cwd ? path.resolve(cwd) : (process.env.HOME || process.cwd());
-    const isWindows = os.platform() === 'win32';
     const shell = getDefaultShell();
     const taskEnv = {
       ...process.env,
@@ -1046,60 +1339,9 @@ class StreamSessionManager {
       LANG: process.env.LANG || 'en_US.UTF-8',
     };
 
-    let ptyProc = null;
-    let childProc = null;
-    const isPty = Boolean(tty && pty);
-
-    if (isPty) {
-      const shellArgs = isWindows
-        ? (shell.toLowerCase().includes('powershell') ? ['-Command', command] : ['/c', command])
-        : ['-c', command];
-      try {
-        ptyProc = pty.spawn(shell, shellArgs, {
-          name: 'xterm-256color',
-          cols: cols || 80,
-          rows: rows || 24,
-          cwd: workingDir,
-          env: taskEnv,
-        });
-      } catch (err) {
-        ptyProc = null;
-      }
-    }
-
-    if (!ptyProc) {
-      if (tty && !pty) {
-        const warnMsg = Buffer.from('\r\n\x1b[33m[Warning] node-pty not available on agent; running in streaming pipe mode.\x1b[0m\r\n');
-        this.send({ type: 'cmd_stream_data', taskId, data: warnMsg.toString('base64') });
-      }
-      const shellArgs = isWindows
-        ? (shell.toLowerCase().includes('powershell') ? ['-Command', command] : ['/c', command])
-        : ['-c', command];
-      try {
-        childProc = spawn(shell, shellArgs, {
-          cwd: workingDir,
-          env: taskEnv,
-          stdio: ['pipe', 'pipe', 'pipe'],
-          detached: !isWindows,
-        });
-      } catch (err) {
-        this.send({ type: 'cmd_stream_exit', taskId, exitCode: 1, signal: null });
-        return;
-      }
-    }
-
-    const session = {
-      taskId,
-      isPty: Boolean(ptyProc),
-      proc: ptyProc || childProc,
-      timeoutTimer: null,
-    };
-
-    if (timeoutMs > 0) {
-      session.timeoutTimer = setTimeout(() => {
-        this.kill(taskId, 'SIGTERM');
-      }, timeoutMs);
-    }
+    let driver = null;
+    let driverType = null;
+    const canUseNodePty = Boolean(tty && pty && !_forceFallback && !_forcePipeFallback);
 
     const onData = (chunk) => {
       const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk, 'utf-8');
@@ -1111,7 +1353,8 @@ class StreamSessionManager {
     };
 
     const onExit = (code, signal) => {
-      if (session.timeoutTimer) clearTimeout(session.timeoutTimer);
+      const session = this.sessions.get(taskId);
+      if (session && session.timeoutTimer) clearTimeout(session.timeoutTimer);
       this.sessions.delete(taskId);
       this.send({
         type: 'cmd_stream_exit',
@@ -1121,13 +1364,54 @@ class StreamSessionManager {
       });
     };
 
-    if (ptyProc) {
-      ptyProc.onData(onData);
-      ptyProc.onExit(({ exitCode, signal }) => onExit(exitCode, signal));
-    } else if (childProc) {
-      childProc.stdout.on('data', onData);
-      childProc.stderr.on('data', onData);
-      childProc.on('close', (code, signal) => onExit(code, signal));
+    if (canUseNodePty) {
+      // 1. Layer 1: NodePtyDriver
+      try {
+        driver = new NodePtyDriver({ command, shell, cwd: workingDir, env: taskEnv, cols, rows, onData, onExit });
+        driverType = 'node-pty';
+      } catch (err) {
+        driver = null;
+      }
+    }
+
+    if (!driver && tty && !_forcePipeFallback && hasSystemPython3()) {
+      // 2. Layer 2: PosixPtyDriver (轻量原生 POSIX PTY)
+      try {
+        driver = new PosixPtyDriver({ command, shell, cwd: workingDir, env: taskEnv, cols, rows, onData, onExit });
+        driverType = 'posix-pty';
+      } catch (err) {
+        driver = null;
+      }
+    }
+
+    if (!driver) {
+      // 3. Layer 3: InteractivePipeDriver (纯管道兜底)
+      if (tty && !pty) {
+        const warnMsg = Buffer.from('\r\n\x1b[33m[Warning] node-pty not available on agent; running in interactive pipe mode.\x1b[0m\r\n');
+        this.send({ type: 'cmd_stream_data', taskId, data: warnMsg.toString('base64') });
+      }
+      try {
+        driver = new InteractivePipeDriver({ command, shell, cwd: workingDir, env: taskEnv, onData, onExit });
+        driverType = 'pipe-fallback';
+      } catch (err) {
+        this.send({ type: 'cmd_stream_exit', taskId, exitCode: 1, signal: null });
+        return;
+      }
+    }
+
+    const session = {
+      taskId,
+      driverType,
+      driver,
+      isPty: driverType === 'node-pty' || driverType === 'posix-pty',
+      proc: driver.proc,
+      timeoutTimer: null,
+    };
+
+    if (timeoutMs > 0) {
+      session.timeoutTimer = setTimeout(() => {
+        this.kill(taskId, 'SIGTERM');
+      }, timeoutMs);
     }
 
     this.sessions.set(taskId, session);
@@ -1135,43 +1419,33 @@ class StreamSessionManager {
 
   writeInput(taskId, base64Data) {
     const session = this.sessions.get(taskId);
-    if (!session || !session.proc) return;
+    if (!session || !session.driver) return;
     try {
       const buf = Buffer.from(base64Data, 'base64');
-      if (session.isPty) {
-        session.proc.write(buf.toString('utf-8'));
-      } else if (session.proc.stdin) {
-        session.proc.stdin.write(buf);
-      }
+      session.driver.write(buf);
     } catch {}
   }
 
   resize(taskId, cols, rows) {
     const session = this.sessions.get(taskId);
-    if (!session || !session.proc) return;
-    if (session.isPty && typeof session.proc.resize === 'function') {
-      try {
-        session.proc.resize(Math.max(10, cols || 80), Math.max(5, rows || 24));
-      } catch {}
-    }
+    if (!session || !session.driver) return;
+    try {
+      session.driver.resize(cols, rows);
+    } catch {}
   }
 
   kill(taskId, signal = 'SIGTERM') {
     const session = this.sessions.get(taskId);
-    if (!session || !session.proc) return;
+    if (!session || !session.driver) return;
     try {
-      if (session.isPty) {
-        session.proc.kill(signal);
-      } else {
-        killProcessTree(session.proc, signal);
-      }
+      session.driver.kill(signal);
     } catch {}
     if (session.timeoutTimer) clearTimeout(session.timeoutTimer);
     this.sessions.delete(taskId);
   }
 
   killAll() {
-    for (const taskId of this.sessions.keys()) {
+    for (const taskId of Array.from(this.sessions.keys())) {
       this.kill(taskId, 'SIGTERM');
     }
   }
@@ -2774,6 +3048,10 @@ module.exports = {
   TaskManager,
   taskManager,
   StreamSessionManager,
+  hasSystemPython3,
+  NodePtyDriver,
+  PosixPtyDriver,
+  InteractivePipeDriver,
   killProcessTree,
   killProcessTreeSync,
   handleFileRpc,
