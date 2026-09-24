@@ -318,14 +318,24 @@ describe('gt agent unified authentication and parameter guards', () => {
     expect(stopRes.status).toBe(0);
     expect(stopRes.stdout).toContain('stopped');
 
-    // 5. gt agent ps should show Stopped / Stale or empty running
-    const psStopped = spawnSync('node', [gtPath, 'agent', 'ps'], {
+    // 5. gt agent ps should show Stopped / Stale via -a or indicate stopped agents
+    const psStopped = spawnSync('node', [gtPath, 'agent', 'ps', '-a'], {
       env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
       encoding: 'utf-8',
       timeout: 5000,
     });
     expect(psStopped.status).toBe(0);
     expect(psStopped.stdout).toContain('Stopped');
+
+    // Default ps shows stopped count notice
+    const psDefault = spawnSync('node', [gtPath, 'agent', 'ps'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(psDefault.status).toBe(0);
+    expect(psDefault.stdout).toContain('1 stopped');
+    expect(psDefault.stdout).toContain('gt agent prune');
 
     // 6. gt agent rm app-node
     const rmRes = spawnSync('node', [gtPath, 'agent', 'rm', 'app-node'], {
@@ -423,7 +433,7 @@ describe('gt agent unified authentication and parameter guards', () => {
     process.env.GT_CONFIG_DIR = testConfigDir;
     AgentDaemonManager.saveStatus('test-stopped', { pid: 99999999, name: 'test-stopped', server: 'http://hub1' });
 
-    const agentPsRes = spawnSync('node', [gtPath, 'agent', 'ps'], {
+    const agentPsRes = spawnSync('node', [gtPath, 'agent', 'ps', '-a'], {
       env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
       encoding: 'utf-8',
       timeout: 5000,
@@ -492,6 +502,103 @@ describe('gt agent unified authentication and parameter guards', () => {
     expect(AgentDaemonManager.getAgent('running-1')).not.toBeNull();
 
     AgentDaemonManager.clearStatus('running-1');
+  });
+
+  it('supports gt agent prune to clean up all stopped agent instances and logs', () => {
+    fs.writeFileSync(path.join(testConfigDir, 'config.json'), JSON.stringify({
+      server: 'http://127.0.0.1:3000',
+      key: 'mock-key',
+    }));
+
+    const { AgentDaemonManager } = require('../scripts/gt.js');
+    process.env.GT_CONFIG_DIR = testConfigDir;
+
+    AgentDaemonManager.saveStatus('prune-1', { pid: 99999991, name: 'prune-1', server: 'http://hub1' });
+    AgentDaemonManager.saveStatus('prune-2', { pid: 99999992, name: 'prune-2', server: 'http://hub1' });
+    AgentDaemonManager.saveStatus('running-keep', { pid: process.pid, name: 'running-keep', server: 'http://hub1' });
+
+    const pruneRes = spawnSync('node', [gtPath, 'agent', 'prune'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+
+    expect(pruneRes.status).toBe(0);
+    expect(pruneRes.stdout).toContain('Pruned stopped agents');
+    expect(pruneRes.stdout).toContain('prune-1');
+    expect(pruneRes.stdout).toContain('prune-2');
+    expect(AgentDaemonManager.getAgent('prune-1')).toBeNull();
+    expect(AgentDaemonManager.getAgent('prune-2')).toBeNull();
+    expect(AgentDaemonManager.getAgent('running-keep')).not.toBeNull();
+
+    // Calling prune again when no stopped agents
+    const pruneEmptyRes = spawnSync('node', [gtPath, 'agent', 'prune'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(pruneEmptyRes.status).toBe(0);
+    expect(pruneEmptyRes.stdout).toContain('No stopped agents to prune');
+
+    AgentDaemonManager.clearStatus('running-keep');
+  });
+
+  it('defaults to system hostname and reuses stopped instance slot idempotently', () => {
+    fs.writeFileSync(path.join(testConfigDir, 'config.json'), JSON.stringify({
+      server: 'http://127.0.0.1:3000',
+      key: 'mock-key',
+    }));
+
+    const { AgentDaemonManager, ConfigStore } = require('../scripts/gt.js');
+    process.env.GT_CONFIG_DIR = testConfigDir;
+
+    const expectedHostname = os.hostname().toLowerCase().replace(/[^a-z0-9-_]/g, '-').replace(/^-+|-+$/g, '') || 'host';
+
+    // 1. First run without name: should use hostname
+    const run1 = spawnSync('node', [gtPath, 'agent', 'run', '-d'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(run1.status).toBe(0);
+    expect(run1.stdout).toContain(`Host: ${expectedHostname}`);
+
+    const agentRecord1 = AgentDaemonManager.getAgent(expectedHostname);
+    expect(agentRecord1).not.toBeNull();
+    expect(agentRecord1.running).toBe(true);
+    const pid1 = agentRecord1.pid;
+    const mid1 = ConfigStore.getMachineId();
+    expect(agentRecord1.id).toBe(mid1);
+
+    // 2. Stop the agent so it becomes stopped
+    const stopRes = spawnSync('node', [gtPath, 'agent', 'stop'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(stopRes.status).toBe(0);
+
+    // Verify it is stopped
+    const staleCheck = AgentDaemonManager.getAgent(expectedHostname);
+    expect(staleCheck.running).toBe(false);
+
+    // 3. Re-run without name: should seamlessly reuse the stopped slot, NOT error out
+    const run2 = spawnSync('node', [gtPath, 'agent', 'run', '-d'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(run2.status).toBe(0);
+    expect(run2.stdout).toContain(`Host: ${expectedHostname}`);
+
+    const agentRecord2 = AgentDaemonManager.getAgent(expectedHostname);
+    expect(agentRecord2.running).toBe(true);
+    expect(agentRecord2.pid).not.toBe(pid1); // New PID
+    expect(agentRecord2.id).toBe(mid1); // Persistent machine ID retained
+
+    // Clean up
+    if (agentRecord2.pid) process.kill(agentRecord2.pid, 'SIGKILL');
+    AgentDaemonManager.remove(expectedHostname);
   });
 });
 

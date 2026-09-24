@@ -287,24 +287,26 @@ gt login http://<proxy-ip>:3000 <ADMIN_SECRET_KEY>
 gt agent run -d Ubuntu-GPU-Server
 
 # 3. 常用生命周期操作
-gt agent ps                               # 查看本机运行的 Agent 实例状态
+gt agent ps                               # 查看本机运行的 Agent 实例状态 (支持 -a 查看所有)
 gt agent logs -f Ubuntu-GPU-Server        # 实时跟踪 Agent 运行日志
 gt agent stop Ubuntu-GPU-Server           # 停止 Agent
 gt agent restart Ubuntu-GPU-Server        # 重启 Agent
-gt agent rm Ubuntu-GPU-Server             # 清理已停止的 Agent 记录
+gt agent prune                            # 一键清理所有已停止的本地 Agent 记录与日志
+gt agent rm Ubuntu-GPU-Server             # 清理指定的已停止 Agent 记录
 ```
 
 #### B. Agent 守护进程命令与参数说明
 | 命令 / 选项 | 说明 | 示例 |
 | :--- | :--- | :--- |
-| `gt agent run [-d] [NAME]` | 运行 Agent (前台控制台输出，或 `-d` / `--detach` 后台常驻) | `gt agent run -d worker-1` |
-| `gt agent ps` | 列出本地所有 Agent 实例状态 (Running / Stopped / PID / Hub / 启动时间) | `gt agent ps` |
+| `gt agent run [-d] [NAME]` | 运行 Agent (前台控制台输出，或 `-d` / `--detach` 后台常驻；默认使用系统 hostname) | `gt agent run -d` / `gt agent run -d worker-1` |
+| `gt agent ps [-a\|--all]` | 列出本地 Agent 实例状态 (默认仅活跃，`-a` 列出全部含 Stopped) | `gt agent ps` / `gt agent ps -a` |
 | `gt agent logs [-f] [-n 50] [NAME]` | 查看或实时跟踪 (`-f`) Agent 运行日志 | `gt agent logs -f worker-1` |
 | `gt agent stop [NAME] [--all]` | 优雅终止 Agent 进程 (支持 `--all` 停止全部) | `gt agent stop worker-1` |
 | `gt agent restart [NAME]` | 重启指定的 Agent 守护进程 | `gt agent restart worker-1` |
+| `gt agent prune` | 一键清理所有已停止的本地 Agent 状态文件及日志记录 | `gt agent prune` |
 | `gt agent rm [NAME] [--all]` | 删除已停止的 Agent 状态文件及日志记录 (支持 `--all`) | `gt agent rm worker-1` |
 | `--name=<name>` | 显式指定 Agent 名称 (优先级高于位置参数 `NAME`) | `--name="my-box"` |
-| `--id=<id>` | 主机唯一标识 | 默认为自动生成的 12 位十六进制短 ID |
+| `--id=<id>` | 主机唯一标识 | 默认为固化在本地的稳定 Machine ID (12位十六进制) |
 | `--shell=<path>` | 指定调起的 Shell 程序路径 | 自动检测 (bash/zsh/PowerShell) |
 
 #### C. 特性保障

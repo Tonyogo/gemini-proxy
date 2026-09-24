@@ -24,11 +24,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - `gt kill <node> <taskId> [--signal <SIG>]`: Aborts or terminates a running task on target node
   - `gt config <list|get|set> [key] [value]`: Manages persistent client configuration
   - **Local Agent Daemon Management (`gt agent <command>`)**:
-    - `gt agent run [-d] [NAME]`: Run agent in foreground or background daemon (persists state in `~/.gt/agents/<name>.json`, logs to `~/.gt/agents/<name>.log`)
-    - `gt agent ps`: List local agent daemons with status, PID, target hub, and start time
+    - `gt agent run [-d] [NAME]`: Run agent in foreground or background daemon (defaults to system hostname, persists state in `~/.gt/agents/<name>.json`, logs to `~/.gt/agents/<name>.log`)
+    - `gt agent ps [-a|--all]`: List local agent daemons (default: running only; `-a` includes stopped)
     - `gt agent logs [-f] [-n 50] [NAME]`: View or follow local agent daemon logs
     - `gt agent stop [NAME] [--all]`: Stop running local agent daemon(s)
     - `gt agent restart [NAME]`: Restart local agent daemon
+    - `gt agent prune`: Remove all stopped agent daemons and their log files
     - `gt agent rm [NAME] [--all]`: Remove stopped agent daemon records and logs
   - **Backward-Compatible Aliases**: `gt host ls/prune`, `gt node ls/prune`, `gt auth login/logout`, `gt task ls/logs/kill`
 - **Configuration Hierarchy**:

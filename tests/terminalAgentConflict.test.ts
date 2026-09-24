@@ -2,6 +2,8 @@ import { WebSocketServer } from 'ws';
 import http from 'http';
 import { execFile } from 'child_process';
 import path from 'path';
+import os from 'os';
+import fs from 'fs';
 
 const agentScript = path.resolve(__dirname, '../scripts/gt.js');
 
@@ -10,8 +12,12 @@ describe('Node.js Terminal Agent - 12-Hex ID, Auto-Naming and Conflict Rejection
   let wss: WebSocketServer;
   let serverPort: number;
   let receivedQueryParams: Record<string, string> = {};
+  let tempConfigDir: string;
 
   beforeAll((done) => {
+    tempConfigDir = path.join(os.tmpdir(), `gt-test-conflict-${Date.now()}`);
+    fs.mkdirSync(tempConfigDir, { recursive: true });
+
     server = http.createServer();
     wss = new WebSocketServer({ noServer: true });
 
@@ -42,6 +48,9 @@ describe('Node.js Terminal Agent - 12-Hex ID, Auto-Naming and Conflict Rejection
   });
 
   afterAll((done) => {
+    try {
+      fs.rmSync(tempConfigDir, { recursive: true, force: true });
+    } catch {}
     wss.close();
     server.close(done);
   });
@@ -54,16 +63,20 @@ describe('Node.js Terminal Agent - 12-Hex ID, Auto-Naming and Conflict Rejection
     const child = execFile('node', [agentScript, 'agent'], {
       env: {
         ...process.env,
+        GT_CONFIG_DIR: tempConfigDir,
         TERMINAL_SERVER: `http://localhost:${serverPort}`,
         ADMIN_SECRET_KEY: 'test-secret-key',
       },
     });
 
     setTimeout(() => {
-      expect(receivedQueryParams.hostId).toMatch(/^[0-9a-f]{12}$/);
-      expect(receivedQueryParams.name).toMatch(/^[a-z0-9-_]+-[0-9a-f]{4}$/);
-      child.kill('SIGTERM');
-      done();
+      try {
+        expect(receivedQueryParams.hostId).toMatch(/^[0-9a-f]{12}$/);
+        expect(receivedQueryParams.name).toMatch(/^[a-z0-9-_]+$/);
+      } finally {
+        child.kill('SIGKILL');
+        done();
+      }
     }, 500);
   });
 
@@ -71,6 +84,7 @@ describe('Node.js Terminal Agent - 12-Hex ID, Auto-Naming and Conflict Rejection
     const child = execFile('node', [agentScript, 'agent', '--name=conflict-name'], {
       env: {
         ...process.env,
+        GT_CONFIG_DIR: tempConfigDir,
         TERMINAL_SERVER: `http://localhost:${serverPort}`,
         ADMIN_SECRET_KEY: 'test-secret-key',
       },

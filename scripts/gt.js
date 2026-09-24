@@ -178,10 +178,11 @@ Authentication & Config:
 
 Local Agent Commands (Daemon):
   agent run [-d] [NAME]           Run reverse terminal agent (foreground or daemon)
-  agent ps                        List local agent daemons (PID, status, target hub)
+  agent ps [-a|--all]             List local agent daemons (default: running only)
   agent logs [-f] [-n 50] [NAME]  View local agent daemon logs
   agent stop [NAME] [--all]       Stop running local agent daemon(s)
   agent restart [NAME]            Restart local agent daemon
+  agent prune                     Remove all stopped agent daemons and logs
   agent rm [NAME] [--all]         Remove stopped agent daemon record(s)
 
 Exec Options:
@@ -713,6 +714,17 @@ class ConfigStore {
     return data[key];
   }
 
+  static getMachineId() {
+    const config = this.load();
+    if (config.machineId && typeof config.machineId === 'string' && config.machineId.length > 0) {
+      return config.machineId;
+    }
+    const id = crypto.randomBytes(6).toString('hex');
+    config.machineId = id;
+    this.save(config);
+    return id;
+  }
+
   static set(key, val) {
     const data = this.load();
     if (val === undefined || val === null || val === '') {
@@ -860,12 +872,24 @@ class AgentDaemonManager {
     }
   }
 
-  static printAgentsTable() {
+  static printAgentsTable(showAll = false) {
     const all = this.getAllAgents();
     if (all.length === 0) {
       console.log('No agent daemons found.');
       process.exit(0);
     }
+    const displayed = showAll ? all : all.filter(a => a.running);
+    const stoppedCount = all.filter(a => !a.running).length;
+
+    if (displayed.length === 0) {
+      if (stoppedCount > 0) {
+        console.log(`No running agent daemons found. (${stoppedCount} stopped, use -a to show or 'gt agent prune' to clean up)`);
+      } else {
+        console.log('No agent daemons found.');
+      }
+      process.exit(0);
+    }
+
     console.log(
       'NAME'.padEnd(20) +
       'STATUS'.padEnd(12) +
@@ -874,7 +898,7 @@ class AgentDaemonManager {
       'STARTED'
     );
     console.log('-'.repeat(95));
-    for (const a of all) {
+    for (const a of displayed) {
       const statusStr = a.running ? 'Running' : 'Stopped';
       console.log(
         (a.name || '').padEnd(20) +
@@ -884,7 +908,16 @@ class AgentDaemonManager {
         (a.startTime || '')
       );
     }
+
+    if (!showAll && stoppedCount > 0) {
+      console.log(`\n(${stoppedCount} stopped agent(s) hidden. Use 'gt agent ps -a' to view all or 'gt agent prune' to clean up)`);
+    }
+
     process.exit(0);
+  }
+
+  static prune() {
+    return this.removeAll();
   }
 
   static saveStatus(nameOrState, maybeState) {
@@ -1951,7 +1984,7 @@ async function runAgent(agentArgs = [], globalOpts = {}) {
 
   const options = {};
   let positionalName = null;
-  const knownSubCmds = ['start', 'restart', 'run', 'status', 'ps', 'stop', 'logs', 'rm'];
+  const knownSubCmds = ['start', 'restart', 'run', 'status', 'ps', 'stop', 'logs', 'rm', 'prune'];
 
   for (let i = 0; i < agentArgs.length; i++) {
     const arg = agentArgs[i];
@@ -1983,7 +2016,18 @@ async function runAgent(agentArgs = [], globalOpts = {}) {
 
   // Lifecycle subcommands that don't start the agent
   if (subCmd === 'ps') {
-    AgentDaemonManager.printAgentsTable();
+    const showAll = agentArgs.includes('-a') || agentArgs.includes('--all');
+    AgentDaemonManager.printAgentsTable(showAll);
+  }
+
+  if (subCmd === 'prune') {
+    const { removed } = AgentDaemonManager.prune();
+    if (removed.length === 0) {
+      console.log('No stopped agents to prune.');
+    } else {
+      console.log(`Pruned stopped agents: ${removed.join(', ')}`);
+    }
+    process.exit(0);
   }
 
   if (subCmd === 'status') {
@@ -2106,14 +2150,13 @@ async function runAgent(agentArgs = [], globalOpts = {}) {
 
   const hostname = os.hostname();
   const sanitizedHostname = hostname.toLowerCase().replace(/[^a-z0-9-_]/g, '-').replace(/^-+|-+$/g, '') || 'host';
-  const random4Hex = crypto.randomBytes(2).toString('hex');
-  const defaultName = `${sanitizedHostname}-${random4Hex}`;
+  const defaultName = sanitizedHostname;
 
   const sanitizedName = options.name
     ? AgentDaemonManager.sanitizeName(options.name)
     : (positionalName ? AgentDaemonManager.sanitizeName(positionalName) : '');
   const hostName = sanitizedName || defaultName;
-  const hostId = options.id || options.hostId || crypto.randomBytes(6).toString('hex');
+  const hostId = options.id || options.hostId || ConfigStore.getMachineId();
 
   if (subCmd === 'restart') {
     await AgentDaemonManager.stop(hostName);
@@ -2211,8 +2254,8 @@ async function runAgent(agentArgs = [], globalOpts = {}) {
 
     console.log(`Agent started in background (PID: ${child.pid}, Host: ${hostName})`);
     console.log(`Logs: ${logFile}`);
-    console.log(`Run 'gt logs -f ${hostName}' to follow logs.`);
-    console.log(`Run 'gt stop ${hostName}' to stop agent.`);
+    console.log(`Run 'gt agent logs -f ${hostName}' to follow logs.`);
+    console.log(`Run 'gt agent stop ${hostName}' to stop agent.`);
     process.exit(0);
   }
 
