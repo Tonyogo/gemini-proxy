@@ -162,35 +162,27 @@ gt (Gemini Terminal) - Unified Docker-Style Terminal CLI
 Usage:
   gt [GLOBAL_OPTIONS] COMMAND [ARGS...]
 
-Management Commands:
-  host ls [OPTIONS]              List connected terminal agent hosts (like 'docker node ls')
-  host prune                     Remove disconnected/offline agent hosts
-  task ls <host> [OPTIONS]       List tasks on a host (like 'docker ps')
-  task logs [OPTIONS] <h> <id>   View or follow execution logs (like 'docker logs')
-  task kill <host> <task_id>     Terminate a running task on a host (like 'docker kill')
-  auth login [SERVER] [KEY]      Verify and save admin credentials (like 'docker login')
-  auth logout                    Remove stored credentials (like 'docker logout')
+Remote Commands (Docker-Style):
+  ps [-a|--all] [OPTIONS]         List remote agent hosts (default: online only, like 'docker ps')
+  exec [OPTIONS] <node> <cmd...>  Execute a command on a remote host (like 'docker exec')
+  logs [-f] <node> [taskId]       View or follow task execution logs (like 'docker logs')
+  kill [--signal <SIG>] <n> <id>  Terminate a running task on a remote host (like 'docker kill')
+  cp <src> <dest>                 Copy files between local and remote host (like 'docker cp')
+  prune                           Remove disconnected/offline agent hosts (like 'docker system prune')
+  task ls <node> [OPTIONS]        List execution tasks on a host
 
-Agent Commands (Docker-Style):
-  run [-d] [NAME]                Run agent in foreground or background daemon
-  ps                             List local agent daemons (like 'docker ps')
-  logs [-f] [NAME]               View or follow agent logs (like 'docker logs')
-  stop [NAME] [--all]            Stop running agent daemon(s) (like 'docker stop')
-  restart [NAME]                 Restart agent daemon (like 'docker restart')
-  rm [NAME] [--all]              Remove stopped agent records (like 'docker rm')
+Authentication & Config:
+  login [SERVER] [KEY]            Verify and save admin credentials (like 'docker login')
+  logout                          Remove stored credentials (like 'docker logout')
+  config <list|get|set>           Manage local client configuration settings
 
-Commands:
-  exec [OPTIONS] <host> <cmd...> Execute a command on a remote host (like 'docker exec')
-  cp <src> <dest>                Copy files between local and remote host (like 'docker cp')
-  config <list|get|set>          Manage local client configuration settings
-  agent [SUBCOMMAND] [OPTIONS]   Run reverse terminal agent (foreground or daemon)
-    gt agent                     Run in foreground (logs to console)
-    gt agent start / -d          Start agent daemon in background
-    gt agent status / ps         Show background agent status
-    gt agent stop                Stop background agent
-    gt agent restart             Restart background agent
-    gt agent logs [-f] [-n 50]   View background agent logs
-    gt agent rm [NAME]           Remove stopped agent daemon record
+Local Agent Commands (Daemon):
+  agent run [-d] [NAME]           Run reverse terminal agent (foreground or daemon)
+  agent ps                        List local agent daemons (PID, status, target hub)
+  agent logs [-f] [-n 50] [NAME]  View local agent daemon logs
+  agent stop [NAME] [--all]       Stop running local agent daemon(s)
+  agent restart [NAME]            Restart local agent daemon
+  agent rm [NAME] [--all]         Remove stopped agent daemon record(s)
 
 Exec Options:
   -i, --interactive       Keep STDIN open for live or piped input
@@ -204,29 +196,31 @@ Exec Options:
   --poll-interval <ms>    Polling interval for log stream in ms (Default: 500)
 
 Global Options:
-  -s, --server <url>             Hub server URL (Default: env TERMINAL_SERVER or http://localhost:3000)
-  -k, --key <secret>             Admin secret key (Default: env ADMIN_SECRET_KEY)
-  --json                         Output in JSON format
-  --format <template>            Format output using Go/Docker template (e.g. 'table {{.ID}}\t{{.Name}}')
-  -v, --version                  Print version information
-  -h, --help                     Show this help menu
+  -s, --server <url>              Hub server URL (Default: env TERMINAL_SERVER or http://localhost:3000)
+  -k, --key <secret>              Admin secret key (Default: env ADMIN_SECRET_KEY)
+  --json                          Output in JSON format
+  --format <template>             Format output using Go/Docker template (e.g. 'table {{.ID}}\\t{{.Name}}')
+  -v, --version                   Print version information
+  -h, --help                      Show this help menu
 
 Examples:
-  gt host ls
-  gt host prune
-  gt task ls my-server
-  gt task logs -f my-server task-123
-  gt task kill my-server task-123
+  gt login http://localhost:3000 secret
+  gt logout
+  gt ps [-a|--all]
+  gt ps
+  gt ps -a
   gt exec my-server uptime
   gt exec -it my-server bash
+  gt logs my-server
+  gt logs -f my-server task-123
+  gt kill my-server task-123
   gt cp local.txt my-server:/tmp/remote.txt
-  gt auth login http://localhost:3000 secret
-  gt auth logout
-  gt run -d worker-1
-  gt ps
-  gt logs -f worker-1
-  gt stop worker-1
-  gt rm worker-1
+  gt prune
+  gt agent run -d worker-1
+  gt agent ps
+  gt agent logs -f worker-1
+  gt agent stop worker-1
+  gt agent rm worker-1
 `);
 }
 
@@ -2869,17 +2863,25 @@ async function main() {
   const command = filteredArgs[0].toLowerCase();
   const cmdArgs = filteredArgs.slice(1);
 
-  const legacyMap = {
-    hosts: "gt host ls",
-    nodes: "gt host ls",
-    kill: "gt task kill",
-    login: "gt auth login",
-    logout: "gt auth logout",
+  const commandMigrationMap = {
+    run: "gt agent run",
+    stop: "gt agent stop",
+    restart: "gt agent restart",
+    rm: "gt agent rm",
+    hosts: "gt ps",
+    nodes: "gt ps",
   };
 
-  if (legacyMap[command]) {
-    console.error(`Error: 'gt ${command}' has been deprecated. Use '${legacyMap[command]}' instead.`);
-    console.error(`Run 'gt --help' for modern command usage.`);
+  if (commandMigrationMap[command]) {
+    const target = commandMigrationMap[command];
+    if (command === 'hosts' || command === 'nodes') {
+      console.error(`Error: 'gt ${command}' has been deprecated. Use '${target}' instead.`);
+      console.error(`Run 'gt --help' for modern Docker-style command usage.`);
+    } else {
+      console.error(`Error: 'gt ${command}' has been moved to '${target}'.`);
+      console.error(`Run '${target}' instead.`);
+      console.error(`Run 'gt --help' for modern Docker-style command usage.`);
+    }
     process.exit(125);
   }
 

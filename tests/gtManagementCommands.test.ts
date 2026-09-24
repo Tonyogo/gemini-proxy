@@ -16,37 +16,36 @@ function runGt(args: string[]): Promise<{ code: number; stdout: string; stderr: 
 }
 
 describe('gt management commands & legacy deprecation', () => {
-  it('displays two-level commands in --help', async () => {
+  it('displays Docker-style commands in --help', async () => {
     const res = await runGt(['--help']);
     expect(res.code).toBe(0);
-    expect(res.stdout).toContain('gt host ls');
-    expect(res.stdout).toContain('gt task ls');
+    expect(res.stdout).toContain('gt ps [-a|--all]');
     expect(res.stdout).toContain('gt exec');
-    expect(res.stdout).toContain('gt cp');
-    expect(res.stdout).toContain('gt auth login');
+    expect(res.stdout).toContain('gt logs');
+    expect(res.stdout).toContain('gt kill');
+    expect(res.stdout).toContain('gt prune');
+    expect(res.stdout).toContain('gt login');
+    expect(res.stdout).toContain('gt logout');
+    expect(res.stdout).toContain('gt agent run');
   });
 
-  it('rejects legacy "hosts" command with code 125 and migration guidance', async () => {
-    const res = await runGt(['hosts']);
-    expect(res.code).toBe(125);
-    expect(res.stderr).toContain("Use 'gt host ls'");
+  it('rejects top-level agent commands with code 125 and migration guidance', async () => {
+    const commands = ['run', 'stop', 'restart', 'rm'];
+    for (const cmd of commands) {
+      const res = await runGt([cmd, 'test-node']);
+      expect(res.code).toBe(125);
+      expect(res.stderr).toContain(`Error: 'gt ${cmd}' has been moved to 'gt agent ${cmd}'.`);
+      expect(res.stderr).toContain(`Run 'gt agent ${cmd}' instead.`);
+    }
   });
 
-  it('treats "ps" as a valid top-level Docker-style agent command', async () => {
-    const res = await runGt(['ps']);
-    expect(res.code).toBe(0);
-    expect(res.code).not.toBe(125);
-  });
+  it('rejects legacy "hosts" and "nodes" with code 125 pointing to "gt ps"', async () => {
+    const resHosts = await runGt(['hosts']);
+    expect(resHosts.code).toBe(125);
+    expect(resHosts.stderr).toContain("Use 'gt ps' instead");
 
-  it('treats "logs" as a valid top-level Docker-style agent command', async () => {
-    const res = await runGt(['logs', 'non-existent-agent']);
-    expect(res.code).not.toBe(125);
-    expect(res.stderr).toContain('not found');
-  });
-
-  it('rejects legacy "kill" command with code 125 and migration guidance', async () => {
-    const res = await runGt(['kill', 'my-host', 'task-1']);
-    expect(res.code).toBe(125);
-    expect(res.stderr).toContain("Use 'gt task kill'");
+    const resNodes = await runGt(['nodes']);
+    expect(resNodes.code).toBe(125);
+    expect(resNodes.stderr).toContain("Use 'gt ps' instead");
   });
 });
