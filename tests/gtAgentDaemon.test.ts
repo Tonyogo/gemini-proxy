@@ -235,7 +235,7 @@ describe('gt agent unified authentication and parameter guards', () => {
     }));
 
     // Start agent with positional name 'worker-pos'
-    const res1 = spawnSync('node', [gtPath, 'run', '-d', 'worker-pos'], {
+    const res1 = spawnSync('node', [gtPath, 'agent', 'run', '-d', 'worker-pos'], {
       env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
       encoding: 'utf-8',
       timeout: 5000,
@@ -249,7 +249,7 @@ describe('gt agent unified authentication and parameter guards', () => {
     expect(fs.existsSync(statePath)).toBe(true);
 
     // Attempt duplicate start with same name 'worker-pos'
-    const dupRes = spawnSync('node', [gtPath, 'run', '-d', 'worker-pos'], {
+    const dupRes = spawnSync('node', [gtPath, 'agent', 'run', '-d', 'worker-pos'], {
       env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
       encoding: 'utf-8',
       timeout: 5000,
@@ -259,7 +259,7 @@ describe('gt agent unified authentication and parameter guards', () => {
     expect(dupRes.stderr).toContain('worker-pos');
 
     // Start another agent with different name 'worker-pos-2'
-    const res2 = spawnSync('node', [gtPath, 'run', '-d', 'worker-pos-2'], {
+    const res2 = spawnSync('node', [gtPath, 'agent', 'run', '-d', 'worker-pos-2'], {
       env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
       encoding: 'utf-8',
       timeout: 5000,
@@ -276,14 +276,14 @@ describe('gt agent unified authentication and parameter guards', () => {
     if (agent2 && agent2.pid) process.kill(agent2.pid, 'SIGKILL');
   });
 
-  it('provides full Docker-style top-level command workflow: run, ps, logs, stop, rm', async () => {
+  it('provides full Docker-style agent command workflow: agent run, ps, logs, stop, rm', async () => {
     fs.writeFileSync(path.join(testConfigDir, 'config.json'), JSON.stringify({
       server: 'http://127.0.0.1:3000',
       key: 'mock-key',
     }));
 
-    // 1. gt run -d app-node
-    const runRes = spawnSync('node', [gtPath, 'run', '-d', 'app-node'], {
+    // 1. gt agent run -d app-node
+    const runRes = spawnSync('node', [gtPath, 'agent', 'run', '-d', 'app-node'], {
       env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
       encoding: 'utf-8',
       timeout: 5000,
@@ -291,8 +291,8 @@ describe('gt agent unified authentication and parameter guards', () => {
     expect(runRes.status).toBe(0);
     expect(runRes.stdout).toContain('Agent started in background');
 
-    // 2. gt ps
-    const psRes = spawnSync('node', [gtPath, 'ps'], {
+    // 2. gt agent ps
+    const psRes = spawnSync('node', [gtPath, 'agent', 'ps'], {
       env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
       encoding: 'utf-8',
       timeout: 5000,
@@ -301,16 +301,16 @@ describe('gt agent unified authentication and parameter guards', () => {
     expect(psRes.stdout).toContain('app-node');
     expect(psRes.stdout).toContain('Running');
 
-    // 3. gt logs app-node
-    const logsRes = spawnSync('node', [gtPath, 'logs', 'app-node', '-n', '10'], {
+    // 3. gt agent logs app-node
+    const logsRes = spawnSync('node', [gtPath, 'agent', 'logs', 'app-node', '-n', '10'], {
       env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
       encoding: 'utf-8',
       timeout: 5000,
     });
     expect(logsRes.status).toBe(0);
 
-    // 4. gt stop app-node (or auto-target since only 1 running)
-    const stopRes = spawnSync('node', [gtPath, 'stop'], {
+    // 4. gt agent stop app-node (or auto-target since only 1 running)
+    const stopRes = spawnSync('node', [gtPath, 'agent', 'stop'], {
       env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
       encoding: 'utf-8',
       timeout: 5000,
@@ -318,8 +318,8 @@ describe('gt agent unified authentication and parameter guards', () => {
     expect(stopRes.status).toBe(0);
     expect(stopRes.stdout).toContain('stopped');
 
-    // 5. gt ps should show Stopped / Stale or empty running
-    const psStopped = spawnSync('node', [gtPath, 'ps'], {
+    // 5. gt agent ps should show Stopped / Stale or empty running
+    const psStopped = spawnSync('node', [gtPath, 'agent', 'ps'], {
       env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
       encoding: 'utf-8',
       timeout: 5000,
@@ -327,8 +327,8 @@ describe('gt agent unified authentication and parameter guards', () => {
     expect(psStopped.status).toBe(0);
     expect(psStopped.stdout).toContain('Stopped');
 
-    // 6. gt rm app-node
-    const rmRes = spawnSync('node', [gtPath, 'rm', 'app-node'], {
+    // 6. gt agent rm app-node
+    const rmRes = spawnSync('node', [gtPath, 'agent', 'rm', 'app-node'], {
       env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
       encoding: 'utf-8',
       timeout: 5000,
@@ -336,8 +336,8 @@ describe('gt agent unified authentication and parameter guards', () => {
     expect(rmRes.status).toBe(0);
     expect(rmRes.stdout).toContain('removed');
 
-    // Now ps shows nothing
-    const psEmpty = spawnSync('node', [gtPath, 'ps'], {
+    // Now agent ps shows nothing
+    const psEmpty = spawnSync('node', [gtPath, 'agent', 'ps'], {
       env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
       encoding: 'utf-8',
       timeout: 5000,
@@ -352,19 +352,19 @@ describe('gt agent unified authentication and parameter guards', () => {
     }));
 
     // Start two agents
-    spawnSync('node', [gtPath, 'run', '-d', 'worker-multi-1'], {
+    spawnSync('node', [gtPath, 'agent', 'run', '-d', 'worker-multi-1'], {
       env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
       encoding: 'utf-8',
       timeout: 5000,
     });
-    spawnSync('node', [gtPath, 'run', '-d', 'worker-multi-2'], {
+    spawnSync('node', [gtPath, 'agent', 'run', '-d', 'worker-multi-2'], {
       env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
       encoding: 'utf-8',
       timeout: 5000,
     });
 
-    // Call gt stop without name -> should fail with ambiguity error
-    const ambiguousStop = spawnSync('node', [gtPath, 'stop'], {
+    // Call gt agent stop without name -> should fail with ambiguity error
+    const ambiguousStop = spawnSync('node', [gtPath, 'agent', 'stop'], {
       env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
       encoding: 'utf-8',
       timeout: 5000,
@@ -373,7 +373,7 @@ describe('gt agent unified authentication and parameter guards', () => {
     expect(ambiguousStop.stderr).toContain('Multiple running agents');
 
     // Stop with --all
-    const stopAll = spawnSync('node', [gtPath, 'stop', '--all'], {
+    const stopAll = spawnSync('node', [gtPath, 'agent', 'stop', '--all'], {
       env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
       encoding: 'utf-8',
       timeout: 5000,
@@ -382,14 +382,14 @@ describe('gt agent unified authentication and parameter guards', () => {
     expect(stopAll.stdout).toContain('stopped');
   });
 
-  it('enforces conflict check for foreground agents and tracks them in gt ps', () => {
+  it('enforces conflict check for foreground agents and tracks them in gt agent ps', () => {
     fs.writeFileSync(path.join(testConfigDir, 'config.json'), JSON.stringify({
       server: 'http://127.0.0.1:3000',
       key: 'mock-key',
     }));
 
     // Start background agent worker-fg
-    const runRes = spawnSync('node', [gtPath, 'run', '-d', 'worker-fg'], {
+    const runRes = spawnSync('node', [gtPath, 'agent', 'run', '-d', 'worker-fg'], {
       env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
       encoding: 'utf-8',
       timeout: 5000,
@@ -397,7 +397,7 @@ describe('gt agent unified authentication and parameter guards', () => {
     expect(runRes.status).toBe(0);
 
     // Attempt to start foreground agent with same name
-    const fgRes = spawnSync('node', [gtPath, 'run', 'worker-fg'], {
+    const fgRes = spawnSync('node', [gtPath, 'agent', 'run', 'worker-fg'], {
       env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
       encoding: 'utf-8',
       timeout: 5000,
@@ -413,7 +413,7 @@ describe('gt agent unified authentication and parameter guards', () => {
     if (a && a.pid) process.kill(a.pid, 'SIGKILL');
   });
 
-  it('ensures gt agent ps and gt ps output identical format including stopped agents', () => {
+  it('ensures gt agent ps outputs format including stopped agents', () => {
     fs.writeFileSync(path.join(testConfigDir, 'config.json'), JSON.stringify({
       server: 'http://127.0.0.1:3000',
       key: 'mock-key',
@@ -423,22 +423,15 @@ describe('gt agent unified authentication and parameter guards', () => {
     process.env.GT_CONFIG_DIR = testConfigDir;
     AgentDaemonManager.saveStatus('test-stopped', { pid: 99999999, name: 'test-stopped', server: 'http://hub1' });
 
-    const psRes = spawnSync('node', [gtPath, 'ps'], {
-      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
-      encoding: 'utf-8',
-      timeout: 5000,
-    });
     const agentPsRes = spawnSync('node', [gtPath, 'agent', 'ps'], {
       env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
       encoding: 'utf-8',
       timeout: 5000,
     });
 
-    expect(psRes.status).toBe(0);
     expect(agentPsRes.status).toBe(0);
     expect(agentPsRes.stdout).toContain('Stopped');
     expect(agentPsRes.stdout).toContain('test-stopped');
-    expect(agentPsRes.stdout.trim()).toBe(psRes.stdout.trim());
 
     AgentDaemonManager.remove('test-stopped');
   });
@@ -449,13 +442,13 @@ describe('gt agent unified authentication and parameter guards', () => {
       timeout: 5000,
     });
     expect(helpRes.status).toBe(0);
-    expect(helpRes.stdout).toContain('run [-d] [NAME]');
-    expect(helpRes.stdout).toContain('ps');
-    expect(helpRes.stdout).toContain('logs [-f] [NAME]');
-    expect(helpRes.stdout).toContain('stop [NAME] [--all]');
+    expect(helpRes.stdout).toContain('agent run [-d] [NAME]');
+    expect(helpRes.stdout).toContain('agent ps');
+    expect(helpRes.stdout).toContain('agent logs [-f] [-n 50] [NAME]');
+    expect(helpRes.stdout).toContain('agent stop [NAME] [--all]');
   });
 
-  it('supports gt rm to remove stopped agents and gt rm --all to clean up all stopped agents', () => {
+  it('supports gt agent rm to remove stopped agents and gt agent rm --all to clean up all stopped agents', () => {
     fs.writeFileSync(path.join(testConfigDir, 'config.json'), JSON.stringify({
       server: 'http://127.0.0.1:3000',
       key: 'mock-key',
@@ -469,7 +462,7 @@ describe('gt agent unified authentication and parameter guards', () => {
     AgentDaemonManager.saveStatus('running-1', { pid: process.pid, name: 'running-1', server: 'http://hub1' });
 
     // Removing running agent should fail
-    const rmRunningRes = spawnSync('node', [gtPath, 'rm', 'running-1'], {
+    const rmRunningRes = spawnSync('node', [gtPath, 'agent', 'rm', 'running-1'], {
       env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
       encoding: 'utf-8',
       timeout: 5000,
@@ -478,7 +471,7 @@ describe('gt agent unified authentication and parameter guards', () => {
     expect(rmRunningRes.stderr).toContain('Cannot remove running agent');
 
     // Remove single stopped agent
-    const rmOneRes = spawnSync('node', [gtPath, 'rm', 'stopped-1'], {
+    const rmOneRes = spawnSync('node', [gtPath, 'agent', 'rm', 'stopped-1'], {
       env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
       encoding: 'utf-8',
       timeout: 5000,
@@ -488,7 +481,7 @@ describe('gt agent unified authentication and parameter guards', () => {
     expect(AgentDaemonManager.getAgent('stopped-1')).toBeNull();
 
     // Remove all remaining stopped agents
-    const rmAllRes = spawnSync('node', [gtPath, 'rm', '--all'], {
+    const rmAllRes = spawnSync('node', [gtPath, 'agent', 'rm', '--all'], {
       env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
       encoding: 'utf-8',
       timeout: 5000,

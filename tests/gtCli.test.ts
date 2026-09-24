@@ -23,11 +23,11 @@ describe('gt (Gemini Terminal) CLI', () => {
     const res = await runGt(['--help']);
     expect(res.code).toBe(0);
     expect(res.stdout).toContain('gt [GLOBAL_OPTIONS] COMMAND [ARGS...]');
-    expect(res.stdout).toContain('host ls');
+    expect(res.stdout).toContain('ps');
     expect(res.stdout).toContain('exec');
     expect(res.stdout).toContain('task ls');
-    expect(res.stdout).toContain('task logs');
-    expect(res.stdout).toContain('task kill');
+    expect(res.stdout).toContain('logs');
+    expect(res.stdout).toContain('kill');
     expect(res.stdout).toContain('agent');
   });
 
@@ -159,7 +159,7 @@ describe('gt CLI Mock Server Integration', () => {
   });
 
   it('queries and prints formatted hosts table', async () => {
-    const res = await runGt(['host', 'ls', `--server=http://localhost:${serverPort}`]);
+    const res = await runGt(['host', 'ls', '-a', `--server=http://localhost:${serverPort}`]);
     expect(res.code).toBe(0);
     expect(res.stdout).toContain('node-1');
     expect(res.stdout).toContain('online');
