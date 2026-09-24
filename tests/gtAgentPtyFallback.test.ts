@@ -1,5 +1,5 @@
 // @ts-ignore
-import { StreamSessionManager, hasSystemPython3, PosixPtyDriver, InteractivePipeDriver, NodePtyDriver } from '../scripts/gt.js';
+import { StreamSessionManager, hasSystemPython3, PosixPtyDriver, InteractivePipeDriver, NodePtyDriver, tryRequirePty, getDefaultShell } from '../scripts/gt.js';
 
 describe('StreamSessionManager PTY Fallback & Interactive Execution', () => {
   it('detects and selects available pty drivers correctly', () => {
@@ -208,5 +208,31 @@ describe('StreamSessionManager PTY Fallback & Interactive Execution', () => {
     expect(mgr.sessions.size).toBe(2);
     mgr.killAll();
     expect(mgr.sessions.size).toBe(0);
+  });
+
+  it('tryRequirePty resolves node-pty with local fallback or respects GT_DISABLE_NODE_PTY', () => {
+    const originalEnv = process.env.GT_DISABLE_NODE_PTY;
+    try {
+      delete process.env.GT_DISABLE_NODE_PTY;
+      const loaded = tryRequirePty();
+      expect(loaded).toBeDefined();
+
+      process.env.GT_DISABLE_NODE_PTY = '1';
+      expect(tryRequirePty()).toBeNull();
+    } finally {
+      if (originalEnv !== undefined) {
+        process.env.GT_DISABLE_NODE_PTY = originalEnv;
+      } else {
+        delete process.env.GT_DISABLE_NODE_PTY;
+      }
+    }
+  });
+
+  it('getDefaultShell resolves existing system shell safely', () => {
+    const shell = getDefaultShell();
+    expect(typeof shell).toBe('string');
+    expect(shell.length).toBeGreaterThan(0);
+    // Custom option override
+    expect(getDefaultShell({ shell: '/bin/customsh' })).toBe('/bin/customsh');
   });
 });

@@ -114,12 +114,35 @@ if (!WebSocketImpl && typeof globalThis.WebSocket !== 'undefined') {
 }
 
 const WebSocket = WebSocketImpl;
-let pty = null;
-try {
-  if (!process.env.GT_DISABLE_NODE_PTY) {
-    pty = require('node-pty');
-  }
-} catch {}
+function tryRequirePty() {
+  if (process.env.GT_DISABLE_NODE_PTY) return null;
+  try {
+    return require('node-pty');
+  } catch {}
+  try {
+    const cwdReq = require('module').createRequire(path.join(process.cwd(), 'dummy.js'));
+    return cwdReq('node-pty');
+  } catch {}
+  try {
+    const candidatePaths = [
+      process.env.NODE_PATH,
+      '/usr/lib/node_modules',
+      '/usr/local/lib/node_modules',
+      process.env.HOME ? path.join(process.env.HOME, '.node_modules') : null,
+      process.env.HOME ? path.join(process.env.HOME, 'node_modules') : null,
+    ].filter(Boolean);
+    for (const p of candidatePaths) {
+      try {
+        const req = require('module').createRequire(path.join(p, 'dummy.js'));
+        const mod = req('node-pty');
+        if (mod) return mod;
+      } catch {}
+    }
+  } catch {}
+  return null;
+}
+
+let pty = tryRequirePty();
 
 let dotenv;
 try {
@@ -638,7 +661,12 @@ function getDefaultShell(options = {}) {
   if (os.platform() === 'win32') {
     return process.env.COMSPEC || 'powershell.exe';
   }
-  return options.shell || process.env.SHELL || '/bin/bash';
+  if (options.shell) return options.shell;
+  if (process.env.SHELL && fs.existsSync(process.env.SHELL)) return process.env.SHELL;
+  if (fs.existsSync('/bin/bash')) return '/bin/bash';
+  if (fs.existsSync('/usr/bin/bash')) return '/usr/bin/bash';
+  if (fs.existsSync('/bin/sh')) return '/bin/sh';
+  return '/bin/sh';
 }
 
 function resolveWebSocketUrl(serverUrl, metadata = {}) {
@@ -2339,10 +2367,6 @@ async function runAgent(agentArgs = [], globalOpts = {}) {
   }
 
   function spawnPty() {
-    if (!pty) {
-      console.warn('[PTY] node-pty not available in this environment. PTY terminal disabled.');
-      return;
-    }
     if (ptyProcess) {
       try { ptyProcess.kill(); } catch {}
       ptyProcess = null;
@@ -2364,35 +2388,134 @@ async function runAgent(agentArgs = [], globalOpts = {}) {
     delete env.WINDOW;
     delete env.TERM_SESSION_ID;
 
-    try {
-      ptyProcess = pty.spawn(shell, [], {
-        name: 'xterm-256color',
-        cols: 80,
-        rows: 24,
-        cwd,
-        env,
-      });
+    const cols = 80;
+    const rows = 24;
 
-      console.log(`[PTY] Shell spawned: ${shell} (pid=${ptyProcess.pid})`);
+    const sendToWs = (data) => {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        try {
+          const buf = Buffer.isBuffer(data) ? data : Buffer.from(data, 'utf-8');
+          ws.send(buf);
+        } catch {}
+      }
+    };
 
-      ptyProcess.onData((data) => {
-        if (ws && ws.readyState === WebSocket.OPEN) {
-          try {
-            const buf = Buffer.isBuffer(data) ? data : Buffer.from(data, 'utf-8');
-            ws.send(buf);
-          } catch {}
-        }
-      });
+    // 1. Layer 1: node-pty (C++ native addon)
+    if (pty) {
+      try {
+        const proc = pty.spawn(shell, [], {
+          name: 'xterm-256color',
+          cols,
+          rows,
+          cwd,
+          env,
+        });
 
-      ptyProcess.onExit(({ exitCode }) => {
-        console.log(`[PTY] Shell exited with code: ${exitCode}`);
+        proc.onData((data) => {
+          sendToWs(data);
+        });
+
+        proc.onExit(({ exitCode }) => {
+          console.log(`[PTY] Shell exited with code: ${exitCode}`);
+          ptyProcess = null;
+          if (!isExiting) {
+            setTimeout(spawnPty, 500);
+          }
+        });
+
+        ptyProcess = proc;
+        console.log(`[PTY] Shell spawned via node-pty: ${shell} (pid=${ptyProcess.pid})`);
+        return;
+      } catch (err) {
+        console.warn(`[PTY] node-pty spawn failed: ${err.message}, attempting fallback...`);
         ptyProcess = null;
-        if (!isExiting) {
-          setTimeout(spawnPty, 500);
-        }
-      });
-    } catch (err) {
-      console.error(`[PTY] Failed to spawn PTY: ${err.message}`);
+      }
+    }
+
+    // 2. Layer 2: PosixPtyDriver (Python 3 system PTY fallback)
+    if (!ptyProcess && hasSystemPython3()) {
+      try {
+        const driver = new PosixPtyDriver({
+          command: shell,
+          shell,
+          cwd,
+          env,
+          cols,
+          rows,
+          onData: (data) => {
+            sendToWs(data);
+          },
+          onExit: (code) => {
+            console.log(`[PTY] Shell (PosixPty) exited with code: ${code}`);
+            ptyProcess = null;
+            if (!isExiting) {
+              setTimeout(spawnPty, 500);
+            }
+          },
+        });
+
+        ptyProcess = {
+          pid: driver.proc ? driver.proc.pid : 0,
+          cols,
+          rows,
+          write: (data) => driver.write(data),
+          resize: (c, r) => {
+            ptyProcess.cols = c;
+            ptyProcess.rows = r;
+            driver.resize(c, r);
+          },
+          kill: (sig) => driver.kill(sig),
+        };
+
+        console.log(`[PTY] Shell spawned via PosixPty (Python 3): ${shell} (pid=${ptyProcess.pid})`);
+        return;
+      } catch (err) {
+        console.warn(`[PTY] PosixPty fallback failed: ${err.message}, attempting pipe fallback...`);
+        ptyProcess = null;
+      }
+    }
+
+    // 3. Layer 3: InteractivePipeDriver (Pure Pipe Fallback)
+    if (!ptyProcess) {
+      try {
+        const driver = new InteractivePipeDriver({
+          command: shell,
+          shell,
+          cwd,
+          env,
+          onData: (data) => {
+            sendToWs(data);
+          },
+          onExit: (code) => {
+            console.log(`[PTY] Shell (InteractivePipe) exited with code: ${code}`);
+            ptyProcess = null;
+            if (!isExiting) {
+              setTimeout(spawnPty, 500);
+            }
+          },
+        });
+
+        ptyProcess = {
+          pid: driver.proc ? driver.proc.pid : 0,
+          cols,
+          rows,
+          write: (data) => driver.write(data),
+          resize: (c, r) => {
+            ptyProcess.cols = c;
+            ptyProcess.rows = r;
+            driver.resize(c, r);
+          },
+          kill: (sig) => driver.kill(sig),
+        };
+
+        console.log(`[PTY] Shell spawned via InteractivePipe: ${shell} (pid=${ptyProcess.pid})`);
+        sendToWs(Buffer.from('\r\n\x1b[33m[Notice] node-pty not available on agent; running in interactive pipe fallback mode.\x1b[0m\r\n'));
+        return;
+      } catch (err) {
+        console.error(`[PTY] All PTY drivers failed to spawn shell: ${err.message}`);
+        ptyProcess = null;
+        sendToWs(Buffer.from(`\r\n\x1b[31m[Error] Failed to spawn shell on agent: ${err.message}\x1b[0m\r\n`));
+      }
     }
   }
 
@@ -2434,7 +2557,7 @@ async function runAgent(agentArgs = [], globalOpts = {}) {
       startHeartbeat();
 
       const isFirstSpawn = !ptyProcess;
-      if (!ptyProcess && pty) {
+      if (!ptyProcess) {
         spawnPty();
       }
 
@@ -2502,7 +2625,7 @@ async function runAgent(agentArgs = [], globalOpts = {}) {
           }
           if (control.type === 'reset') {
             console.log('[Agent] Reset PTY requested by server');
-            if (pty) spawnPty();
+            spawnPty();
             return;
           }
           if (control.type === 'ping') {
@@ -3886,4 +4009,6 @@ module.exports = {
   runAgent,
   runInteractiveExec,
   createWebSocketAdapter,
+  tryRequirePty,
+  getDefaultShell,
 };
