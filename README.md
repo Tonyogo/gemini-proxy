@@ -48,7 +48,7 @@ gemini-proxy/
 │       └── utils/             # 移动端视口计算、按键编码器、终端过滤器等
 ├── scripts/
 │   ├── deploy.sh              # 统一步署脚本 (Git 拉取、依赖安装、前后端编译、PM2 平滑重载)
-│   └── gt.js                  # 统一 Docker 风格终端 CLI 与反向 Agent 引擎 (gt host / task / exec / cp / agent)
+│   └── gt.js                  # 统一 Docker 风格终端 CLI 与反向 Agent 引擎 (gt ps / exec / logs / kill / cp / login / agent)
 ├── src/
 │   ├── admin/                 # 管理控制台后端逻辑 (状态、统计、日志审计、全局配置、账号)
 │   │   ├── controllers/       # AdminController, AccountController
@@ -281,28 +281,28 @@ pm2 logs gemini-proxy            # 查看实时运行日志
 
 ```bash
 # 1. 登录并持久化连接凭据 (像 docker login 一样，保存在 ~/.gt/config.json)
-gt auth login http://<proxy-ip>:3000 <ADMIN_SECRET_KEY>
+gt login http://<proxy-ip>:3000 <ADMIN_SECRET_KEY>
 
 # 2. 启动 Agent 节点 (Docker 风格多实例运行，-d 代表后台守护进程)
-gt run -d Ubuntu-GPU-Server
+gt agent run -d Ubuntu-GPU-Server
 
 # 3. 常用生命周期操作
-gt ps                               # 查看本机运行的 Agent 实例状态
-gt logs -f Ubuntu-GPU-Server        # 实时跟踪 Agent 运行日志
-gt stop Ubuntu-GPU-Server           # 停止 Agent
-gt restart Ubuntu-GPU-Server        # 重启 Agent
-gt rm Ubuntu-GPU-Server             # 清理已停止的 Agent 记录
+gt agent ps                               # 查看本机运行的 Agent 实例状态
+gt agent logs -f Ubuntu-GPU-Server        # 实时跟踪 Agent 运行日志
+gt agent stop Ubuntu-GPU-Server           # 停止 Agent
+gt agent restart Ubuntu-GPU-Server        # 重启 Agent
+gt agent rm Ubuntu-GPU-Server             # 清理已停止的 Agent 记录
 ```
 
-#### B. Agent 命令与参数说明
+#### B. Agent 守护进程命令与参数说明
 | 命令 / 选项 | 说明 | 示例 |
 | :--- | :--- | :--- |
-| `gt run [-d] [NAME]` | 运行 Agent (前台控制台输出，或 `-d` / `--detach` 后台常驻) | `gt run -d worker-1` |
-| `gt ps` | 列出本地所有 Agent 实例状态 (Running / Stopped / PID / Hub / 启动时间) | `gt ps` |
-| `gt logs [-f] [-n 50] [NAME]` | 查看或实时跟踪 (`-f`) Agent 运行日志 | `gt logs -f worker-1` |
-| `gt stop [NAME] [--all]` | 优雅终止 Agent 进程 (支持 `--all` 停止全部) | `gt stop worker-1` |
-| `gt restart [NAME]` | 重启指定的 Agent 守护进程 | `gt restart worker-1` |
-| `gt rm [NAME] [--all]` | 删除已停止的 Agent 状态文件及日志记录 (支持 `--all`) | `gt rm worker-1` |
+| `gt agent run [-d] [NAME]` | 运行 Agent (前台控制台输出，或 `-d` / `--detach` 后台常驻) | `gt agent run -d worker-1` |
+| `gt agent ps` | 列出本地所有 Agent 实例状态 (Running / Stopped / PID / Hub / 启动时间) | `gt agent ps` |
+| `gt agent logs [-f] [-n 50] [NAME]` | 查看或实时跟踪 (`-f`) Agent 运行日志 | `gt agent logs -f worker-1` |
+| `gt agent stop [NAME] [--all]` | 优雅终止 Agent 进程 (支持 `--all` 停止全部) | `gt agent stop worker-1` |
+| `gt agent restart [NAME]` | 重启指定的 Agent 守护进程 | `gt agent restart worker-1` |
+| `gt agent rm [NAME] [--all]` | 删除已停止的 Agent 状态文件及日志记录 (支持 `--all`) | `gt agent rm worker-1` |
 | `--name=<name>` | 显式指定 Agent 名称 (优先级高于位置参数 `NAME`) | `--name="my-box"` |
 | `--id=<id>` | 主机唯一标识 | 默认为自动生成的 12 位十六进制短 ID |
 | `--shell=<path>` | 指定调起的 Shell 程序路径 | 自动检测 (bash/zsh/PowerShell) |
@@ -407,12 +407,12 @@ curl -fsSL http://<your-proxy-server>:3000/install.sh | bash
 
 ##### 核心指令与示例：
 ```bash
-# 1. 节点与认证管理
-gt auth login [server] [key]     # 校验凭据并保存至 ~/.gt/config.json
-gt auth logout                   # 清理本地凭据缓存
-gt host ls                       # 查看当前在线的所有 Agent 节点
-gt host ls --format "table {{.ID}}\t{{.Name}}\t{{.IP}}\t{{.Status}}" # 自定义表格格式
-gt host prune                    # 清理离线的节点记录
+# 1. 认证与远程节点管理 (类似 docker login / docker ps)
+gt login [server] [key]     # 校验凭据并保存至 ~/.gt/config.json
+gt logout                   # 清理本地凭据缓存
+gt ps                       # 查看当前在线的远程节点 (类似 docker ps，加 -a 显示全部)
+gt ps -a --format "table {{.ID}}\t{{.Name}}\t{{.IP}}\t{{.Status}}" # 自定义表格格式
+gt prune                    # 清理离线的节点记录 (类似 docker container prune)
 
 # 2. 远程命令执行 (纯净流式输出，支持短 ID 解析与 Stdin 管道)
 gt exec my-host uptime
@@ -421,22 +421,23 @@ gt exec --verbose my-host echo "hello"        # 详细模式 (显示开始与耗
 cat deploy.sh | gt exec -i my-host bash          # 标准输入流管道支持
 gt exec -d my-host "sleep 60 && echo done"       # 后台异步执行并返回 Task ID
 
-# 3. 任务与日志追踪
-gt task ls my-host                               # 查看节点上的最近任务
-gt task logs -f my-host task-1726671234000       # 实时跟踪任务日志流
-gt task kill my-host task-1726671234000          # 中断或强杀正在运行的任务
+# 3. 任务与日志追踪 (支持缺省 taskId 自动推断最近任务)
+gt logs -f my-host                            # 实时跟踪节点最近任务的日志流 (智能推断)
+gt logs my-host task-1726671234000            # 指定任务 ID 查看日志
+gt kill my-host task-1726671234000            # 中断或强杀节点上的任务 (支持 --signal SIGKILL)
+gt task ls my-host                            # 查看节点上的所有任务历史
 
 # 4. 双向文件拷贝 (类似 docker cp)
 gt cp my-host:/var/log/app.log ./local.log       # 远程文件下载到本地
 gt cp ./config.json my-host:/app/config.json     # 本地文件上传到远程
 
-# 5. 本地 Agent 守护进程管理 (Docker 风格多实例)
-gt run -d worker-1                               # 启动后台常驻 Agent 守护进程
-gt ps                                            # 查看本地所有 Agent 实例状态 (Running / Stopped)
-gt logs -f worker-1                              # 实时查看/跟踪 Agent 运行日志
-gt stop worker-1                                 # 停止指定的 Agent (支持 --all 停止全部)
-gt restart worker-1                              # 重启指定的 Agent
-gt rm worker-1                                   # 清理已停止的 Agent 记录与日志 (支持 --all)
+# 5. 本地 Agent 守护进程管理 (gt agent 命名空间)
+gt agent run -d worker-1                         # 启动后台常驻 Agent 守护进程
+gt agent ps                                      # 查看本地所有 Agent 实例状态 (Running / Stopped)
+gt agent logs -f worker-1                        # 实时查看/跟踪 Agent 运行日志
+gt agent stop worker-1                           # 停止指定的 Agent (支持 --all 停止全部)
+gt agent restart worker-1                        # 重启指定的 Agent
+gt agent rm worker-1                             # 清理已停止的 Agent 记录与日志 (支持 --all)
 ```
 
 ---

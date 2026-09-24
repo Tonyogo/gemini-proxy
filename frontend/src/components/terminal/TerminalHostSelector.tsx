@@ -299,7 +299,7 @@ export function TerminalHostSelector({
   const agentCommand = useMemo(() => {
     const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
     const effectiveKey = adminKey || (typeof localStorage !== 'undefined' ? localStorage.getItem('adminKey') || '' : '');
-    return `gt auth login "${origin}" "${effectiveKey}" && gt run -d --name="my-server"`;
+    return `gt login "${origin}" "${effectiveKey}" && gt agent run -d --name="my-server"`;
   }, [adminKey]);
 
   const handleCopyCommand = () => {
