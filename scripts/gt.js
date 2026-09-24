@@ -2906,6 +2906,61 @@ async function handleRemotePrune({ server, key, args = [], jsonOutput = false })
   }
 }
 
+async function handleLogin({ server, key, subArgs = [] }) {
+  let targetServer = server;
+  let targetKey = key;
+
+  if (subArgs.length >= 2) {
+    targetServer = subArgs[0];
+    targetKey = subArgs[1];
+  } else if (subArgs.length === 1) {
+    if (subArgs[0].startsWith('http://') || subArgs[0].startsWith('https://')) {
+      targetServer = subArgs[0];
+    } else {
+      targetKey = subArgs[0];
+    }
+  }
+
+  if (!targetKey) {
+    console.error('Error: Missing secret key. Usage: gt login [server] [key]');
+    process.exit(1);
+  }
+
+  targetServer = targetServer.replace(/\/+$/, '');
+
+  try {
+    const res = await makeRequest({
+      serverUrl: targetServer,
+      endpoint: '/api/terminal/hosts',
+      method: 'GET',
+      apiKey: targetKey,
+    });
+
+    if (res.status === 200) {
+      const config = ConfigStore.load();
+      config.server = targetServer;
+      config.key = targetKey;
+      ConfigStore.save(config);
+      console.log(`Successfully verified and logged in to ${targetServer}`);
+      process.exit(0);
+    } else {
+      console.error(`Authentication failed: HTTP ${res.status} ${res.data?.error || 'Unauthorized'}`);
+      process.exit(1);
+    }
+  } catch (err) {
+    console.error(`Authentication failed: ${err.message}`);
+    process.exit(1);
+  }
+}
+
+function handleLogout() {
+  const config = ConfigStore.load();
+  delete config.key;
+  ConfigStore.save(config);
+  console.log('Successfully logged out.');
+  process.exit(0);
+}
+
 // --------------------------------------------------------------------------
 // Main CLI Dispatcher
 // --------------------------------------------------------------------------
@@ -2998,6 +3053,16 @@ async function main() {
 
     case 'prune': {
       await handleRemotePrune({ server, key, args: cmdArgs, jsonOutput });
+      break;
+    }
+
+    case 'login': {
+      await handleLogin({ server, key, subArgs: cmdArgs });
+      break;
+    }
+
+    case 'logout': {
+      handleLogout();
       break;
     }
 
@@ -3336,55 +3401,9 @@ async function main() {
       }
 
       if (subCommand === 'login') {
-        let targetServer = subArgs[0] || server;
-        let targetKey = subArgs[1] || key;
-
-        if (subArgs.length === 1) {
-          if (subArgs[0].startsWith('http://') || subArgs[0].startsWith('https://')) {
-            targetServer = subArgs[0];
-            targetKey = key;
-          } else {
-            targetKey = subArgs[0];
-            targetServer = server;
-          }
-        }
-
-        if (!targetKey) {
-          console.error('Error: Missing secret key. Usage: gt auth login [server] [key]');
-          process.exit(1);
-        }
-
-        targetServer = targetServer.replace(/\/+$/, '');
-
-        try {
-          const res = await makeRequest({
-            serverUrl: targetServer,
-            endpoint: '/api/terminal/hosts',
-            method: 'GET',
-            apiKey: targetKey,
-          });
-
-          if (res.status === 200) {
-            const config = ConfigStore.load();
-            config.server = targetServer;
-            config.key = targetKey;
-            ConfigStore.save(config);
-            console.log(`Successfully verified and logged in to ${targetServer}`);
-            process.exit(0);
-          } else {
-            console.error(`Authentication failed: HTTP ${res.status} ${res.data?.error || 'Unauthorized'}`);
-            process.exit(1);
-          }
-        } catch (err) {
-          console.error(`Authentication failed: ${err.message}`);
-          process.exit(1);
-        }
+        await handleLogin({ server, key, subArgs });
       } else if (subCommand === 'logout') {
-        const config = ConfigStore.load();
-        delete config.key;
-        ConfigStore.save(config);
-        console.log('Successfully logged out.');
-        process.exit(0);
+        handleLogout();
       } else {
         console.error(`Error: Unknown auth subcommand: '${subCommand}'.`);
         console.error("Usage: gt auth <login|logout> [ARGS...]");
