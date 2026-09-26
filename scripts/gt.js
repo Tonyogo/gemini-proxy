@@ -1477,8 +1477,8 @@ class PosixPtyDriver {
   constructor({ command, shell, cwd, env, cols, rows, onData, onExit }) {
     this.onData = onData;
     this.onExit = onExit;
-    this.cols = cols || 80;
-    this.rows = rows || 24;
+    this.cols = Math.max(10, Math.min(500, Math.floor(cols || 80)));
+    this.rows = Math.max(5, Math.min(200, Math.floor(rows || 24)));
 
     const pyScript = `
 import os, sys, pty, termios, fcntl, struct, select, signal, atexit
@@ -1527,21 +1527,54 @@ else:
     signal.signal(signal.SIGTERM, sig_cleanup)
     signal.signal(signal.SIGINT, sig_cleanup)
 
-    # Non-blocking IO loop between sys.stdin/stdout and master
+    # Non-blocking IO loop between sys.stdin/stdout, ctl_fd, and master
     fl = fcntl.fcntl(master, fcntl.F_GETFL)
     fcntl.fcntl(master, fcntl.F_SETFL, fl | os.O_NONBLOCK)
 
     stdin_fileno = sys.stdin.fileno()
     stdin_closed = False
 
+    ctl_fd = 3
+    ctl_closed = False
+    try:
+        fl_ctl = fcntl.fcntl(ctl_fd, fcntl.F_GETFL)
+        fcntl.fcntl(ctl_fd, fcntl.F_SETFL, fl_ctl | os.O_NONBLOCK)
+    except Exception:
+        ctl_closed = True
+
+    ctl_buf = ""
+
     while True:
         read_fds = [master]
         if not stdin_closed:
             read_fds.append(stdin_fileno)
+        if not ctl_closed:
+            read_fds.append(ctl_fd)
         try:
             r, w, x = select.select(read_fds, [], [], 0.05)
         except (InterruptedError, select.error):
             continue
+
+        if not ctl_closed and ctl_fd in r:
+            try:
+                ctl_data = os.read(ctl_fd, 1024)
+                if not ctl_data:
+                    ctl_closed = True
+                else:
+                    ctl_buf += ctl_data.decode("utf-8", "replace")
+                    while "\\n" in ctl_buf:
+                        line, ctl_buf = ctl_buf.split("\\n", 1)
+                        line = line.strip()
+                        if line.startswith("RESIZE "):
+                            parts = line.split()
+                            if len(parts) >= 3:
+                                try:
+                                    new_cols, new_rows = int(parts[1]), int(parts[2])
+                                    fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack("HHHH", new_rows, new_cols, 0, 0))
+                                except Exception:
+                                    pass
+            except (OSError, EOFError):
+                ctl_closed = True
 
         if not stdin_closed and stdin_fileno in r:
             try:
@@ -1605,9 +1638,11 @@ else:
     ], {
       cwd,
       env,
-      stdio: ['pipe', 'pipe', 'pipe'],
+      stdio: ['pipe', 'pipe', 'pipe', 'pipe'],
       detached: true,
     });
+
+    this.ctlStream = this.proc.stdio && this.proc.stdio[3] ? this.proc.stdio[3] : null;
 
     this.proc.stdout.on('data', (chunk) => this.onData(chunk));
     this.proc.stderr.on('data', (chunk) => this.onData(chunk));
@@ -1624,11 +1659,21 @@ else:
   }
 
   resize(cols, rows) {
-    this.cols = cols;
-    this.rows = rows;
+    this.cols = Math.max(10, Math.min(500, Math.floor(cols || 80)));
+    this.rows = Math.max(5, Math.min(200, Math.floor(rows || 24)));
+    if (this.ctlStream && !this.ctlStream.destroyed && !this.ctlStream.writableEnded) {
+      try {
+        this.ctlStream.write(`RESIZE ${this.cols} ${this.rows}\n`);
+      } catch {}
+    }
   }
 
   kill(signal = 'SIGTERM') {
+    if (this.ctlStream) {
+      try {
+        this.ctlStream.end();
+      } catch {}
+    }
     if (this.proc) {
       killProcessTree(this.proc, signal);
     }
@@ -1636,9 +1681,11 @@ else:
 }
 
 class InteractivePipeDriver {
-  constructor({ command, shell, cwd, env, onData, onExit }) {
+  constructor({ command, shell, cwd, env, cols, rows, onData, onExit }) {
     this.onData = onData;
     this.onExit = onExit;
+    this.cols = Math.max(10, Math.min(500, Math.floor(cols || 80)));
+    this.rows = Math.max(5, Math.min(200, Math.floor(rows || 24)));
 
     const isWindows = os.platform() === 'win32';
     const trimmed = (command || '').trim();
@@ -1695,7 +1742,10 @@ class InteractivePipeDriver {
     } catch {}
   }
 
-  resize(cols, rows) {}
+  resize(cols, rows) {
+    this.cols = Math.max(10, Math.min(500, Math.floor(cols || 80)));
+    this.rows = Math.max(5, Math.min(200, Math.floor(rows || 24)));
+  }
 
   kill(signal = 'SIGTERM') {
     if (this.proc) {
@@ -1773,7 +1823,7 @@ class StreamSessionManager {
         this.send({ type: 'cmd_stream_data', taskId, data: warnMsg.toString('base64') });
       }
       try {
-        driver = new InteractivePipeDriver({ command, shell, cwd: workingDir, env: taskEnv, onData, onExit });
+        driver = new InteractivePipeDriver({ command, shell, cwd: workingDir, env: taskEnv, cols, rows, onData, onExit });
         driverType = 'pipe-fallback';
       } catch (err) {
         this.send({ type: 'cmd_stream_exit', taskId, exitCode: 1, signal: null });
@@ -2483,6 +2533,8 @@ async function runAgent(agentArgs = [], globalOpts = {}) {
           shell,
           cwd,
           env,
+          cols,
+          rows,
           onData: (data) => {
             sendToWs(data);
           },

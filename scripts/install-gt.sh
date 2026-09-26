@@ -29,6 +29,11 @@ if [ "$NODE_VERSION" -lt 18 ]; then
   echo -e "${YELLOW}[Warning] Node.js version is $(node -v). gt CLI is recommended on Node.js v18+.${NC}"
 fi
 
+# Check Python 3 runtime for PTY fallback support
+if command -v python3 >/dev/null 2>&1; then
+  echo -e "${GREEN}✓ Detected Python 3 runtime (PTY fallback with dynamic resize supported)${NC}"
+fi
+
 # 2. Determine target install directory
 INSTALL_DIR="/usr/local/bin"
 USE_SUDO=0

@@ -79,6 +79,54 @@ describe('StreamSessionManager PTY Fallback & Interactive Execution', () => {
     }, 300);
   });
 
+  it('dynamically resizes PosixPtyDriver terminal window size via ioctl and SIGWINCH', (done) => {
+    if (!hasSystemPython3()) {
+      done();
+      return;
+    }
+    const messages: any[] = [];
+    const taskId = `test-posix-pty-resize-${Date.now()}`;
+    const mgr = new StreamSessionManager((msg: any) => {
+      messages.push(msg);
+      if (msg.taskId === taskId && msg.type === 'cmd_stream_exit') {
+        const fullOutput = messages
+          .filter(m => m.type === 'cmd_stream_data' && m.taskId === taskId)
+          .map(m => Buffer.from(m.data, 'base64').toString('utf-8'))
+          .join('');
+
+        expect(msg.exitCode).toBe(0);
+        // Expect stty size to reflect new dimensions (rows cols => 18 45)
+        expect(fullOutput).toMatch(/18\s+45/);
+        done();
+      }
+    });
+
+    mgr.startStream({
+      taskId,
+      command: 'bash',
+      tty: true,
+      interactive: true,
+      cols: 80,
+      rows: 24,
+      timeoutMs: 10000,
+      _forceFallback: true,
+    });
+
+    const session = mgr.sessions.get(taskId);
+    expect(session?.driverType).toBe('posix-pty');
+
+    // Wait a brief moment for bash to spawn, then trigger resize to mobile-like dimensions (45 cols, 18 rows)
+    setTimeout(() => {
+      mgr.resize(taskId, 45, 18);
+      setTimeout(() => {
+        mgr.writeInput(taskId, Buffer.from('stty size\r').toString('base64'));
+        setTimeout(() => {
+          mgr.writeInput(taskId, Buffer.from('exit\r').toString('base64'));
+        }, 500);
+      }, 300);
+    }, 200);
+  }, 10000);
+
   it('runs Layer 3 InteractivePipeDriver with CR-to-LF translation and warning notice', (done) => {
     const messages: any[] = [];
     const taskId = `test-pipe-fallback-${Date.now()}`;
