@@ -2072,7 +2072,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
             xtermRef.current?.focus();
           }
         }}
-        className={`flex-1 p-2 bg-[var(--bg-canvas)] overflow-hidden min-h-0 relative ${
+        className={`flex-1 py-1.5 sm:py-2 pl-[max(0.5rem,env(safe-area-inset-left,0px))] pr-[max(0.5rem,env(safe-area-inset-right,0px))] bg-[var(--bg-canvas)] overflow-hidden min-h-0 relative ${
           isSelectMode ? 'cursor-crosshair select-none' : 'cursor-text'
         } ${isRefitting ? 'opacity-40 select-none pointer-events-none' : 'opacity-100'} transition-opacity duration-150`}
         style={{

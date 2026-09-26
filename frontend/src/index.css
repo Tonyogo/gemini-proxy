@@ -190,3 +190,21 @@
   touch-action: none !important;
 }
 
+/* Terminal Viewport: Transparent & Invisible Scrollbar to prevent text obstruction */
+.xterm .xterm-viewport {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+.xterm .xterm-viewport::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+}
+.xterm .xterm-viewport::-webkit-scrollbar-thumb {
+  background: transparent !important;
+}
+.xterm .xterm-viewport::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+

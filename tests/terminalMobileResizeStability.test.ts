@@ -96,4 +96,23 @@ describe('Ladder Probes & Transition Compensation', () => {
   });
 });
 
+describe('Terminal Viewport Scrollbar Transparency & Safe Area Margin', () => {
+  it('index.css includes transparent/hidden scrollbar rules for .xterm .xterm-viewport', () => {
+    const indexCssPath = path.resolve(__dirname, '../frontend/src/index.css');
+    const indexCssContent = fs.readFileSync(indexCssPath, 'utf-8');
+
+    expect(indexCssContent).toContain('.xterm .xterm-viewport');
+    expect(indexCssContent).toMatch(/\.xterm\s+\.xterm-viewport[\s\S]*?scrollbar-width:\s*none/);
+    expect(indexCssContent).toMatch(/\.xterm\s+\.xterm-viewport::-webkit-scrollbar[\s\S]*?background:\s*transparent/);
+  });
+
+  it('WebTerminalView integrates safe area insets on canvas container to prevent edge clipping', () => {
+    const webTerminalPath = path.resolve(__dirname, '../frontend/src/components/WebTerminalView.tsx');
+    const webTerminalContent = fs.readFileSync(webTerminalPath, 'utf-8');
+
+    expect(webTerminalContent).toMatch(/safe-area-inset-left/);
+    expect(webTerminalContent).toMatch(/safe-area-inset-right/);
+  });
+});
+
 
