@@ -74,6 +74,19 @@ if (existsSync(runtimeJsonPath)) {
   }
 }
 
+function sanitizeModelList(models?: any): string[] | undefined {
+  if (!models) return undefined;
+  if (Array.isArray(models)) {
+    const list = Array.from(new Set(models.map(m => String(m || '').trim()).filter(Boolean)));
+    return list.length > 0 ? list : undefined;
+  }
+  if (typeof models === 'string') {
+    const list = Array.from(new Set(models.split(/[+,|\s]+/).map(m => m.trim()).filter(Boolean)));
+    return list.length > 0 ? list : undefined;
+  }
+  return undefined;
+}
+
 export function parseUpstreamServers(raw?: any): UpstreamServerConfig[] {
   const defaultFallback: UpstreamServerConfig[] = [
     { url: 'https://generativelanguage.googleapis.com', weight: 1, enabled: true, name: 'Official Gemini API' }
@@ -93,8 +106,10 @@ export function parseUpstreamServers(raw?: any): UpstreamServerConfig[] {
       if (weight > 1000) weight = 1000;
       const enabled = item.enabled !== false;
       const name = item.name ? String(item.name).trim() : undefined;
+      const allowedModels = sanitizeModelList(item.allowedModels);
       const res: UpstreamServerConfig = { url, weight, enabled };
       if (name) res.name = name;
+      if (allowedModels) res.allowedModels = allowedModels;
       return res;
     }).filter(Boolean) as UpstreamServerConfig[];
 
@@ -131,6 +146,7 @@ export function parseUpstreamServers(raw?: any): UpstreamServerConfig[] {
       let weight = 1;
       let enabled = true;
       let name: string | undefined = undefined;
+      let allowedModels: string[] | undefined = undefined;
 
       if (paramPart) {
         const params = new URLSearchParams(paramPart);
@@ -148,10 +164,16 @@ export function parseUpstreamServers(raw?: any): UpstreamServerConfig[] {
         if (nameParam) {
           name = decodeURIComponent(nameParam);
         }
+
+        const modelsParam = params.get('models') || params.get('allowedModels');
+        if (modelsParam !== null) {
+          allowedModels = sanitizeModelList(modelsParam);
+        }
       }
 
       const res: UpstreamServerConfig = { url: basePart, weight, enabled };
       if (name) res.name = name;
+      if (allowedModels) res.allowedModels = allowedModels;
       return res;
     }).filter(Boolean) as UpstreamServerConfig[];
 

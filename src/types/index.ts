@@ -95,6 +95,7 @@ export interface UpstreamServerConfig {
   weight: number;
   enabled: boolean;
   name?: string;
+  allowedModels?: string[];
 }
 
 export interface UpstreamServerStatus extends UpstreamServerConfig {
