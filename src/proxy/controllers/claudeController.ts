@@ -8,6 +8,7 @@ import accountUsageService from '../../admin/services/accountUsageService';
 import logger from '../../utils/logger';
 import { StreamLifecycleManager } from '../../utils/streamLifecycleManager';
 import upstreamManager from '../../utils/upstreamManager';
+import { isModelAllowed } from '../../utils/modelValidator';
 import {
   extractClientKey,
   extractTimeoutMs,
@@ -52,6 +53,21 @@ class ClaudeController {
 
       const { googleRequest, cleanModelName, strategy, isStream } = claudeTranslator.translateClaudeToGoogle(clientReq);
       gemReq = googleRequest;
+
+      const clientModel = clientReq.model || '';
+      if (!isModelAllowed(clientModel, cleanModelName)) {
+        const errPayload = {
+          type: 'error',
+          error: {
+            type: 'permission_error',
+            message: `Model '${clientModel || cleanModelName}' is not permitted by proxy policy.`
+          }
+        };
+        const duration = Date.now() - startTime;
+        logger.warn(`[Model Restriction] [Transaction: ${transactionId}] Request rejected: Model '${clientModel}' is not allowed.`);
+        payloadLogger.saveTransaction(transactionId, clientReq, null, null, errPayload, duration, requestPath, 403, false);
+        return res.status(403).json(errPayload);
+      }
 
       // Determine effective scheduling strategy: mapping config takes precedence over client header
       const clientStrategy = extractClientSchedulingStrategy(req);
@@ -367,6 +383,22 @@ class ClaudeController {
         return res.status(401).json(errPayload);
       }
 
+      const requestedModel = (clientReq.model || config.countTokensModel || '').trim();
+      const resolvedCountModel = requestedModel ? claudeTranslator.getCleanModelName(requestedModel) : '';
+      if (!isModelAllowed(requestedModel, resolvedCountModel)) {
+        const errPayload = {
+          type: 'error',
+          error: {
+            type: 'permission_error',
+            message: `Model '${requestedModel || resolvedCountModel}' is not permitted by proxy policy.`
+          }
+        };
+        const duration = Date.now() - startTime;
+        logger.warn(`[Model Restriction] [Transaction: ${transactionId}] Token count rejected: Model '${requestedModel || resolvedCountModel}' is not allowed.`);
+        payloadLogger.saveTransaction(transactionId, clientReq, null, null, errPayload, duration, requestPath, 403, false);
+        return res.status(403).json(errPayload);
+      }
+
       let { googleRequest, cleanModelName } = claudeTranslator.translateClaudeToGoogle(clientReq);
 
       if (config.countTokensModel && config.countTokensModel.trim()) {
@@ -570,6 +602,20 @@ class ClaudeController {
       // Check if it's an alias configured locally first
       const cleanModelId = modelId as string;
       const resolvedModelId = claudeTranslator.getCleanModelName(cleanModelId);
+
+      if (!isModelAllowed(cleanModelId, resolvedModelId)) {
+        const errPayload = {
+          type: 'error',
+          error: {
+            type: 'permission_error',
+            message: `Model '${cleanModelId || resolvedModelId}' is not permitted by proxy policy.`
+          }
+        };
+        const duration = Date.now() - startTime;
+        logger.warn(`[Model Restriction] [Transaction: ${transactionId}] Retrieve model metadata request rejected: Model '${cleanModelId}' is not allowed.`);
+        payloadLogger.saveTransaction(transactionId, clientReq, null, null, errPayload, duration, requestPath, 403, false);
+        return res.status(403).json(errPayload);
+      }
 
       const targetPath = `/v1beta/models/${resolvedModelId}`;
       const { targetUrl, serverUrl, serverIndex } = upstreamManager.getUpstreamUrl(targetPath, { model: resolvedModelId });
