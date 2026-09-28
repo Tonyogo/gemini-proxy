@@ -26,6 +26,7 @@ class AdminController {
         ephemeralUserMessages: config.ephemeralUserMessages,
         ephemeralSystemMessages: config.ephemeralSystemMessages,
         customWebApps: config.customWebApps,
+        allowedModels: config.allowedModels,
       },
       upstreamStatus: upstreamManager.getUpstreamServerStatusList(),
     });
@@ -102,6 +103,7 @@ class AdminController {
           ephemeralUserMessages: config.ephemeralUserMessages,
           ephemeralSystemMessages: config.ephemeralSystemMessages,
           customWebApps: config.customWebApps,
+          allowedModels: config.allowedModels,
         },
         upstreamStatus: upstreamManager.getUpstreamServerStatusList(),
       });
