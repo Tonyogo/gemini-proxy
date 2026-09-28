@@ -202,6 +202,32 @@ export const config = {
   ...getEnvConfig(),
   ...runtimeOverrides,
 
+  get geminiBaseUrl(): string {
+    if ((this as any)._geminiBaseUrl !== undefined) {
+      return (this as any)._geminiBaseUrl;
+    }
+    if (runtimeOverrides.geminiBaseUrl !== undefined) {
+      return runtimeOverrides.geminiBaseUrl;
+    }
+    return normalizeBaseUrls(process.env.GEMINI_BASE_URL);
+  },
+
+  set geminiBaseUrl(val: string) {
+    (this as any)._geminiBaseUrl = val;
+    const currentUrls = ((this as any)._upstreamServers || []).map((s: any) => s.url).join(',');
+    const newServers = parseUpstreamServers(val);
+    const newUrls = newServers.map(s => s.url).join(',');
+    if (currentUrls !== newUrls) {
+      (this as any)._upstreamServers = newServers;
+      if (runtimeOverrides.upstreamServers !== undefined) {
+        delete runtimeOverrides.upstreamServers;
+      }
+    }
+    if (runtimeOverrides.geminiBaseUrl !== undefined) {
+      runtimeOverrides.geminiBaseUrl = val;
+    }
+  },
+
   get upstreamServers(): UpstreamServerConfig[] {
     if ((this as any)._upstreamServers !== undefined) {
       return (this as any)._upstreamServers;
@@ -213,7 +239,15 @@ export const config = {
   },
 
   set upstreamServers(val: UpstreamServerConfig[]) {
-    (this as any)._upstreamServers = parseUpstreamServers(val);
+    const servers = parseUpstreamServers(val);
+    (this as any)._upstreamServers = servers;
+    (this as any)._geminiBaseUrl = servers.map(s => s.url).join(',');
+    if (runtimeOverrides.upstreamServers !== undefined) {
+      runtimeOverrides.upstreamServers = servers;
+    }
+    if (runtimeOverrides.geminiBaseUrl !== undefined) {
+      runtimeOverrides.geminiBaseUrl = servers.map(s => s.url).join(',');
+    }
   }
 };
 
@@ -223,6 +257,7 @@ export async function updateConfig(
 ): Promise<void> {
   if (options?.resetToEnv) {
     runtimeOverrides = {};
+    delete (config as any)._geminiBaseUrl;
     delete (config as any)._upstreamServers;
     const envDefaults = getEnvConfig();
     Object.assign(config, envDefaults);
@@ -243,9 +278,7 @@ export async function updateConfig(
     if (partialConfig.geminiBaseUrl === undefined) {
       partialConfig.geminiBaseUrl = servers.map(s => s.url).join(',');
     }
-  }
-
-  if (partialConfig.geminiBaseUrl !== undefined) {
+  } else if (partialConfig.geminiBaseUrl !== undefined) {
     if (typeof partialConfig.geminiBaseUrl === 'string') {
       let raw = partialConfig.geminiBaseUrl.trim();
       if (!raw) {
@@ -253,9 +286,7 @@ export async function updateConfig(
       }
       const parsedServers = parseUpstreamServers(raw);
       partialConfig.geminiBaseUrl = parsedServers.map(s => s.url).join(',');
-      if (partialConfig.upstreamServers === undefined) {
-        partialConfig.upstreamServers = parsedServers;
-      }
+      partialConfig.upstreamServers = parsedServers;
     }
   }
 
