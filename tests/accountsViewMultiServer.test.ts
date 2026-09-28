@@ -46,6 +46,14 @@ describe('AccountsView & ConfigModal Multi-Server UI Integration', () => {
     expect(accountsCode).toContain('getAccountTopModels');
   });
 
+  it('AccountsView should display modelSuccessFailed translation in the model stats grid', () => {
+    expect(accountsCode).toContain('modelSuccessFailed');
+  });
+
+  it('AccountsView should not use invalid Tailwind class py-0.2', () => {
+    expect(accountsCode).not.toContain('py-0.2');
+  });
+
   it('ConfigModal should support comma-separated multi-server GEMINI_BASE_URL cleaning', () => {
     expect(configCode).toContain("geminiBaseUrl.split(',').map");
     expect(configCode).toContain("placeholder=\"https://generativelanguage.googleapis.com,https://s2.example.com\"");

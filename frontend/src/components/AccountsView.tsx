@@ -889,7 +889,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
       {/* Multi-Server Selection Tabs */}
       {servers.length > 1 && (
         <div className="flex items-center space-x-2 overflow-x-auto pb-1 scrollbar-thin">
-          <div className="flex items-center bg-black/[0.03] dark:bg-white/[0.04] p-1 rounded-xl border border-black/5 dark:border-white/10 gap-1.5 min-w-max">
+          <div className="flex items-center p-1 rounded-xl bg-black/[0.02] dark:bg-white/[0.03] border border-[var(--border-subtle)] gap-2 min-w-max">
             {servers.map((serverUrl, idx) => {
               const host = getServerHost(serverUrl);
               const isActive = activeServerIndex === idx;
@@ -903,10 +903,10 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                   key={idx}
                   type="button"
                   onClick={() => handleSwitchServer(idx)}
-                  className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-medium transition-all flex items-center space-x-1.5 sm:space-x-2 ${
+                  className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all flex items-center space-x-2 border ${
                     isActive
-                      ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/25 font-semibold'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'
+                      ? 'bg-indigo-600 text-white border-indigo-500/40 shadow-sm shadow-indigo-500/25 font-semibold ring-1 ring-indigo-500/30'
+                      : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'
                   }`}
                   title={serverUrl}
                 >
@@ -914,23 +914,23 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                     {isLoading ? (
                       <RefreshCw className="w-3 h-3 animate-spin text-indigo-300 shrink-0" />
                     ) : isOffline ? (
-                      <span className="w-2 h-2 rounded-full bg-rose-500 ring-2 ring-rose-500/20 shrink-0" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-rose-500/30 shrink-0" />
                     ) : (
-                      <span className={`w-2 h-2 rounded-full shrink-0 ${isActive ? 'bg-emerald-300 ring-2 ring-emerald-300/30' : 'bg-emerald-500'}`} />
+                      <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${isActive ? 'bg-emerald-300 ring-2 ring-emerald-300/40' : 'bg-emerald-500'}`} />
                     )}
                     <span className="hidden sm:inline">Server {idx + 1} ({host})</span>
                     <span className="inline sm:hidden font-mono font-bold">{t('accounts.mobileTabShort', { index: idx + 1 })}</span>
                   </span>
 
                   {isOffline ? (
-                    <span className="px-1 sm:px-1.5 py-0.2 rounded text-[9px] sm:text-[10px] font-semibold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/20 shrink-0">
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/20 shrink-0">
                       {t('accounts.nodeOffline')}
                     </span>
                   ) : count !== undefined ? (
-                    <span className={`text-[9px] sm:text-[10px] font-mono px-1 sm:px-1.5 py-0.2 rounded-full shrink-0 ${
+                    <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full shrink-0 ${
                       isActive ? 'bg-white/20 text-white font-semibold' : 'bg-black/5 dark:bg-white/10 text-slate-500 dark:text-slate-300'
                     }`}>
-                      {count}
+                      {count} {t('accounts.accountUnit')}
                     </span>
                   ) : null}
                 </button>
@@ -1043,7 +1043,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                             {item.requests.toLocaleString()} <span className="text-[10px] text-slate-400">({item.sharePercent}%)</span>
                           </div>
                           <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">
-                            {item.successRate}% 成功
+                            {t('accounts.modelSuccessFailed', { success: item.success.toLocaleString(), error: item.error.toLocaleString() })} ({item.successRate}%)
                           </div>
                         </div>
                       </div>
@@ -1420,7 +1420,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                             <div className="flex items-center space-x-1.5 font-mono font-bold text-xs text-slate-800 dark:text-slate-200">
                               <span>{totalUsage.toLocaleString()}</span>
                               <span className="text-[10px] text-slate-400 font-normal">reqs</span>
-                              <span className="text-[10px] px-1 py-0.2 rounded font-normal bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                              <span className="text-[10px] px-1.5 py-0.5 rounded font-normal bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                                 {successRate}%
                               </span>
                               {breakdowns.length > 0 && (
@@ -1433,7 +1433,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                                 {topModels.map(m => (
                                   <span
                                     key={m.model}
-                                    className="text-[9px] font-mono px-1 py-0.2 rounded bg-black/[0.04] dark:bg-white/[0.06] text-slate-500 dark:text-slate-400"
+                                    className="text-[9px] font-mono px-1 py-0.5 rounded bg-black/[0.04] dark:bg-white/[0.06] text-slate-500 dark:text-slate-400"
                                   >
                                     {m.model.replace('gemini-', '')}: {m.count}
                                   </span>
@@ -1632,7 +1632,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                             {topModels.map(m => (
                               <span
                                 key={m.model}
-                                className="text-[9px] font-mono px-1 py-0.2 rounded bg-black/[0.04] dark:bg-white/[0.06] text-slate-500 dark:text-slate-400 border border-[var(--border-subtle)]"
+                                className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-black/[0.04] dark:bg-white/[0.06] text-slate-500 dark:text-slate-400 border border-[var(--border-subtle)]"
                               >
                                 {m.model.replace('gemini-', '')}: {m.count}
                               </span>
