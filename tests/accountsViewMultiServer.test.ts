@@ -27,6 +27,15 @@ describe('AccountsView & ConfigModal Multi-Server UI Integration', () => {
     expect(accountsCode).toContain('/batch-download');
   });
 
+  it('AccountsView should not render redundant in-page h1 accounts title', () => {
+    expect(accountsCode).not.toContain('<h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-slate-100 tracking-tight">\n                {t(\'accounts.title\')}\n              </h1>');
+  });
+
+  it('AccountsView should render gateway server selector with server indices and status', () => {
+    expect(accountsCode).toContain('handleSwitchServer');
+    expect(accountsCode).toContain('Server {idx + 1}');
+  });
+
   it('ConfigModal should support comma-separated multi-server GEMINI_BASE_URL cleaning', () => {
     expect(configCode).toContain("geminiBaseUrl.split(',').map");
     expect(configCode).toContain("placeholder=\"https://generativelanguage.googleapis.com,https://s2.example.com\"");
