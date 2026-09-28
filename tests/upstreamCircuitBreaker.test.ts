@@ -124,4 +124,22 @@ describe('UpstreamManager Passive Circuit Breaker (3 failures / 180s isolation)'
     expect(s.serverIndex).toBe(1);
     expect(s.serverUrl).toBe('https://server2.com');
   });
+
+  it('does not consider a node isolated if serverIndex points to a different URL', async () => {
+    await updateConfig({
+      geminiBaseUrl: 'https://server1.com,https://server2.com'
+    });
+
+    for (let i = 0; i < 3; i++) upstreamManager.recordRequestResult(0, false, 'Fail');
+    expect(upstreamManager.isNodeIsolated(0)).toBe(true);
+
+    // Update config dynamically without calling upstreamManager.reset()
+    // so index 0 is now a new URL
+    await updateConfig({
+      geminiBaseUrl: 'https://server-new.com,https://server2.com'
+    });
+
+    expect(upstreamManager.isNodeIsolated(0)).toBe(false);
+  });
 });
+

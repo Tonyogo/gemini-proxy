@@ -122,7 +122,7 @@ export class UpstreamManager {
     const servers = this.getUpstreamServers();
     if (serverIndex < 0 || serverIndex >= servers.length) return false;
     const existing = this.circuitMap.get(serverIndex);
-    if (!existing) return false;
+    if (!existing || existing.url !== servers[serverIndex].url) return false;
     if (existing.isolatedUntil > 0 && existing.isolatedUntil > Date.now()) {
       return true;
     }
