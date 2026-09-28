@@ -41,6 +41,10 @@ import {
   calculateMagnifierPosition,
   extractMagnifierSlice,
 } from '../utils/terminalMagnifierHelper';
+import {
+  attachMobileImeHandler,
+  TerminalImeController,
+} from '../utils/terminalImeHelper';
 
 const DARK_TERMINAL_THEME = {
   background: '#090A0F',
@@ -700,6 +704,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
     const helperTextarea = terminalContainerRef.current.querySelector('textarea');
     let handleFocus: (() => void) | null = null;
     let handleBlur: (() => void) | null = null;
+    let imeController: TerminalImeController | null = null;
     if (helperTextarea) {
       helperTextarea.setAttribute('autocapitalize', 'none');
       helperTextarea.setAttribute('autocomplete', 'off');
@@ -749,6 +754,14 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
       };
       helperTextarea.addEventListener('focus', handleFocus);
       helperTextarea.addEventListener('blur', handleBlur);
+
+      imeController = attachMobileImeHandler({
+        textarea: helperTextarea,
+        onDirectInput: (data) => {
+          if (!isMountedRef.current || !xtermRef.current) return;
+          term.input(data, true);
+        },
+      });
     }
 
     xtermRef.current = term;
@@ -1359,6 +1372,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
         if (handleFocus) helperTextarea.removeEventListener('focus', handleFocus);
         if (handleBlur) helperTextarea.removeEventListener('blur', handleBlur);
       }
+      imeController?.dispose();
       if (container) {
         container.removeEventListener('touchstart', handleTouchStart, { capture: true } as any);
         container.removeEventListener('touchmove', handleTouchMove, { capture: true } as any);
