@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   Settings,
   Sliders,
@@ -21,6 +21,24 @@ import {
   Github
 } from 'lucide-react';
 import { useTranslation } from '../i18n/LanguageContext';
+
+export interface UpstreamServerConfig {
+  url: string;
+  weight: number;
+  enabled: boolean;
+  name?: string;
+}
+
+const SPLIT_COLORS = [
+  'bg-blue-500',
+  'bg-emerald-500',
+  'bg-purple-500',
+  'bg-amber-500',
+  'bg-cyan-500',
+  'bg-rose-500',
+  'bg-indigo-500',
+  'bg-teal-500'
+];
 
 interface ConfigModalProps {
   isOpen: boolean;
@@ -55,12 +73,33 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
   const [systemRoleToInstruction, setSystemRoleToInstruction] = useState<boolean>(false);
   const [customSystemInstruction, setCustomSystemInstruction] = useState<string>('');
   const [geminiBaseUrl, setGeminiBaseUrl] = useState<string>('https://generativelanguage.googleapis.com');
+  const [upstreamServers, setUpstreamServers] = useState<UpstreamServerConfig[]>([]);
   const [upstreamTimeoutMs, setUpstreamTimeoutMs] = useState<number>(180000);
   const [logLevel, setLogLevel] = useState<string>('info');
   const [logRetentionDays, setLogRetentionDays] = useState<number>(3);
   const [countTokensModel, setCountTokensModel] = useState<string>('');
   const [ephemeralUserMessagesText, setEphemeralUserMessagesText] = useState<string>('');
   const [ephemeralSystemMessagesText, setEphemeralSystemMessagesText] = useState<string>('');
+
+  const activeTotalWeight = useMemo(() => {
+    return upstreamServers
+      .filter(s => s.enabled)
+      .reduce((sum, s) => sum + (Number(s.weight) || 1), 0);
+  }, [upstreamServers]);
+
+  const getEffectivePercent = (server: UpstreamServerConfig) => {
+    if (!server.enabled || activeTotalWeight === 0) return 0;
+    const w = Number(server.weight) || 1;
+    return parseFloat(((w / activeTotalWeight) * 100).toFixed(1));
+  };
+
+  const handleOfficialDefault = () => {
+    const official: UpstreamServerConfig[] = [
+      { url: 'https://generativelanguage.googleapis.com', weight: 1, enabled: true, name: 'Official Gemini API' }
+    ];
+    setUpstreamServers(official);
+    setGeminiBaseUrl('https://generativelanguage.googleapis.com');
+  };
 
   // KV Editor and Raw JSON Sync States
   const [mappingEntries, setMappingEntries] = useState<MappingEntry[]>([]);
@@ -82,6 +121,14 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
           setSystemRoleToInstruction(Boolean(data.config.systemRoleToInstruction));
           setCustomSystemInstruction(data.config.customSystemInstruction || '');
           setGeminiBaseUrl(data.config.geminiBaseUrl || 'https://generativelanguage.googleapis.com');
+          if (data.config.upstreamServers && Array.isArray(data.config.upstreamServers) && data.config.upstreamServers.length > 0) {
+            setUpstreamServers(data.config.upstreamServers);
+          } else if (data.config.geminiBaseUrl) {
+            const parts = String(data.config.geminiBaseUrl).split(',').map((s: string) => s.trim()).filter(Boolean);
+            setUpstreamServers(parts.map((url: string) => ({ url, weight: 1, enabled: true })));
+          } else {
+            setUpstreamServers([{ url: 'https://generativelanguage.googleapis.com', weight: 1, enabled: true, name: 'Official Gemini API' }]);
+          }
           setUpstreamTimeoutMs(data.config.upstreamTimeoutMs || 180000);
           setLogLevel(data.config.logLevel || 'info');
           setLogRetentionDays(data.config.logRetentionDays || 3);
@@ -301,6 +348,12 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
           systemRoleToInstruction,
           customSystemInstruction,
           geminiBaseUrl: geminiBaseUrl.split(',').map(s => s.trim().replace(/\/+$/, '')).filter(Boolean).join(','),
+          upstreamServers: upstreamServers.map(s => ({
+            url: s.url.trim().replace(/\/+$/, ''),
+            weight: Math.max(1, Math.min(1000, Number(s.weight) || 1)),
+            enabled: s.enabled !== false,
+            ...(s.name?.trim() ? { name: s.name.trim() } : {})
+          })),
           upstreamTimeoutMs,
           logLevel,
           logRetentionDays,
@@ -510,32 +563,230 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                     </div>
 
                     <div className="space-y-3.5 sm:space-y-4">
-                      {/* GEMINI_BASE_URL */}
-                      <div className="space-y-1.5">
+                      {/* UPSTREAM SERVERS & TRAFFIC ALLOCATION */}
+                      <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <label className="text-xs font-semibold text-slate-200 block">
-                            {t('config.geminiBaseUrlTitle', 'GEMINI_BASE_URL')}
-                          </label>
+                          <div>
+                            <label className="text-xs font-semibold text-slate-200 block">
+                              {t('config.upstreamServersTitle', '上游代理服务器与流量分配')}
+                            </label>
+                            <p className="hidden sm:block text-[10px] text-slate-400 mt-0.5">
+                              {t('config.upstreamServersDesc', '配置多个上游 Gemini 网关并设置流量百分比权重及启停状态。系统将自动按平滑加权算法进行精确调度。')}
+                            </p>
+                          </div>
                           <button
                             type="button"
-                            onClick={() => setGeminiBaseUrl('https://generativelanguage.googleapis.com')}
-                            className="text-[10px] font-mono text-blue-400 hover:text-blue-300 transition-colors flex items-center space-x-1"
+                            onClick={handleOfficialDefault}
+                            className="text-[10px] font-mono text-blue-400 hover:text-blue-300 transition-colors flex items-center space-x-1 flex-shrink-0"
                           >
                             <Zap className="w-2.5 h-2.5" />
                             <span>{t('config.useOfficialDefault', '填入官方默认')}</span>
                           </button>
                         </div>
-                        <input
-                          type="text"
-                          value={geminiBaseUrl}
-                          onChange={(e) => setGeminiBaseUrl(e.target.value)}
-                          onBlur={() => setGeminiBaseUrl(prev => prev.split(',').map(s => s.trim().replace(/\/+$/, '')).filter(Boolean).join(','))}
-                          placeholder="https://generativelanguage.googleapis.com,https://s2.example.com"
-                          className="w-full ui-input p-2.5 text-xs font-mono"
-                        />
-                        <p className="hidden sm:block text-[10px] text-slate-400">
-                          {t('config.geminiBaseUrlDesc', 'Gemini 官方 API 地址或反向代理网关。支持配置多个 server（以英文逗号分隔），各模型将按轮询算法均匀调度。')}
-                        </p>
+
+                        {/* Traffic Split Preview Bar */}
+                        <div className="space-y-2 p-3 rounded-lg bg-slate-900/40 border border-slate-700/60">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="font-semibold text-slate-300 flex items-center space-x-1.5">
+                              <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+                              <span>{t('config.trafficSplitPreview', '实时流量分配预览')}</span>
+                            </span>
+                            <span className="text-[11px] text-slate-400 font-mono">
+                              {activeTotalWeight > 0 ? `Total Weight: ${activeTotalWeight}` : t('config.nodeDisabled', '已禁用')}
+                            </span>
+                          </div>
+
+                          <div className="h-3 w-full bg-slate-850 rounded-full overflow-hidden flex border border-slate-700/60 shadow-inner">
+                            {upstreamServers.map((server, idx) => {
+                              const pct = getEffectivePercent(server);
+                              if (!server.enabled || pct <= 0) return null;
+                              const color = SPLIT_COLORS[idx % SPLIT_COLORS.length];
+                              return (
+                                <div
+                                  key={idx}
+                                  style={{ width: `${pct}%` }}
+                                  className={`${color} h-full transition-all duration-300 relative group`}
+                                  title={`${server.name || server.url || `Node ${idx + 1}`}: ${pct}%`}
+                                />
+                              );
+                            })}
+                          </div>
+
+                          <div className="flex flex-wrap gap-2 pt-1">
+                            {upstreamServers.map((server, idx) => {
+                              const pct = getEffectivePercent(server);
+                              const color = SPLIT_COLORS[idx % SPLIT_COLORS.length];
+                              return (
+                                <div key={idx} className="flex items-center space-x-1.5 text-[11px] text-slate-300">
+                                  <span className={`w-2 h-2 rounded-full ${server.enabled ? color : 'bg-slate-600'}`} />
+                                  <span className="font-medium truncate max-w-[120px]">{server.name || `Node ${idx + 1}`}</span>
+                                  <span className={`font-mono ${server.enabled ? 'text-blue-400' : 'text-slate-500'}`}>{pct}%</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Gateway Nodes List */}
+                        <div className="space-y-2.5">
+                          {upstreamServers.map((server, idx) => {
+                            const pct = getEffectivePercent(server);
+                            const color = SPLIT_COLORS[idx % SPLIT_COLORS.length];
+                            return (
+                              <div
+                                key={idx}
+                                className={`p-3 rounded-lg border transition-all ${
+                                  server.enabled
+                                    ? 'bg-slate-800/40 border-slate-700/70 hover:border-slate-600'
+                                    : 'bg-slate-900/30 border-slate-800/60 opacity-60'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-700/40">
+                                  <div className="flex items-center space-x-2">
+                                    <span className={`w-2.5 h-2.5 rounded-full ${server.enabled ? color : 'bg-slate-600'}`} />
+                                    <span className="text-xs font-semibold text-slate-200">
+                                      {server.name || `Node ${idx + 1}`}
+                                    </span>
+                                    <span
+                                      className={`px-1.5 py-0.5 text-[10px] rounded font-mono font-medium ${
+                                        server.enabled
+                                          ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                                          : 'bg-slate-800 text-slate-400 border border-slate-700'
+                                      }`}
+                                    >
+                                      {server.enabled ? `${pct}%` : t('config.nodeDisabled', '已禁用')}
+                                    </span>
+                                  </div>
+
+                                  <div className="flex items-center space-x-3">
+                                    {/* Enable / Disable switch */}
+                                    <label className="flex items-center cursor-pointer space-x-1.5">
+                                      <input
+                                        type="checkbox"
+                                        checked={server.enabled}
+                                        onChange={(e) => {
+                                          const updated = [...upstreamServers];
+                                          updated[idx] = { ...updated[idx], enabled: e.target.checked };
+                                          setUpstreamServers(updated);
+                                          setGeminiBaseUrl(updated.map(s => s.url).filter(Boolean).join(','));
+                                        }}
+                                        className="sr-only"
+                                      />
+                                      <div className={`w-7 h-4 rounded-full transition-colors relative ${server.enabled ? 'bg-blue-600' : 'bg-slate-700'}`}>
+                                        <div className={`w-3 h-3 rounded-full bg-white absolute top-0.5 transition-transform ${server.enabled ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
+                                      </div>
+                                      <span className="text-[11px] text-slate-400">
+                                        {server.enabled ? t('config.nodeEnabled', '已启用') : t('config.nodeDisabled', '已禁用')}
+                                      </span>
+                                    </label>
+
+                                    {/* Delete Button */}
+                                    <button
+                                      type="button"
+                                      disabled={upstreamServers.length <= 1}
+                                      onClick={() => {
+                                        if (upstreamServers.length <= 1) return;
+                                        const updated = upstreamServers.filter((_, i) => i !== idx);
+                                        setUpstreamServers(updated);
+                                        setGeminiBaseUrl(updated.map(s => s.url).filter(Boolean).join(','));
+                                      }}
+                                      className={`p-1 text-slate-400 hover:text-red-400 transition-colors ${
+                                        upstreamServers.length <= 1 ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'
+                                      }`}
+                                      title={upstreamServers.length <= 1 ? t('config.atLeastOneServer', '至少需要保留一个上游网关节点') : 'Delete'}
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 text-xs">
+                                  <div className="sm:col-span-4 space-y-1">
+                                    <label className="text-[11px] text-slate-400 block">{t('config.nodeName', '节点备注名')}</label>
+                                    <input
+                                      type="text"
+                                      value={server.name || ''}
+                                      onChange={(e) => {
+                                        const updated = [...upstreamServers];
+                                        updated[idx] = { ...updated[idx], name: e.target.value };
+                                        setUpstreamServers(updated);
+                                      }}
+                                      placeholder="e.g. HK-Gateway"
+                                      className="w-full ui-input p-2 text-xs"
+                                    />
+                                  </div>
+
+                                  <div className="sm:col-span-5 space-y-1">
+                                    <label className="text-[11px] text-slate-400 block">{t('config.nodeUrl', '网关 URL')}</label>
+                                    <input
+                                      type="text"
+                                      value={server.url}
+                                      onChange={(e) => {
+                                        const updated = [...upstreamServers];
+                                        updated[idx] = { ...updated[idx], url: e.target.value };
+                                        setUpstreamServers(updated);
+                                        setGeminiBaseUrl(updated.map(s => s.url).filter(Boolean).join(','));
+                                      }}
+                                      onBlur={() => {
+                                        const updated = [...upstreamServers];
+                                        let clean = (updated[idx].url || '').trim().replace(/\/+$/, '');
+                                        if (clean && !/^https?:\/\//i.test(clean)) clean = `https://${clean}`;
+                                        updated[idx] = { ...updated[idx], url: clean };
+                                        setUpstreamServers(updated);
+                                        setGeminiBaseUrl(updated.map(s => s.url).filter(Boolean).join(','));
+                                      }}
+                                      placeholder="https://api.example.com"
+                                      className="w-full ui-input p-2 text-xs font-mono"
+                                    />
+                                  </div>
+
+                                  <div className="sm:col-span-3 space-y-1">
+                                    <label className="text-[11px] text-slate-400 block">{t('config.nodeWeight', '权重')}</label>
+                                    <input
+                                      type="number"
+                                      min="1"
+                                      max="1000"
+                                      value={server.weight}
+                                      onChange={(e) => {
+                                        const val = parseInt(e.target.value, 10);
+                                        const updated = [...upstreamServers];
+                                        updated[idx] = { ...updated[idx], weight: isNaN(val) ? 1 : Math.max(1, Math.min(1000, val)) };
+                                        setUpstreamServers(updated);
+                                      }}
+                                      className="w-full ui-input p-2 text-xs font-mono"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = [
+                                ...upstreamServers,
+                                { url: '', weight: 1, enabled: true, name: '' }
+                              ];
+                              setUpstreamServers(updated);
+                            }}
+                            className="w-full py-2.5 px-3 border border-dashed border-slate-700 hover:border-blue-500/50 rounded-lg text-xs font-medium text-slate-400 hover:text-blue-400 transition-colors flex items-center justify-center space-x-1.5 bg-slate-850 hover:bg-blue-500/5"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            <span>{t('config.addUpstreamServer', '添加代理节点')}</span>
+                          </button>
+                        </div>
+
+                        {/* Hidden compatibility input */}
+                        <div className="hidden">
+                          <input
+                            type="text"
+                            value={geminiBaseUrl}
+                            onChange={(e) => setGeminiBaseUrl(e.target.value)}
+                            onBlur={() => setGeminiBaseUrl(prev => prev.split(',').map(s => s.trim().replace(/\/+$/, '')).filter(Boolean).join(','))}
+                            placeholder="https://generativelanguage.googleapis.com,https://s2.example.com"
+                          />
+                        </div>
                       </div>
 
                       <div className="space-y-1.5">
