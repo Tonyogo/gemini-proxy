@@ -966,7 +966,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
       {/* Node Model Usage Overview Banner */}
       <div className="ui-card p-3 sm:p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] space-y-3">
         {/* Header row */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between" title={t('accounts.modernSub')}>
           <div className="flex items-center space-x-2">
             <BarChart2 className="w-4 h-4 text-indigo-500 shrink-0" />
             <span className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">

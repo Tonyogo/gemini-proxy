@@ -36,6 +36,16 @@ describe('AccountsView & ConfigModal Multi-Server UI Integration', () => {
     expect(accountsCode).toContain('Server {idx + 1}');
   });
 
+  it('AccountsView should integrate server model stats calculation and banner', () => {
+    expect(accountsCode).toContain('calculateServerModelStats');
+    expect(accountsCode).toContain('serverModelStats');
+    expect(accountsCode).toContain('serverModelStatsTitle');
+  });
+
+  it('AccountsView should integrate inline top models in account rows', () => {
+    expect(accountsCode).toContain('getAccountTopModels');
+  });
+
   it('ConfigModal should support comma-separated multi-server GEMINI_BASE_URL cleaning', () => {
     expect(configCode).toContain("geminiBaseUrl.split(',').map");
     expect(configCode).toContain("placeholder=\"https://generativelanguage.googleapis.com,https://s2.example.com\"");
