@@ -48,8 +48,9 @@ class GeminiController {
     let targetModelName = '';
 
     const modelMatch = cleanPath.match(/models\/([^:/?]+)(:[^?]*)?(\?.*)?$/);
+    let originalModel: string | undefined = undefined;
     if (modelMatch) {
-      const originalModel = modelMatch[1];
+      originalModel = modelMatch[1];
       targetModelName = originalModel;
 
       const mappingInfo = claudeTranslator.getModelMappingInfo(originalModel);
@@ -61,10 +62,28 @@ class GeminiController {
       if (mappingInfo && mappingInfo.strategy) {
         effectiveStrategy = mappingInfo.strategy;
       }
+
+      if (targetModelName && !upstreamManager.hasUpstreamForModel(originalModel, targetModelName)) {
+        const errPayload = {
+          error: {
+            code: 403,
+            message: `Model '${originalModel || targetModelName}' is not supported by any configured upstream server.`,
+            status: 'PERMISSION_DENIED'
+          }
+        };
+        const duration = Date.now() - startTime;
+        logger.warn(`[GeminiProxy] [Transaction: ${transactionId}] Request rejected: Model '${originalModel || targetModelName}' is not supported by any configured upstream server.`);
+        payloadLogger.saveTransaction(transactionId, req.body, null, null, errPayload, duration, requestPath, 403, false);
+        return res.status(403).json(errPayload);
+      }
     }
 
     const isStream = cleanPath.includes(':streamGenerateContent') || req.query.alt === 'sse';
-    const { targetUrl, serverUrl, serverIndex } = upstreamManager.getUpstreamUrl(cleanPath, { model: targetModelName || undefined });
+    const { targetUrl, serverUrl, serverIndex } = upstreamManager.getUpstreamUrl(cleanPath, {
+      model: targetModelName || undefined,
+      originalModel: originalModel || undefined,
+      resolvedModel: targetModelName || undefined
+    });
     const customUpstreamHeaders: Record<string, string> = {};
     if (effectiveStrategy) {
       customUpstreamHeaders['x-scheduling-strategy'] = effectiveStrategy;

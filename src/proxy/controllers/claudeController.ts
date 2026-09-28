@@ -53,6 +53,21 @@ class ClaudeController {
       const { googleRequest, cleanModelName, strategy, isStream } = claudeTranslator.translateClaudeToGoogle(clientReq);
       gemReq = googleRequest;
 
+      const clientModel = clientReq.model || '';
+      if (!upstreamManager.hasUpstreamForModel(clientModel, cleanModelName)) {
+        const errPayload = {
+          type: 'error',
+          error: {
+            type: 'permission_error',
+            message: `Model '${clientModel || cleanModelName}' is not supported by any configured upstream server.`
+          }
+        };
+        const duration = Date.now() - startTime;
+        logger.warn(`[UpstreamManager] [Transaction: ${transactionId}] Request rejected: Model '${clientModel}' is not supported by any configured upstream server.`);
+        payloadLogger.saveTransaction(transactionId, clientReq, null, null, errPayload, duration, requestPath, 403, false);
+        return res.status(403).json(errPayload);
+      }
+
       // Determine effective scheduling strategy: mapping config takes precedence over client header
       const clientStrategy = extractClientSchedulingStrategy(req);
       const effectiveStrategy = strategy || clientStrategy;
@@ -64,7 +79,7 @@ class ClaudeController {
       if (isStream) {
         const streamManager = new StreamLifecycleManager({ req, res, transactionId, timeoutMs });
         const targetPath = `/v1beta/models/${cleanModelName}:streamGenerateContent?alt=sse`;
-        const { targetUrl, serverUrl, serverIndex } = upstreamManager.getUpstreamUrl(targetPath, { model: cleanModelName });
+        const { targetUrl, serverUrl, serverIndex } = upstreamManager.getUpstreamUrl(targetPath, { model: cleanModelName, originalModel: clientModel, resolvedModel: cleanModelName });
         logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini [server ${serverIndex + 1}: ${serverUrl}]: POST ${targetPath}`);
 
         try {
@@ -262,7 +277,7 @@ class ClaudeController {
       // Non-Streaming generation
       const streamManager = new StreamLifecycleManager({ req, res, transactionId, timeoutMs });
       const targetPath = `/v1beta/models/${cleanModelName}:generateContent`;
-      const { targetUrl, serverUrl, serverIndex } = upstreamManager.getUpstreamUrl(targetPath, { model: cleanModelName });
+      const { targetUrl, serverUrl, serverIndex } = upstreamManager.getUpstreamUrl(targetPath, { model: cleanModelName, originalModel: clientModel, resolvedModel: cleanModelName });
       logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini [server ${serverIndex + 1}: ${serverUrl}]: POST ${targetPath}`);
 
       try {
@@ -367,6 +382,22 @@ class ClaudeController {
         return res.status(401).json(errPayload);
       }
 
+      const requestedModel = (clientReq.model || config.countTokensModel || '').trim();
+      const resolvedCountModel = requestedModel ? claudeTranslator.getCleanModelName(requestedModel) : '';
+      if (!upstreamManager.hasUpstreamForModel(requestedModel, resolvedCountModel)) {
+        const errPayload = {
+          type: 'error',
+          error: {
+            type: 'permission_error',
+            message: `Model '${requestedModel || resolvedCountModel}' is not supported by any configured upstream server.`
+          }
+        };
+        const duration = Date.now() - startTime;
+        logger.warn(`[UpstreamManager] [Transaction: ${transactionId}] Token count rejected: Model '${requestedModel || resolvedCountModel}' is not supported by any configured upstream server.`);
+        payloadLogger.saveTransaction(transactionId, clientReq, null, null, errPayload, duration, requestPath, 403, false);
+        return res.status(403).json(errPayload);
+      }
+
       let { googleRequest, cleanModelName } = claudeTranslator.translateClaudeToGoogle(clientReq);
 
       if (config.countTokensModel && config.countTokensModel.trim()) {
@@ -390,7 +421,7 @@ class ClaudeController {
       gemReq = countTokensPayload;
 
       const targetPath = `/v1beta/models/${cleanModelName}:countTokens`;
-      const { targetUrl, serverUrl, serverIndex } = upstreamManager.getUpstreamUrl(targetPath, { model: cleanModelName });
+      const { targetUrl, serverUrl, serverIndex } = upstreamManager.getUpstreamUrl(targetPath, { model: cleanModelName, originalModel: requestedModel, resolvedModel: cleanModelName });
       logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini [server ${serverIndex + 1}: ${serverUrl}]: POST ${targetPath}`);
 
       let response;
@@ -571,8 +602,22 @@ class ClaudeController {
       const cleanModelId = modelId as string;
       const resolvedModelId = claudeTranslator.getCleanModelName(cleanModelId);
 
+      if (!upstreamManager.hasUpstreamForModel(cleanModelId, resolvedModelId)) {
+        const errPayload = {
+          type: 'error',
+          error: {
+            type: 'permission_error',
+            message: `Model '${cleanModelId || resolvedModelId}' is not supported by any configured upstream server.`
+          }
+        };
+        const duration = Date.now() - startTime;
+        logger.warn(`[UpstreamManager] [Transaction: ${transactionId}] Retrieve model metadata request rejected: Model '${cleanModelId}' is not supported by any configured upstream server.`);
+        payloadLogger.saveTransaction(transactionId, clientReq, null, null, errPayload, duration, requestPath, 403, false);
+        return res.status(403).json(errPayload);
+      }
+
       const targetPath = `/v1beta/models/${resolvedModelId}`;
-      const { targetUrl, serverUrl, serverIndex } = upstreamManager.getUpstreamUrl(targetPath, { model: resolvedModelId });
+      const { targetUrl, serverUrl, serverIndex } = upstreamManager.getUpstreamUrl(targetPath, { model: resolvedModelId, originalModel: cleanModelId, resolvedModel: resolvedModelId });
       logger.info(`[Request] [Transaction: ${transactionId}] Proxying model metadata to Gemini [server ${serverIndex + 1}: ${serverUrl}]: GET ${targetPath}`);
       gemReq = { endpoint: targetPath };
 

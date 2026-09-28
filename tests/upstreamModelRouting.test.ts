@@ -2,6 +2,11 @@ import { upstreamManager } from '../src/utils/upstreamManager';
 import config, { updateConfig } from '../config/default';
 
 describe('UpstreamManager Model-Aware SWRR Routing', () => {
+  afterAll(async () => {
+    await updateConfig({}, { resetToEnv: true });
+    upstreamManager.reset();
+  });
+
   beforeEach(async () => {
     upstreamManager.reset();
   });
