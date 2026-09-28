@@ -1,7 +1,7 @@
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 import { existsSync, readFileSync, promises as fs } from 'fs';
-import { ModelMappingsConfig, CustomWebAppItem } from '../src/types';
+import { ModelMappingsConfig, CustomWebAppItem, UpstreamServerConfig } from '../src/types';
 
 dotenv.config();
 
@@ -74,16 +74,99 @@ if (existsSync(runtimeJsonPath)) {
   }
 }
 
+export function parseUpstreamServers(raw?: any): UpstreamServerConfig[] {
+  const defaultFallback: UpstreamServerConfig[] = [
+    { url: 'https://generativelanguage.googleapis.com', weight: 1, enabled: true, name: 'Official Gemini API' }
+  ];
+
+  if (!raw) return defaultFallback;
+
+  // 1. JSON Array input
+  if (Array.isArray(raw)) {
+    const list = raw.map(item => {
+      if (!item || typeof item !== 'object') return null;
+      let url = String(item.url || '').trim().replace(/\/+$/, '');
+      if (!url) return null;
+      if (!/^https?:\/\//i.test(url)) url = `https://${url}`;
+      let weight = parseInt(String(item.weight), 10);
+      if (isNaN(weight) || weight < 1) weight = 1;
+      if (weight > 1000) weight = 1000;
+      const enabled = item.enabled !== false;
+      const name = item.name ? String(item.name).trim() : undefined;
+      const res: UpstreamServerConfig = { url, weight, enabled };
+      if (name) res.name = name;
+      return res;
+    }).filter(Boolean) as UpstreamServerConfig[];
+
+    return list.length > 0 ? list : defaultFallback;
+  }
+
+  // 2. String input (comma separated, with optional #params)
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (!trimmed) return defaultFallback;
+
+    // Check if it's a JSON string representation of an array
+    if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return parseUpstreamServers(parsed);
+        }
+      } catch {
+        // Fall back to comma-separated parsing
+      }
+    }
+
+    const segments = trimmed.split(',').map(s => s.trim()).filter(Boolean);
+    const list = segments.map(seg => {
+      const hashIdx = seg.indexOf('#');
+      let basePart = hashIdx !== -1 ? seg.slice(0, hashIdx).trim() : seg;
+      const paramPart = hashIdx !== -1 ? seg.slice(hashIdx + 1).trim() : '';
+
+      basePart = basePart.replace(/\/+$/, '');
+      if (!basePart) return null;
+      if (!/^https?:\/\//i.test(basePart)) basePart = `https://${basePart}`;
+
+      let weight = 1;
+      let enabled = true;
+      let name: string | undefined = undefined;
+
+      if (paramPart) {
+        const params = new URLSearchParams(paramPart);
+        const wStr = params.get('weight') || params.get('percent');
+        if (wStr !== null) {
+          const w = parseInt(wStr, 10);
+          if (!isNaN(w)) weight = Math.max(1, Math.min(1000, w));
+        }
+
+        if (params.has('disabled') || params.get('enabled') === 'false') {
+          enabled = false;
+        }
+
+        const nameParam = params.get('name');
+        if (nameParam) {
+          name = decodeURIComponent(nameParam);
+        }
+      }
+
+      const res: UpstreamServerConfig = { url: basePart, weight, enabled };
+      if (name) res.name = name;
+      return res;
+    }).filter(Boolean) as UpstreamServerConfig[];
+
+    return list.length > 0 ? list : defaultFallback;
+  }
+
+  return defaultFallback;
+}
+
 export function normalizeBaseUrls(raw?: string): string {
   if (!raw || typeof raw !== 'string' || !raw.trim()) {
     return 'https://generativelanguage.googleapis.com';
   }
-  const parts = raw
-    .split(',')
-    .map(s => s.trim().replace(/\/+$/, ''))
-    .filter(Boolean)
-    .map(s => (/^https?:\/\//i.test(s) ? s : `https://${s}`));
-  return parts.length > 0 ? parts.join(',') : 'https://generativelanguage.googleapis.com';
+  const servers = parseUpstreamServers(raw);
+  return servers.map(s => s.url).join(',');
 }
 
 export function parseBaseUrls(raw?: string): string[] {
@@ -91,21 +174,24 @@ export function parseBaseUrls(raw?: string): string[] {
   return normalized.split(',').map(s => s.trim()).filter(Boolean);
 }
 
-const getEnvConfig = () => ({
-  geminiBaseUrl: normalizeBaseUrls(process.env.GEMINI_BASE_URL),
-  logLevel: (process.env.LOG_LEVEL || 'info') as string,
-  modelMappings: parsedModelMappings as ModelMappingsConfig,
-  ephemeralUserMessages: parsedEphemeralUserMessages as string[],
-  ephemeralSystemMessages: parsedEphemeralSystemMessages as string[],
-  customSystemInstruction: (process.env.CUSTOM_SYSTEM_INSTRUCTION || '') as string,
-  systemRoleToInstruction: (process.env.SYSTEM_ROLE_TO_INSTRUCTION === 'true') as boolean,
-  runtimeContextTag: (process.env.RUNTIME_CONTEXT_TAG || 'system-context') as string,
-  upstreamTimeoutMs: parseInt(process.env.UPSTREAM_TIMEOUT_MS || '180000', 10) as number,
-  timeZone: (process.env.TIME_ZONE || process.env.TZ || 'Asia/Shanghai') as string,
-  logRetentionDays: parseInt(process.env.LOG_RETENTION_DAYS || '3', 10) as number,
-  countTokensModel: (process.env.COUNT_TOKENS_MODEL || '') as string,
-  customWebApps: parsedCustomWebApps as CustomWebAppItem[]
-});
+const getEnvConfig = () => {
+  const envServers = parseUpstreamServers(process.env.GEMINI_BASE_URL);
+  return {
+    geminiBaseUrl: envServers.map(s => s.url).join(','),
+    logLevel: (process.env.LOG_LEVEL || 'info') as string,
+    modelMappings: parsedModelMappings as ModelMappingsConfig,
+    ephemeralUserMessages: parsedEphemeralUserMessages as string[],
+    ephemeralSystemMessages: parsedEphemeralSystemMessages as string[],
+    customSystemInstruction: (process.env.CUSTOM_SYSTEM_INSTRUCTION || '') as string,
+    systemRoleToInstruction: (process.env.SYSTEM_ROLE_TO_INSTRUCTION === 'true') as boolean,
+    runtimeContextTag: (process.env.RUNTIME_CONTEXT_TAG || 'system-context') as string,
+    upstreamTimeoutMs: parseInt(process.env.UPSTREAM_TIMEOUT_MS || '180000', 10) as number,
+    timeZone: (process.env.TIME_ZONE || process.env.TZ || 'Asia/Shanghai') as string,
+    logRetentionDays: parseInt(process.env.LOG_RETENTION_DAYS || '3', 10) as number,
+    countTokensModel: (process.env.COUNT_TOKENS_MODEL || '') as string,
+    customWebApps: parsedCustomWebApps as CustomWebAppItem[]
+  };
+};
 
 export const config = {
   port: process.env.PORT || 3000,
@@ -114,7 +200,21 @@ export const config = {
   enableUi: process.env.ENABLE_UI !== 'false',
 
   ...getEnvConfig(),
-  ...runtimeOverrides
+  ...runtimeOverrides,
+
+  get upstreamServers(): UpstreamServerConfig[] {
+    if ((this as any)._upstreamServers !== undefined) {
+      return (this as any)._upstreamServers;
+    }
+    if (runtimeOverrides.upstreamServers !== undefined) {
+      return parseUpstreamServers(runtimeOverrides.upstreamServers);
+    }
+    return parseUpstreamServers(this.geminiBaseUrl);
+  },
+
+  set upstreamServers(val: UpstreamServerConfig[]) {
+    (this as any)._upstreamServers = parseUpstreamServers(val);
+  }
 };
 
 export async function updateConfig(
@@ -123,6 +223,7 @@ export async function updateConfig(
 ): Promise<void> {
   if (options?.resetToEnv) {
     runtimeOverrides = {};
+    delete (config as any)._upstreamServers;
     const envDefaults = getEnvConfig();
     Object.assign(config, envDefaults);
 
@@ -136,13 +237,25 @@ export async function updateConfig(
     return;
   }
 
+  if (partialConfig.upstreamServers !== undefined) {
+    const servers = parseUpstreamServers(partialConfig.upstreamServers);
+    partialConfig.upstreamServers = servers;
+    if (partialConfig.geminiBaseUrl === undefined) {
+      partialConfig.geminiBaseUrl = servers.map(s => s.url).join(',');
+    }
+  }
+
   if (partialConfig.geminiBaseUrl !== undefined) {
     if (typeof partialConfig.geminiBaseUrl === 'string') {
       let raw = partialConfig.geminiBaseUrl.trim();
       if (!raw) {
         raw = process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com';
       }
-      partialConfig.geminiBaseUrl = normalizeBaseUrls(raw);
+      const parsedServers = parseUpstreamServers(raw);
+      partialConfig.geminiBaseUrl = parsedServers.map(s => s.url).join(',');
+      if (partialConfig.upstreamServers === undefined) {
+        partialConfig.upstreamServers = parsedServers;
+      }
     }
   }
 

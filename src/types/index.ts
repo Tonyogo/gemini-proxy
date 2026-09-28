@@ -90,5 +90,28 @@ export interface CustomWebAppItem {
   createdAt: number;
 }
 
+export interface UpstreamServerConfig {
+  url: string;
+  weight: number;
+  enabled: boolean;
+  name?: string;
+}
+
+export interface UpstreamServerStatus extends UpstreamServerConfig {
+  serverIndex: number;
+  effectivePercent: number;
+  consecutiveFailures: number;
+  isIsolated: boolean;
+  isolatedUntil: number;
+  lastError?: string;
+}
+
+export interface UpstreamServerSelection {
+  serverUrl: string;
+  serverIndex: number;
+  weight: number;
+}
+
 export * from './accountUsage';
+
 
