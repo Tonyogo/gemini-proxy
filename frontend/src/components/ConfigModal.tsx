@@ -275,28 +275,12 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
     handleEntryChange(id, 'target', newTarget);
   };
 
-  const handleAddServerModel = (serverIndex: number, modelName: string) => {
-    const trimmed = modelName.trim();
-    if (!trimmed) return;
+  const handleServerAllowedModelsChange = (serverIndex: number, rawVal: string) => {
+    const parts = rawVal.split(',').map(s => s.trim()).filter(Boolean);
     const updated = [...upstreamServers];
-    const currentModels = updated[serverIndex].allowedModels || [];
-    if (!currentModels.some(m => m.toLowerCase() === trimmed.toLowerCase())) {
-      updated[serverIndex] = {
-        ...updated[serverIndex],
-        allowedModels: [...currentModels, trimmed]
-      };
-      setUpstreamServers(updated);
-    }
-    setServerModelInputs(prev => ({ ...prev, [serverIndex]: '' }));
-  };
-
-  const handleRemoveServerModel = (serverIndex: number, modelName: string) => {
-    const updated = [...upstreamServers];
-    const currentModels = updated[serverIndex].allowedModels || [];
-    const filtered = currentModels.filter(m => m.toLowerCase() !== modelName.toLowerCase());
     updated[serverIndex] = {
       ...updated[serverIndex],
-      allowedModels: filtered.length > 0 ? filtered : undefined
+      allowedModels: parts.length > 0 ? Array.from(new Set(parts)) : undefined
     };
     setUpstreamServers(updated);
   };
@@ -786,96 +770,46 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                     />
                                   </div>
 
-                                  {/* Allowed Models Tag Editor for This Server */}
-                                  <div className="pt-2.5 mt-2 border-t border-white/[0.04] space-y-2">
-                                    <div className="flex flex-wrap items-center justify-between gap-1.5">
-                                      <span className="text-[11px] font-semibold text-slate-300">
-                                        {t('config.serverAllowedModelsTitle', '允许通行的模型限制（可选）')}
-                                      </span>
-                                      {(!server.allowedModels || server.allowedModels.length === 0) ? (
-                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 animate-pulse"></span>
-                                          {t('config.serverAllModelsAllowed', '允许全部模型 (默认)')}
-                                        </span>
-                                      ) : (
-                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mr-1.5"></span>
-                                          {t('config.serverRestrictedModels', { count: server.allowedModels.length })}
-                                        </span>
-                                      )}
-                                    </div>
-                                    <p className="text-[10px] text-slate-400 leading-relaxed">
-                                      {t('config.serverAllowedModelsDesc', '限制该代理节点仅处理特定的模型请求。留空表示默认允许全部模型。')}
-                                    </p>
-
-                                    {/* Tag list */}
-                                    {server.allowedModels && server.allowedModels.length > 0 && (
-                                      <div className="flex flex-wrap gap-1.5 p-2 bg-black/20 rounded-lg border border-white/[0.04]">
-                                        {server.allowedModels.map((model) => (
-                                          <span
-                                            key={model}
-                                            className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-[11px] font-mono bg-blue-500/10 text-blue-300 border border-blue-500/30"
-                                          >
-                                            <span>{model}</span>
-                                            <button
-                                              type="button"
-                                              onClick={() => handleRemoveServerModel(idx, model)}
-                                              className="text-blue-400/70 hover:text-rose-400 transition-colors p-0.5"
-                                              title="Remove"
-                                            >
-                                              <X className="w-3 h-3" />
-                                            </button>
-                                          </span>
-                                        ))}
-                                      </div>
-                                    )}
-
-                                    {/* Input & quick add */}
-                                    <div className="flex flex-wrap items-center gap-2">
+                                  {/* Allowed Models (Single line) */}
+                                  <div className="sm:col-span-12 space-y-1">
+                                    <label className="text-[11px] text-slate-400 block">{t('config.serverAllowedModelsTitle', '允许模型')}</label>
+                                    <div className="relative flex items-center">
                                       <input
                                         type="text"
-                                        value={serverModelInputs[idx] || ''}
-                                        onChange={(e) => setServerModelInputs(prev => ({ ...prev, [idx]: e.target.value }))}
-                                        onKeyDown={(e) => {
-                                          if (e.key === 'Enter' || e.key === ',') {
-                                            e.preventDefault();
-                                            handleAddServerModel(idx, serverModelInputs[idx] || '');
-                                          }
+                                        value={serverModelInputs[idx] !== undefined ? serverModelInputs[idx] : (server.allowedModels || []).join(', ')}
+                                        onChange={(e) => {
+                                          const val = e.target.value;
+                                          setServerModelInputs(prev => ({ ...prev, [idx]: val }));
                                         }}
-                                        placeholder={t('config.addModelPlaceholder', '输入模型名，按回车添加...')}
-                                        className="flex-1 min-w-[140px] ui-input p-1.5 text-xs font-mono"
+                                        onBlur={() => {
+                                          const raw = serverModelInputs[idx] !== undefined ? serverModelInputs[idx] : (server.allowedModels || []).join(', ');
+                                          const parts = raw.split(',').map(s => s.trim()).filter(Boolean);
+                                          const updated = [...upstreamServers];
+                                          updated[idx] = {
+                                            ...updated[idx],
+                                            allowedModels: parts.length > 0 ? Array.from(new Set(parts)) : undefined
+                                          };
+                                          setUpstreamServers(updated);
+                                          setServerModelInputs(prev => ({ ...prev, [idx]: parts.join(', ') }));
+                                        }}
+                                        placeholder={t('config.serverAllowedModelsPlaceholder', '留空允许全部，多个以英文逗号分隔，如 gemini-2.5-flash, gemini-2.5-pro')}
+                                        className="w-full ui-input p-2 text-xs font-mono pr-8"
                                       />
-                                      <button
-                                        type="button"
-                                        onClick={() => handleAddServerModel(idx, serverModelInputs[idx] || '')}
-                                        className="px-2.5 py-1.5 ui-btn-primary text-xs font-semibold flex items-center space-x-1 shrink-0"
-                                      >
-                                        <Plus className="w-3 h-3" />
-                                        <span>{t('config.addModel', '添加')}</span>
-                                      </button>
-                                    </div>
-
-                                    {/* Quick presets */}
-                                    <div className="flex flex-wrap items-center gap-1.5 pt-0.5 text-[11px]">
-                                      <span className="text-slate-500 mr-0.5">{t('config.quickAdd', '快捷添加')}:</span>
-                                      {['gemini-2.5-flash', 'gemini-2.5-pro', 'claude-3-7-sonnet'].map((preset) => {
-                                        const isAdded = (server.allowedModels || []).some(m => m.toLowerCase() === preset.toLowerCase());
+                                      {(() => {
+                                        const currentVal = serverModelInputs[idx] !== undefined ? serverModelInputs[idx] : (server.allowedModels || []).join(', ');
+                                        const count = currentVal.split(',').map(s => s.trim()).filter(Boolean).length;
+                                        if (count <= 1) return null;
                                         return (
-                                          <button
-                                            key={preset}
-                                            type="button"
-                                            onClick={() => handleAddServerModel(idx, preset)}
-                                            disabled={isAdded}
-                                            className={`px-1.5 py-0.5 rounded text-[10px] font-mono transition-colors border ${
-                                              isAdded
-                                                ? 'opacity-40 cursor-not-allowed bg-white/[0.02] border-white/[0.04] text-slate-500'
-                                                : 'ui-btn-secondary hover:text-blue-300 active:scale-95'
-                                            }`}
-                                          >
-                                            + {preset}
-                                          </button>
+                                          <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none z-10 flex items-center">
+                                            <span
+                                              className="text-[9px] font-mono font-bold text-blue-400 bg-[var(--bg-surface-sub)] border border-blue-500/40 shadow-sm px-1 py-0.5 rounded leading-none select-none"
+                                              title={`${count} models configured`}
+                                            >
+                                              ×{count}
+                                            </span>
+                                          </div>
                                         );
-                                      })}
+                                      })()}
                                     </div>
                                   </div>
                                 </div>

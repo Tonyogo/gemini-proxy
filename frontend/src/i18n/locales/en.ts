@@ -450,11 +450,8 @@ export const en = {
     strategyWeighted: "Weighted",
     highToggleTooltip: "Toggle -high thinking suffix",
     emptyMappings: "No model mapping rules added. Click below to add one.",
-    serverAllowedModelsTitle: "Allowed Models Restriction (Optional)",
-    serverAllowedModelsDesc: "Restrict this gateway node to specific models only. Leave blank to allow all models by default.",
-    serverAllModelsAllowed: "All Models Allowed (Default)",
-    serverRestrictedModels: "{{count}} Models Restricted",
-    addModelPlaceholder: "Type model name & press Enter...",
+    serverAllowedModelsTitle: "Allowed Models",
+    serverAllowedModelsPlaceholder: "Leave blank for all, or comma-separated e.g. gemini-2.5-flash, gemini-2.5-pro",
   },
   concurrentTest: {
     title: "Concurrency Load Test",

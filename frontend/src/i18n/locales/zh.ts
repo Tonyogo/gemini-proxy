@@ -452,11 +452,8 @@ export const zh: Translations = {
     strategyWeighted: "加权",
     highToggleTooltip: "一键切换/添加 -high 思考模式尾缀",
     emptyMappings: "暂无模型映射规则。点击下方按钮添加。",
-    serverAllowedModelsTitle: "允许通行的模型限制（可选）",
-    serverAllowedModelsDesc: "限制该代理节点仅处理特定的模型请求。留空表示默认允许全部模型。",
-    serverAllModelsAllowed: "允许全部模型 (默认)",
-    serverRestrictedModels: "已限制 {{count}} 个模型",
-    addModelPlaceholder: "输入模型名，按回车添加...",
+    serverAllowedModelsTitle: "允许模型",
+    serverAllowedModelsPlaceholder: "留空允许全部，多个以英文逗号分隔，如 gemini-2.5-flash, gemini-2.5-pro",
   },
   concurrentTest: {
     title: "并发压力测试",
