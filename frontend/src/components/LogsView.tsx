@@ -23,12 +23,14 @@ import {
   MessageSquare,
   ArrowUpRight,
   ArrowDownLeft,
-  User
+  User,
+  HardDrive
 } from 'lucide-react';
 import JsonTreeView from './JsonTreeView';
 import SseStreamPreview from './SseStreamPreview';
 import ConversationView from './ConversationView';
 import { defineGeminiProxyTheme } from '../utils/monacoTheme';
+import { calculatePayloadSize } from '../utils/logPayloadHelpers';
 import { useTranslation } from '../i18n/LanguageContext';
 import { useTheme } from '../theme/ThemeContext';
 
@@ -305,6 +307,8 @@ export default function LogsView({
       return true;
     });
   }, [logs, statusFilter, searchFilter]);
+
+  const payloadSize = useMemo(() => calculatePayloadSize(selectedLog), [selectedLog]);
 
   // Copy Claude cURL command for current log
   const handleCopyClaudeCurl = () => {
@@ -728,15 +732,6 @@ export default function LogsView({
                             {log.model}
                           </span>
                         )}
-                        {log.account && (
-                          <span
-                            className="px-1.5 py-0.5 rounded border text-[9px] font-mono font-medium bg-cyan-50 dark:bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border-cyan-200 dark:border-cyan-500/20 truncate max-w-[110px] inline-flex items-center gap-0.5"
-                            title={log.account}
-                          >
-                            <User className="w-2.5 h-2.5 inline shrink-0" />
-                            <span className="truncate">{log.account}</span>
-                          </span>
-                        )}
                       </div>
                       {durationElem}
                     </div>
@@ -973,11 +968,25 @@ export default function LogsView({
               {/* Account */}
               {selectedLog.account && (
                 <span
-                  className="bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border border-cyan-500/20 px-2 py-0.5 rounded font-medium max-w-[180px] truncate inline-flex items-center gap-1"
+                  className="bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 border border-cyan-500/20 px-2 py-0.5 rounded font-medium max-w-[260px] truncate inline-flex items-center gap-1 text-xs"
                   title={selectedLog.account}
                 >
                   <User className="w-3 h-3 inline shrink-0" />
                   <span className="truncate">{selectedLog.account}</span>
+                </span>
+              )}
+
+              {/* Payload Size */}
+              {payloadSize && payloadSize.totalBytes > 0 && (
+                <span
+                  className="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded text-slate-600 dark:text-slate-300 inline-flex items-center gap-1 text-xs font-mono"
+                  title={t('logs.reqSizeTooltip', `Req: ${payloadSize.formattedReq} / Res: ${payloadSize.formattedRes}`, {
+                    req: payloadSize.formattedReq,
+                    res: payloadSize.formattedRes
+                  })}
+                >
+                  <HardDrive className="w-3 h-3 text-slate-500 dark:text-slate-400 inline shrink-0" />
+                  <span>{payloadSize.formattedTotal}</span>
                 </span>
               )}
 
