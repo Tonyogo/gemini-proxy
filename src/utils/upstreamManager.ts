@@ -183,6 +183,35 @@ export class UpstreamManager {
     }
   }
 
+  /**
+   * Checks whether an upstream server supports a given model.
+   * Case-insensitive exact match with dual-direction matching (client model or resolved target model).
+   * Unrestricted (undefined or empty allowedModels) allows all models.
+   */
+  public serverSupportsModel(server: UpstreamServerConfig, originalModel?: string, resolvedModel?: string): boolean {
+    if (!server.allowedModels || server.allowedModels.length === 0) {
+      return true;
+    }
+    const allowedSet = new Set(server.allowedModels.map(m => m.trim().toLowerCase()).filter(Boolean));
+    if (allowedSet.size === 0) return true;
+
+    const normOriginal = originalModel ? originalModel.trim().toLowerCase() : '';
+    const normResolved = resolvedModel ? resolvedModel.trim().toLowerCase() : '';
+
+    if (normOriginal && allowedSet.has(normOriginal)) return true;
+    if (normResolved && allowedSet.has(normResolved)) return true;
+
+    return false;
+  }
+
+  /**
+   * Checks whether any enabled upstream server in the cluster supports the model.
+   */
+  public hasUpstreamForModel(originalModel?: string, resolvedModel?: string): boolean {
+    const servers = this.getUpstreamServers();
+    return servers.some(s => s.enabled !== false && this.serverSupportsModel(s, originalModel, resolvedModel));
+  }
+
   private getOrCreateModelState(model: string): WeightedSchedulerState {
     let state = this.modelStates.get(model);
     if (!state) {
@@ -196,7 +225,12 @@ export class UpstreamManager {
    * Selects an upstream server based on smooth weighted round-robin (SWRR),
    * explicit server index, or per-model/global scheduling, skipping isolated and disabled nodes.
    */
-  public getUpstreamServer(options?: { model?: string; serverIndex?: number }): UpstreamServerSelection {
+  public getUpstreamServer(options?: {
+    model?: string;
+    originalModel?: string;
+    resolvedModel?: string;
+    serverIndex?: number;
+  }): UpstreamServerSelection {
     const allServers = this.getUpstreamServers();
     if (allServers.length === 0) {
       return { serverUrl: 'https://generativelanguage.googleapis.com', serverIndex: 0, weight: 1 };
@@ -212,24 +246,50 @@ export class UpstreamManager {
       };
     }
 
-    // 2. Filter candidates (enabled and not isolated)
-    let candidates = allServers
-      .map((s, idx) => ({ ...s, serverIndex: idx }))
-      .filter(item => item.enabled && !this.isNodeIsolated(item.serverIndex));
+    // Extract models
+    const originalModel = options?.originalModel || (options?.model && !options?.resolvedModel ? options.model : undefined);
+    const resolvedModel = options?.resolvedModel || (options?.model && !options?.originalModel ? options.model : undefined);
+    const hasModelFilter = Boolean(originalModel || resolvedModel || options?.model);
 
-    if (candidates.length === 0) {
-      // First fallback: all enabled nodes
-      const enabledNodes = allServers
+    // 2. Filter candidates
+    let candidates: Array<UpstreamServerConfig & { serverIndex: number }> = [];
+
+    if (hasModelFilter) {
+      const modelCandidatePool = allServers
+        .map((s, idx) => ({ ...s, serverIndex: idx }))
+        .filter(item => item.enabled && this.serverSupportsModel(item, originalModel, resolvedModel));
+
+      if (modelCandidatePool.length > 0) {
+        candidates = modelCandidatePool.filter(item => !this.isNodeIsolated(item.serverIndex));
+        if (candidates.length === 0) {
+          // All servers supporting this model are isolated: fall back strictly to model-supporting cluster
+          candidates = modelCandidatePool;
+          logger.warn(`[UpstreamManager] All upstream servers supporting model '${originalModel || resolvedModel || options?.model}' currently isolated, falling back to model-supporting cluster`);
+        }
+      } else {
+        // Fallback if no enabled server supports the model
+        const anySupporting = allServers
+          .map((s, idx) => ({ ...s, serverIndex: idx }))
+          .filter(item => this.serverSupportsModel(item, originalModel, resolvedModel));
+        if (anySupporting.length > 0) {
+          candidates = anySupporting;
+        } else {
+          candidates = allServers.map((s, idx) => ({ ...s, serverIndex: idx }));
+        }
+      }
+    } else {
+      // No model filter specified
+      let pool = allServers
         .map((s, idx) => ({ ...s, serverIndex: idx }))
         .filter(item => item.enabled);
 
-      if (enabledNodes.length > 0) {
-        candidates = enabledNodes;
-        logger.warn(`[UpstreamManager] All enabled upstream servers currently isolated, falling back to enabled cluster`);
-      } else {
-        // Second fallback: all nodes
-        candidates = allServers.map((s, idx) => ({ ...s, serverIndex: idx }));
-        logger.warn(`[UpstreamManager] All upstream servers currently disabled, falling back to all nodes to prevent complete service denial`);
+      if (pool.length === 0) {
+        pool = allServers.map((s, idx) => ({ ...s, serverIndex: idx }));
+      }
+
+      candidates = pool.filter(item => !this.isNodeIsolated(item.serverIndex));
+      if (candidates.length === 0) {
+        candidates = pool;
       }
     }
 
@@ -243,8 +303,10 @@ export class UpstreamManager {
     }
 
     // 4. Smooth Weighted Round-Robin (SWRR)
-    const state = options?.model
-      ? this.getOrCreateModelState(options.model)
+    const modelKey = options?.model || options?.resolvedModel || options?.originalModel;
+    const stateKey = modelKey ? `model:${modelKey.trim().toLowerCase()}` : undefined;
+    const state = stateKey
+      ? this.getOrCreateModelState(stateKey)
       : this.globalState;
 
     const totalWeight = candidates.reduce((sum, c) => sum + (c.weight || 1), 0);
@@ -295,7 +357,12 @@ export class UpstreamManager {
    */
   public getUpstreamUrl(
     pathAndQuery: string,
-    options?: { model?: string; serverIndex?: number }
+    options?: {
+      model?: string;
+      originalModel?: string;
+      resolvedModel?: string;
+      serverIndex?: number;
+    }
   ): UpstreamUrlSelection {
     const { serverUrl, serverIndex, weight } = this.getUpstreamServer(options);
     const cleanPath = pathAndQuery.replace(/^\/+/, '');
