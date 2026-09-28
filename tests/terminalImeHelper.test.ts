@@ -67,6 +67,117 @@ describe('terminalImeHelper', () => {
     controller.dispose();
   });
 
+  test('does not intercept beforeinput when preceded by physical keydown', () => {
+    const controller = attachMobileImeHandler({
+      textarea,
+      onDirectInput: (data: string) => sentData.push(data),
+    });
+
+    const keyDownEv = new CustomEvent('keydown', { bubbles: true, cancelable: true }) as any;
+    keyDownEv.keyCode = 49;
+    keyDownEv.key = '1';
+    textarea.dispatchEvent(keyDownEv);
+
+    const beforeInputEv = new CustomEvent('beforeinput', {
+      cancelable: true,
+      bubbles: true,
+    }) as any;
+    beforeInputEv.inputType = 'insertText';
+    beforeInputEv.data = '1';
+
+    let defaultPrevented = false;
+    beforeInputEv.preventDefault = () => { defaultPrevented = true; };
+
+    textarea.dispatchEvent(beforeInputEv);
+
+    expect(sentData).toEqual([]);
+    expect(defaultPrevented).toBe(false);
+
+    controller.dispose();
+  });
+
+  test('intercepts beforeinput when preceded by virtual IME keydown (keyCode 229)', () => {
+    const controller = attachMobileImeHandler({
+      textarea,
+      onDirectInput: (data: string) => sentData.push(data),
+    });
+
+    const keyDownEv = new CustomEvent('keydown', { bubbles: true, cancelable: true }) as any;
+    keyDownEv.keyCode = 229;
+    keyDownEv.key = 'Unidentified';
+    textarea.dispatchEvent(keyDownEv);
+
+    const beforeInputEv = new CustomEvent('beforeinput', {
+      cancelable: true,
+      bubbles: true,
+    }) as any;
+    beforeInputEv.inputType = 'insertText';
+    beforeInputEv.data = '1';
+
+    let defaultPrevented = false;
+    beforeInputEv.preventDefault = () => { defaultPrevented = true; };
+
+    textarea.dispatchEvent(beforeInputEv);
+
+    expect(sentData).toEqual(['1']);
+    expect(defaultPrevented).toBe(true);
+
+    controller.dispose();
+  });
+
+  test('does not intercept fallback input when preceded by physical keydown', () => {
+    const controller = attachMobileImeHandler({
+      textarea,
+      onDirectInput: (data: string) => sentData.push(data),
+    });
+
+    const keyDownEv = new CustomEvent('keydown', { bubbles: true, cancelable: true }) as any;
+    keyDownEv.keyCode = 49;
+    keyDownEv.key = '1';
+    textarea.dispatchEvent(keyDownEv);
+
+    const inputEv = new CustomEvent('input') as any;
+    inputEv.inputType = 'insertText';
+    inputEv.data = '1';
+    textarea.dispatchEvent(inputEv);
+
+    expect(sentData).toEqual([]);
+
+    controller.dispose();
+  });
+
+  test('intercepts beforeinput if physical keydown happened more than 50ms ago', () => {
+    jest.useFakeTimers();
+    const controller = attachMobileImeHandler({
+      textarea,
+      onDirectInput: (data: string) => sentData.push(data),
+    });
+
+    const keyDownEv = new CustomEvent('keydown', { bubbles: true, cancelable: true }) as any;
+    keyDownEv.keyCode = 49;
+    keyDownEv.key = '1';
+    textarea.dispatchEvent(keyDownEv);
+
+    jest.advanceTimersByTime(60);
+
+    const beforeInputEv = new CustomEvent('beforeinput', {
+      cancelable: true,
+      bubbles: true,
+    }) as any;
+    beforeInputEv.inputType = 'insertText';
+    beforeInputEv.data = '2';
+
+    let defaultPrevented = false;
+    beforeInputEv.preventDefault = () => { defaultPrevented = true; };
+
+    textarea.dispatchEvent(beforeInputEv);
+
+    expect(sentData).toEqual(['2']);
+    expect(defaultPrevented).toBe(true);
+
+    controller.dispose();
+  });
+
   test('does not intercept beforeinput during composition', () => {
     const controller = attachMobileImeHandler({
       textarea,

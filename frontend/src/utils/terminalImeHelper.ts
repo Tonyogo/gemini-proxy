@@ -18,9 +18,16 @@ export function attachMobileImeHandler({
   onDirectInput,
 }: TerminalImeOptions): TerminalImeController {
   let isComposing = false;
-  let compositionEndTimer: NodeJS.Timeout | null = null;
+  let compositionEndTimer: ReturnType<typeof setTimeout> | null = null;
   let lastHandledData = '';
   let lastHandledTime = 0;
+  let lastNonImeKeyDownTime = 0;
+
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.keyCode !== 229 && e.key !== 'Unidentified') {
+      lastNonImeKeyDownTime = Date.now();
+    }
+  };
 
   const handleCompositionStart = () => {
     if (compositionEndTimer) {
@@ -49,6 +56,11 @@ export function attachMobileImeHandler({
       return;
     }
 
+    // If preceded by a physical (non-IME) keydown, let xterm process the input natively.
+    if (Date.now() - lastNonImeKeyDownTime < 50) {
+      return;
+    }
+
     if (e.inputType === 'insertText' && e.data) {
       // Prevent xterm's internal _inputEvent from discarding the event via its
       // (!ev.composed || !this._keyDownSeen) check when keyCode 229 precedes it.
@@ -67,8 +79,13 @@ export function attachMobileImeHandler({
 
   const handleInput = (e: Event) => {
     // Fallback for older mobile webviews where beforeinput cannot be canceled:
-    // If not composing, and data wasn't just sent by beforeinput within 50ms, deliver it.
+    // If not composing, and data wasn't just sent by beforeinput within 60ms, deliver it.
     if (isComposing) {
+      return;
+    }
+
+    // If preceded by a physical (non-IME) keydown, let xterm process the input natively.
+    if (Date.now() - lastNonImeKeyDownTime < 50) {
       return;
     }
 
@@ -88,6 +105,7 @@ export function attachMobileImeHandler({
     }
   };
 
+  textarea.addEventListener('keydown', handleKeyDown as EventListener, { capture: true });
   textarea.addEventListener('compositionstart', handleCompositionStart);
   textarea.addEventListener('compositionend', handleCompositionEnd);
   textarea.addEventListener('beforeinput', handleBeforeInput as EventListener, { capture: true });
@@ -100,6 +118,7 @@ export function attachMobileImeHandler({
         clearTimeout(compositionEndTimer);
         compositionEndTimer = null;
       }
+      textarea.removeEventListener('keydown', handleKeyDown as EventListener, { capture: true });
       textarea.removeEventListener('compositionstart', handleCompositionStart);
       textarea.removeEventListener('compositionend', handleCompositionEnd);
       textarea.removeEventListener('beforeinput', handleBeforeInput as EventListener, { capture: true });
