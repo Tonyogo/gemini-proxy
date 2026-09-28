@@ -1,70 +1,125 @@
-import config, { parseBaseUrls } from '../../config/default';
+import config, { parseBaseUrls, parseUpstreamServers } from '../../config/default';
+import { UpstreamServerConfig, UpstreamServerStatus, UpstreamServerSelection } from '../types';
 import logger from './logger';
 
-export interface UpstreamServerSelection {
-  serverUrl: string;
-  serverIndex: number;
-}
+export { UpstreamServerSelection };
 
 export interface UpstreamUrlSelection extends UpstreamServerSelection {
   targetUrl: string;
 }
 
-export interface UpstreamCircuitState {
+export interface UpstreamCircuitState extends UpstreamServerStatus {
   serverUrl: string;
-  serverIndex: number;
-  consecutiveFailures: number;
-  isolatedUntil: number; // Timestamp in ms until node is isolated; 0 if healthy
-  lastError?: string;
+}
+
+interface WeightedSchedulerState {
+  currentWeights: Map<number, number>;
+  lastSelectedIndex?: number;
 }
 
 export class UpstreamManager {
-  private modelCounters: Map<string, number> = new Map();
-  private globalCounter: number = 0;
+  private modelStates: Map<string, WeightedSchedulerState> = new Map();
+  private globalState: WeightedSchedulerState = { currentWeights: new Map() };
   private circuitMap: Map<number, UpstreamCircuitState> = new Map();
+
+  /**
+   * Retrieves current list of configured upstream servers with weights and enabled state.
+   */
+  public getUpstreamServers(): UpstreamServerConfig[] {
+    if (config.upstreamServers && Array.isArray(config.upstreamServers) && config.upstreamServers.length > 0) {
+      return config.upstreamServers;
+    }
+    return parseUpstreamServers(config.geminiBaseUrl);
+  }
 
   /**
    * Retrieves current list of configured upstream server URLs.
    */
   public getBaseUrls(): string[] {
-    const raw = config.geminiBaseUrl || 'https://generativelanguage.googleapis.com';
-    const urls = parseBaseUrls(raw);
-    return urls.length > 0 ? urls : ['https://generativelanguage.googleapis.com'];
+    return this.getUpstreamServers().map(s => s.url);
+  }
+
+  /**
+   * Returns upstream server status list for all configured upstream nodes including traffic weights and isolation.
+   */
+  public getUpstreamServerStatusList(): UpstreamServerStatus[] {
+    const servers = this.getUpstreamServers();
+    const now = Date.now();
+
+    // Find active healthy candidates for calculating effectivePercent
+    let activeCandidates = servers
+      .map((s, idx) => ({ ...s, serverIndex: idx }))
+      .filter(item => item.enabled && !this.isNodeIsolated(item.serverIndex));
+
+    if (activeCandidates.length === 0) {
+      const enabledNodes = servers
+        .map((s, idx) => ({ ...s, serverIndex: idx }))
+        .filter(item => item.enabled);
+      if (enabledNodes.length > 0) {
+        activeCandidates = enabledNodes;
+      } else {
+        activeCandidates = servers.map((s, idx) => ({ ...s, serverIndex: idx }));
+      }
+    }
+
+    const activeTotalWeight = activeCandidates.reduce((sum, c) => sum + (c.weight || 1), 0);
+    const activeSet = new Set(activeCandidates.map(c => c.serverIndex));
+
+    return servers.map((server, idx) => {
+      const existing = this.circuitMap.get(idx);
+      let consecutiveFailures = 0;
+      let isolatedUntil = 0;
+      let isIsolated = false;
+      let lastError: string | undefined = undefined;
+
+      if (existing && existing.url === server.url) {
+        if (existing.isolatedUntil > 0 && existing.isolatedUntil <= now) {
+          existing.isolatedUntil = 0;
+          existing.consecutiveFailures = 0;
+          existing.lastError = undefined;
+        }
+        consecutiveFailures = existing.consecutiveFailures;
+        isolatedUntil = existing.isolatedUntil;
+        isIsolated = existing.isolatedUntil > 0 && existing.isolatedUntil > now;
+        lastError = existing.lastError;
+      }
+
+      const effectivePercent = activeSet.has(idx) && activeTotalWeight > 0
+        ? parseFloat((((server.weight || 1) / activeTotalWeight) * 100).toFixed(1))
+        : 0;
+
+      const status: UpstreamServerStatus = {
+        url: server.url,
+        serverIndex: idx,
+        weight: server.weight || 1,
+        enabled: server.enabled !== false,
+        name: server.name,
+        effectivePercent,
+        consecutiveFailures,
+        isIsolated,
+        isolatedUntil,
+        lastError
+      };
+      return status;
+    });
   }
 
   /**
    * Returns circuit breaker status list for all configured upstream nodes.
    */
   public getCircuitStatusList(): UpstreamCircuitState[] {
-    const servers = this.getBaseUrls();
-    const now = Date.now();
-    return servers.map((url, idx) => {
-      const existing = this.circuitMap.get(idx);
-      if (existing && existing.serverUrl === url) {
-        // Auto-heal if isolation time has passed
-        if (existing.isolatedUntil > 0 && existing.isolatedUntil <= now) {
-          existing.isolatedUntil = 0;
-          existing.consecutiveFailures = 0;
-          existing.lastError = undefined;
-        }
-        return existing;
-      }
-      const initial: UpstreamCircuitState = {
-        serverUrl: url,
-        serverIndex: idx,
-        consecutiveFailures: 0,
-        isolatedUntil: 0
-      };
-      this.circuitMap.set(idx, initial);
-      return initial;
-    });
+    const list = this.getUpstreamServerStatusList();
+    return list.map(item => ({
+      ...item,
+      serverUrl: item.url
+    }));
   }
 
   /**
    * Checks whether a node is currently isolated under circuit breaker.
    */
   public isNodeIsolated(serverIndex: number): boolean {
-    const servers = this.getBaseUrls();
+    const servers = this.getUpstreamServers();
     if (serverIndex < 0 || serverIndex >= servers.length) return false;
     const existing = this.circuitMap.get(serverIndex);
     if (!existing) return false;
@@ -79,15 +134,21 @@ export class UpstreamManager {
    * 3 consecutive failures trigger 180-second isolation.
    */
   public recordRequestResult(serverIndex: number, success: boolean, error?: string | number): void {
-    const servers = this.getBaseUrls();
+    const servers = this.getUpstreamServers();
     if (serverIndex < 0 || serverIndex >= servers.length) return;
-    const url = servers[serverIndex];
+    const server = servers[serverIndex];
     let existing = this.circuitMap.get(serverIndex);
-    if (!existing || existing.serverUrl !== url) {
+    if (!existing || existing.url !== server.url) {
       existing = {
-        serverUrl: url,
+        url: server.url,
+        serverUrl: server.url,
         serverIndex,
+        weight: server.weight || 1,
+        enabled: server.enabled !== false,
+        name: server.name,
+        effectivePercent: 0,
         consecutiveFailures: 0,
+        isIsolated: false,
         isolatedUntil: 0
       };
       this.circuitMap.set(serverIndex, existing);
@@ -96,6 +157,7 @@ export class UpstreamManager {
     if (success) {
       existing.consecutiveFailures = 0;
       existing.isolatedUntil = 0;
+      existing.isIsolated = false;
       existing.lastError = undefined;
       return;
     }
@@ -105,7 +167,8 @@ export class UpstreamManager {
 
     if (existing.consecutiveFailures >= 3) {
       existing.isolatedUntil = Date.now() + 180_000; // 180 seconds isolation
-      logger.warn(`[UpstreamManager] Upstream node ${serverIndex + 1} (${url}) failed 3 times consecutively (${existing.lastError}). Isolated for 180s.`);
+      existing.isIsolated = true;
+      logger.warn(`[UpstreamManager] Upstream node ${serverIndex + 1} (${server.url}) failed 3 times consecutively (${existing.lastError}). Isolated for 180s.`);
     }
   }
 
@@ -120,52 +183,111 @@ export class UpstreamManager {
     }
   }
 
+  private getOrCreateModelState(model: string): WeightedSchedulerState {
+    let state = this.modelStates.get(model);
+    if (!state) {
+      state = { currentWeights: new Map() };
+      this.modelStates.set(model, state);
+    }
+    return state;
+  }
+
   /**
-   * Selects an upstream server based on model-specific round-robin,
-   * explicit server index, or global round-robin, skipping isolated nodes.
+   * Selects an upstream server based on smooth weighted round-robin (SWRR),
+   * explicit server index, or per-model/global scheduling, skipping isolated and disabled nodes.
    */
   public getUpstreamServer(options?: { model?: string; serverIndex?: number }): UpstreamServerSelection {
-    const servers = this.getBaseUrls();
-    if (servers.length === 0) {
-      return { serverUrl: 'https://generativelanguage.googleapis.com', serverIndex: 0 };
+    const allServers = this.getUpstreamServers();
+    if (allServers.length === 0) {
+      return { serverUrl: 'https://generativelanguage.googleapis.com', serverIndex: 0, weight: 1 };
     }
 
     // 1. Explicit serverIndex (e.g. for AccountService or direct targeting)
     if (options?.serverIndex !== undefined && !isNaN(options.serverIndex)) {
-      const idx = Math.abs(Math.floor(options.serverIndex)) % servers.length;
-      return { serverUrl: servers[idx], serverIndex: idx };
+      const idx = Math.abs(Math.floor(options.serverIndex)) % allServers.length;
+      return {
+        serverUrl: allServers[idx].url,
+        serverIndex: idx,
+        weight: allServers[idx].weight || 1
+      };
     }
 
-    // 2. Filter out isolated nodes
-    const now = Date.now();
-    const availableList = servers
-      .map((url, idx) => ({ url, idx }))
-      .filter(item => {
-        const state = this.circuitMap.get(item.idx);
-        return !state || state.isolatedUntil <= now;
-      });
+    // 2. Filter candidates (enabled and not isolated)
+    let candidates = allServers
+      .map((s, idx) => ({ ...s, serverIndex: idx }))
+      .filter(item => item.enabled && !this.isNodeIsolated(item.serverIndex));
 
-    // If all servers are isolated, fall back to full pool to prevent 100% rejection
-    const candidatePool = availableList.length > 0
-      ? availableList
-      : servers.map((url, idx) => ({ url, idx }));
+    if (candidates.length === 0) {
+      // First fallback: all enabled nodes
+      const enabledNodes = allServers
+        .map((s, idx) => ({ ...s, serverIndex: idx }))
+        .filter(item => item.enabled);
 
-    if (availableList.length === 0 && servers.length > 1) {
-      logger.warn(`[UpstreamManager] All upstream servers currently isolated, falling back to full cluster`);
+      if (enabledNodes.length > 0) {
+        candidates = enabledNodes;
+        logger.warn(`[UpstreamManager] All enabled upstream servers currently isolated, falling back to enabled cluster`);
+      } else {
+        // Second fallback: all nodes
+        candidates = allServers.map((s, idx) => ({ ...s, serverIndex: idx }));
+        logger.warn(`[UpstreamManager] All upstream servers currently disabled, falling back to all nodes to prevent complete service denial`);
+      }
     }
 
-    // 3. Per-model round-robin
-    if (options?.model) {
-      const current = this.modelCounters.get(options.model) || 0;
-      const selection = candidatePool[current % candidatePool.length];
-      this.modelCounters.set(options.model, (current + 1) % 100000000);
-      return { serverUrl: selection.url, serverIndex: selection.idx };
+    // 3. Fast path if only one candidate
+    if (candidates.length === 1) {
+      return {
+        serverUrl: candidates[0].url,
+        serverIndex: candidates[0].serverIndex,
+        weight: candidates[0].weight || 1
+      };
     }
 
-    // 4. Global round-robin fallback
-    const selection = candidatePool[this.globalCounter % candidatePool.length];
-    this.globalCounter = (this.globalCounter + 1) % 100000000;
-    return { serverUrl: selection.url, serverIndex: selection.idx };
+    // 4. Smooth Weighted Round-Robin (SWRR)
+    const state = options?.model
+      ? this.getOrCreateModelState(options.model)
+      : this.globalState;
+
+    const totalWeight = candidates.reduce((sum, c) => sum + (c.weight || 1), 0);
+
+    for (const cand of candidates) {
+      if (!state.currentWeights.has(cand.serverIndex)) {
+        state.currentWeights.set(cand.serverIndex, cand.weight || 1);
+      }
+    }
+
+    // Step A: currentWeight += weight
+    for (const cand of candidates) {
+      const cur = state.currentWeights.get(cand.serverIndex) || 0;
+      state.currentWeights.set(cand.serverIndex, cur + (cand.weight || 1));
+    }
+
+    // Step B: find candidate with maximum currentWeight, breaking ties favoring nodes not just selected
+    let bestCand = candidates[0];
+    let maxWeight = state.currentWeights.get(bestCand.serverIndex)!;
+
+    for (let i = 1; i < candidates.length; i++) {
+      const cand = candidates[i];
+      const cur = state.currentWeights.get(cand.serverIndex)!;
+      if (cur > maxWeight) {
+        bestCand = cand;
+        maxWeight = cur;
+      } else if (cur === maxWeight) {
+        if (bestCand.serverIndex === state.lastSelectedIndex && cand.serverIndex !== state.lastSelectedIndex) {
+          bestCand = cand;
+          maxWeight = cur;
+        }
+      }
+    }
+
+    // Step C: currentWeight -= totalWeight for selected node
+    state.currentWeights.set(bestCand.serverIndex, maxWeight - totalWeight);
+    state.lastSelectedIndex = bestCand.serverIndex;
+
+    return {
+      serverUrl: bestCand.url,
+      serverIndex: bestCand.serverIndex,
+      weight: bestCand.weight || 1
+    };
   }
 
   /**
@@ -175,21 +297,22 @@ export class UpstreamManager {
     pathAndQuery: string,
     options?: { model?: string; serverIndex?: number }
   ): UpstreamUrlSelection {
-    const { serverUrl, serverIndex } = this.getUpstreamServer(options);
+    const { serverUrl, serverIndex, weight } = this.getUpstreamServer(options);
     const cleanPath = pathAndQuery.replace(/^\/+/, '');
     return {
       targetUrl: `${serverUrl}/${cleanPath}`,
       serverUrl,
-      serverIndex
+      serverIndex,
+      weight
     };
   }
 
   /**
-   * Resets internal counters and circuit state.
+   * Resets internal counters, scheduling state, and circuit state.
    */
   public reset(): void {
-    this.modelCounters.clear();
-    this.globalCounter = 0;
+    this.modelStates.clear();
+    this.globalState = { currentWeights: new Map() };
     this.circuitMap.clear();
   }
 }
