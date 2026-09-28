@@ -440,7 +440,15 @@ export const en = {
     strategyRoundRobin: "Round Robin",
     strategyWeighted: "Weighted",
     highToggleTooltip: "Toggle -high thinking suffix",
-    emptyMappings: "No model mapping rules added. Click below to add one."
+    emptyMappings: "No model mapping rules added. Click below to add one.",
+    allowedModelsTitle: "Allowed Models Whitelist",
+    allowedModelsDesc: "Restrict requests to only allowed models. Leave empty to allow all models (open mode).",
+    allowedModelsOpenBadge: "Open Mode (All Models Allowed)",
+    allowedModelsRestrictedBadge: "Whitelist Active ({{count}} Models Restricted)",
+    allowedModelsInputPlaceholder: "Type model name and press Enter...",
+    addModel: "Add Model",
+    clearAllowedModels: "Clear & Allow All",
+    quickAdd: "Quick Add"
   },
   concurrentTest: {
     title: "Concurrency Load Test",

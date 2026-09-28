@@ -43,6 +43,7 @@ export const LanguageProvider: React.FC<{ children: ReactNode }> = ({ children }
     let res = typeof current === 'string' ? current : (fallback || path);
     if (params) {
       for (const [k, v] of Object.entries(params)) {
+        res = res.split(`{{${k}}}`).join(String(v));
         res = res.split(`{${k}}`).join(String(v));
       }
     }

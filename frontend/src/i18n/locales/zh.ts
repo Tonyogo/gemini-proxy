@@ -442,7 +442,15 @@ export const zh: Translations = {
     strategyRoundRobin: "轮询",
     strategyWeighted: "加权",
     highToggleTooltip: "一键切换/添加 -high 思考模式尾缀",
-    emptyMappings: "暂无模型映射规则。点击下方按钮添加。"
+    emptyMappings: "暂无模型映射规则。点击下方按钮添加。",
+    allowedModelsTitle: "允许访问的模型白名单 (ALLOWED_MODELS)",
+    allowedModelsDesc: "限制仅允许白名单内的模型发起调用。留空表示开放模式，允许全部模型通行。",
+    allowedModelsOpenBadge: "开放模式（允许全部模型）",
+    allowedModelsRestrictedBadge: "白名单生效中（已限制 {{count}} 个模型）",
+    allowedModelsInputPlaceholder: "输入模型名称并回车或点击添加...",
+    addModel: "添加模型",
+    clearAllowedModels: "清空并允许全部",
+    quickAdd: "快捷添加"
   },
   concurrentTest: {
     title: "并发压力测试",
