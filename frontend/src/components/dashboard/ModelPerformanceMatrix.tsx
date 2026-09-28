@@ -85,7 +85,7 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
       </div>
 
       {!modelStats?.list || count === 0 ? (
-        <div className="flex-1 flex items-center justify-center min-h-[140px] text-slate-500 text-xs font-mono">
+        <div className="flex-1 flex items-center justify-center min-h-[140px] text-[var(--text-secondary)] text-xs font-mono">
           {t('dashboard.noData')}
         </div>
       ) : (
