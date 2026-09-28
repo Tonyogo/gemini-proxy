@@ -7,7 +7,6 @@ import accountUsageService from '../../admin/services/accountUsageService';
 import logger from '../../utils/logger';
 import { StreamLifecycleManager } from '../../utils/streamLifecycleManager';
 import upstreamManager from '../../utils/upstreamManager';
-import { isModelAllowed } from '../../utils/modelValidator';
 import {
   extractClientKey,
   extractTimeoutMs,
@@ -61,20 +60,6 @@ class GeminiController {
       }
       if (mappingInfo && mappingInfo.strategy) {
         effectiveStrategy = mappingInfo.strategy;
-      }
-
-      if (targetModelName && !isModelAllowed(originalModel, targetModelName)) {
-        const errPayload = {
-          error: {
-            code: 403,
-            message: `Model '${originalModel || targetModelName}' is not permitted by proxy policy.`,
-            status: 'PERMISSION_DENIED'
-          }
-        };
-        const duration = Date.now() - startTime;
-        logger.warn(`[GeminiProxy] [Transaction: ${transactionId}] Request rejected: Model '${originalModel || targetModelName}' is not allowed.`);
-        payloadLogger.saveTransaction(transactionId, req.body, null, null, errPayload, duration, requestPath, 403, false);
-        return res.status(403).json(errPayload);
       }
     }
 
