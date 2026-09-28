@@ -16,6 +16,7 @@ router.get('/logs', (req, res) => adminController.getLogs(req, res));
 router.get('/logs/:date/:hour/:filename', (req, res) => adminController.getLogDetail(req, res));
 router.get('/stats', (req, res) => adminController.getStats(req, res));
 router.post('/config', (req, res) => adminController.updateConfig(req, res));
+router.put('/config', (req, res) => adminController.updateConfig(req, res));
 
 // Backward Compatibility Aliases for Terminal
 router.use('/terminal', terminalRoutes);

@@ -13,6 +13,7 @@ class AdminController {
         logLevel: config.logLevel,
         geminiBaseUrl: config.geminiBaseUrl,
         geminiBaseUrls: upstreamManager.getBaseUrls(),
+        upstreamServers: config.upstreamServers,
         systemRoleToInstruction: config.systemRoleToInstruction,
         runtimeContextTag: config.runtimeContextTag,
         upstreamTimeoutMs: config.upstreamTimeoutMs,
@@ -26,6 +27,7 @@ class AdminController {
         ephemeralSystemMessages: config.ephemeralSystemMessages,
         customWebApps: config.customWebApps,
       },
+      upstreamStatus: upstreamManager.getUpstreamServerStatusList(),
     });
   }
 
@@ -80,6 +82,7 @@ class AdminController {
     try {
       const newConfig = req.body;
       await updateConfig(newConfig, { resetToEnv: Boolean(req.body.resetToEnv) });
+      upstreamManager.reset();
       res.json({
         status: 'ok',
         message: 'Configuration updated successfully',
@@ -87,6 +90,7 @@ class AdminController {
           logLevel: config.logLevel,
           geminiBaseUrl: config.geminiBaseUrl,
           geminiBaseUrls: upstreamManager.getBaseUrls(),
+          upstreamServers: config.upstreamServers,
           systemRoleToInstruction: config.systemRoleToInstruction,
           runtimeContextTag: config.runtimeContextTag,
           upstreamTimeoutMs: config.upstreamTimeoutMs,
@@ -99,6 +103,7 @@ class AdminController {
           ephemeralSystemMessages: config.ephemeralSystemMessages,
           customWebApps: config.customWebApps,
         },
+        upstreamStatus: upstreamManager.getUpstreamServerStatusList(),
       });
     } catch (err: any) {
       res.status(500).json({ error: `Failed to update configuration: ${err.message}` });
