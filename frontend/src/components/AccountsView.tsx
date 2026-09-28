@@ -111,7 +111,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
   const isCurrentOffline = serverHealthMap[activeServerIndex] === false || Boolean(serverErrorMap[activeServerIndex]);
 
   const accounts: AccountDetail[] = currentData?.status?.accountDetails || [];
-  const [isStatsCollapsed, setIsStatsCollapsed] = useState<boolean>(false);
+  const [isStatsCollapsed, setIsStatsCollapsed] = useState<boolean>(true);
   const serverModelStats = useMemo(() => {
     return calculateServerModelStats(accounts);
   }, [accounts]);
@@ -964,9 +964,21 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
       )}
 
       {/* Node Model Usage Overview Banner */}
-      <div className="ui-card p-3 sm:p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] space-y-3">
+      <div className="ui-card p-3 sm:p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] space-y-3" title={t('accounts.modernSub')}>
         {/* Header row */}
-        <div className="flex items-center justify-between" title={t('accounts.modernSub')}>
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => setIsStatsCollapsed(!isStatsCollapsed)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setIsStatsCollapsed(!isStatsCollapsed);
+            }
+          }}
+          className="flex items-center justify-between cursor-pointer select-none -m-1 p-1 rounded-lg transition-colors hover:bg-slate-500/5"
+          title={isStatsCollapsed ? t('accounts.toggleStatsExpand') : t('accounts.toggleStatsCollapse')}
+        >
           <div className="flex items-center space-x-2">
             <BarChart2 className="w-4 h-4 text-indigo-500 shrink-0" />
             <span className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">
@@ -986,7 +998,10 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
             </span>
             <button
               type="button"
-              onClick={() => setIsStatsCollapsed(!isStatsCollapsed)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsStatsCollapsed(!isStatsCollapsed);
+              }}
               className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
               title={isStatsCollapsed ? t('accounts.toggleStatsExpand') : t('accounts.toggleStatsCollapse')}
             >
