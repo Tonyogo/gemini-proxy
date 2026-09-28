@@ -17,6 +17,9 @@ import {
   Zap,
   ZapOff,
   ChevronDown,
+  ChevronUp,
+  BarChart2,
+  Activity,
   Copy,
   Check,
   Radio,
@@ -34,6 +37,7 @@ import {
   Globe
 } from 'lucide-react';
 import { useTranslation } from '../i18n/LanguageContext';
+import { calculateServerModelStats, getAccountTopModels } from '../utils/accountModelStats';
 
 export interface ModelUsageDetail {
   limit?: number;
@@ -46,6 +50,8 @@ export interface ModelUsageDetail {
 export interface AccountUsage {
   total?: number;
   totalRequests?: number;
+  totalSuccess?: number;
+  totalError?: number;
   byModel?: Record<string, ModelUsageDetail>;
   models?: Record<string, { requests?: number }>;
 }
@@ -105,6 +111,11 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
   const isCurrentOffline = serverHealthMap[activeServerIndex] === false || Boolean(serverErrorMap[activeServerIndex]);
 
   const accounts: AccountDetail[] = currentData?.status?.accountDetails || [];
+  const [isStatsCollapsed, setIsStatsCollapsed] = useState<boolean>(false);
+  const serverModelStats = useMemo(() => {
+    return calculateServerModelStats(accounts);
+  }, [accounts]);
+
   const currentAuthIndex = currentData?.status?.currentAuthIndex;
   const isSystemBusy = Boolean(currentData?.status?.isSystemBusy);
 
@@ -952,6 +963,103 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
         </div>
       )}
 
+      {/* Node Model Usage Overview Banner */}
+      <div className="ui-card p-3 sm:p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] space-y-3">
+        {/* Header row */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <BarChart2 className="w-4 h-4 text-indigo-500 shrink-0" />
+            <span className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">
+              {t('accounts.serverModelStatsTitle', '节点模型调用概览')}
+            </span>
+            <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
+              (Server {activeServerIndex + 1})
+            </span>
+          </div>
+
+          <div className="flex items-center space-x-2.5">
+            <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-500/10 text-slate-600 dark:text-slate-300 font-mono">
+              {t('accounts.nodeTotalRequests')}: <strong className="text-indigo-600 dark:text-indigo-400">{serverModelStats.totalRequests.toLocaleString()}</strong>
+            </span>
+            <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono">
+              {t('accounts.nodeSuccessRate')}: <strong>{serverModelStats.successRate}%</strong>
+            </span>
+            <button
+              type="button"
+              onClick={() => setIsStatsCollapsed(!isStatsCollapsed)}
+              className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+              title={isStatsCollapsed ? t('accounts.toggleStatsExpand') : t('accounts.toggleStatsCollapse')}
+            >
+              {isStatsCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Collapsible Content */}
+        {!isStatsCollapsed && (
+          <div className="space-y-3 pt-1 animate-in fade-in duration-200">
+            {serverModelStats.models.length > 0 ? (
+              <>
+                {/* Multi-color Model Traffic Share Bar */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                    <span>{t('accounts.modelTrafficShare')}</span>
+                    <span>{serverModelStats.models.length} 个模型处理中</span>
+                  </div>
+                  <div className="h-2.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden flex shadow-inner">
+                    {serverModelStats.models.map((item, idx) => {
+                      const colors = ['bg-indigo-500', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-purple-500', 'bg-rose-500'];
+                      const color = colors[idx % colors.length];
+                      return (
+                        <div
+                          key={item.model}
+                          style={{ width: `${item.sharePercent}%` }}
+                          className={`${color} h-full transition-all duration-300`}
+                          title={`${item.model}: ${item.requests}次 (${item.sharePercent}%)`}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Model Breakdown Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                  {serverModelStats.models.map((item, idx) => {
+                    const colors = ['bg-indigo-500', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-purple-500', 'bg-rose-500'];
+                    const dotColor = colors[idx % colors.length];
+                    return (
+                      <div
+                        key={item.model}
+                        className="p-2 rounded-lg bg-black/[0.02] dark:bg-white/[0.03] border border-[var(--border-subtle)] flex items-center justify-between text-xs"
+                      >
+                        <div className="flex items-center space-x-2 min-w-0 pr-2">
+                          <span className={`w-2 h-2 rounded-full ${dotColor} shrink-0`} />
+                          <span className="font-mono font-medium truncate text-slate-800 dark:text-slate-200" title={item.model}>
+                            {item.model}
+                          </span>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <div className="font-mono font-semibold text-slate-700 dark:text-slate-300">
+                            {item.requests.toLocaleString()} <span className="text-[10px] text-slate-400">({item.sharePercent}%)</span>
+                          </div>
+                          <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">
+                            {item.successRate}% 成功
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-2 text-xs text-slate-400 dark:text-slate-500 font-mono">
+                {t('accounts.noModelUsageYet')}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Action Toolbar */}
       <div className="ui-card p-2 sm:p-3.5 shrink-0">
         {/* File Upload Hidden Input */}
@@ -1212,7 +1320,10 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                     const isManuallyDisabled = Boolean(acc.isDisabled || (acc as any).disabled === true || acc.status === 'disabled');
                     const totalUsage = getTotalUsage(acc.usage);
                     const breakdowns = getModelBreakdowns(acc.usage);
+                    const topModels = getAccountTopModels(acc.usage, 2);
                     const hasContext = Boolean(acc.hasContext);
+                    const accSucc = acc.usage?.totalSuccess ?? (acc.usage as any)?.total ?? totalUsage;
+                    const successRate = totalUsage > 0 ? parseFloat(((accSucc / totalUsage) * 100).toFixed(1)) : 100.0;
 
                     return (
                       <tr
@@ -1299,29 +1410,35 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                           </div>
                         </td>
 
-                        {/* Today Usage (Requests Count) */}
+                        {/* Usage Column */}
                         <td className="px-4 py-3">
-                          <div className="flex items-center space-x-1.5">
-                            <span className="font-mono text-xs font-bold text-slate-800 dark:text-slate-200">
-                              {totalUsage.toLocaleString()}
-                            </span>
-                            <span className="text-[10px] text-slate-400 font-mono">reqs</span>
-
-                            {/* Breakdown Popover Trigger (Portal-based Top Layer) */}
-                            {breakdowns.length > 0 && (
-                              <button
-                                type="button"
-                                onClick={(e) => handleTogglePopover(e, acc.index)}
-                                onMouseEnter={(e) => handleMouseEnterPopover(e, acc.index)}
-                                className={`p-1 rounded-md transition-colors ${
-                                  popoverAnchor?.index === acc.index
-                                    ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-500/15'
-                                    : 'text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-black/5 dark:hover:bg-white/5'
-                                }`}
-                                title={t('accounts.todayUsage', '查看用量明细')}
-                              >
-                                <Info className="w-3.5 h-3.5" />
-                              </button>
+                          <div
+                            className="inline-flex flex-col items-start cursor-pointer group"
+                            onClick={(e) => handleTogglePopover(e, acc.index)}
+                            onMouseEnter={(e) => handleMouseEnterPopover(e, acc.index)}
+                          >
+                            <div className="flex items-center space-x-1.5 font-mono font-bold text-xs text-slate-800 dark:text-slate-200">
+                              <span>{totalUsage.toLocaleString()}</span>
+                              <span className="text-[10px] text-slate-400 font-normal">reqs</span>
+                              <span className="text-[10px] px-1 py-0.2 rounded font-normal bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                                {successRate}%
+                              </span>
+                              {breakdowns.length > 0 && (
+                                <Info className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-500 transition-colors" />
+                              )}
+                            </div>
+                            {/* Inline Top Models Badges */}
+                            {topModels.length > 0 && (
+                              <div className="flex items-center space-x-1 mt-0.5">
+                                {topModels.map(m => (
+                                  <span
+                                    key={m.model}
+                                    className="text-[9px] font-mono px-1 py-0.2 rounded bg-black/[0.04] dark:bg-white/[0.06] text-slate-500 dark:text-slate-400"
+                                  >
+                                    {m.model.replace('gemini-', '')}: {m.count}
+                                  </span>
+                                ))}
+                              </div>
                             )}
                           </div>
                         </td>
@@ -1413,6 +1530,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                 const isManuallyDisabled = Boolean(acc.isDisabled || (acc as any).disabled === true || acc.status === 'disabled');
                 const totalUsage = getTotalUsage(acc.usage);
                 const breakdowns = getModelBreakdowns(acc.usage);
+                const topModels = getAccountTopModels(acc.usage, 2);
                 const hasContext = Boolean(acc.hasContext);
                 const isUsageExpanded = Boolean(expandedMobileUsage[acc.index]);
 
@@ -1495,19 +1613,33 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
 
                     {/* Row 2: Today Usage (Left) + Quick Actions Group (Right) */}
                     <div className="flex items-center justify-between gap-2 pt-0.5">
-                      {/* Usage Button */}
-                      <button
-                        type="button"
-                        onClick={() => toggleMobileUsage(acc.index)}
-                        className="px-2 py-0.5 rounded-lg text-xs font-mono ui-card-sub hover:bg-[var(--bg-surface-hover)] text-[var(--text-secondary)] border border-[var(--border-subtle)] flex items-center space-x-1.5 transition-colors"
-                      >
-                        <Clock className="w-3 h-3 text-indigo-500 dark:text-indigo-400 shrink-0" />
-                        <span className="font-bold text-slate-800 dark:text-slate-200">{totalUsage}</span>
-                        <span className="text-[10px] text-slate-500 font-mono">reqs</span>
-                        {breakdowns.length > 0 && (
-                          <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform duration-200 ${isUsageExpanded ? 'rotate-180 text-indigo-400' : ''}`} />
+                      {/* Usage Button & Top Models */}
+                      <div className="flex items-center space-x-1.5 flex-wrap">
+                        <button
+                          type="button"
+                          onClick={() => toggleMobileUsage(acc.index)}
+                          className="px-2 py-0.5 rounded-lg text-xs font-mono ui-card-sub hover:bg-[var(--bg-surface-hover)] text-[var(--text-secondary)] border border-[var(--border-subtle)] flex items-center space-x-1.5 transition-colors"
+                        >
+                          <Clock className="w-3 h-3 text-indigo-500 dark:text-indigo-400 shrink-0" />
+                          <span className="font-bold text-slate-800 dark:text-slate-200">{totalUsage}</span>
+                          <span className="text-[10px] text-slate-500 font-mono">reqs</span>
+                          {breakdowns.length > 0 && (
+                            <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform duration-200 ${isUsageExpanded ? 'rotate-180 text-indigo-400' : ''}`} />
+                          )}
+                        </button>
+                        {topModels.length > 0 && (
+                          <div className="flex items-center space-x-1">
+                            {topModels.map(m => (
+                              <span
+                                key={m.model}
+                                className="text-[9px] font-mono px-1 py-0.2 rounded bg-black/[0.04] dark:bg-white/[0.06] text-slate-500 dark:text-slate-400 border border-[var(--border-subtle)]"
+                              >
+                                {m.model.replace('gemini-', '')}: {m.count}
+                              </span>
+                            ))}
+                          </div>
                         )}
-                      </button>
+                      </div>
 
                       {/* Action Buttons Group */}
                       <div className="flex items-center space-x-1 shrink-0">
