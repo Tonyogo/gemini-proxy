@@ -275,7 +275,9 @@ export const zh: Translations = {
     assistant: "AI Assistant",
     user: "User",
     scrollToTop: "回到最前",
-    scrollToBottom: "跳到最后"
+    scrollToBottom: "跳到最后",
+    payloadSize: "体积大小",
+    reqSizeTooltip: "请求: {req} / 响应: {res}"
   },
   terminal: {
     title: "终端日志",

@@ -273,7 +273,9 @@ export const en = {
     assistant: "AI Assistant",
     user: "User",
     scrollToTop: "Scroll to Top",
-    scrollToBottom: "Scroll to Bottom"
+    scrollToBottom: "Scroll to Bottom",
+    payloadSize: "Payload Size",
+    reqSizeTooltip: "Req: {req} / Res: {res}"
   },
   terminal: {
     title: "Terminal Logs",
