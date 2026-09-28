@@ -197,7 +197,16 @@ export const en = {
     modelHealth: "Health",
     standardReqs: "Standard",
     highReqs: "High Spec",
-    highBadge: "High"
+    highBadge: "High",
+    specDistribution: "Spec Distribution (Std / High)",
+    standardOnly: "Standard Only",
+    latencyScaleFast: "Fast",
+    latencyScaleModerate: "Normal",
+    latencyScaleSlow: "Slow",
+    insightsSummary: "Insights",
+    insightsPrimaryModel: "Top Model",
+    insightsFastest: "Fastest",
+    insightsTotalThroughput: "Total Throughput"
   },
   logs: {
     title: "Request Logs",

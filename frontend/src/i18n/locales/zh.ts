@@ -199,7 +199,16 @@ export const zh: Translations = {
     modelHealth: "健康状态",
     standardReqs: "标准请求",
     highReqs: "High 规格",
-    highBadge: "High"
+    highBadge: "High",
+    specDistribution: "规格分布 (标 / 高)",
+    standardOnly: "纯标准规格",
+    latencyScaleFast: "极速",
+    latencyScaleModerate: "正常",
+    latencyScaleSlow: "较慢",
+    insightsSummary: "矩阵速览",
+    insightsPrimaryModel: "主力模型",
+    insightsFastest: "最快响应",
+    insightsTotalThroughput: "全站总吞吐"
   },
   logs: {
     title: "请求日志列表",
