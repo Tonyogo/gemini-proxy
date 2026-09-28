@@ -174,6 +174,30 @@ export function parseBaseUrls(raw?: string): string[] {
   return normalized.split(',').map(s => s.trim()).filter(Boolean);
 }
 
+export function parseAllowedModels(raw?: any): string[] {
+  if (!raw) return [];
+  if (Array.isArray(raw)) {
+    return Array.from(new Set(raw.map(s => String(s || '').trim()).filter(Boolean)));
+  }
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (!trimmed) return [];
+    if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return parseAllowedModels(parsed);
+        }
+      } catch {
+        // Fall back to comma / newline split
+      }
+    }
+    const parts = trimmed.split(/[\n,]/).map(s => s.trim()).filter(Boolean);
+    return Array.from(new Set(parts));
+  }
+  return [];
+}
+
 const getEnvConfig = () => {
   const envServers = parseUpstreamServers(process.env.GEMINI_BASE_URL);
   return {
@@ -189,7 +213,8 @@ const getEnvConfig = () => {
     timeZone: (process.env.TIME_ZONE || process.env.TZ || 'Asia/Shanghai') as string,
     logRetentionDays: parseInt(process.env.LOG_RETENTION_DAYS || '3', 10) as number,
     countTokensModel: (process.env.COUNT_TOKENS_MODEL || '') as string,
-    customWebApps: parsedCustomWebApps as CustomWebAppItem[]
+    customWebApps: parsedCustomWebApps as CustomWebAppItem[],
+    allowedModels: parseAllowedModels(process.env.ALLOWED_MODELS)
   };
 };
 
@@ -201,6 +226,24 @@ export const config = {
 
   ...getEnvConfig(),
   ...runtimeOverrides,
+
+  get allowedModels(): string[] {
+    if ((this as any)._allowedModels !== undefined) {
+      return (this as any)._allowedModels;
+    }
+    if (runtimeOverrides.allowedModels !== undefined) {
+      return parseAllowedModels(runtimeOverrides.allowedModels);
+    }
+    return parseAllowedModels(process.env.ALLOWED_MODELS);
+  },
+
+  set allowedModels(val: string[] | string) {
+    const parsed = parseAllowedModels(val);
+    (this as any)._allowedModels = parsed;
+    if (runtimeOverrides.allowedModels !== undefined) {
+      runtimeOverrides.allowedModels = parsed;
+    }
+  },
 
   get geminiBaseUrl(): string {
     if ((this as any)._geminiBaseUrl !== undefined) {
@@ -252,13 +295,14 @@ export const config = {
 };
 
 export async function updateConfig(
-  partialConfig: Partial<typeof config>,
+  partialConfig: Partial<typeof config & { allowedModels?: string[] | string }>,
   options?: { resetToEnv?: boolean }
 ): Promise<void> {
   if (options?.resetToEnv) {
     runtimeOverrides = {};
     delete (config as any)._geminiBaseUrl;
     delete (config as any)._upstreamServers;
+    delete (config as any)._allowedModels;
     const envDefaults = getEnvConfig();
     Object.assign(config, envDefaults);
 
@@ -270,6 +314,12 @@ export async function updateConfig(
       // ignore
     }
     return;
+  }
+
+  if (partialConfig.allowedModels !== undefined) {
+    const models = parseAllowedModels(partialConfig.allowedModels);
+    partialConfig.allowedModels = models;
+    (config as any)._allowedModels = models;
   }
 
   if (partialConfig.upstreamServers !== undefined) {
