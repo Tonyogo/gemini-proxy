@@ -35,4 +35,23 @@ describe('ConfigModal Ignored Tools Integration', () => {
     expect(enContent).toContain('ignoredToolsClear:');
     expect(enContent).toContain('ignoredToolsEmpty:');
   });
+
+  test('ConfigModal should manage ignoredTools state and fetch from data.config.ignoredTools', () => {
+    expect(modalContent).toContain('const [ignoredTools, setIgnoredTools] = useState<string[]>(');
+    expect(modalContent).toContain('setIgnoredTools(data.config.ignoredTools)');
+  });
+
+  test('ConfigModal should send ignoredTools in save payload', () => {
+    expect(modalContent).toMatch(/body:\s*JSON\.stringify\(\s*\{[\s\S]*ignoredTools[\s\S]*\}\s*\)/);
+  });
+
+  test('ConfigModal should render Tag editor with header actions and input trigger', () => {
+    expect(modalContent).toContain("t('config.ignoredToolsTitle')");
+    expect(modalContent).toContain("t('config.ignoredToolsDesc')");
+    expect(modalContent).toContain("t('config.ignoredToolsResetDefault')");
+    expect(modalContent).toContain("t('config.ignoredToolsClear')");
+    expect(modalContent).toContain("t('config.ignoredToolsPlaceholder')");
+    expect(modalContent).toContain("t('config.ignoredToolsAdd')");
+    expect(modalContent).toContain("t('config.ignoredToolsEmpty')");
+  });
 });

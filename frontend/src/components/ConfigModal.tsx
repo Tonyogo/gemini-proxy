@@ -41,6 +41,13 @@ const SPLIT_COLORS = [
   'bg-teal-500'
 ];
 
+const DEFAULT_IGNORED_TOOLS = [
+  'Artifact',
+  'ArtifactCheck',
+  'ArtifactData',
+  'ArtifactComments'
+];
+
 interface ConfigModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -73,6 +80,8 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
 
   const [systemRoleToInstruction, setSystemRoleToInstruction] = useState<boolean>(false);
   const [stripSystemFingerprints, setStripSystemFingerprints] = useState<boolean>(true);
+  const [ignoredTools, setIgnoredTools] = useState<string[]>(DEFAULT_IGNORED_TOOLS);
+  const [toolInputText, setToolInputText] = useState<string>('');
   const [customSystemInstruction, setCustomSystemInstruction] = useState<string>('');
   const [geminiBaseUrl, setGeminiBaseUrl] = useState<string>('https://generativelanguage.googleapis.com');
   const [upstreamServers, setUpstreamServers] = useState<UpstreamServerConfig[]>([]);
@@ -104,6 +113,27 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
     setGeminiBaseUrl('https://generativelanguage.googleapis.com');
   };
 
+  const handleAddTool = () => {
+    const trimmed = toolInputText.trim();
+    if (!trimmed) return;
+    const parts = trimmed.split(/[,\n]/).map(s => s.trim()).filter(Boolean);
+    const next = Array.from(new Set([...ignoredTools, ...parts]));
+    setIgnoredTools(next);
+    setToolInputText('');
+  };
+
+  const handleRemoveTool = (toolToRemove: string) => {
+    setIgnoredTools(ignoredTools.filter(t => t.toLowerCase() !== toolToRemove.toLowerCase()));
+  };
+
+  const handleResetDefaultTools = () => {
+    setIgnoredTools([...DEFAULT_IGNORED_TOOLS]);
+  };
+
+  const handleClearTools = () => {
+    setIgnoredTools([]);
+  };
+
   // KV Editor and Raw JSON Sync States
   const [mappingEntries, setMappingEntries] = useState<MappingEntry[]>([]);
   const [modelMappingsRaw, setModelMappingsRaw] = useState<string>('{}');
@@ -123,6 +153,11 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
         if (data?.config) {
           setSystemRoleToInstruction(Boolean(data.config.systemRoleToInstruction));
           setStripSystemFingerprints(data.config.stripSystemFingerprints !== false);
+          if (Array.isArray(data.config.ignoredTools)) {
+            setIgnoredTools(data.config.ignoredTools);
+          } else {
+            setIgnoredTools(DEFAULT_IGNORED_TOOLS);
+          }
           setCustomSystemInstruction(data.config.customSystemInstruction || '');
           setGeminiBaseUrl(data.config.geminiBaseUrl || 'https://generativelanguage.googleapis.com');
           if (data.config.upstreamServers && Array.isArray(data.config.upstreamServers) && data.config.upstreamServers.length > 0) {
@@ -361,6 +396,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
         body: JSON.stringify({
           systemRoleToInstruction,
           stripSystemFingerprints,
+          ignoredTools,
           customSystemInstruction,
           geminiBaseUrl: geminiBaseUrl.split(',').map(s => s.trim().replace(/\/+$/, '')).filter(Boolean).join(','),
           upstreamServers: upstreamServers.map(s => ({
@@ -929,6 +965,86 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                           }`}
                         />
                       </button>
+                    </div>
+
+                    {/* IGNORED_TOOLS Tag Badge Editor */}
+                    <div className="ui-card-sub p-3 sm:p-4 space-y-3">
+                      <div className="flex items-start sm:items-center justify-between gap-2 flex-col sm:flex-row">
+                        <div>
+                          <span className="text-xs font-semibold text-slate-200 block">{t('config.ignoredToolsTitle')}</span>
+                          <p className="text-[10px] text-slate-400 mt-0.5">{t('config.ignoredToolsDesc')}</p>
+                        </div>
+                        <div className="flex items-center space-x-2 shrink-0">
+                          <button
+                            type="button"
+                            onClick={handleResetDefaultTools}
+                            className="px-2.5 py-1 text-[11px] font-medium text-indigo-400 hover:text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 rounded-lg transition-colors flex items-center space-x-1"
+                            title={t('config.ignoredToolsResetDefault')}
+                          >
+                            <Sparkles className="w-3 h-3" />
+                            <span>{t('config.ignoredToolsResetDefault')}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleClearTools}
+                            className="px-2.5 py-1 text-[11px] font-medium text-rose-400 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 rounded-lg transition-colors flex items-center space-x-1"
+                            title={t('config.ignoredToolsClear')}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                            <span>{t('config.ignoredToolsClear')}</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Tag list */}
+                      <div className="min-h-[38px] p-2 bg-slate-900/40 border border-slate-700/40 rounded-xl flex flex-wrap items-center gap-1.5">
+                        {ignoredTools.length > 0 ? (
+                          ignoredTools.map((tool) => (
+                            <span
+                              key={tool}
+                              className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-mono bg-indigo-500/15 border border-indigo-500/30 text-indigo-300"
+                            >
+                              <span>{tool}</span>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveTool(tool)}
+                                className="hover:text-rose-400 p-0.5 rounded-full transition-colors ml-0.5"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-[11px] text-slate-500 italic px-1">
+                            {t('config.ignoredToolsEmpty')}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Input bar */}
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="text"
+                          value={toolInputText}
+                          onChange={(e) => setToolInputText(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddTool();
+                            }
+                          }}
+                          placeholder={t('config.ignoredToolsPlaceholder')}
+                          className="flex-1 ui-input p-2 text-xs font-mono"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddTool}
+                          className="px-3.5 py-2 ui-btn-primary text-xs flex items-center space-x-1 shrink-0"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>{t('config.ignoredToolsAdd')}</span>
+                        </button>
+                      </div>
                     </div>
 
                     <div className="space-y-1.5">
