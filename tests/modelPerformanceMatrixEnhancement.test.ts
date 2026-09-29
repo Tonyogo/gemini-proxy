@@ -33,6 +33,14 @@ describe('ModelPerformanceMatrix Visual & Metrics Enhancement', () => {
     expect(matrixContent).toMatch(/standardRequests|highRequests/);
   });
 
+  test('ModelPerformanceMatrix should render amplified dual-color spec badges and ratio bar', () => {
+    // Should use h-2.5 for the amplified ratio bar
+    expect(matrixContent).toContain('h-2.5');
+    // Should use fuchsia and sky badge colors
+    expect(matrixContent).toMatch(/fuchsia-500|fuchsia-400/);
+    expect(matrixContent).toMatch(/sky-500|sky-400/);
+  });
+
   test('ModelPerformanceMatrix should render latency relative scale indicator', () => {
     expect(matrixContent).toContain('avgLatency');
   });
