@@ -30,7 +30,7 @@ import JsonTreeView from './JsonTreeView';
 import SseStreamPreview from './SseStreamPreview';
 import ConversationView from './ConversationView';
 import { defineGeminiProxyTheme } from '../utils/monacoTheme';
-import { calculatePayloadSize } from '../utils/logPayloadHelpers';
+import { calculatePayloadSize, formatBytes } from '../utils/logPayloadHelpers';
 import { useTranslation } from '../i18n/LanguageContext';
 import { useTheme } from '../theme/ThemeContext';
 
@@ -687,7 +687,7 @@ export default function LogsView({
                     durationColorClass = 'bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-500/20';
                   }
                   durationElem = (
-                    <span className={`px-1.5 py-0.5 rounded border text-[9px] font-mono font-semibold ${durationColorClass}`}>
+                    <span className={`px-1.5 py-0.5 rounded border text-[9px] font-mono font-semibold shrink-0 ${durationColorClass}`}>
                       {durationSec.toFixed(2)}s
                     </span>
                   );
@@ -714,7 +714,7 @@ export default function LogsView({
 
                     {/* Row 1 (Top) */}
                     <div className="flex items-center justify-between font-mono text-[10px]">
-                      <div className="flex items-center space-x-1.5 min-w-0 pr-1">
+                      <div className="flex items-center space-x-1.5 min-w-0 flex-1 pr-1.5">
                         <span className="text-slate-500 dark:text-slate-400 shrink-0 font-medium">{formattedTime}</span>
                         <span className="px-1 py-0.5 rounded text-[9px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/60">
                           {log.method || 'POST'}
@@ -726,7 +726,7 @@ export default function LogsView({
                         )}
                         {log.model && (
                           <span
-                            className="px-1.5 py-0.5 rounded border text-[9px] font-mono font-medium bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/20 truncate max-w-[90px]"
+                            className="px-1.5 py-0.5 rounded border text-[9px] font-mono font-medium bg-purple-50 dark:bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-500/20 truncate min-w-0 max-w-[200px]"
                             title={log.model}
                           >
                             {log.model}
@@ -760,6 +760,12 @@ export default function LogsView({
                             STREAM
                           </span>
                         )}
+                        <span
+                          className="px-1.5 py-0.5 rounded border text-[9px] font-mono font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700/60"
+                          title={`Request size: ${log.reqSize || 0} bytes`}
+                        >
+                          {formatBytes(log.reqSize || 0)}
+                        </span>
                         {log.status !== null && log.status !== undefined && (
                           <span className={`px-1.5 py-0.5 rounded border text-[9px] font-bold ${
                             log.status >= 200 && log.status < 300 ? 'bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30' :

@@ -17,6 +17,7 @@ export interface LogItem {
   duration?: number | null;
   model?: string | null;
   account?: string | null;
+  reqSize?: number;
 }
 
 export interface LogTreeStructure {
@@ -143,6 +144,17 @@ class LogService {
                   transactionId = transactionId.substring(5); // length of 'mmss_'
                 }
 
+                let fallbackReqSize = 0;
+                const reqObj = parsed.client_req || parsed.gem_req;
+                if (reqObj) {
+                  try {
+                    const raw = typeof reqObj === 'string' ? reqObj : JSON.stringify(reqObj);
+                    fallbackReqSize = Buffer.byteLength(raw, 'utf8');
+                  } catch {
+                    fallbackReqSize = 0;
+                  }
+                }
+
                 targetRecords.push({
                   id: transactionId,
                   timestamp: parsed.timestamp || new Date().toISOString(),
@@ -155,7 +167,8 @@ class LogService {
                   reqPath: parsed.path || null,
                   model: modelName,
                   isStream: fallbackIsStream,
-                  account: parsed.account || null
+                  account: parsed.account || null,
+                  reqSize: fallbackReqSize
                 });
               } catch {
                 // Ignore single file error
@@ -207,7 +220,8 @@ class LogService {
           isStream: rec.isStream,
           duration: rec.duration,
           model: rec.model,
-          account: rec.account || null
+          account: rec.account || null,
+          reqSize: rec.reqSize !== undefined ? rec.reqSize : 0
         }));
 
         return {

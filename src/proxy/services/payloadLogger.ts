@@ -19,6 +19,7 @@ export interface LogIndexRecord {
   model: string | null;
   isStream: boolean;
   account?: string | null;
+  reqSize?: number;
 }
 
 class PayloadLogger {
@@ -150,6 +151,16 @@ class PayloadLogger {
       const rawModelName = (claudeRes && claudeRes.model) || (clientReq && clientReq.model) || (reqPath ? (reqPath.match(/models\/([^:/?]+)/)?.[1] || null) : null) || null;
       const modelName = rawModelName ? claudeTranslator.getCleanModelName(rawModelName) : null;
 
+      let reqSize = 0;
+      if (clientReq !== undefined && clientReq !== null) {
+        try {
+          const raw = typeof clientReq === 'string' ? clientReq : JSON.stringify(clientReq);
+          reqSize = Buffer.byteLength(raw, 'utf8');
+        } catch {
+          reqSize = 0;
+        }
+      }
+
       const indexRecord: LogIndexRecord = {
         id: transactionId,
         timestamp: payload.timestamp,
@@ -162,7 +173,8 @@ class PayloadLogger {
         reqPath: reqPath || null,
         model: modelName,
         isStream: resolvedIsStream,
-        account: account || null
+        account: account || null,
+        reqSize
       };
 
       const indexPath = path.join(targetDir, '..', 'index.jsonl');
