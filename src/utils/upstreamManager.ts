@@ -21,6 +21,17 @@ export class UpstreamManager {
   private modelStates: Map<string, WeightedSchedulerState> = new Map();
   private globalState: WeightedSchedulerState = { currentWeights: new Map() };
   private circuitMap: Map<number, UpstreamCircuitState> = new Map();
+  private directKeyIndexMap: Map<number, number> = new Map();
+
+  private selectDirectApiKey(serverIndex: number, server: UpstreamServerConfig): string | undefined {
+    if (server.type !== 'direct' || !server.apiKeys || server.apiKeys.length === 0) {
+      return undefined;
+    }
+    const currentIdx = this.directKeyIndexMap.get(serverIndex) || 0;
+    const selected = server.apiKeys[currentIdx % server.apiKeys.length];
+    this.directKeyIndexMap.set(serverIndex, (currentIdx + 1) % server.apiKeys.length);
+    return selected;
+  }
 
   /**
    * Retrieves current list of configured upstream servers with weights and enabled state.
@@ -94,6 +105,10 @@ export class UpstreamManager {
         weight: server.weight || 1,
         enabled: server.enabled !== false,
         name: server.name,
+        allowedModels: server.allowedModels,
+        type: server.type || 'proxy',
+        apiKeys: server.apiKeys,
+        keyCount: server.apiKeys ? server.apiKeys.length : 0,
         effectivePercent,
         consecutiveFailures,
         isIsolated,
@@ -233,16 +248,26 @@ export class UpstreamManager {
   }): UpstreamServerSelection {
     const allServers = this.getUpstreamServers();
     if (allServers.length === 0) {
-      return { serverUrl: 'https://generativelanguage.googleapis.com', serverIndex: 0, weight: 1 };
+      return {
+        serverUrl: 'https://generativelanguage.googleapis.com',
+        serverIndex: 0,
+        weight: 1,
+        serverType: 'proxy'
+      };
     }
 
     // 1. Explicit serverIndex (e.g. for AccountService or direct targeting)
     if (options?.serverIndex !== undefined && !isNaN(options.serverIndex)) {
       const idx = Math.abs(Math.floor(options.serverIndex)) % allServers.length;
+      const target = allServers[idx];
+      const serverType = target.type || 'proxy';
+      const selectedApiKey = this.selectDirectApiKey(idx, target);
       return {
-        serverUrl: allServers[idx].url,
+        serverUrl: target.url,
         serverIndex: idx,
-        weight: allServers[idx].weight || 1
+        weight: target.weight || 1,
+        serverType,
+        selectedApiKey
       };
     }
 
@@ -295,10 +320,15 @@ export class UpstreamManager {
 
     // 3. Fast path if only one candidate
     if (candidates.length === 1) {
+      const chosen = candidates[0];
+      const serverType = chosen.type || 'proxy';
+      const selectedApiKey = this.selectDirectApiKey(chosen.serverIndex, chosen);
       return {
-        serverUrl: candidates[0].url,
-        serverIndex: candidates[0].serverIndex,
-        weight: candidates[0].weight || 1
+        serverUrl: chosen.url,
+        serverIndex: chosen.serverIndex,
+        weight: chosen.weight || 1,
+        serverType,
+        selectedApiKey
       };
     }
 
@@ -345,10 +375,16 @@ export class UpstreamManager {
     state.currentWeights.set(bestCand.serverIndex, maxWeight - totalWeight);
     state.lastSelectedIndex = bestCand.serverIndex;
 
+    const chosenServer = bestCand;
+    const serverType = chosenServer.type || 'proxy';
+    const selectedApiKey = this.selectDirectApiKey(chosenServer.serverIndex, chosenServer);
+
     return {
-      serverUrl: bestCand.url,
-      serverIndex: bestCand.serverIndex,
-      weight: bestCand.weight || 1
+      serverUrl: chosenServer.url,
+      serverIndex: chosenServer.serverIndex,
+      weight: chosenServer.weight || 1,
+      serverType,
+      selectedApiKey
     };
   }
 
@@ -364,13 +400,11 @@ export class UpstreamManager {
       serverIndex?: number;
     }
   ): UpstreamUrlSelection {
-    const { serverUrl, serverIndex, weight } = this.getUpstreamServer(options);
+    const selection = this.getUpstreamServer(options);
     const cleanPath = pathAndQuery.replace(/^\/+/, '');
     return {
-      targetUrl: `${serverUrl}/${cleanPath}`,
-      serverUrl,
-      serverIndex,
-      weight
+      targetUrl: `${selection.serverUrl}/${cleanPath}`,
+      ...selection
     };
   }
 
@@ -381,6 +415,7 @@ export class UpstreamManager {
     this.modelStates.clear();
     this.globalState = { currentWeights: new Map() };
     this.circuitMap.clear();
+    this.directKeyIndexMap.clear();
   }
 }
 
