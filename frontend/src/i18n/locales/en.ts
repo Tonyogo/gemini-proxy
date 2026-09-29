@@ -426,6 +426,8 @@ export const en = {
     factoryResetDesc: "Discard all live dynamic runtime overrides and revert directly to the baseline configuration defined in .env.",
     footerNote: "Changes take effect immediately upon saving",
     systemRoleDesc: "Convert inline system messages into systemInstruction.",
+    stripFingerprintsTitle: "STRIP_SYSTEM_FINGERPRINTS",
+    stripFingerprintsDesc: "Automatically strip Claude system prompt fingerprints (drop x-anthropic-billing-header blocks, neutralize identity, remove git attributions).",
     logRetentionDesc: "Days to keep log files before auto-deletion (0 to disable).",
     countTokensDesc: "Fixed model override to use specifically for /v1/messages/count_tokens requests (leave blank to use request model).",
     ephemeralUserMessagesDesc: "User role prompt patterns active only for current turn, automatically cleaned up when historical (fuzzy/substring match, one per line).",

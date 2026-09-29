@@ -72,6 +72,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
   };
 
   const [systemRoleToInstruction, setSystemRoleToInstruction] = useState<boolean>(false);
+  const [stripSystemFingerprints, setStripSystemFingerprints] = useState<boolean>(true);
   const [customSystemInstruction, setCustomSystemInstruction] = useState<string>('');
   const [geminiBaseUrl, setGeminiBaseUrl] = useState<string>('https://generativelanguage.googleapis.com');
   const [upstreamServers, setUpstreamServers] = useState<UpstreamServerConfig[]>([]);
@@ -121,6 +122,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
       .then(data => {
         if (data?.config) {
           setSystemRoleToInstruction(Boolean(data.config.systemRoleToInstruction));
+          setStripSystemFingerprints(data.config.stripSystemFingerprints !== false);
           setCustomSystemInstruction(data.config.customSystemInstruction || '');
           setGeminiBaseUrl(data.config.geminiBaseUrl || 'https://generativelanguage.googleapis.com');
           if (data.config.upstreamServers && Array.isArray(data.config.upstreamServers) && data.config.upstreamServers.length > 0) {
@@ -358,6 +360,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
         headers,
         body: JSON.stringify({
           systemRoleToInstruction,
+          stripSystemFingerprints,
           customSystemInstruction,
           geminiBaseUrl: geminiBaseUrl.split(',').map(s => s.trim().replace(/\/+$/, '')).filter(Boolean).join(','),
           upstreamServers: upstreamServers.map(s => ({
@@ -901,6 +904,28 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                         <span
                           className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
                             systemRoleToInstruction ? 'translate-x-5' : 'translate-x-0'
+                          }`}
+                        />
+                      </button>
+                    </div>
+
+                    {/* STRIP_SYSTEM_FINGERPRINTS Toggle Switch */}
+                    <div className="ui-card-sub p-3 sm:p-4 flex items-center justify-between gap-3">
+                      <div>
+                        <span className="text-xs font-semibold text-slate-200 block">{t('config.stripFingerprintsTitle')}</span>
+                        <p className="hidden sm:block text-[10px] text-slate-400 mt-0.5">{t('config.stripFingerprintsDesc')}</p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setStripSystemFingerprints(!stripSystemFingerprints)}
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                          stripSystemFingerprints ? 'bg-emerald-500' : 'bg-slate-800'
+                        }`}
+                      >
+                        <span
+                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                            stripSystemFingerprints ? 'translate-x-5' : 'translate-x-0'
                           }`}
                         />
                       </button>

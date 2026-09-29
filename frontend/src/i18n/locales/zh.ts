@@ -428,6 +428,8 @@ export const zh: Translations = {
     factoryResetDesc: "丢弃当前运行时所有的热更新参数，完全重置并回滚到 .env 中定义的初始基准配置。",
     footerNote: "修改在保存后立即生效并应用于后续所有请求",
     systemRoleDesc: "将消息数组中的 inline system 消息转为 systemInstruction。",
+    stripFingerprintsTitle: "STRIP_SYSTEM_FINGERPRINTS",
+    stripFingerprintsDesc: "自动过滤 Claude 系统提示词指纹（包括 x-anthropic-billing-header 整段丢弃、身份中性化及 Git 署名剥离）。",
     logRetentionDesc: "日志文件在自动删除前保留的天数 (设为 0 禁用)。",
     countTokensDesc: "固定模型覆盖，专门用于 /v1/messages/count_tokens 请求 (留空则沿用请求模型)。",
     ephemeralUserMessagesDesc: "User 角色仅在当次对话生效的提示词模式（模糊包含匹配，每行一条），当成为历史会话时自动清理。",
