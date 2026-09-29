@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import accountService from '../services/accountService';
 import accountUsageService from '../services/accountUsageService';
 import upstreamManager from '../../utils/upstreamManager';
+import { maskApiKey } from '../../utils/requestHelper';
 
 class AccountController {
   private getServerIndex(req: Request): number | undefined {
@@ -15,14 +16,89 @@ class AccountController {
     return undefined;
   }
 
+  private checkDirectModeBlocked(req: Request, res: Response): boolean {
+    const servers = upstreamManager.getUpstreamServers();
+    const serverIdx = this.getServerIndex(req) ?? 0;
+    if (servers[serverIdx]?.type === 'direct') {
+      res.status(400).json({ error: '该操作仅在代理模式服务器可用' });
+      return true;
+    }
+    return false;
+  }
+
   public async getServers(req: Request, res: Response): Promise<void> {
+    const statusList = upstreamManager.getUpstreamServerStatusList();
     res.json({
       servers: upstreamManager.getBaseUrls(),
+      serversMeta: statusList.map(s => ({
+        url: s.url,
+        name: s.name,
+        weight: s.weight,
+        enabled: s.enabled,
+        type: s.type || 'proxy',
+        keyCount: s.apiKeys?.length || 0,
+        allowedModels: s.allowedModels
+      })),
       circuits: upstreamManager.getCircuitStatusList()
     });
   }
 
   public async getStatus(req: Request, res: Response): Promise<void> {
+    const servers = upstreamManager.getUpstreamServers();
+    const serverIdx = this.getServerIndex(req) ?? 0;
+    const targetServer = servers[serverIdx];
+
+    if (targetServer && targetServer.type === 'direct') {
+      const keys = targetServer.apiKeys || [];
+      const accountDetails = keys.map((key, idx) => {
+        const maskedName = maskApiKey(key);
+        const localStats = accountUsageService.getUsageForAccount(maskedName);
+        const byModelCompat: Record<string, any> = {};
+        if (localStats?.byModel) {
+          for (const [model, stats] of Object.entries(localStats.byModel)) {
+            const cleanModel = model.replace(/^models\//, '');
+            byModelCompat[cleanModel] = {
+              usage: stats.success,
+              requests: stats.total,
+              success: stats.success,
+              error: stats.error
+            };
+          }
+        }
+        return {
+          index: idx,
+          name: maskedName,
+          status: 'ACTIVE',
+          isDisabled: false,
+          isInvalid: false,
+          isDuplicate: false,
+          isExpired: false,
+          isRotation: false,
+          hasContext: false,
+          canonicalIndex: null,
+          usage: {
+            total: localStats?.totalSuccess || 0,
+            totalRequests: localStats?.totalRequests || 0,
+            totalSuccess: localStats?.totalSuccess || 0,
+            totalError: localStats?.totalError || 0,
+            byModel: byModelCompat
+          }
+        };
+      });
+
+      res.json({
+        isDirectMode: true,
+        status: {
+          isSystemBusy: false,
+          streamingMode: 'DIRECT',
+          usageCount: accountDetails.reduce((sum, a) => sum + (a.usage?.totalRequests || 0), 0),
+          failureCount: accountDetails.reduce((sum, a) => sum + (a.usage?.totalError || 0), 0),
+          accountDetails
+        }
+      });
+      return;
+    }
+
     const serverIndex = this.getServerIndex(req);
     const result = serverIndex !== undefined
       ? await accountService.getStatus(serverIndex)
@@ -63,6 +139,7 @@ class AccountController {
   }
 
   public async upload(req: Request, res: Response): Promise<void> {
+    if (this.checkDirectModeBlocked(req, res)) return;
     const serverIndex = this.getServerIndex(req);
     const { files, content } = req.body;
     if (Array.isArray(files)) {
@@ -79,6 +156,7 @@ class AccountController {
   }
 
   public async toggleDisabled(req: Request, res: Response): Promise<void> {
+    if (this.checkDirectModeBlocked(req, res)) return;
     const serverIndex = this.getServerIndex(req);
     const { index, disabled } = req.body;
     if (typeof index !== 'number' || typeof disabled !== 'boolean') {
@@ -92,6 +170,7 @@ class AccountController {
   }
 
   public async deleteAccount(req: Request, res: Response): Promise<void> {
+    if (this.checkDirectModeBlocked(req, res)) return;
     const serverIndex = this.getServerIndex(req);
     const indexParam = Array.isArray(req.params.index) ? req.params.index[0] : req.params.index;
     const index = parseInt(indexParam, 10);
@@ -107,6 +186,7 @@ class AccountController {
   }
 
   public async batchDelete(req: Request, res: Response): Promise<void> {
+    if (this.checkDirectModeBlocked(req, res)) return;
     const serverIndex = this.getServerIndex(req);
     const { indices, force } = req.body;
     if (!Array.isArray(indices)) {
@@ -120,6 +200,7 @@ class AccountController {
   }
 
   public async deduplicate(req: Request, res: Response): Promise<void> {
+    if (this.checkDirectModeBlocked(req, res)) return;
     const serverIndex = this.getServerIndex(req);
     const result = serverIndex !== undefined
       ? await accountService.deduplicateAccounts(serverIndex)
@@ -128,6 +209,7 @@ class AccountController {
   }
 
   public async switchCurrent(req: Request, res: Response): Promise<void> {
+    if (this.checkDirectModeBlocked(req, res)) return;
     const serverIndex = this.getServerIndex(req);
     const { targetIndex } = req.body;
     const result = serverIndex !== undefined
@@ -137,6 +219,7 @@ class AccountController {
   }
 
   public async closeContext(req: Request, res: Response): Promise<void> {
+    if (this.checkDirectModeBlocked(req, res)) return;
     const serverIndex = this.getServerIndex(req);
     const indexParam = Array.isArray(req.params.index) ? req.params.index[0] : req.params.index;
     const index = parseInt(indexParam, 10);
@@ -151,6 +234,7 @@ class AccountController {
   }
 
   public async downloadFile(req: Request, res: Response): Promise<void> {
+    if (this.checkDirectModeBlocked(req, res)) return;
     const serverIndex = this.getServerIndex(req);
     const filenameParam = Array.isArray(req.params.filename) ? req.params.filename[0] : req.params.filename;
     const filename = filenameParam || '';
@@ -167,6 +251,7 @@ class AccountController {
   }
 
   public async batchDownload(req: Request, res: Response): Promise<void> {
+    if (this.checkDirectModeBlocked(req, res)) return;
     const serverIndex = this.getServerIndex(req);
     const { indices } = req.body;
     const result = serverIndex !== undefined
