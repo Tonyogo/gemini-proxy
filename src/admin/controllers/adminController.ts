@@ -82,6 +82,11 @@ class AdminController {
   public async updateConfig(req: Request, res: Response): Promise<void> {
     try {
       const newConfig = req.body;
+      if (newConfig.stripSystemFingerprints !== undefined) {
+        newConfig.stripSystemFingerprints =
+          newConfig.stripSystemFingerprints === true ||
+          newConfig.stripSystemFingerprints === 'true';
+      }
       await updateConfig(newConfig, { resetToEnv: Boolean(req.body.resetToEnv) });
       upstreamManager.reset();
       res.json({

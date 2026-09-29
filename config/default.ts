@@ -314,6 +314,11 @@ export async function updateConfig(
     }
   }
 
+  if (partialConfig.stripSystemFingerprints !== undefined) {
+    const rawVal = partialConfig.stripSystemFingerprints as unknown;
+    partialConfig.stripSystemFingerprints = rawVal === true || rawVal === 'true';
+  }
+
   // Record only explicit keys
   Object.assign(runtimeOverrides, partialConfig);
   Object.assign(config, partialConfig);

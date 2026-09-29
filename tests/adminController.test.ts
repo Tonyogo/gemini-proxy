@@ -55,6 +55,23 @@ describe('Admin API Endpoints', () => {
     expect(revertRes.body.config.stripSystemFingerprints).toBe(true);
   });
 
+  test('POST /api/admin/config correctly coerces string "false" for stripSystemFingerprints to boolean false', async () => {
+    const res = await request(app)
+      .post('/api/admin/config')
+      .send({ stripSystemFingerprints: 'false' });
+    expect(res.status).toBe(200);
+    expect(res.body.config.stripSystemFingerprints).toBe(false);
+    expect(typeof res.body.config.stripSystemFingerprints).toBe('boolean');
+
+    // Also test string "true"
+    const resTrue = await request(app)
+      .post('/api/admin/config')
+      .send({ stripSystemFingerprints: 'true' });
+    expect(resTrue.status).toBe(200);
+    expect(resTrue.body.config.stripSystemFingerprints).toBe(true);
+    expect(typeof resTrue.body.config.stripSystemFingerprints).toBe('boolean');
+  });
+
   test('GET /api/admin/models returns list of configured model mappings', async () => {
     const res = await request(app).get('/api/admin/models');
     expect(res.status).toBe(200);
