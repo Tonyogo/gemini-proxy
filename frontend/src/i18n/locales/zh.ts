@@ -502,6 +502,7 @@ export const zh: Translations = {
     reconnectCountdown: "连接已断开，{count} 秒后自动重试...",
     reconnectNow: "立即重连",
     clear: "清屏",
+    scrollToBottom: "跳到最后",
     resetSession: "重置会话",
     resetConfirm: "确定要重启终端会话吗？当前 Shell 中运行的后台任务将会被终止。",
     fullscreen: "全屏",
