@@ -100,18 +100,21 @@ class LogService {
           }
         }
 
-        if (targetRecords.length === 0) {
-          // Execute self-healing fallback
-          const dateDir = path.join(debugDir, targetDate);
-          const hours = await fs.readdir(dateDir).catch(() => []);
-          const sortedHours = hours.filter(h => /^\d{2}$/.test(h)).sort();
+        const dateDir = path.join(debugDir, targetDate);
+        const indexedFiles = new Set(targetRecords.map(r => r.filename));
+        const hours = await fs.readdir(dateDir).catch(() => []);
+        const sortedHours = hours.filter(h => /^\d{2}$/.test(h)).sort();
 
-          for (const hour of sortedHours) {
-            const hourDir = path.join(dateDir, hour);
-            const files = await fs.readdir(hourDir).catch(() => []);
-            const jsonFiles = files.filter(f => f.endsWith('.json')).sort();
+        let hasIndexChanges = false;
 
-            for (const file of jsonFiles) {
+        // Discover and index any json log files that exist on disk but are missing from index.jsonl
+        for (const hour of sortedHours) {
+          const hourDir = path.join(dateDir, hour);
+          const files = await fs.readdir(hourDir).catch(() => []);
+          const jsonFiles = files.filter(f => f.endsWith('.json')).sort();
+
+          for (const file of jsonFiles) {
+            if (!indexedFiles.has(file)) {
               try {
                 const fullPath = path.join(hourDir, file);
                 const content = await fs.readFile(fullPath, 'utf8');
@@ -147,11 +150,15 @@ class LogService {
                 let fallbackReqSize = 0;
                 const reqObj = parsed.client_req || parsed.gem_req;
                 if (reqObj) {
-                  try {
-                    const raw = typeof reqObj === 'string' ? reqObj : JSON.stringify(reqObj);
-                    fallbackReqSize = Buffer.byteLength(raw, 'utf8');
-                  } catch {
-                    fallbackReqSize = 0;
+                  const isGetOrHead = typeof reqObj === 'object' && reqObj.method && (reqObj.method === 'GET' || reqObj.method === 'HEAD');
+                  const isEmptyObj = typeof reqObj === 'object' && !Array.isArray(reqObj) && Object.keys(reqObj).length === 0;
+                  if (!isGetOrHead && !isEmptyObj) {
+                    try {
+                      const raw = typeof reqObj === 'string' ? reqObj : JSON.stringify(reqObj);
+                      fallbackReqSize = Buffer.byteLength(raw, 'utf8');
+                    } catch {
+                      fallbackReqSize = 0;
+                    }
                   }
                 }
 
@@ -170,19 +177,51 @@ class LogService {
                   account: parsed.account || null,
                   reqSize: fallbackReqSize
                 });
+                indexedFiles.add(file);
+                hasIndexChanges = true;
               } catch {
                 // Ignore single file error
               }
             }
           }
+        }
 
-          // Write targetRecords to index.jsonl if not empty
-          if (targetRecords.length > 0) {
-            const indexPath = path.join(dateDir, 'index.jsonl');
-            const fileContent = targetRecords.map(rec => JSON.stringify(rec)).join('\n') + '\n';
-            await fs.mkdir(dateDir, { recursive: true }).catch(() => {});
-            await fs.writeFile(indexPath, fileContent, 'utf8').catch(() => {});
-          }
+        // Backfill reqSize for any existing index records that lack it (e.g. historical logs before reqSize support)
+        const recordsNeedingReqSize = targetRecords.filter(r => r.reqSize === undefined || r.reqSize === null);
+        if (recordsNeedingReqSize.length > 0) {
+          await Promise.all(recordsNeedingReqSize.map(async (rec) => {
+            try {
+              const fullPath = rec.path ? path.join(debugDir, rec.path) : path.join(dateDir, rec.hour, rec.filename);
+              const content = await fs.readFile(fullPath, 'utf8');
+              const parsed = JSON.parse(content);
+              let fallbackReqSize = 0;
+              const reqObj = parsed.client_req || parsed.gem_req;
+              if (reqObj) {
+                const isGetOrHead = typeof reqObj === 'object' && reqObj.method && (reqObj.method === 'GET' || reqObj.method === 'HEAD');
+                const isEmptyObj = typeof reqObj === 'object' && !Array.isArray(reqObj) && Object.keys(reqObj).length === 0;
+                if (!isGetOrHead && !isEmptyObj) {
+                  try {
+                    const raw = typeof reqObj === 'string' ? reqObj : JSON.stringify(reqObj);
+                    fallbackReqSize = Buffer.byteLength(raw, 'utf8');
+                  } catch {
+                    fallbackReqSize = 0;
+                  }
+                }
+              }
+              rec.reqSize = fallbackReqSize;
+            } catch {
+              rec.reqSize = 0;
+            }
+          }));
+          hasIndexChanges = true;
+        }
+
+        // Persist healed index to index.jsonl
+        if (hasIndexChanges && targetRecords.length > 0) {
+          targetRecords.sort((a, b) => (a.timestamp || '').localeCompare(b.timestamp || ''));
+          const fileContent = targetRecords.map(rec => JSON.stringify(rec)).join('\n') + '\n';
+          await fs.mkdir(dateDir, { recursive: true }).catch(() => {});
+          await fs.writeFile(indexPath, fileContent, 'utf8').catch(() => {});
         }
 
         // Synchronize actual counts into tree[targetDate]
@@ -227,7 +266,7 @@ class LogService {
         return {
           tree,
           hourCount,
-          total: hourCount,
+          total: targetRecords.length,
           page,
           limit,
           logs: enrichedLogs

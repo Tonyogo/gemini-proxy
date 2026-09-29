@@ -29,7 +29,7 @@ class ClaudeController {
     logger.info(`[Request] [Transaction: ${transactionId}] Received ${clientEndpoint}`);
 
     // Deep clone the client request body immediately upon entry to prevent reference mutations
-    const clientReq = JSON.parse(JSON.stringify(req.body));
+    const clientReq = req.body ? JSON.parse(JSON.stringify(req.body)) : null;
     let gemReq: any = null;
 
     try {
@@ -361,7 +361,7 @@ class ClaudeController {
     logger.info(`[Request] [Transaction: ${transactionId}] Received ${clientEndpoint}`);
 
     // Deep clone immediately
-    const clientReq = JSON.parse(JSON.stringify(req.body));
+    const clientReq = req.body ? JSON.parse(JSON.stringify(req.body)) : null;
     let gemReq: any = null;
 
     try {

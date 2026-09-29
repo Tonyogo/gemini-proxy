@@ -212,6 +212,10 @@ export default function LogsView({
         };
         detailCacheRef.current.set(log.path, enriched);
         setSelectedLog(enriched);
+        const realReqBytes = calculatePayloadSize(enriched).reqBytes;
+        if (realReqBytes > 0) {
+          setLogs(prevLogs => prevLogs.map(l => ((log.path && l.path === log.path) || (log.filename && l.filename === log.filename)) ? { ...l, reqSize: realReqBytes } : l));
+        }
       })
       .catch(() => {
         const fallback = {

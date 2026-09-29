@@ -152,12 +152,17 @@ class PayloadLogger {
       const modelName = rawModelName ? claudeTranslator.getCleanModelName(rawModelName) : null;
 
       let reqSize = 0;
-      if (clientReq !== undefined && clientReq !== null) {
-        try {
-          const raw = typeof clientReq === 'string' ? clientReq : JSON.stringify(clientReq);
-          reqSize = Buffer.byteLength(raw, 'utf8');
-        } catch {
-          reqSize = 0;
+      const reqObj = (clientReq && (typeof clientReq !== 'object' || Object.keys(clientReq).length > 0)) ? clientReq : (gemReq || clientReq);
+      if (reqObj !== undefined && reqObj !== null) {
+        const isGetOrHead = typeof reqObj === 'object' && reqObj.method && (reqObj.method === 'GET' || reqObj.method === 'HEAD');
+        const isEmptyObj = typeof reqObj === 'object' && !Array.isArray(reqObj) && Object.keys(reqObj).length === 0;
+        if (!isGetOrHead && !isEmptyObj) {
+          try {
+            const raw = typeof reqObj === 'string' ? reqObj : JSON.stringify(reqObj);
+            reqSize = Buffer.byteLength(raw, 'utf8');
+          } catch {
+            reqSize = 0;
+          }
         }
       }
 
