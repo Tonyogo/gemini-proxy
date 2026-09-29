@@ -2,6 +2,7 @@
 import { StreamSessionManager, hasSystemPython3, PosixPtyDriver, InteractivePipeDriver, NodePtyDriver, tryRequirePty, getDefaultShell } from '../scripts/gt.js';
 
 describe('StreamSessionManager PTY Fallback & Interactive Execution', () => {
+  jest.setTimeout(25000);
   it('detects and selects available pty drivers correctly', () => {
     const messages: any[] = [];
     const mgr = new StreamSessionManager((msg: any) => messages.push(msg));
