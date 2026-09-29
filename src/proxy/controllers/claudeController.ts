@@ -15,7 +15,8 @@ import {
   getUpstreamUrl,
   generateShortId,
   generateTransactionId,
-  buildUpstreamHeaders
+  buildUpstreamHeaders,
+  maskApiKey
 } from '../../utils/requestHelper';
 
 const SUPPORTED_MODELS: ModelConfig[] = [];
@@ -79,18 +80,27 @@ class ClaudeController {
       if (isStream) {
         const streamManager = new StreamLifecycleManager({ req, res, transactionId, timeoutMs });
         const targetPath = `/v1beta/models/${cleanModelName}:streamGenerateContent?alt=sse`;
-        const { targetUrl, serverUrl, serverIndex } = upstreamManager.getUpstreamUrl(targetPath, { model: cleanModelName, originalModel: clientModel, resolvedModel: cleanModelName });
+        const serverSelection = upstreamManager.getUpstreamUrl(targetPath, { model: cleanModelName, originalModel: clientModel, resolvedModel: cleanModelName });
+        const { targetUrl, serverUrl, serverIndex, serverType, selectedApiKey } = serverSelection;
         logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini [server ${serverIndex + 1}: ${serverUrl}]: POST ${targetPath}`);
+
+        const effectiveApiKey = (serverType === 'direct' && selectedApiKey)
+          ? selectedApiKey
+          : apiKey;
+        const upstreamHeaders = buildUpstreamHeaders(effectiveApiKey, customUpstreamHeaders);
 
         try {
           const response = await fetch(targetUrl, {
             method: 'POST',
-            headers: buildUpstreamHeaders(apiKey, customUpstreamHeaders),
+            headers: upstreamHeaders,
             body: JSON.stringify(gemReq),
             signal: streamManager.signal
           });
 
-          const accountName = response.headers?.get ? (response.headers.get('x-account-name') || null) : null;
+          let accountName = response.headers?.get ? (response.headers.get('x-account-name') || null) : null;
+          if (serverType === 'direct' && selectedApiKey) {
+            accountName = maskApiKey(selectedApiKey);
+          }
 
           if (!response.ok) {
             streamManager.markFinished();
@@ -277,19 +287,28 @@ class ClaudeController {
       // Non-Streaming generation
       const streamManager = new StreamLifecycleManager({ req, res, transactionId, timeoutMs });
       const targetPath = `/v1beta/models/${cleanModelName}:generateContent`;
-      const { targetUrl, serverUrl, serverIndex } = upstreamManager.getUpstreamUrl(targetPath, { model: cleanModelName, originalModel: clientModel, resolvedModel: cleanModelName });
+      const serverSelection = upstreamManager.getUpstreamUrl(targetPath, { model: cleanModelName, originalModel: clientModel, resolvedModel: cleanModelName });
+      const { targetUrl, serverUrl, serverIndex, serverType, selectedApiKey } = serverSelection;
       logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini [server ${serverIndex + 1}: ${serverUrl}]: POST ${targetPath}`);
+
+      const effectiveApiKey = (serverType === 'direct' && selectedApiKey)
+        ? selectedApiKey
+        : apiKey;
+      const upstreamHeaders = buildUpstreamHeaders(effectiveApiKey, customUpstreamHeaders);
 
       try {
         const response = await fetch(targetUrl, {
           method: 'POST',
-          headers: buildUpstreamHeaders(apiKey, customUpstreamHeaders),
+          headers: upstreamHeaders,
           body: JSON.stringify(gemReq),
           signal: streamManager.signal
         });
 
         streamManager.markFinished();
-        const accountName = response.headers?.get ? (response.headers.get('x-account-name') || null) : null;
+        let accountName = response.headers?.get ? (response.headers.get('x-account-name') || null) : null;
+        if (serverType === 'direct' && selectedApiKey) {
+          accountName = maskApiKey(selectedApiKey);
+        }
 
         if (!response.ok) {
           if (response.status >= 500 && response.status < 600) {
@@ -421,14 +440,19 @@ class ClaudeController {
       gemReq = countTokensPayload;
 
       const targetPath = `/v1beta/models/${cleanModelName}:countTokens`;
-      const { targetUrl, serverUrl, serverIndex } = upstreamManager.getUpstreamUrl(targetPath, { model: cleanModelName, originalModel: requestedModel, resolvedModel: cleanModelName });
+      const serverSelection = upstreamManager.getUpstreamUrl(targetPath, { model: cleanModelName, originalModel: requestedModel, resolvedModel: cleanModelName });
+      const { targetUrl, serverUrl, serverIndex, serverType, selectedApiKey } = serverSelection;
       logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini [server ${serverIndex + 1}: ${serverUrl}]: POST ${targetPath}`);
+
+      const effectiveApiKey = (serverType === 'direct' && selectedApiKey)
+        ? selectedApiKey
+        : apiKey;
 
       let response;
       try {
         response = await fetch(targetUrl, {
           method: 'POST',
-          headers: buildUpstreamHeaders(apiKey),
+          headers: buildUpstreamHeaders(effectiveApiKey),
           body: JSON.stringify(countTokensPayload)
         });
       } catch (fetchErr: any) {
@@ -502,15 +526,20 @@ class ClaudeController {
       }
 
       const targetPath = `/v1beta/models`;
-      const { targetUrl, serverUrl, serverIndex } = upstreamManager.getUpstreamUrl(targetPath);
+      const serverSelection = upstreamManager.getUpstreamUrl(targetPath);
+      const { targetUrl, serverUrl, serverIndex, serverType, selectedApiKey } = serverSelection;
       logger.info(`[Request] [Transaction: ${transactionId}] Proxying models list to Gemini [server ${serverIndex + 1}: ${serverUrl}]: GET ${targetPath}`);
       gemReq = { endpoint: targetPath };
+
+      const effectiveApiKey = (serverType === 'direct' && selectedApiKey)
+        ? selectedApiKey
+        : apiKey;
 
       let response;
       try {
         response = await fetch(targetUrl, {
           method: 'GET',
-          headers: buildUpstreamHeaders(apiKey)
+          headers: buildUpstreamHeaders(effectiveApiKey)
         });
       } catch (fetchErr: any) {
         upstreamManager.recordRequestResult(serverIndex, false, fetchErr.message || 'Fetch error');

@@ -13,7 +13,8 @@ import {
   extractClientSchedulingStrategy,
   getUpstreamUrl,
   generateShortId,
-  buildUpstreamHeaders
+  buildUpstreamHeaders,
+  maskApiKey
 } from '../../utils/requestHelper';
 
 class GeminiController {
@@ -79,16 +80,20 @@ class GeminiController {
     }
 
     const isStream = cleanPath.includes(':streamGenerateContent') || req.query.alt === 'sse';
-    const { targetUrl, serverUrl, serverIndex } = upstreamManager.getUpstreamUrl(cleanPath, {
+    const serverSelection = upstreamManager.getUpstreamUrl(cleanPath, {
       model: targetModelName || undefined,
       originalModel: originalModel || undefined,
       resolvedModel: targetModelName || undefined
     });
+    const { targetUrl, serverUrl, serverIndex, serverType, selectedApiKey } = serverSelection;
     const customUpstreamHeaders: Record<string, string> = {};
     if (effectiveStrategy) {
       customUpstreamHeaders['x-scheduling-strategy'] = effectiveStrategy;
     }
-    const upstreamHeaders = buildUpstreamHeaders(apiKey, customUpstreamHeaders);
+    const effectiveApiKey = (serverType === 'direct' && selectedApiKey)
+      ? selectedApiKey
+      : apiKey;
+    const upstreamHeaders = buildUpstreamHeaders(effectiveApiKey, customUpstreamHeaders);
 
     const clientReq = req.body && Object.keys(req.body).length > 0 ? JSON.parse(JSON.stringify(req.body)) : null;
 
@@ -104,7 +109,10 @@ class GeminiController {
           signal: streamManager.signal
         });
 
-        const accountName = response.headers?.get ? (response.headers.get('x-account-name') || null) : null;
+        let accountName = response.headers?.get ? (response.headers.get('x-account-name') || null) : null;
+        if (serverType === 'direct' && selectedApiKey) {
+          accountName = maskApiKey(selectedApiKey);
+        }
 
         if (!response.ok) {
           streamManager.markFinished();
@@ -199,7 +207,10 @@ class GeminiController {
         body: req.method !== 'GET' && req.method !== 'HEAD' && clientReq ? JSON.stringify(clientReq) : undefined
       });
 
-      const accountName = response.headers?.get ? (response.headers.get('x-account-name') || null) : null;
+      let accountName = response.headers?.get ? (response.headers.get('x-account-name') || null) : null;
+      if (serverType === 'direct' && selectedApiKey) {
+        accountName = maskApiKey(selectedApiKey);
+      }
 
       if (!response.ok) {
         if (response.status >= 500 && response.status < 600) {
