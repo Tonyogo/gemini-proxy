@@ -474,6 +474,12 @@ export const zh: Translations = {
     emptyMappings: "暂无模型映射规则。点击下方按钮添加。",
     serverAllowedModelsTitle: "允许模型",
     serverAllowedModelsPlaceholder: "留空允许全部，多个以英文逗号分隔，如 gemini-2.5-flash, gemini-2.5-pro",
+    serverType: "服务器类型",
+    serverTypeProxy: "代理模式 (Proxy)",
+    serverTypeDirect: "直连模式 (Direct)",
+    serverApiKeys: "Gemini API Keys (直连密钥池)",
+    serverApiKeysPlaceholder: "每行一个 API Key，请求将在配置的 Key 之间均衡轮询负载",
+    serverApiKeysHelp: "已配置 {count} 个密钥",
   },
   concurrentTest: {
     title: "并发压力测试",

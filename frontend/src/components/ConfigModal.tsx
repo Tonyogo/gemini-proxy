@@ -28,6 +28,8 @@ export interface UpstreamServerConfig {
   enabled: boolean;
   name?: string;
   allowedModels?: string[];
+  type?: 'proxy' | 'direct';
+  apiKeys?: string[];
 }
 
 const SPLIT_COLORS = [
@@ -92,6 +94,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
   const [ephemeralUserMessagesText, setEphemeralUserMessagesText] = useState<string>('');
   const [ephemeralSystemMessagesText, setEphemeralSystemMessagesText] = useState<string>('');
   const [serverModelInputs, setServerModelInputs] = useState<Record<number, string>>({});
+  const [serverKeyInputs, setServerKeyInputs] = useState<Record<number, string>>({});
 
   const activeTotalWeight = useMemo(() => {
     return upstreamServers
@@ -162,11 +165,23 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
           setGeminiBaseUrl(data.config.geminiBaseUrl || 'https://generativelanguage.googleapis.com');
           if (data.config.upstreamServers && Array.isArray(data.config.upstreamServers) && data.config.upstreamServers.length > 0) {
             setUpstreamServers(data.config.upstreamServers);
+            const keyInputs: Record<number, string> = {};
+            const modelInputs: Record<number, string> = {};
+            data.config.upstreamServers.forEach((srv: any, idx: number) => {
+              if (Array.isArray(srv.apiKeys)) {
+                keyInputs[idx] = srv.apiKeys.join('\n');
+              }
+              if (Array.isArray(srv.allowedModels)) {
+                modelInputs[idx] = srv.allowedModels.join(', ');
+              }
+            });
+            setServerKeyInputs(keyInputs);
+            setServerModelInputs(modelInputs);
           } else if (data.config.geminiBaseUrl) {
             const parts = String(data.config.geminiBaseUrl).split(',').map((s: string) => s.trim()).filter(Boolean);
-            setUpstreamServers(parts.map((url: string) => ({ url, weight: 1, enabled: true })));
+            setUpstreamServers(parts.map((url: string) => ({ url, weight: 1, enabled: true, type: 'proxy' })));
           } else {
-            setUpstreamServers([{ url: 'https://generativelanguage.googleapis.com', weight: 1, enabled: true, name: 'Official Gemini API' }]);
+            setUpstreamServers([{ url: 'https://generativelanguage.googleapis.com', weight: 1, enabled: true, name: 'Official Gemini API', type: 'proxy' }]);
           }
           setUpstreamTimeoutMs(data.config.upstreamTimeoutMs || 180000);
           setLogLevel(data.config.logLevel || 'info');
@@ -399,13 +414,19 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
           ignoredTools,
           customSystemInstruction,
           geminiBaseUrl: geminiBaseUrl.split(',').map(s => s.trim().replace(/\/+$/, '')).filter(Boolean).join(','),
-          upstreamServers: upstreamServers.map(s => ({
-            url: s.url.trim().replace(/\/+$/, ''),
-            weight: Math.max(1, Math.min(1000, Number(s.weight) || 1)),
-            enabled: s.enabled !== false,
-            ...(s.name?.trim() ? { name: s.name.trim() } : {}),
-            ...(Array.isArray(s.allowedModels) && s.allowedModels.length > 0 ? { allowedModels: s.allowedModels } : {})
-          })),
+          upstreamServers: upstreamServers.map((s, idx) => {
+            const rawKeys = serverKeyInputs[idx] !== undefined ? serverKeyInputs[idx] : (s.apiKeys || []).join('\n');
+            const cleanKeys = Array.from(new Set(rawKeys.split('\n').map(k => k.trim()).filter(Boolean)));
+            return {
+              url: (s.type === 'direct' && !s.url.trim()) ? 'https://generativelanguage.googleapis.com' : s.url.trim().replace(/\/+$/, ''),
+              weight: Math.max(1, Math.min(1000, Number(s.weight) || 1)),
+              enabled: s.enabled !== false,
+              type: s.type || 'proxy',
+              ...(s.name?.trim() ? { name: s.name.trim() } : {}),
+              ...(Array.isArray(s.allowedModels) && s.allowedModels.length > 0 ? { allowedModels: s.allowedModels } : {}),
+              ...(s.type === 'direct' && cleanKeys.length > 0 ? { apiKeys: cleanKeys } : {})
+            };
+          }),
           upstreamTimeoutMs,
           logLevel,
           logRetentionDays,
@@ -708,6 +729,45 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                     >
                                       {server.enabled ? `${pct}%` : t('config.nodeDisabled', '已禁用')}
                                     </span>
+
+                                    {/* Server Type Switcher */}
+                                    <div className="inline-flex rounded p-0.5 bg-slate-900 border border-slate-700/80 ml-1.5">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const updated = [...upstreamServers];
+                                          updated[idx] = { ...updated[idx], type: 'proxy' };
+                                          setUpstreamServers(updated);
+                                        }}
+                                        className={`px-2 py-0.5 text-[10px] rounded font-medium transition-all ${
+                                          (server.type || 'proxy') === 'proxy'
+                                            ? 'bg-purple-600 text-white shadow-xs'
+                                            : 'text-slate-400 hover:text-slate-200'
+                                        }`}
+                                      >
+                                        {t('config.serverTypeProxy', '代理模式 (Proxy)')}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const updated = [...upstreamServers];
+                                          let nextUrl = updated[idx].url;
+                                          if (!nextUrl || nextUrl.includes('proxy') || nextUrl === '') {
+                                            nextUrl = 'https://generativelanguage.googleapis.com';
+                                          }
+                                          updated[idx] = { ...updated[idx], type: 'direct', url: nextUrl };
+                                          setUpstreamServers(updated);
+                                          setGeminiBaseUrl(updated.map(s => s.url).filter(Boolean).join(','));
+                                        }}
+                                        className={`px-2 py-0.5 text-[10px] rounded font-medium transition-all ${
+                                          server.type === 'direct'
+                                            ? 'bg-cyan-600 text-white shadow-xs'
+                                            : 'text-slate-400 hover:text-slate-200'
+                                        }`}
+                                      >
+                                        {t('config.serverTypeDirect', '直连模式 (Direct)')}
+                                      </button>
+                                    </div>
                                   </div>
 
                                   <div className="flex items-center space-x-3">
@@ -851,6 +911,47 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                       })()}
                                     </div>
                                   </div>
+
+                                  {/* Direct Mode API Keys (Multi-line) */}
+                                  {server.type === 'direct' && (
+                                    <div className="sm:col-span-12 space-y-1 mt-1 p-2.5 rounded bg-slate-900/60 border border-cyan-500/20">
+                                      <div className="flex items-center justify-between">
+                                        <label className="text-[11px] font-semibold text-cyan-400 flex items-center space-x-1">
+                                          <span>{t('config.serverApiKeys', 'Gemini API Keys (直连密钥池)')}</span>
+                                        </label>
+                                        {(() => {
+                                          const rawKeys = serverKeyInputs[idx] !== undefined ? serverKeyInputs[idx] : (server.apiKeys || []).join('\n');
+                                          const count = rawKeys.split('\n').map(k => k.trim()).filter(Boolean).length;
+                                          return (
+                                            <span className="text-[10px] text-cyan-300/80 font-mono bg-cyan-950/60 px-1.5 py-0.5 rounded border border-cyan-500/30">
+                                              {t('config.serverApiKeysHelp', '已配置 {count} 个密钥').replace('{count}', String(count))}
+                                            </span>
+                                          );
+                                        })()}
+                                      </div>
+                                      <textarea
+                                        rows={3}
+                                        value={serverKeyInputs[idx] !== undefined ? serverKeyInputs[idx] : (server.apiKeys || []).join('\n')}
+                                        onChange={(e) => {
+                                          const val = e.target.value;
+                                          setServerKeyInputs(prev => ({ ...prev, [idx]: val }));
+                                        }}
+                                        onBlur={() => {
+                                          const raw = serverKeyInputs[idx] !== undefined ? serverKeyInputs[idx] : (server.apiKeys || []).join('\n');
+                                          const cleanKeys = Array.from(new Set(raw.split('\n').map(k => k.trim()).filter(Boolean)));
+                                          const updated = [...upstreamServers];
+                                          updated[idx] = {
+                                            ...updated[idx],
+                                            apiKeys: cleanKeys.length > 0 ? cleanKeys : undefined
+                                          };
+                                          setUpstreamServers(updated);
+                                          setServerKeyInputs(prev => ({ ...prev, [idx]: cleanKeys.join('\n') }));
+                                        }}
+                                        placeholder={t('config.serverApiKeysPlaceholder', '每行一个 API Key，请求将在配置的 Key 之间均衡轮询负载')}
+                                        className="w-full ui-input p-2 text-xs font-mono resize-y leading-relaxed text-slate-200"
+                                      />
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             );
@@ -859,9 +960,9 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                           <button
                             type="button"
                             onClick={() => {
-                              const updated = [
+                              const updated: UpstreamServerConfig[] = [
                                 ...upstreamServers,
-                                { url: '', weight: 1, enabled: true, name: '' }
+                                { url: '', weight: 1, enabled: true, name: '', type: 'proxy' }
                               ];
                               setUpstreamServers(updated);
                             }}

@@ -472,6 +472,12 @@ export const en = {
     emptyMappings: "No model mapping rules added. Click below to add one.",
     serverAllowedModelsTitle: "Allowed Models",
     serverAllowedModelsPlaceholder: "Leave blank for all, or comma-separated e.g. gemini-2.5-flash, gemini-2.5-pro",
+    serverType: "Server Type",
+    serverTypeProxy: "Proxy Mode",
+    serverTypeDirect: "Direct Mode",
+    serverApiKeys: "Gemini API Keys (Direct Pool)",
+    serverApiKeysPlaceholder: "One API Key per line. Requests will be load-balanced evenly across keys",
+    serverApiKeysHelp: "{count} API keys configured",
   },
   concurrentTest: {
     title: "Concurrency Load Test",
