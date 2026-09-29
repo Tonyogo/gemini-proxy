@@ -492,7 +492,14 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
     lastSentRowsRef.current = 0;
 
     if (wsRef.current) {
-      wsRef.current.close();
+      const oldWs = wsRef.current;
+      oldWs.onopen = null;
+      oldWs.onmessage = null;
+      oldWs.onerror = null;
+      oldWs.onclose = null;
+      try {
+        oldWs.close();
+      } catch {}
       wsRef.current = null;
     }
 
@@ -519,6 +526,12 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
       setIsConnected(true);
       reconnectAttemptRef.current = 0;
       clearReconnectTimers();
+
+      // Reset xterm buffer so replayed history stream does not duplicate existing content
+      if (xtermRef.current) {
+        xtermRef.current.clear();
+        xtermRef.current.reset();
+      }
 
       isReplayingRef.current = true;
       if (replayTimerRef.current) {
@@ -552,6 +565,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
             console.debug('[WebTerminal] Received backend control message:', parsed);
             if (parsed.type === 'reset') {
               console.debug('[WebTerminal] Received reset signal from backend, clearing buffer and muting synthetic reports');
+              xtermRef.current?.clear();
               xtermRef.current?.reset();
               isReplayingRef.current = true;
               if (replayTimerRef.current) {
@@ -648,8 +662,8 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
       triggerReconnect();
     };
 
-    ws.onerror = () => {
-      triggerReconnect();
+    ws.onerror = (err) => {
+      console.debug('[WebTerminal] WebSocket encountered error:', err);
     };
   }, [adminKey, clearReconnectTimers, sendResize]);
 
@@ -1398,7 +1412,15 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
         window.visualViewport.removeEventListener('scroll', handleViewportChange);
       }
       if (wsRef.current) {
-        wsRef.current.close();
+        const oldWs = wsRef.current;
+        oldWs.onopen = null;
+        oldWs.onmessage = null;
+        oldWs.onerror = null;
+        oldWs.onclose = null;
+        try {
+          oldWs.close();
+        } catch {}
+        wsRef.current = null;
       }
       term.dispose();
     };
@@ -1865,6 +1887,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
       wsRef.current.send(`JSON:${JSON.stringify({ type: 'reset' })}`);
     }
     xtermRef.current?.clear();
+    xtermRef.current?.reset();
   }, []);
 
   const handleResetSession = useCallback(() => {

@@ -43,6 +43,8 @@ export class RemoteAgentTerminalSession implements ITerminalSession {
   private historyBuffer: string[] = [];
   private totalBufferSize: number = 0;
   private readonly maxBufferSize: number = 200 * 1024; // 200KB scrollback
+  private currentCols: number = 0;
+  private currentRows: number = 0;
 
   constructor(hostId: string, agentWs?: any) {
     this.hostId = hostId;
@@ -51,13 +53,25 @@ export class RemoteAgentTerminalSession implements ITerminalSession {
 
   public updateAgentWs(agentWs: any): void {
     this.agentWs = agentWs;
+    this.currentCols = 0;
+    this.currentRows = 0;
   }
 
   public getAgentWs(): any {
     return this.agentWs;
   }
 
+  public getCurrentDimensions(): { cols: number; rows: number } {
+    return { cols: this.currentCols, rows: this.currentRows };
+  }
+
   public attach(ws: any): void {
+    // Prune stale or closed sockets before attaching new socket
+    for (const client of this.activeSockets) {
+      if (!client || client.readyState > 1) {
+        this.activeSockets.delete(client);
+      }
+    }
     this.activeSockets.add(ws);
     // Replay history buffer atomically as a single combined stream with query sequences stripped to prevent echo storms
     if (this.historyBuffer.length > 0 && ws.readyState === 1) {
@@ -88,6 +102,13 @@ export class RemoteAgentTerminalSession implements ITerminalSession {
   }
 
   public resize(cols: number, rows: number): void {
+    if (cols <= 0 || rows <= 0) return;
+    // Suppress redundant PTY resizes to prevent unnecessary SIGWINCH and prompt duplicates
+    if (this.currentCols === cols && this.currentRows === rows) {
+      return;
+    }
+    this.currentCols = cols;
+    this.currentRows = rows;
     if (this.agentWs && this.agentWs.readyState === 1) {
       try {
         this.agentWs.send(`JSON:${JSON.stringify({ type: 'resize', cols, rows })}`);
@@ -100,6 +121,8 @@ export class RemoteAgentTerminalSession implements ITerminalSession {
   public reset(notifyClients: boolean = true, resetAgentPty: boolean = false): void {
     this.historyBuffer = [];
     this.totalBufferSize = 0;
+    this.currentCols = 0;
+    this.currentRows = 0;
     if (resetAgentPty && this.agentWs && this.agentWs.readyState === 1) {
       try {
         this.agentWs.send(`JSON:${JSON.stringify({ type: 'reset' })}`);
@@ -126,6 +149,8 @@ export class RemoteAgentTerminalSession implements ITerminalSession {
     this.historyBuffer = [];
     this.totalBufferSize = 0;
     this.agentWs = null;
+    this.currentCols = 0;
+    this.currentRows = 0;
   }
 
   public handleData(data: string | Buffer): void {
@@ -153,14 +178,20 @@ export class RemoteAgentTerminalSession implements ITerminalSession {
       }
     }
 
+    const deadSockets: any[] = [];
     for (const ws of this.activeSockets) {
       try {
         if (ws.readyState === 1) {
           ws.send(data);
+        } else {
+          deadSockets.push(ws);
         }
       } catch {
-        // Ignore socket write errors
+        deadSockets.push(ws);
       }
+    }
+    for (const dead of deadSockets) {
+      this.activeSockets.delete(dead);
     }
   }
 
