@@ -1237,3 +1237,84 @@ describe('Claude Translator System Fingerprint Configuration', () => {
   });
 });
 
+describe('Claude System Prompt Fingerprint Sanitization', () => {
+  afterEach(() => {
+    config.stripSystemFingerprints = true;
+    config.customSystemInstruction = '';
+  });
+
+  it('completely drops system prompt starting with x-anthropic-billing-header', () => {
+    const claudePayload = {
+      model: 'gemini-2.5-flash',
+      system: 'x-anthropic-billing-header: cc_version=2.1.284.551; cc_entrypoint=cli;\nYou are Claude Code.',
+      messages: [{ role: 'user', content: 'Hello' }]
+    } as any;
+    const result = translator.translateClaudeToGoogle(claudePayload);
+    expect(result.googleRequest.systemInstruction).toBeUndefined();
+  });
+
+  it('neutralizes Claude identity and Git attribution in system prompts', () => {
+    const claudePayload = {
+      model: 'gemini-2.5-flash',
+      system: "You are Claude Code, Anthropic's official CLI for Claude.\nEnd git commit messages with:\n- Co-Authored-By: Claude Code <noreply@anthropic.com>",
+      messages: [{ role: 'user', content: 'Hello' }]
+    } as any;
+    const result = translator.translateClaudeToGoogle(claudePayload);
+    expect(result.googleRequest.systemInstruction).toBeDefined();
+    const systemText = result.googleRequest.systemInstruction!.parts[0].text;
+    expect(systemText).not.toContain('Claude Code');
+    expect(systemText).not.toContain('Anthropic');
+    expect(systemText).not.toContain('Co-Authored-By');
+    expect(systemText).toContain('AI');
+  });
+
+  it('drops billing header blocks in array system prompts while retaining other blocks', () => {
+    const claudePayload = {
+      model: 'gemini-2.5-flash',
+      system: [
+        { type: 'text', text: 'x-anthropic-billing-header: cc_version=2.1;\nDrop this block' },
+        { type: 'text', text: 'Keep this project instruction' }
+      ],
+      messages: [{ role: 'user', content: 'Hello' }]
+    } as any;
+    const result = translator.translateClaudeToGoogle(claudePayload);
+    expect(result.googleRequest.systemInstruction).toBeDefined();
+    expect(result.googleRequest.systemInstruction!.parts[0].text).toEqual('Keep this project instruction');
+  });
+
+  it('preserves billing header and Claude identity when stripSystemFingerprints is false', () => {
+    config.stripSystemFingerprints = false;
+    const claudePayload = {
+      model: 'gemini-2.5-flash',
+      system: 'x-anthropic-billing-header: test\nYou are Claude Code',
+      messages: [{ role: 'user', content: 'Hello' }]
+    } as any;
+    const result = translator.translateClaudeToGoogle(claudePayload);
+    expect(result.googleRequest.systemInstruction).toBeDefined();
+    expect(result.googleRequest.systemInstruction!.parts[0].text).toContain('x-anthropic-billing-header');
+  });
+
+  it('drops billing header with leading whitespace and newlines', () => {
+    const claudePayload = {
+      model: 'gemini-2.5-flash',
+      system: '  \n\n  x-anthropic-billing-header: test\nPrompt',
+      messages: [{ role: 'user', content: 'Hello' }]
+    } as any;
+    const result = translator.translateClaudeToGoogle(claudePayload);
+    expect(result.googleRequest.systemInstruction).toBeUndefined();
+  });
+
+  it('drops client billing header system but preserves customSystemInstruction', () => {
+    config.customSystemInstruction = 'Always answer in French.';
+    const claudePayload = {
+      model: 'gemini-2.5-flash',
+      system: 'x-anthropic-billing-header: test',
+      messages: [{ role: 'user', content: 'Hello' }]
+    } as any;
+    const result = translator.translateClaudeToGoogle(claudePayload);
+    expect(result.googleRequest.systemInstruction).toBeDefined();
+    expect(result.googleRequest.systemInstruction!.parts[0].text).toEqual('Always answer in French.');
+  });
+});
+
+

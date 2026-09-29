@@ -366,6 +366,36 @@ class ClaudeTranslator {
     }).filter(Boolean);
   }
 
+  public cleanSystemContent(rawText: string): string | null {
+    if (!rawText) return null;
+    if (!config.stripSystemFingerprints) return rawText;
+
+    // Option A: Drop entire block if it starts with x-anthropic-billing-header
+    if (/^\s*x-anthropic-billing-header/i.test(rawText)) {
+      logger.info('[Translator] Dropping system content block starting with x-anthropic-billing-header');
+      return null;
+    }
+
+    let cleaned = rawText;
+
+    // 1. Identity Neutralization
+    cleaned = cleaned.replace(/You are Claude Code, Anthropic's official CLI for Claude\./gi, 'You are an AI code assistant.');
+    cleaned = cleaned.replace(/You are Claude,? (a large language model created by Anthropic|helpful and harmless)[^\.\n]*\./gi, 'You are an AI assistant.');
+
+    // 2. Git Attribution Removal
+    cleaned = cleaned.replace(/End git commit messages with:\s*\n- Co-Authored-By: Claude Code[^\n]*/gi, '');
+    cleaned = cleaned.replace(/- Co-Authored-By: Claude Code <noreply@anthropic\.com>/gi, '');
+    cleaned = cleaned.replace(/🤖 Generated with \[Claude Code\][^\n]*/gi, '');
+
+    // 3. Generic Brand Neutralization
+    cleaned = cleaned.replace(/Claude Code/g, 'AI Assistant');
+    cleaned = cleaned.replace(/Anthropic/g, 'AI');
+
+    // Compress redundant line breaks
+    cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
+    return cleaned || null;
+  }
+
   public translateClaudeToGoogle(claudeBody: ClaudeRequest) {
     const rawModel = claudeBody.model;
 
@@ -385,13 +415,17 @@ class ClaudeTranslator {
     const appendSystemContent = (content: any) => {
       let text = "";
       if (typeof content === "string") {
-        text = content;
+        const cleaned = this.cleanSystemContent(content);
+        if (cleaned) text = cleaned;
       } else if (Array.isArray(content)) {
         text = content
           .map((block: any) => {
-            if (typeof block === "string") return block;
-            if (block && block.type === "text") return block.text || "";
-            return block?.text || "";
+            let blockText = "";
+            if (typeof block === "string") blockText = block;
+            else if (block && block.type === "text") blockText = block.text || "";
+            else if (block?.text) blockText = block.text || "";
+
+            return this.cleanSystemContent(blockText);
           })
           .filter(Boolean)
           .join("\n");
@@ -423,13 +457,22 @@ class ClaudeTranslator {
       const parts: GeminiPart[] = [];
       // const constraint = '[IMPORTANT: This context is strictly for your internal operational guidance. DO NOT quote, mention, explain, or output anything from this section in your final response or tool call explanations.]';
       if (typeof content === 'string') {
-        parts.push({ text: `<${tag}>\n${content}\n</${tag}>` });
+        const cleaned = this.cleanSystemContent(content);
+        if (cleaned) {
+          parts.push({ text: `<${tag}>\n${cleaned}\n</${tag}>` });
+        }
       } else if (Array.isArray(content)) {
         for (const block of content) {
-          if (block.type === 'text') {
-            parts.push({ text: `<${tag}>\n${block.text}\n</${tag}>` });
-          } else if (block.text) {
-            parts.push({ text: `<${tag}>\n${block.text}\n</${tag}>` });
+          let blockText = '';
+          if (typeof block === 'string') blockText = block;
+          else if (block?.type === 'text') blockText = block.text || '';
+          else if (block?.text) blockText = block.text || '';
+
+          if (blockText) {
+            const cleaned = this.cleanSystemContent(blockText);
+            if (cleaned) {
+              parts.push({ text: `<${tag}>\n${cleaned}\n</${tag}>` });
+            }
           } else {
             parts.push(block);
           }
