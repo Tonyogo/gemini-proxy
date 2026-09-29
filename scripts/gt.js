@@ -1659,8 +1659,35 @@ else:
   }
 
   resize(cols, rows) {
-    this.cols = Math.max(10, Math.min(500, Math.floor(cols || 80)));
-    this.rows = Math.max(5, Math.min(200, Math.floor(rows || 24)));
+    const targetCols = Math.max(10, Math.min(500, Math.floor(cols || 80)));
+    const targetRows = Math.max(5, Math.min(200, Math.floor(rows || 24)));
+    if (this.cols === targetCols && this.rows === targetRows) {
+      const now = Date.now();
+      if (!this._nudgeTimer && (!this._lastNudge || now - this._lastNudge > 1000)) {
+        this._lastNudge = now;
+        const nudgeRows = targetRows > 5 ? targetRows - 1 : targetRows + 1;
+        if (this.ctlStream && !this.ctlStream.destroyed && !this.ctlStream.writableEnded) {
+          try {
+            this.ctlStream.write(`RESIZE ${targetCols} ${nudgeRows}\n`);
+            this._nudgeTimer = setTimeout(() => {
+              this._nudgeTimer = null;
+              if (this.ctlStream && !this.ctlStream.destroyed && !this.ctlStream.writableEnded) {
+                try {
+                  this.ctlStream.write(`RESIZE ${targetCols} ${targetRows}\n`);
+                } catch {}
+              }
+            }, 30);
+          } catch {}
+        }
+      }
+      return;
+    }
+    if (this._nudgeTimer) {
+      clearTimeout(this._nudgeTimer);
+      this._nudgeTimer = null;
+    }
+    this.cols = targetCols;
+    this.rows = targetRows;
     if (this.ctlStream && !this.ctlStream.destroyed && !this.ctlStream.writableEnded) {
       try {
         this.ctlStream.write(`RESIZE ${this.cols} ${this.rows}\n`);
@@ -2377,6 +2404,25 @@ async function runAgent(agentArgs = [], globalOpts = {}) {
   let connectTimeoutTimer = null;
   let heartbeatTimer = null;
   let heartbeatTimeoutTimer = null;
+  const pendingOutputQueue = [];
+  const maxPendingQueueBytes = 256 * 1024; // 256KB early buffer
+  let pendingQueueBytes = 0;
+  let lastNudgeTimestamp = 0;
+  let nudgeRestoreTimer = null;
+
+  function flushPendingOutput() {
+    if (ws && ws.readyState === WebSocket.OPEN && pendingOutputQueue.length > 0) {
+      while (pendingOutputQueue.length > 0) {
+        const chunk = pendingOutputQueue.shift();
+        pendingQueueBytes -= chunk.length;
+        try {
+          ws.send(chunk);
+        } catch {
+          break;
+        }
+      }
+    }
+  }
 
   function stopHeartbeat() {
     if (heartbeatTimer) {
@@ -2443,11 +2489,21 @@ async function runAgent(agentArgs = [], globalOpts = {}) {
     const rows = 24;
 
     const sendToWs = (data) => {
-      if (ws && ws.readyState === WebSocket.OPEN) {
+      const buf = Buffer.isBuffer(data) ? data : Buffer.from(data, 'utf-8');
+      if (ws && ws.readyState === WebSocket.OPEN && pendingOutputQueue.length === 0) {
         try {
-          const buf = Buffer.isBuffer(data) ? data : Buffer.from(data, 'utf-8');
           ws.send(buf);
+          return;
         } catch {}
+      }
+      pendingOutputQueue.push(buf);
+      pendingQueueBytes += buf.length;
+      while (pendingQueueBytes > maxPendingQueueBytes && pendingOutputQueue.length > 0) {
+        const dropped = pendingOutputQueue.shift();
+        pendingQueueBytes -= dropped.length;
+      }
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        flushPendingOutput();
       }
     };
 
@@ -2645,6 +2701,7 @@ async function runAgent(agentArgs = [], globalOpts = {}) {
         if (ptyProcess) {
           ws.send(`JSON:${JSON.stringify({ type: 'resize', cols: ptyProcess.cols, rows: ptyProcess.rows })}`);
         }
+        flushPendingOutput();
       } catch {}
     });
 
@@ -2690,7 +2747,30 @@ async function runAgent(agentArgs = [], globalOpts = {}) {
             const cols = Math.max(10, Math.min(500, Math.floor(control.cols)));
             const rows = Math.max(5, Math.min(200, Math.floor(control.rows)));
             if (ptyProcess) {
-              ptyProcess.resize(cols, rows);
+              const currentCols = ptyProcess.cols;
+              const currentRows = ptyProcess.rows;
+              if (typeof currentCols === 'number' && typeof currentRows === 'number' && currentCols === cols && currentRows === rows) {
+                // Dimensions match: Linux kernel TIOCSWINSZ will not emit SIGWINCH on identical size.
+                // Briefly nudge rows by 1 and restore to force kernel SIGWINCH so shells (bash/zsh) redraw prompt.
+                const now = Date.now();
+                if (!nudgeRestoreTimer && (now - lastNudgeTimestamp > 1000)) {
+                  lastNudgeTimestamp = now;
+                  const nudgeRows = rows > 5 ? rows - 1 : rows + 1;
+                  ptyProcess.resize(cols, nudgeRows);
+                  nudgeRestoreTimer = setTimeout(() => {
+                    nudgeRestoreTimer = null;
+                    if (ptyProcess) {
+                      ptyProcess.resize(cols, rows);
+                    }
+                  }, 30);
+                }
+              } else {
+                if (nudgeRestoreTimer) {
+                  clearTimeout(nudgeRestoreTimer);
+                  nudgeRestoreTimer = null;
+                }
+                ptyProcess.resize(cols, rows);
+              }
             }
             return;
           }

@@ -214,6 +214,8 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
   const isProcessExitedRef = useRef<boolean>(false);
   const isReplayingRef = useRef<boolean>(true);
   const replayTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isInitialStandaloneMountRef = useRef<boolean>(true);
+  const hasFirstDataFittedRef = useRef<boolean>(false);
 
   const lastSentColsRef = useRef<number>(0);
   const lastSentRowsRef = useRef<number>(0);
@@ -461,6 +463,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
         if (shouldScrollToBottom({ isReplaying: isReplayingRef.current, wasAtBottom, bufferType: term.buffer.active.type })) {
           scrollToBottomSafe(term);
         }
+        term.refresh(0, Math.max(0, rows - 1));
         return true;
       }
     } catch (err) {
@@ -484,6 +487,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
     clearReconnectTimers();
     isProcessExitedRef.current = false;
     isReplayingRef.current = true;
+    hasFirstDataFittedRef.current = false;
     lastSentColsRef.current = 0;
     lastSentRowsRef.current = 0;
 
@@ -536,8 +540,9 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
 
     ws.onmessage = (event) => {
       const term = xtermRef.current;
-      if (term && (term.cols <= 2 || term.rows <= 1)) {
-        safeFit();
+      if (!hasFirstDataFittedRef.current || (term && (term.cols <= 2 || term.rows <= 1))) {
+        hasFirstDataFittedRef.current = true;
+        safeFit(true);
       }
       const data = event.data;
       if (typeof data === 'string') {
@@ -584,12 +589,14 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
           if (!isRefittingRef.current && shouldScrollToBottom({ isReplaying: isReplayingRef.current, wasAtBottom, bufferType: term?.buffer.active.type })) {
             scrollToBottomSafe(term);
           }
+          term?.refresh(0, Math.max(0, (term.rows || 1) - 1));
           if (replayTimerRef.current) {
             clearTimeout(replayTimerRef.current);
           }
           replayTimerRef.current = setTimeout(() => {
             isReplayingRef.current = false;
             scrollToBottomSafe(xtermRef.current);
+            xtermRef.current?.refresh(0, Math.max(0, (xtermRef.current.rows || 1) - 1));
           }, 150);
         });
       } else if (data instanceof ArrayBuffer) {
@@ -600,12 +607,14 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
           if (!isRefittingRef.current && shouldScrollToBottom({ isReplaying: isReplayingRef.current, wasAtBottom, bufferType: term?.buffer.active.type })) {
             scrollToBottomSafe(term);
           }
+          term?.refresh(0, Math.max(0, (term.rows || 1) - 1));
           if (replayTimerRef.current) {
             clearTimeout(replayTimerRef.current);
           }
           replayTimerRef.current = setTimeout(() => {
             isReplayingRef.current = false;
             scrollToBottomSafe(xtermRef.current);
+            xtermRef.current?.refresh(0, Math.max(0, (xtermRef.current.rows || 1) - 1));
           }, 150);
         });
       }
@@ -1397,6 +1406,11 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
 
   // Re-fit and send resize when standalone mode toggles without disconnecting WS
   useEffect(() => {
+    if (isInitialStandaloneMountRef.current) {
+      isInitialStandaloneMountRef.current = false;
+      return;
+    }
+
     setIsRefitting(true);
     isRefittingRef.current = true;
     if (refitTimerRef.current) clearTimeout(refitTimerRef.current);
@@ -1407,6 +1421,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
         const term = xtermRef.current;
         fitAddonRef.current.fit();
         sendResize(term.cols, term.rows);
+        term.refresh(0, Math.max(0, term.rows - 1));
       }
     }, 80);
 
@@ -1415,6 +1430,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
       setIsRefitting(false);
       if (xtermRef.current) {
         scrollToBottomSafe(xtermRef.current);
+        xtermRef.current.refresh(0, Math.max(0, xtermRef.current.rows - 1));
       }
     }, 120);
 
@@ -1871,7 +1887,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
     reconnect: handleManualReconnect,
     resetSession: executeReset,
     toggleSelectMode: handleToggleSelectMode,
-    fit: safeFit,
+    fit: (force: boolean = false) => safeFit(force),
     scrollToBottomSafe: () => {
       if (xtermRef.current) {
         scrollToBottomSafe(xtermRef.current);
@@ -1887,7 +1903,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
     get isSelectMode() {
       return isSelectModeRef.current;
     },
-  }), [handleManualReconnect, executeReset, handleToggleSelectMode, sendResize, updateCursorShift]);
+  }), [handleManualReconnect, executeReset, handleToggleSelectMode, safeFit, sendResize, updateCursorShift]);
 
   const handleFullscreenToggle = () => {
     if (standalone) {
