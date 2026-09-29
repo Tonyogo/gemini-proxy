@@ -37,7 +37,14 @@ if (process.env.MODEL_MAPPINGS) {
   }
 }
 
-const parseListEnv = (envVal: string | undefined, defaultVal: string[]): string[] => {
+export const DEFAULT_IGNORED_TOOLS: string[] = [
+  'Artifact',
+  'ArtifactCheck',
+  'ArtifactData',
+  'ArtifactComments'
+];
+
+const parseListEnv = (envVal: string | undefined, defaultVal: string[], allowComma: boolean = false): string[] => {
   if (!envVal) return defaultVal;
   try {
     const parsed = JSON.parse(envVal);
@@ -45,6 +52,9 @@ const parseListEnv = (envVal: string | undefined, defaultVal: string[]): string[
       return parsed.map((s: any) => String(s));
     }
   } catch {
+    if (allowComma && envVal.includes(',')) {
+      return envVal.split(/[,\n]/).map(s => s.trim()).filter(Boolean);
+    }
     return envVal.split('\n').map(s => s.trim()).filter(Boolean);
   }
   return defaultVal;
@@ -58,6 +68,12 @@ const parsedEphemeralUserMessages = parseListEnv(
 const parsedEphemeralSystemMessages = parseListEnv(
   process.env.EPHEMERAL_SYSTEM_MESSAGES,
   []
+);
+
+const parsedIgnoredTools = parseListEnv(
+  process.env.IGNORED_TOOLS,
+  DEFAULT_IGNORED_TOOLS,
+  true
 );
 
 const isTestEnv = process.env.NODE_ENV === 'test' || Boolean(process.env.JEST_WORKER_ID);
@@ -213,6 +229,7 @@ const getEnvConfig = () => {
     countTokensModel: (process.env.COUNT_TOKENS_MODEL || '') as string,
     customWebApps: parsedCustomWebApps as CustomWebAppItem[],
     stripSystemFingerprints: process.env.STRIP_SYSTEM_FINGERPRINTS !== 'false',
+    ignoredTools: (runtimeOverrides.ignoredTools !== undefined ? runtimeOverrides.ignoredTools : parsedIgnoredTools) as string[],
   };
 };
 
@@ -272,6 +289,21 @@ export const config = {
     if (runtimeOverrides.geminiBaseUrl !== undefined) {
       runtimeOverrides.geminiBaseUrl = servers.map(s => s.url).join(',');
     }
+  },
+
+  get ignoredTools(): string[] {
+    if ((this as any)._ignoredTools !== undefined) {
+      return (this as any)._ignoredTools;
+    }
+    if (runtimeOverrides.ignoredTools !== undefined) {
+      return runtimeOverrides.ignoredTools;
+    }
+    return parseListEnv(process.env.IGNORED_TOOLS, DEFAULT_IGNORED_TOOLS, true);
+  },
+
+  set ignoredTools(val: string[]) {
+    (this as any)._ignoredTools = val;
+    runtimeOverrides.ignoredTools = val;
   }
 };
 
@@ -283,6 +315,7 @@ export async function updateConfig(
     runtimeOverrides = {};
     delete (config as any)._geminiBaseUrl;
     delete (config as any)._upstreamServers;
+    delete (config as any)._ignoredTools;
     const envDefaults = getEnvConfig();
     Object.assign(config, envDefaults);
 

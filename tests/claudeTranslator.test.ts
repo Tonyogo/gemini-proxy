@@ -1335,7 +1335,16 @@ describe('Claude System Prompt Fingerprint Sanitization', () => {
     expect(userParts.some((p: any) => p.type === 'text')).toBe(false);
     expect(userParts[0].text).toContain('Valid system text');
   });
+
+  it('provides default ignoredTools configuration and allows runtime updates', () => {
+    expect((config as any).ignoredTools).toBeDefined();
+    expect((config as any).ignoredTools).toContain('Artifact');
+    expect((config as any).ignoredTools).toContain('ArtifactCheck');
+    expect((config as any).ignoredTools).toContain('ArtifactData');
+    expect((config as any).ignoredTools).toContain('ArtifactComments');
+  });
 });
+
 
 
 

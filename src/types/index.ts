@@ -3,6 +3,13 @@ export interface ClaudeMessage {
   content: string | any[];
 }
 
+export interface ClaudeTool {
+  name: string;
+  description?: string;
+  input_schema?: Record<string, any>;
+  [key: string]: any;
+}
+
 export interface ClaudeRequest {
   model?: string;
   system?: string | any[];
@@ -16,7 +23,7 @@ export interface ClaudeRequest {
     type: 'enabled';
     budget_tokens: number;
   };
-  tools?: any[];
+  tools?: ClaudeTool[] | any[];
   tool_choice?: any;
   output_format?: any;
   output_config?: any;
