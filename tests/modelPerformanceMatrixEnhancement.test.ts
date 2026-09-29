@@ -39,6 +39,13 @@ describe('ModelPerformanceMatrix Visual & Metrics Enhancement', () => {
     // Should use fuchsia and sky badge colors
     expect(matrixContent).toMatch(/fuchsia-500|fuchsia-400/);
     expect(matrixContent).toMatch(/sky-500|sky-400/);
+    // Should have ghost capsule styling for zero high requests
+    expect(matrixContent).toContain('High 0 · 0%');
+    // Should have min-w-[210px] for desktop spec column
+    expect(matrixContent).toContain('min-w-[210px]');
+    // Should have gradient bar styling
+    expect(matrixContent).toContain('from-sky-500 to-blue-500');
+    expect(matrixContent).toContain('from-fuchsia-500 to-purple-600');
   });
 
   test('ModelPerformanceMatrix should render latency relative scale indicator', () => {
