@@ -27,6 +27,7 @@ class AdminController {
         ephemeralUserMessages: config.ephemeralUserMessages,
         ephemeralSystemMessages: config.ephemeralSystemMessages,
         customWebApps: config.customWebApps,
+        ignoredTools: config.ignoredTools,
       },
       upstreamStatus: upstreamManager.getUpstreamServerStatusList(),
     });
@@ -87,6 +88,20 @@ class AdminController {
           newConfig.stripSystemFingerprints === true ||
           newConfig.stripSystemFingerprints === 'true';
       }
+      if (newConfig.ignoredTools !== undefined) {
+        let tools: string[] = [];
+        if (typeof newConfig.ignoredTools === 'string') {
+          tools = newConfig.ignoredTools
+            .split(/[,\n]/)
+            .map((s: string) => s.trim())
+            .filter(Boolean);
+        } else if (Array.isArray(newConfig.ignoredTools)) {
+          tools = newConfig.ignoredTools
+            .map((s: any) => String(s).trim())
+            .filter(Boolean);
+        }
+        newConfig.ignoredTools = Array.from(new Set(tools));
+      }
       await updateConfig(newConfig, { resetToEnv: Boolean(req.body.resetToEnv) });
       upstreamManager.reset();
       res.json({
@@ -109,6 +124,7 @@ class AdminController {
           ephemeralUserMessages: config.ephemeralUserMessages,
           ephemeralSystemMessages: config.ephemeralSystemMessages,
           customWebApps: config.customWebApps,
+          ignoredTools: config.ignoredTools,
         },
         upstreamStatus: upstreamManager.getUpstreamServerStatusList(),
       });

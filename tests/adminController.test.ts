@@ -40,6 +40,34 @@ describe('Admin API Endpoints', () => {
     expect(typeof res.body.config.stripSystemFingerprints).toBe('boolean');
   });
 
+  test('GET /api/admin/status returns ignoredTools in config', async () => {
+    const res = await request(app).get('/api/admin/status');
+    expect(res.status).toBe(200);
+    expect(res.body.config).toHaveProperty('ignoredTools');
+    expect(Array.isArray(res.body.config.ignoredTools)).toBe(true);
+  });
+
+  test('POST /api/admin/config updates ignoredTools', async () => {
+    const customTools = ['CustomToolA', 'CustomToolB'];
+    const updateRes = await request(app)
+      .post('/api/admin/config')
+      .send({ ignoredTools: customTools });
+    expect(updateRes.status).toBe(200);
+    expect(updateRes.body.config.ignoredTools).toEqual(customTools);
+
+    // Test comma-separated string input and trimming/deduplication
+    const stringRes = await request(app)
+      .post('/api/admin/config')
+      .send({ ignoredTools: ' Tool1, Tool2 ,Tool1\nTool3 ' });
+    expect(stringRes.status).toBe(200);
+    expect(stringRes.body.config.ignoredTools).toEqual(['Tool1', 'Tool2', 'Tool3']);
+
+    // Revert back to default
+    await updateConfig({
+      ignoredTools: ['Artifact', 'ArtifactCheck', 'ArtifactData', 'ArtifactComments']
+    });
+  });
+
   test('POST /api/admin/config updates stripSystemFingerprints', async () => {
     const updateRes = await request(app)
       .post('/api/admin/config')
