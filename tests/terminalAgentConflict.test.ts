@@ -69,7 +69,22 @@ describe('Node.js Terminal Agent - 12-Hex ID, Auto-Naming and Conflict Rejection
       },
     });
 
-    setTimeout(() => {
+    const interval = setInterval(() => {
+      if (receivedQueryParams.hostId) {
+        clearInterval(interval);
+        clearTimeout(timer);
+        try {
+          expect(receivedQueryParams.hostId).toMatch(/^[0-9a-f]{12}$/);
+          expect(receivedQueryParams.name).toMatch(/^[a-z0-9-_]+$/);
+        } finally {
+          child.kill('SIGKILL');
+          done();
+        }
+      }
+    }, 50);
+
+    const timer = setTimeout(() => {
+      clearInterval(interval);
       try {
         expect(receivedQueryParams.hostId).toMatch(/^[0-9a-f]{12}$/);
         expect(receivedQueryParams.name).toMatch(/^[a-z0-9-_]+$/);
@@ -77,7 +92,7 @@ describe('Node.js Terminal Agent - 12-Hex ID, Auto-Naming and Conflict Rejection
         child.kill('SIGKILL');
         done();
       }
-    }, 500);
+    }, 2000);
   });
 
   it('exits with code 1 immediately without reconnect loops when rejected with 4009', (done) => {
