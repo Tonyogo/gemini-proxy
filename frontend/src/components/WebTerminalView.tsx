@@ -11,6 +11,7 @@ import {
   ZoomIn,
   ZoomOut,
   ArrowLeft,
+  ArrowDown,
   TerminalSquare,
   FileText,
   Copy,
@@ -118,6 +119,7 @@ export interface WebTerminalViewProps {
   onControlledHostChange?: (newHostId: string) => void;
   hideInnerHostSelector?: boolean;
   hideHeader?: boolean;
+  hideAccessoryBar?: boolean;
   onConnectionChange?: (status: { isConnected: boolean; isConnecting: boolean }) => void;
   onSelectModeChange?: (isSelect: boolean) => void;
   onRequestAddNode?: () => void;
@@ -134,6 +136,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
   onControlledHostChange,
   hideInnerHostSelector = false,
   hideHeader = false,
+  hideAccessoryBar = false,
   onConnectionChange,
   onSelectModeChange,
   onRequestAddNode,
@@ -216,6 +219,8 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
   const replayTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isInitialStandaloneMountRef = useRef<boolean>(true);
   const hasFirstDataFittedRef = useRef<boolean>(false);
+  const [isAtBottom, setIsAtBottom] = useState<boolean>(true);
+  const isAtBottomRef = useRef<boolean>(true);
 
   const lastSentColsRef = useRef<number>(0);
   const lastSentRowsRef = useRef<number>(0);
@@ -598,7 +603,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
           console.debug('[WebTerminal] WS Recv Text:', JSON.stringify(data.slice(0, 50)), 'len:', data.length);
         }
         const term = xtermRef.current;
-        const wasAtBottom = isUserAtBottom(term);
+        const wasAtBottom = isAtBottomRef.current;
         term?.write(data, () => {
           if (!isRefittingRef.current && shouldScrollToBottom({ isReplaying: isReplayingRef.current, wasAtBottom, bufferType: term?.buffer.active.type })) {
             scrollToBottomSafe(term);
@@ -609,14 +614,17 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
           }
           replayTimerRef.current = setTimeout(() => {
             isReplayingRef.current = false;
-            scrollToBottomSafe(xtermRef.current);
+            // Only auto-scroll to bottom if user is already at the bottom or replaying
+            if (shouldScrollToBottom({ isReplaying: false, wasAtBottom: isAtBottomRef.current, bufferType: xtermRef.current?.buffer.active.type })) {
+              scrollToBottomSafe(xtermRef.current);
+            }
             xtermRef.current?.refresh(0, Math.max(0, (xtermRef.current.rows || 1) - 1));
           }, 150);
         });
       } else if (data instanceof ArrayBuffer) {
         console.debug('[WebTerminal] WS Recv Binary:', data.byteLength);
         const term = xtermRef.current;
-        const wasAtBottom = isUserAtBottom(term);
+        const wasAtBottom = isAtBottomRef.current;
         term?.write(new Uint8Array(data), () => {
           if (!isRefittingRef.current && shouldScrollToBottom({ isReplaying: isReplayingRef.current, wasAtBottom, bufferType: term?.buffer.active.type })) {
             scrollToBottomSafe(term);
@@ -627,7 +635,10 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
           }
           replayTimerRef.current = setTimeout(() => {
             isReplayingRef.current = false;
-            scrollToBottomSafe(xtermRef.current);
+            // Only auto-scroll to bottom if user is already at the bottom or replaying
+            if (shouldScrollToBottom({ isReplaying: false, wasAtBottom: isAtBottomRef.current, bufferType: xtermRef.current?.buffer.active.type })) {
+              scrollToBottomSafe(xtermRef.current);
+            }
             xtermRef.current?.refresh(0, Math.max(0, (xtermRef.current.rows || 1) - 1));
           }, 150);
         });
@@ -795,6 +806,21 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
     });
     const renderDisposable = term.onRender(() => {
       updateCursorShiftRef.current?.();
+    });
+    const scrollDisposable = term.onScroll(() => {
+      if (!term || !isMountedRef.current) return;
+      if (term.buffer.active.type === 'alternate') {
+        if (!isAtBottomRef.current) {
+          isAtBottomRef.current = true;
+          setIsAtBottom(true);
+        }
+        return;
+      }
+      const atBottom = isUserAtBottom(term);
+      if (isAtBottomRef.current !== atBottom) {
+        isAtBottomRef.current = atBottom;
+        setIsAtBottom(atBottom);
+      }
     });
 
     // Virtual modifier keyboard event handler (CTRL/ALT key combination interception & auto-release)
@@ -1127,6 +1153,8 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
         wsRef.current.send(data);
       }
+      isAtBottomRef.current = true;
+      setIsAtBottom(true);
       scrollToBottomSafe(term);
     });
 
@@ -1405,6 +1433,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
       selectionDisposable.dispose();
       cursorMoveDisposable.dispose();
       renderDisposable.dispose();
+      scrollDisposable.dispose();
       window.removeEventListener('resize', handleViewportChange);
       window.removeEventListener('orientationchange', handleOrientationChange);
       if (window.visualViewport) {
@@ -1517,6 +1546,15 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
       }
     }
   }, [isSelectMode]);
+
+  const handleScrollToBottom = useCallback(() => {
+    if (xtermRef.current) {
+      isAtBottomRef.current = true;
+      setIsAtBottom(true);
+      scrollToBottomSafe(xtermRef.current);
+      xtermRef.current.focus();
+    }
+  }, []);
 
   const handleSendInput = (data: string, shouldFocus = false) => {
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
@@ -1912,13 +1950,10 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
     toggleSelectMode: handleToggleSelectMode,
     fit: (force: boolean = false) => safeFit(force),
     scrollToBottomSafe: () => {
-      if (xtermRef.current) {
-        scrollToBottomSafe(xtermRef.current);
-      }
+      handleScrollToBottom();
     },
     isAtBottom: () => {
-      if (!xtermRef.current) return true;
-      return isUserAtBottom(xtermRef.current);
+      return isAtBottomRef.current;
     },
     updateCursorShift: () => {
       updateCursorShift();
@@ -1926,7 +1961,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
     get isSelectMode() {
       return isSelectModeRef.current;
     },
-  }), [handleManualReconnect, executeReset, handleToggleSelectMode, safeFit, sendResize, updateCursorShift]);
+  }), [handleManualReconnect, executeReset, handleToggleSelectMode, safeFit, sendResize, updateCursorShift, handleScrollToBottom]);
 
   const handleFullscreenToggle = () => {
     if (standalone) {
@@ -2268,6 +2303,21 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
           </div>
         )}
 
+        {/* Floating Scroll to Bottom Button */}
+        {!isAtBottom && activeHostId && !isSelectMode && xtermRef.current?.buffer.active.type !== 'alternate' && (
+          <button
+            type="button"
+            onClick={handleScrollToBottom}
+            aria-label={t('webTerminal.scrollToBottom', '跳到最后')}
+            title={t('webTerminal.scrollToBottom', '跳到最后')}
+            className={`absolute right-4 z-20 w-9 h-9 rounded-full bg-[var(--bg-surface)]/85 hover:bg-[var(--bg-surface-hover)] border border-[var(--border-subtle)] shadow-xl flex items-center justify-center text-slate-300 hover:text-white transition-all active:scale-95 backdrop-blur-md cursor-pointer animate-in fade-in zoom-in-90 ${
+              isMobile && !hideAccessoryBar ? 'bottom-14' : 'bottom-4'
+            }`}
+          >
+            <ArrowDown className="w-4 h-4 text-indigo-400 animate-pulse" />
+          </button>
+        )}
+
         {/* Empty State Guard (Calm, flat placeholder matching File Manager) */}
         {!activeHostId && (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center p-6 text-center select-none bg-[var(--bg-canvas)]">
@@ -2307,7 +2357,7 @@ const WebTerminalView = React.forwardRef<WebTerminalHandle, WebTerminalViewProps
       </div>
 
       {/* Mobile Touch Accessory Bar */}
-      {activeHostId && (
+      {activeHostId && !hideAccessoryBar && (
       <TerminalAccessoryBar
         onSendInput={(data) => {
           handleSendInput(data, false);
