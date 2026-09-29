@@ -1,7 +1,7 @@
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 import { existsSync, readFileSync, promises as fs } from 'fs';
-import { ModelMappingsConfig, CustomWebAppItem, UpstreamServerConfig } from '../src/types';
+import { ModelMappingsConfig, CustomWebAppItem, UpstreamServerConfig, UpstreamServerType } from '../src/types';
 
 dotenv.config();
 
@@ -103,9 +103,22 @@ function sanitizeModelList(models?: any): string[] | undefined {
   return undefined;
 }
 
+function sanitizeApiKeys(keys?: any): string[] | undefined {
+  if (!keys) return undefined;
+  if (Array.isArray(keys)) {
+    const list = Array.from(new Set(keys.map(k => String(k || '').trim()).filter(Boolean)));
+    return list.length > 0 ? list : undefined;
+  }
+  if (typeof keys === 'string') {
+    const list = Array.from(new Set(keys.split(/[+,|\r\n\s]+/).map(k => k.trim()).filter(Boolean)));
+    return list.length > 0 ? list : undefined;
+  }
+  return undefined;
+}
+
 export function parseUpstreamServers(raw?: any): UpstreamServerConfig[] {
   const defaultFallback: UpstreamServerConfig[] = [
-    { url: 'https://generativelanguage.googleapis.com', weight: 1, enabled: true, name: 'Official Gemini API' }
+    { url: 'https://generativelanguage.googleapis.com', weight: 1, enabled: true, name: 'Official Gemini API', type: 'proxy' }
   ];
 
   if (!raw) return defaultFallback;
@@ -114,7 +127,11 @@ export function parseUpstreamServers(raw?: any): UpstreamServerConfig[] {
   if (Array.isArray(raw)) {
     const list = raw.map(item => {
       if (!item || typeof item !== 'object') return null;
+      const type: UpstreamServerType = item.type === 'direct' ? 'direct' : 'proxy';
       let url = String(item.url || '').trim().replace(/\/+$/, '');
+      if (type === 'direct' && !url) {
+        url = 'https://generativelanguage.googleapis.com';
+      }
       if (!url) return null;
       if (!/^https?:\/\//i.test(url)) url = `https://${url}`;
       let weight = parseInt(String(item.weight), 10);
@@ -123,9 +140,11 @@ export function parseUpstreamServers(raw?: any): UpstreamServerConfig[] {
       const enabled = item.enabled !== false;
       const name = item.name ? String(item.name).trim() : undefined;
       const allowedModels = sanitizeModelList(item.allowedModels);
-      const res: UpstreamServerConfig = { url, weight, enabled };
+      const apiKeys = sanitizeApiKeys(item.apiKeys || item.keys);
+      const res: UpstreamServerConfig = { url, weight, enabled, type };
       if (name) res.name = name;
       if (allowedModels) res.allowedModels = allowedModels;
+      if (apiKeys) res.apiKeys = apiKeys;
       return res;
     }).filter(Boolean) as UpstreamServerConfig[];
 
@@ -156,16 +175,20 @@ export function parseUpstreamServers(raw?: any): UpstreamServerConfig[] {
       const paramPart = hashIdx !== -1 ? seg.slice(hashIdx + 1).trim() : '';
 
       basePart = basePart.replace(/\/+$/, '');
-      if (!basePart) return null;
-      if (!/^https?:\/\//i.test(basePart)) basePart = `https://${basePart}`;
 
       let weight = 1;
       let enabled = true;
       let name: string | undefined = undefined;
       let allowedModels: string[] | undefined = undefined;
+      let type: UpstreamServerType = 'proxy';
+      let apiKeys: string[] | undefined = undefined;
 
       if (paramPart) {
         const params = new URLSearchParams(paramPart);
+        if (params.get('type') === 'direct') {
+          type = 'direct';
+        }
+
         const wStr = params.get('weight') || params.get('percent');
         if (wStr !== null) {
           const w = parseInt(wStr, 10);
@@ -185,11 +208,23 @@ export function parseUpstreamServers(raw?: any): UpstreamServerConfig[] {
         if (modelsParam !== null) {
           allowedModels = sanitizeModelList(modelsParam);
         }
+
+        const keysParam = params.get('keys') || params.get('apiKeys');
+        if (keysParam !== null) {
+          apiKeys = sanitizeApiKeys(keysParam);
+        }
       }
 
-      const res: UpstreamServerConfig = { url: basePart, weight, enabled };
+      if (type === 'direct' && !basePart) {
+        basePart = 'https://generativelanguage.googleapis.com';
+      }
+      if (!basePart) return null;
+      if (!/^https?:\/\//i.test(basePart)) basePart = `https://${basePart}`;
+
+      const res: UpstreamServerConfig = { url: basePart, weight, enabled, type };
       if (name) res.name = name;
       if (allowedModels) res.allowedModels = allowedModels;
+      if (apiKeys) res.apiKeys = apiKeys;
       return res;
     }).filter(Boolean) as UpstreamServerConfig[];
 
