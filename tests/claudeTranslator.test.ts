@@ -1315,6 +1315,27 @@ describe('Claude System Prompt Fingerprint Sanitization', () => {
     expect(result.googleRequest.systemInstruction).toBeDefined();
     expect(result.googleRequest.systemInstruction!.parts[0].text).toEqual('Always answer in French.');
   });
+
+  it('does not forward raw empty text blocks to parts in inline system messages', () => {
+    const claudePayload = {
+      model: 'gemini-2.5-flash',
+      messages: [
+        {
+          role: 'system',
+          content: [
+            { type: 'text', text: '' },
+            { type: 'text', text: 'Valid system text' }
+          ]
+        },
+        { role: 'user', content: 'Hello' }
+      ]
+    } as any;
+    const result = translator.translateClaudeToGoogle(claudePayload);
+    const userParts = result.googleRequest.contents[0].parts;
+    expect(userParts.some((p: any) => p.type === 'text')).toBe(false);
+    expect(userParts[0].text).toContain('Valid system text');
+  });
 });
+
 
 

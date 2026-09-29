@@ -463,15 +463,14 @@ class ClaudeTranslator {
         }
       } else if (Array.isArray(content)) {
         for (const block of content) {
-          let blockText = '';
-          if (typeof block === 'string') blockText = block;
-          else if (block?.type === 'text') blockText = block.text || '';
-          else if (block?.text) blockText = block.text || '';
-
-          if (blockText) {
-            const cleaned = this.cleanSystemContent(blockText);
-            if (cleaned) {
-              parts.push({ text: `<${tag}>\n${cleaned}\n</${tag}>` });
+          const isTextBlock = typeof block === 'string' || block?.type === 'text' || typeof block?.text === 'string';
+          if (isTextBlock) {
+            let blockText = typeof block === 'string' ? block : (block.text || '');
+            if (blockText) {
+              const cleaned = this.cleanSystemContent(blockText);
+              if (cleaned) {
+                parts.push({ text: `<${tag}>\n${cleaned}\n</${tag}>` });
+              }
             }
           } else {
             parts.push(block);
