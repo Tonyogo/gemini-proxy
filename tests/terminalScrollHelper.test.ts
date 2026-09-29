@@ -50,6 +50,34 @@ describe('terminalScrollHelper', () => {
       expect(isUserAtBottom(undefined)).toBe(true);
       expect(isUserAtBottom({} as any)).toBe(true);
     });
+
+    it('returns true when viewportY is within the tolerance threshold of baseY', () => {
+      const mockTerm = {
+        buffer: {
+          active: {
+            viewportY: 99,
+            baseY: 100,
+            type: 'normal',
+          },
+        },
+      };
+      // Default threshold is 1 line tolerance
+      expect(isUserAtBottom(mockTerm, 1)).toBe(true);
+      expect(isUserAtBottom(mockTerm, 0)).toBe(false);
+    });
+
+    it('returns false when viewportY is beyond threshold from baseY', () => {
+      const mockTerm = {
+        buffer: {
+          active: {
+            viewportY: 90,
+            baseY: 100,
+            type: 'normal',
+          },
+        },
+      };
+      expect(isUserAtBottom(mockTerm, 2)).toBe(false);
+    });
   });
 
   describe('shouldScrollToBottom', () => {

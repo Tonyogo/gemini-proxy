@@ -20,8 +20,10 @@ export interface ShouldScrollOptions {
 /**
  * Checks if the user is currently at the bottom of the scrollback buffer.
  * If in alternate buffer (like vim, nano, htop), returns true as alternate screens do not have normal scrollback.
+ * @param term Terminal instance
+ * @param threshold Allowed line tolerance (default: 1 line) for layout/rounding discrepancies
  */
-export function isUserAtBottom(term: TerminalLike | null | undefined): boolean {
+export function isUserAtBottom(term: TerminalLike | null | undefined, threshold = 1): boolean {
   if (!term || !term.buffer || !term.buffer.active) {
     return true;
   }
@@ -29,7 +31,7 @@ export function isUserAtBottom(term: TerminalLike | null | undefined): boolean {
   if (active.type === 'alternate') {
     return true;
   }
-  return active.viewportY >= active.baseY;
+  return active.viewportY >= Math.max(0, active.baseY - threshold);
 }
 
 /**
