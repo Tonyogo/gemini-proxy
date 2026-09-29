@@ -53,6 +53,10 @@ export class RemoteAgentTerminalSession implements ITerminalSession {
     this.agentWs = agentWs;
   }
 
+  public getAgentWs(): any {
+    return this.agentWs;
+  }
+
   public attach(ws: any): void {
     this.activeSockets.add(ws);
     // Replay history buffer atomically as a single combined stream with query sequences stripped to prevent echo storms
@@ -226,10 +230,19 @@ export class TerminalHostManager {
 
     for (const [id, host] of this.hosts.entries()) {
       if (host.status === 'offline') {
+        const session = this.sessions.get(id);
+        // SAFETY GUARD: If session has an active open WebSocket, this host is NOT actually offline!
+        // Auto-heal it back to online rather than pruning it.
+        if (session && session.getAgentWs() && session.getAgentWs().readyState === 1) {
+          host.status = 'online';
+          host.lastSeen = now;
+          logger.info(`[TerminalHostManager] Auto-healed active host ${id} during prune check`);
+          continue;
+        }
+
         const age = now - (host.lastSeen || 0);
         if (maxAgeMs <= 0 || age >= maxAgeMs) {
           prunedIds.push(id);
-          const session = this.sessions.get(id);
           if (session) {
             session.destroy();
             this.sessions.delete(id);
@@ -246,6 +259,19 @@ export class TerminalHostManager {
 
   public getHosts(): ManagedHost[] {
     this.pruneOfflineHosts(TerminalHostManager.OFFLINE_HOST_TTL_MS);
+
+    // Auto-heal any host with an active open WebSocket
+    for (const [id, host] of this.hosts.entries()) {
+      if (host.status === 'offline') {
+        const session = this.sessions.get(id);
+        if (session && session.getAgentWs() && session.getAgentWs().readyState === 1) {
+          host.status = 'online';
+          host.lastSeen = Date.now();
+          logger.info(`[TerminalHostManager] Auto-healed active host to online: ${id}`);
+        }
+      }
+    }
+
     const list = Array.from(this.hosts.values());
     return list.sort((a, b) => {
       if (a.status !== b.status) {
@@ -258,7 +284,16 @@ export class TerminalHostManager {
   public getHost(hostIdOrName: string): ManagedHost | null {
     const canonicalId = this.resolveCanonicalHostId(hostIdOrName);
     if (!canonicalId) return null;
-    return this.hosts.get(canonicalId) || null;
+    const host = this.hosts.get(canonicalId);
+    if (host && host.status === 'offline') {
+      const session = this.sessions.get(canonicalId);
+      if (session && session.getAgentWs() && session.getAgentWs().readyState === 1) {
+        host.status = 'online';
+        host.lastSeen = Date.now();
+        logger.info(`[TerminalHostManager] Auto-healed active host to online: ${canonicalId} in getHost`);
+      }
+    }
+    return host || null;
   }
 
   public getSession(hostIdOrName?: string): RemoteAgentTerminalSession | null {
@@ -266,10 +301,22 @@ export class TerminalHostManager {
     const canonicalId = this.resolveCanonicalHostId(hostIdOrName);
     if (!canonicalId) return null;
     const host = this.hosts.get(canonicalId);
+    const session = this.sessions.get(canonicalId);
+
+    // Auto-heal if socket is active
+    if (host && session && session.getAgentWs() && session.getAgentWs().readyState === 1) {
+      if (host.status !== 'online') {
+        host.status = 'online';
+        host.lastSeen = Date.now();
+        logger.info(`[TerminalHostManager] Auto-healed host status to online for ${canonicalId} in getSession`);
+      }
+      return session;
+    }
+
     if (!host || host.status !== 'online') {
       return null;
     }
-    return this.sessions.get(canonicalId) || null;
+    return session || null;
   }
 
   public registerAgent(metadata: {
@@ -334,7 +381,16 @@ export class TerminalHostManager {
       session = new RemoteAgentTerminalSession(id, metadata.agentWs);
       this.sessions.set(id, session);
     } else {
-      // Agent reconnecting -> Soft update agent WebSocket without wiping history or interrupting client screens
+      // Agent reconnecting -> Supersede old WebSocket if different
+      const oldWs = session.getAgentWs();
+      if (oldWs && oldWs !== metadata.agentWs) {
+        logger.info(`[TerminalHostManager] Superseding old agent socket for: ${id}`);
+        try {
+          if (oldWs.readyState === 1) {
+            oldWs.close(1000, 'Superseded by new agent connection');
+          }
+        } catch {}
+      }
       session.updateAgentWs(metadata.agentWs);
       this.clearPendingRpcForHost(id);
     }
@@ -343,23 +399,95 @@ export class TerminalHostManager {
     return { success: true, host };
   }
 
-  public unregisterAgent(hostId: string): void {
+  public isCurrentAgentWs(hostId: string, ws: any): boolean {
     const canonicalId = this.resolveCanonicalHostId(hostId) || hostId;
+    const session = this.sessions.get(canonicalId);
+    if (!session) return false;
+    const currentWs = session.getAgentWs();
+    if (!currentWs) return false;
+    return currentWs === ws;
+  }
+
+  public unregisterAgent(hostId: string, closingWs?: any): void {
+    const canonicalId = this.resolveCanonicalHostId(hostId) || hostId;
+    const session = this.sessions.get(canonicalId);
+
+    // Stale socket close protection:
+    // If closingWs is specified and doesn't match the current active agent socket in the session,
+    // this event is from an old superseded connection. Do NOT mark offline!
+    if (closingWs && session && session.getAgentWs() && session.getAgentWs() !== closingWs) {
+      logger.info(`[TerminalHostManager] Ignoring unregister from stale agent socket for: ${canonicalId}`);
+      return;
+    }
+
     const host = this.hosts.get(canonicalId);
     if (host && host.type === 'agent') {
       host.status = 'offline';
       host.lastSeen = Date.now();
       logger.info(`[TerminalHostManager] Agent unregistered/offline: ${canonicalId}`);
     }
+    if (session && (!closingWs || session.getAgentWs() === closingWs)) {
+      session.updateAgentWs(null);
+    }
+  }
+
+  public touchAgent(
+    hostId: string,
+    ws?: any,
+    metadata?: { name?: string; hostname?: string; ip?: string; platform?: string }
+  ): void {
+    const canonicalId = this.resolveCanonicalHostId(hostId) || hostId;
+    let host = this.hosts.get(canonicalId);
+    if (!host) {
+      if (ws) {
+        this.registerAgent({
+          hostId: canonicalId,
+          name: metadata?.name,
+          hostname: metadata?.hostname,
+          ip: metadata?.ip,
+          platform: metadata?.platform,
+          agentWs: ws,
+        });
+      }
+      return;
+    }
+
+    const session = this.sessions.get(canonicalId);
+    const currentWs = session ? session.getAgentWs() : null;
+
+    // Guard against stale sockets:
+    // If session already has an active open WebSocket that is NOT this `ws`,
+    // then `ws` is an OLD STALE / superseded socket!
+    // We must ignore this message and not let it hijack the session or status.
+    if (session && currentWs && currentWs !== ws && currentWs.readyState === 1) {
+      logger.info(`[TerminalHostManager] Ignoring touch from stale agent socket for: ${canonicalId}`);
+      try {
+        if (ws && typeof ws.close === 'function' && ws.readyState === 1) {
+          ws.close(1000, 'Superseded by newer connection');
+        }
+      } catch {}
+      return;
+    }
+
+    host.lastSeen = Date.now();
+    if (host.status !== 'online') {
+      host.status = 'online';
+      logger.info(`[TerminalHostManager] Agent status restored to online via message: ${canonicalId}`);
+    }
+
+    if (session && ws && currentWs !== ws) {
+      session.updateAgentWs(ws);
+    }
   }
 
   public handleAgentData(hostId: string, data: any): void {
-    const session = this.sessions.get(hostId);
+    const canonicalId = this.resolveCanonicalHostId(hostId) || hostId;
+    const session = this.sessions.get(canonicalId);
     if (session) {
       session.handleData(data);
     }
 
-    const host = this.hosts.get(hostId);
+    const host = this.hosts.get(canonicalId);
     if (host) {
       host.lastSeen = Date.now();
       host.status = 'online';

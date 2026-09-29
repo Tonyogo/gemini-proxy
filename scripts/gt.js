@@ -2372,6 +2372,7 @@ async function runAgent(agentArgs = [], globalOpts = {}) {
   let ws = null;
   let streamSessionManager = null;
   let reconnectAttempts = 0;
+  let reconnectTimer = null;
   let isExiting = false;
   let connectTimeoutTimer = null;
   let heartbeatTimer = null;
@@ -2574,6 +2575,20 @@ async function runAgent(agentArgs = [], globalOpts = {}) {
   function connect() {
     if (isExiting) return;
 
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
+    stopHeartbeat();
+
+    if (ws) {
+      try {
+        ws.removeAllListeners();
+        ws.terminate();
+      } catch {}
+      ws = null;
+    }
+
     const targetWsUrl = resolveWebSocketUrl(serverArg, {
       hostId,
       name: hostName,
@@ -2603,6 +2618,10 @@ async function runAgent(agentArgs = [], globalOpts = {}) {
 
     ws.on('open', () => {
       if (connectTimeoutTimer) clearTimeout(connectTimeoutTimer);
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
       reconnectAttempts = 0;
       console.log(`[Agent] Connected and registered successfully! Reverse tunnel is active.`);
 
@@ -2735,22 +2754,34 @@ async function runAgent(agentArgs = [], globalOpts = {}) {
     ws.on('error', (err) => {
       if (connectTimeoutTimer) clearTimeout(connectTimeoutTimer);
       stopHeartbeat();
-      console.error(`[Agent] Connection error: ${err.message}`);
+      const msg = err && (err.message || err.code || err.name || String(err));
+      console.error(`[Agent] Connection error: ${msg || 'Unknown error'}`);
     });
   }
 
   function scheduleReconnect() {
     if (isExiting) return;
     stopHeartbeat();
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
     reconnectAttempts++;
     const delay = Math.min(30000, 1000 * Math.pow(1.5, Math.min(reconnectAttempts, 8)));
     console.log(`[Agent] Reconnecting in ${(delay / 1000).toFixed(1)}s (attempt #${reconnectAttempts})...`);
-    setTimeout(connect, delay);
+    reconnectTimer = setTimeout(() => {
+      reconnectTimer = null;
+      connect();
+    }, delay);
   }
 
   function cleanup() {
     if (isExiting) return;
     isExiting = true;
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
     stopHeartbeat();
     console.log('\n[Agent] Shutting down agent...');
     if (ws) {
@@ -3066,19 +3097,19 @@ async function handleRemotePs({ server, key, args = [], jsonOutput = false, form
 
       console.log(
         'NODE ID'.padEnd(20) +
-        'NAME'.padEnd(20) +
+        'NAME'.padEnd(25) +
         'STATUS'.padEnd(12) +
         'PLATFORM'.padEnd(12) +
         'IP'.padEnd(18) +
         'LAST SEEN'
       );
-      console.log('-'.repeat(90));
+      console.log('-'.repeat(95));
 
       for (const h of hosts) {
         const statusStr = h.status === 'online' ? 'online' : 'offline';
         console.log(
           (h.id || '').padEnd(20) +
-          (h.name || h.hostname || '').padEnd(20) +
+          (h.name || h.hostname || '').padEnd(25) +
           statusStr.padEnd(12) +
           (h.platform || '').padEnd(12) +
           (h.ip || '').padEnd(18) +

@@ -75,6 +75,9 @@ export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
       undefined;
     const platform = parsedUrl.searchParams.get('platform') || undefined;
 
+    const agentMeta = { hostId, name, hostname, ip, platform };
+    (ws as any)._agentMeta = agentMeta;
+
     const regResult = terminalHostManager.registerAgent({
       hostId,
       name,
@@ -99,6 +102,8 @@ export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
 
     ws.on('message', (message: RawData, isBinary: boolean) => {
       try {
+        terminalHostManager.touchAgent(hostId, ws, agentMeta);
+
         if (isBinary) {
           terminalHostManager.handleAgentData(hostId, message);
           return;
@@ -159,14 +164,18 @@ export function setupTerminalWebSocket(server: http.Server): WebSocketServer {
 
     ws.on('close', () => {
       logger.info(`[TerminalWS:Agent] Agent disconnected: ${hostId}`);
-      terminalExecBridge.handleAgentDisconnected(hostId);
-      terminalHostManager.unregisterAgent(hostId);
+      if (terminalHostManager.isCurrentAgentWs(hostId, ws)) {
+        terminalExecBridge.handleAgentDisconnected(hostId);
+      }
+      terminalHostManager.unregisterAgent(hostId, ws);
     });
 
     ws.on('error', (err) => {
       logger.error(`[TerminalWS:Agent] Agent socket error (${hostId}): ${err.message}`);
-      terminalExecBridge.handleAgentDisconnected(hostId);
-      terminalHostManager.unregisterAgent(hostId);
+      if (terminalHostManager.isCurrentAgentWs(hostId, ws)) {
+        terminalExecBridge.handleAgentDisconnected(hostId);
+      }
+      terminalHostManager.unregisterAgent(hostId, ws);
     });
   });
 
