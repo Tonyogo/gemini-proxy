@@ -11,12 +11,14 @@ describe('Per-Upstream Model Config Parser', () => {
         url: 'https://s1.example.com',
         weight: 80,
         enabled: true,
+        type: 'proxy',
         allowedModels: ['gemini-2.5-flash', 'gemini-2.5-pro']
       },
       {
         url: 'https://s2.example.com',
         weight: 20,
         enabled: true,
+        type: 'proxy',
         allowedModels: ['gemini-2.5-flash']
       }
     ]);

@@ -90,11 +90,20 @@ export interface SystemStatusData {
   };
 }
 
+export interface ServerMeta {
+  index: number;
+  name: string;
+  url: string;
+  type: 'proxy' | 'direct';
+  keyCount?: number;
+}
+
 export default function AccountsView({ adminKey }: { adminKey: string }) {
   const { t } = useTranslation();
 
   // Multi-server state
   const [servers, setServers] = useState<string[]>([]);
+  const [serversMeta, setServersMeta] = useState<ServerMeta[]>([]);
   const [activeServerIndex, setActiveServerIndex] = useState<number>(0);
 
   const [serverDataMap, setServerDataMap] = useState<Record<number, any>>({});
@@ -110,11 +119,24 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
   const currentError = serverErrorMap[activeServerIndex] || null;
   const isCurrentOffline = serverHealthMap[activeServerIndex] === false || Boolean(serverErrorMap[activeServerIndex]);
 
+  const isCurrentDirect = serversMeta[activeServerIndex]?.type === 'direct' || Boolean(currentData?.isDirectMode);
+
   const accounts: AccountDetail[] = currentData?.status?.accountDetails || [];
   const [isStatsCollapsed, setIsStatsCollapsed] = useState<boolean>(true);
   const serverModelStats = useMemo(() => {
     return calculateServerModelStats(accounts);
   }, [accounts]);
+
+  const directTotalReqs = useMemo(() => {
+    return accounts.reduce((sum, a) => sum + (a.usage?.totalRequests || a.usage?.total || 0), 0);
+  }, [accounts]);
+  const directTotalSuccess = useMemo(() => {
+    return accounts.reduce((sum, a) => sum + (a.usage?.totalSuccess ?? a.usage?.totalRequests ?? 0), 0);
+  }, [accounts]);
+  const directTotalFailed = useMemo(() => {
+    return accounts.reduce((sum, a) => sum + (a.usage?.totalError || 0), 0);
+  }, [accounts]);
+  const directSuccessRate = directTotalReqs > 0 ? ((directTotalSuccess / directTotalReqs) * 100).toFixed(1) : '100.0';
 
   const currentAuthIndex = currentData?.status?.currentAuthIndex;
   const isSystemBusy = Boolean(currentData?.status?.isSystemBusy);
@@ -213,6 +235,9 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
       if (res.ok) {
         const json = await res.json();
         const serverList = Array.isArray(json.servers) ? json.servers : [];
+        if (Array.isArray(json.serversMeta)) {
+          setServersMeta(json.serversMeta);
+        }
         if (serverList.length > 0) {
           setServers(serverList);
         }
@@ -421,7 +446,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
       }
 
       // Status filter
-      if (statusFilter !== 'ALL') {
+      if (!isCurrentDirect && statusFilter !== 'ALL') {
         const cStatus = (acc.concurrentStatus || '').toUpperCase().trim();
         const isManuallyDisabled = Boolean(acc.isDisabled || (acc as any).disabled === true || acc.status === 'disabled');
 
@@ -444,7 +469,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
 
       return true;
     });
-  }, [accounts, searchQuery, statusFilter]);
+  }, [accounts, searchQuery, statusFilter, isCurrentDirect]);
 
   const handleSelectAll = () => {
     if (selectedIndices.length === filteredAccounts.length && filteredAccounts.length > 0) {
@@ -922,6 +947,16 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                     <span className="inline sm:hidden font-mono font-bold">{t('accounts.mobileTabShort', { index: idx + 1 })}</span>
                   </span>
 
+                  {serversMeta[idx]?.type === 'direct' ? (
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border border-cyan-500/25 shrink-0">
+                      {t('accounts.directModeBadge', '直连')}
+                    </span>
+                  ) : (
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/25 shrink-0">
+                      {t('accounts.proxyModeBadge', '代理')}
+                    </span>
+                  )}
+
                   {isOffline ? (
                     <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/20 shrink-0">
                       {t('accounts.nodeOffline')}
@@ -930,7 +965,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                     <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full shrink-0 ${
                       isActive ? 'bg-white/20 text-white font-semibold' : 'bg-black/5 dark:bg-white/10 text-slate-500 dark:text-slate-300'
                     }`}>
-                      {count} {t('accounts.accountUnit')}
+                      {count} {serversMeta[idx]?.type === 'direct' ? 'Keys' : t('accounts.accountUnit')}
                     </span>
                   ) : null}
                 </button>
@@ -949,6 +984,15 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
               <span className="font-semibold text-slate-800 dark:text-slate-200 shrink-0">
                 Server {activeServerIndex + 1}
               </span>
+              {serversMeta[activeServerIndex]?.type === 'direct' ? (
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border border-cyan-500/25 shrink-0">
+                  {t('accounts.directModeBadge', '直连')}
+                </span>
+              ) : (
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/25 shrink-0">
+                  {t('accounts.proxyModeBadge', '代理')}
+                </span>
+              )}
               <span className="font-mono text-slate-400 dark:text-slate-500 truncate max-w-[130px]">
                 ({getServerHost(servers[activeServerIndex])})
               </span>
@@ -957,123 +1001,195 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
               <span className={isCurrentOffline ? 'text-rose-500 font-medium' : 'text-emerald-500 font-medium'}>
                 {isCurrentOffline ? t('accounts.nodeOffline') : t('accounts.nodeOnline')}
               </span>
-              <span className="text-slate-400 font-mono">· {accounts.length} {t('accounts.accountUnit')}</span>
+              <span className="text-slate-400 font-mono">· {accounts.length} {serversMeta[activeServerIndex]?.type === 'direct' ? 'Keys' : t('accounts.accountUnit')}</span>
             </div>
           </div>
         </div>
       )}
 
-      {/* Node Model Usage Overview Banner */}
-      <div className="ui-card p-3 sm:p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] space-y-3" title={t('accounts.modernSub')}>
-        {/* Header row */}
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={() => setIsStatsCollapsed(!isStatsCollapsed)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              setIsStatsCollapsed(!isStatsCollapsed);
-            }
-          }}
-          className="flex items-center justify-between cursor-pointer select-none -m-1 p-1 rounded-lg transition-colors hover:bg-slate-500/5"
-          title={isStatsCollapsed ? t('accounts.toggleStatsExpand') : t('accounts.toggleStatsCollapse')}
-        >
-          <div className="flex items-center space-x-2">
-            <BarChart2 className="w-4 h-4 text-indigo-500 shrink-0" />
-            <span className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">
-              {t('accounts.serverModelStatsTitle', '节点模型调用概览')}
-            </span>
-            <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
-              (Server {activeServerIndex + 1})
-            </span>
+      {/* Direct Mode Top Banner & Stats Cards vs Proxy Model Usage Overview */}
+      {isCurrentDirect ? (
+        <div className="space-y-3">
+          <div className="ui-card p-3 sm:p-4 rounded-xl border border-cyan-500/30 bg-cyan-500/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center space-x-3">
+              <div className="p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-500">
+                <Key className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center space-x-2">
+                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                    {t('accounts.directModeTitle', 'Gemini 直连密钥用量监控')}
+                  </h3>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border border-cyan-500/25">
+                    {t('accounts.directModeBadge', '直连')}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  {t('accounts.directModeDesc', '当前节点直接连接官方端点，请求将在下列已配置的 API Key 之间均匀负载均衡')}
+                </p>
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center space-x-2.5">
-            <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-500/10 text-slate-600 dark:text-slate-300 font-mono">
-              {t('accounts.nodeTotalRequests')}: <strong className="text-indigo-600 dark:text-indigo-400">{serverModelStats.totalRequests.toLocaleString()}</strong>
-            </span>
-            <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono">
-              {t('accounts.nodeSuccessRate')}: <strong>{serverModelStats.successRate}%</strong>
-            </span>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsStatsCollapsed(!isStatsCollapsed);
-              }}
-              className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
-              title={isStatsCollapsed ? t('accounts.toggleStatsExpand') : t('accounts.toggleStatsCollapse')}
-            >
-              {isStatsCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
-            </button>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4">
+            <div className="ui-card p-3 sm:p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
+              <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs">
+                <span className="font-medium">{t('config.serverApiKeys', 'Gemini API Keys')}</span>
+                <Key className="w-4 h-4 text-cyan-500" />
+              </div>
+              <div className="mt-1.5 flex items-baseline space-x-1.5">
+                <span className="text-xl sm:text-2xl font-bold font-mono text-cyan-600 dark:text-cyan-400">{accounts.length}</span>
+                <span className="text-xs text-slate-400">keys</span>
+              </div>
+            </div>
+
+            <div className="ui-card p-3 sm:p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
+              <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs">
+                <span className="font-medium">{t('accounts.keyTotalRequests', '总调用量')}</span>
+                <Activity className="w-4 h-4 text-indigo-500" />
+              </div>
+              <div className="mt-1.5 flex items-baseline space-x-1.5">
+                <span className="text-xl sm:text-2xl font-bold font-mono text-indigo-600 dark:text-indigo-400">{directTotalReqs.toLocaleString()}</span>
+                <span className="text-xs text-slate-400">reqs</span>
+              </div>
+            </div>
+
+            <div className="ui-card p-3 sm:p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
+              <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs">
+                <span className="font-medium">{t('accounts.keySuccess', '成功')}</span>
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+              </div>
+              <div className="mt-1.5 flex items-baseline space-x-1.5">
+                <span className="text-xl sm:text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400">{directTotalSuccess.toLocaleString()}</span>
+                <span className="text-xs font-mono text-emerald-500">({directSuccessRate}%)</span>
+              </div>
+            </div>
+
+            <div className="ui-card p-3 sm:p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
+              <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs">
+                <span className="font-medium">{t('accounts.keyFailure', '失败')}</span>
+                <AlertCircle className="w-4 h-4 text-rose-500" />
+              </div>
+              <div className="mt-1.5 flex items-baseline space-x-1.5">
+                <span className="text-xl sm:text-2xl font-bold font-mono text-rose-600 dark:text-rose-400">{directTotalFailed.toLocaleString()}</span>
+                <span className="text-xs text-slate-400">errs</span>
+              </div>
+            </div>
           </div>
         </div>
+      ) : (
+        <div className="ui-card p-3 sm:p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] space-y-3" title={t('accounts.modernSub')}>
+          {/* Node Model Usage Overview Banner */}
+          {/* Header row */}
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => setIsStatsCollapsed(!isStatsCollapsed)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setIsStatsCollapsed(!isStatsCollapsed);
+              }
+            }}
+            className="flex items-center justify-between cursor-pointer select-none -m-1 p-1 rounded-lg transition-colors hover:bg-slate-500/5"
+            title={isStatsCollapsed ? t('accounts.toggleStatsExpand') : t('accounts.toggleStatsCollapse')}
+          >
+            <div className="flex items-center space-x-2">
+              <BarChart2 className="w-4 h-4 text-indigo-500 shrink-0" />
+              <span className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">
+                {t('accounts.serverModelStatsTitle', '节点模型调用概览')}
+              </span>
+              <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
+                (Server {activeServerIndex + 1})
+              </span>
+            </div>
 
-        {/* Collapsible Content */}
-        {!isStatsCollapsed && (
-          <div className="space-y-3 pt-1 animate-in fade-in duration-200">
-            {serverModelStats.models.length > 0 ? (
-              <>
-                {/* Multi-color Model Traffic Share Bar */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                    <span>{t('accounts.modelTrafficShare')}</span>
-                    <span>{serverModelStats.models.length} 个模型处理中</span>
+            <div className="flex items-center space-x-2.5">
+              <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-500/10 text-slate-600 dark:text-slate-300 font-mono">
+                {t('accounts.nodeTotalRequests')}: <strong className="text-indigo-600 dark:text-indigo-400">{serverModelStats.totalRequests.toLocaleString()}</strong>
+              </span>
+              <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono">
+                {t('accounts.nodeSuccessRate')}: <strong>{serverModelStats.successRate}%</strong>
+              </span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsStatsCollapsed(!isStatsCollapsed);
+                }}
+                className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                title={isStatsCollapsed ? t('accounts.toggleStatsExpand') : t('accounts.toggleStatsCollapse')}
+              >
+                {isStatsCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Collapsible Content */}
+          {!isStatsCollapsed && (
+            <div className="space-y-3 pt-1 animate-in fade-in duration-200">
+              {serverModelStats.models.length > 0 ? (
+                <>
+                  {/* Multi-color Model Traffic Share Bar */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                      <span>{t('accounts.modelTrafficShare')}</span>
+                      <span>{serverModelStats.models.length} 个模型处理中</span>
+                    </div>
+                    <div className="h-2.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden flex shadow-inner">
+                      {serverModelStats.models.map((item, idx) => {
+                        const colors = ['bg-indigo-500', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-purple-500', 'bg-rose-500'];
+                        const color = colors[idx % colors.length];
+                        return (
+                          <div
+                            key={item.model}
+                            style={{ width: `${item.sharePercent}%` }}
+                            className={`${color} h-full transition-all duration-300`}
+                            title={`${item.model}: ${item.requests}次 (${item.sharePercent}%)`}
+                          />
+                        );
+                      })}
+                    </div>
                   </div>
-                  <div className="h-2.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden flex shadow-inner">
+
+                  {/* Model Breakdown Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                     {serverModelStats.models.map((item, idx) => {
                       const colors = ['bg-indigo-500', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-purple-500', 'bg-rose-500'];
-                      const color = colors[idx % colors.length];
+                      const dotColor = colors[idx % colors.length];
                       return (
                         <div
                           key={item.model}
-                          style={{ width: `${item.sharePercent}%` }}
-                          className={`${color} h-full transition-all duration-300`}
-                          title={`${item.model}: ${item.requests}次 (${item.sharePercent}%)`}
-                        />
+                          className="p-2 rounded-lg bg-black/[0.02] dark:bg-white/[0.03] border border-[var(--border-subtle)] flex items-center justify-between text-xs"
+                        >
+                          <div className="flex items-center space-x-2 min-w-0 pr-2">
+                            <span className={`w-2 h-2 rounded-full ${dotColor} shrink-0`} />
+                            <span className="font-mono font-medium truncate text-slate-800 dark:text-slate-200" title={item.model}>
+                              {item.model}
+                            </span>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <div className="font-mono font-semibold text-slate-700 dark:text-slate-300">
+                              {item.requests.toLocaleString()} <span className="text-[10px] text-slate-400">({item.sharePercent}%)</span>
+                            </div>
+                            <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">
+                              {t('accounts.modelSuccessFailed', { success: item.success.toLocaleString(), error: item.error.toLocaleString() })} ({item.successRate}%)
+                            </div>
+                          </div>
+                        </div>
                       );
                     })}
                   </div>
+                </>
+              ) : (
+                <div className="text-center py-2 text-xs text-slate-400 dark:text-slate-500 font-mono">
+                  {t('accounts.noModelUsageYet')}
                 </div>
-
-                {/* Model Breakdown Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                  {serverModelStats.models.map((item, idx) => {
-                    const colors = ['bg-indigo-500', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-purple-500', 'bg-rose-500'];
-                    const dotColor = colors[idx % colors.length];
-                    return (
-                      <div
-                        key={item.model}
-                        className="p-2 rounded-lg bg-black/[0.02] dark:bg-white/[0.03] border border-[var(--border-subtle)] flex items-center justify-between text-xs"
-                      >
-                        <div className="flex items-center space-x-2 min-w-0 pr-2">
-                          <span className={`w-2 h-2 rounded-full ${dotColor} shrink-0`} />
-                          <span className="font-mono font-medium truncate text-slate-800 dark:text-slate-200" title={item.model}>
-                            {item.model}
-                          </span>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <div className="font-mono font-semibold text-slate-700 dark:text-slate-300">
-                            {item.requests.toLocaleString()} <span className="text-[10px] text-slate-400">({item.sharePercent}%)</span>
-                          </div>
-                          <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">
-                            {t('accounts.modelSuccessFailed', { success: item.success.toLocaleString(), error: item.error.toLocaleString() })} ({item.successRate}%)
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
-            ) : (
-              <div className="text-center py-2 text-xs text-slate-400 dark:text-slate-500 font-mono">
-                {t('accounts.noModelUsageYet')}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Action Toolbar */}
       <div className="ui-card p-2 sm:p-3.5 shrink-0">
@@ -1138,46 +1254,62 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                   <Search className="w-3.5 h-3.5" />
                 </button>
 
-                <div className="relative flex-1 min-w-0 max-w-[170px]">
-                  <select
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="w-full ui-input pl-2 pr-6 py-1 text-xs appearance-none cursor-pointer truncate"
-                  >
-                    <option value="ALL">{t('accounts.filterAll', '全部')} ({totalCount})</option>
-                    <option value="ACTIVATED">{t('accounts.filterActivated', '已激活')} ({activatedCount})</option>
-                    <option value="ACTIVATING">{t('accounts.filterActivating', '激活中')} ({activatingCount})</option>
-                    <option value="RETIRED">{t('accounts.filterRetired', '已下线')} ({retiredCount})</option>
-                    <option value="INACTIVE">{t('accounts.filterInactive', '未激活')} ({inactiveCount})</option>
-                    <option value="DISABLED">{t('accounts.filterDisabled', '已禁用')} ({disabledCount})</option>
-                    <option value="ISSUES">{t('accounts.filterIssues', '异常')}</option>
-                  </select>
-                  <ChevronDown className="w-3 h-3 text-slate-500 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
+                {!isCurrentDirect && (
+                  <div className="relative flex-1 min-w-0 max-w-[170px]">
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      className="w-full ui-input pl-2 pr-6 py-1 text-xs appearance-none cursor-pointer truncate"
+                    >
+                      <option value="ALL">{t('accounts.filterAll', '全部')} ({totalCount})</option>
+                      <option value="ACTIVATED">{t('accounts.filterActivated', '已激活')} ({activatedCount})</option>
+                      <option value="ACTIVATING">{t('accounts.filterActivating', '激活中')} ({activatingCount})</option>
+                      <option value="RETIRED">{t('accounts.filterRetired', '已下线')} ({retiredCount})</option>
+                      <option value="INACTIVE">{t('accounts.filterInactive', '未激活')} ({inactiveCount})</option>
+                      <option value="DISABLED">{t('accounts.filterDisabled', '已禁用')} ({disabledCount})</option>
+                      <option value="ISSUES">{t('accounts.filterIssues', '异常')}</option>
+                    </select>
+                    <ChevronDown className="w-3 h-3 text-slate-500 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                )}
               </div>
 
               {/* Right: Compact Actions */}
               <div className="flex items-center gap-1.5 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setDedupConfirm(true)}
-                  disabled={actionLoading || accounts.length === 0}
-                  className="p-1.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.05] border border-[var(--border-subtle)] text-amber-400 hover:bg-black/[0.08] active:scale-95 disabled:opacity-40"
-                  title={t('accounts.dedup', '去重')}
-                >
-                  <CopyCheck className="w-3.5 h-3.5" />
-                </button>
+                {!isCurrentDirect ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setDedupConfirm(true)}
+                      disabled={actionLoading || accounts.length === 0}
+                      className="p-1.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.05] border border-[var(--border-subtle)] text-amber-400 hover:bg-black/[0.08] active:scale-95 disabled:opacity-40"
+                      title={t('accounts.dedup', '去重')}
+                    >
+                      <CopyCheck className="w-3.5 h-3.5" />
+                    </button>
 
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={actionLoading}
-                  className="px-2.5 py-1 ui-btn-primary flex items-center space-x-1 text-xs active:scale-95"
-                  title={t('accounts.importFiles')}
-                >
-                  <Upload className="w-3.5 h-3.5" />
-                  <span className="text-[11px]">{t('accounts.importFiles', '导入')}</span>
-                </button>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={actionLoading}
+                      className="px-2.5 py-1 ui-btn-primary flex items-center space-x-1 text-xs active:scale-95"
+                      title={t('accounts.importFiles')}
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span className="text-[11px]">{t('accounts.importFiles', '导入')}</span>
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => fetchAllServers(false)}
+                    disabled={loading || actionLoading || globalLoading}
+                    className="p-1.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.05] border border-[var(--border-subtle)] text-slate-400 hover:text-slate-200 active:scale-95"
+                    title={t('accounts.refresh', '刷新')}
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${(loading || globalLoading) ? 'animate-spin text-cyan-400' : ''}`} />
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -1206,45 +1338,51 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
               )}
             </div>
 
-            <div className="relative shrink-0">
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-auto ui-input pl-3 pr-8 py-1.5 appearance-none cursor-pointer"
-              >
-                <option value="ALL">{t('accounts.filterAll', '全部状态')} ({totalCount})</option>
-                <option value="ACTIVATED">{t('accounts.filterActivated', '已激活')} ({activatedCount})</option>
-                <option value="ACTIVATING">{t('accounts.filterActivating', '激活中')} ({activatingCount})</option>
-                <option value="RETIRED">{t('accounts.filterRetired', '已下线')} ({retiredCount})</option>
-                <option value="INACTIVE">{t('accounts.filterInactive', '未激活')} ({inactiveCount})</option>
-                <option value="DISABLED">{t('accounts.filterDisabled', '已禁用')} ({disabledCount})</option>
-                <option value="ISSUES">{t('accounts.filterIssues', '凭据异常 / 已过期')}</option>
-              </select>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
+            {!isCurrentDirect && (
+              <div className="relative shrink-0">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="w-auto ui-input pl-3 pr-8 py-1.5 appearance-none cursor-pointer"
+                >
+                  <option value="ALL">{t('accounts.filterAll', '全部状态')} ({totalCount})</option>
+                  <option value="ACTIVATED">{t('accounts.filterActivated', '已激活')} ({activatedCount})</option>
+                  <option value="ACTIVATING">{t('accounts.filterActivating', '激活中')} ({activatingCount})</option>
+                  <option value="RETIRED">{t('accounts.filterRetired', '已下线')} ({retiredCount})</option>
+                  <option value="INACTIVE">{t('accounts.filterInactive', '未激活')} ({inactiveCount})</option>
+                  <option value="DISABLED">{t('accounts.filterDisabled', '已禁用')} ({disabledCount})</option>
+                  <option value="ISSUES">{t('accounts.filterIssues', '凭据异常 / 已过期')}</option>
+                </select>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
+            )}
           </div>
 
           {/* Right: Actions */}
           <div className="flex items-center justify-end gap-2 shrink-0">
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={actionLoading}
-              className="px-3 py-1.5 ui-btn-primary flex items-center space-x-1.5"
-              title={t('accounts.importFiles')}
-            >
-              <Upload className="w-3.5 h-3.5" />
-              <span>{t('accounts.importFiles')}</span>
-            </button>
+            {!isCurrentDirect && (
+              <>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={actionLoading}
+                  className="px-3 py-1.5 ui-btn-primary flex items-center space-x-1.5"
+                  title={t('accounts.importFiles')}
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>{t('accounts.importFiles')}</span>
+                </button>
 
-            <button
-              onClick={() => setDedupConfirm(true)}
-              disabled={actionLoading || accounts.length === 0}
-              className="px-3 py-1.5 ui-btn-secondary disabled:opacity-40 flex items-center space-x-1.5 text-amber-300"
-              title={t('accounts.dedupTooltip', '扫描并清理重复的 refresh_token / 凭据')}
-            >
-              <CopyCheck className="w-3.5 h-3.5 text-amber-400" />
-              <span>{t('accounts.dedup', '去重')}</span>
-            </button>
+                <button
+                  onClick={() => setDedupConfirm(true)}
+                  disabled={actionLoading || accounts.length === 0}
+                  className="px-3 py-1.5 ui-btn-secondary disabled:opacity-40 flex items-center space-x-1.5 text-amber-300"
+                  title={t('accounts.dedupTooltip', '扫描并清理重复的 refresh_token / 凭据')}
+                >
+                  <CopyCheck className="w-3.5 h-3.5 text-amber-400" />
+                  <span>{t('accounts.dedup', '去重')}</span>
+                </button>
+              </>
+            )}
 
             <button
               onClick={() => fetchAllServers(false)}
@@ -1296,16 +1434,205 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
             <span>{t('accounts.loading')}</span>
           </div>
         ) : filteredAccounts.length === 0 ? (
-          <div className="text-center py-16 px-4">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-slate-800/50 text-slate-500 mb-3 border border-white/[0.04]">
-              <Users className="w-6 h-6" />
+          isCurrentDirect ? (
+            <div className="text-center py-16 px-4">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-cyan-500/10 text-cyan-500 mb-3 border border-cyan-500/20">
+                <Key className="w-6 h-6" />
+              </div>
+              <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1">
+                {t('accounts.directModeTitle', 'Gemini 直连密钥用量监控')}
+              </h4>
+              <p className="text-slate-400 text-xs max-w-md mx-auto">
+                {searchQuery ? t('accounts.noFilteredAccounts', '未找到符合当前搜索关键词的密钥。') : t('accounts.noKeysConfigured', '当前直连节点尚未配置 API Key，请前往系统设置添加')}
+              </p>
             </div>
-            <p className="text-slate-400 text-xs max-w-md mx-auto">
-              {searchQuery || statusFilter !== 'ALL'
-                ? t('accounts.noFilteredAccounts', '未找到符合当前搜索关键词或状态筛选的账号。')
-                : t('accounts.noAccounts')}
-            </p>
-          </div>
+          ) : (
+            <div className="text-center py-16 px-4">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-slate-800/50 text-slate-500 mb-3 border border-white/[0.04]">
+                <Users className="w-6 h-6" />
+              </div>
+              <p className="text-slate-400 text-xs max-w-md mx-auto">
+                {searchQuery || statusFilter !== 'ALL'
+                  ? t('accounts.noFilteredAccounts', '未找到符合当前搜索关键词或状态筛选的账号。')
+                  : t('accounts.noAccounts')}
+              </p>
+            </div>
+          )
+        ) : isCurrentDirect ? (
+          <>
+            {/* Desktop Direct Mode Table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-surface-sub)] text-[11px] font-medium tracking-wider text-[var(--text-secondary)] uppercase select-none">
+                    <th className="px-4 py-3 w-16 text-left">{t('accounts.tableIndex', '序号')}</th>
+                    <th className="px-4 py-3 min-w-[240px] text-left">{t('config.serverApiKeys', 'Gemini API Key')}</th>
+                    <th className="px-4 py-3 min-w-[120px] text-left">{t('accounts.tableStatus', '状态')}</th>
+                    <th className="px-4 py-3 min-w-[200px] text-left">{t('accounts.keyTotalRequests', '调用统计')}</th>
+                    <th className="px-4 py-3 min-w-[260px] text-left">{t('accounts.activeModels', '活跃模型明细')}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--border-subtle)] text-xs">
+                  {filteredAccounts.map((acc) => {
+                    const totalUsage = getTotalUsage(acc.usage);
+                    const succ = acc.usage?.totalSuccess ?? totalUsage;
+                    const err = acc.usage?.totalError ?? 0;
+                    const rate = totalUsage > 0 ? ((succ / totalUsage) * 100).toFixed(1) : '100.0';
+                    const breakdowns = getModelBreakdowns(acc.usage);
+
+                    return (
+                      <tr key={acc.index} className="hover:bg-[var(--bg-surface-hover)] transition-colors">
+                        <td className="px-4 py-3 font-mono text-xs font-semibold text-slate-400">
+                          #{acc.index}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center space-x-2">
+                            <span className="font-mono text-xs font-medium text-slate-800 dark:text-slate-100 bg-slate-500/10 px-2 py-0.5 rounded border border-slate-500/20">
+                              {acc.name || `Key #${acc.index}`}
+                            </span>
+                            {acc.name && (
+                              <button
+                                onClick={() => handleCopyAccountName(acc.index, acc.name)}
+                                className="text-slate-500 hover:text-slate-300 transition-colors p-1 rounded"
+                                title={t('accounts.copyAccountName', '复制密钥')}
+                              >
+                                {copiedKeyIndex === acc.index ? (
+                                  <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                ) : (
+                                  <Copy className="w-3.5 h-3.5" />
+                                )}
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border border-cyan-500/25 flex items-center space-x-1.5 w-fit">
+                            <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 dark:bg-cyan-400 inline-block animate-pulse" />
+                            <span>{t('accounts.statusActive', '轮询活跃')}</span>
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="space-y-1 max-w-[180px]">
+                            <div className="flex items-center justify-between text-xs font-mono">
+                              <span className="font-bold text-slate-800 dark:text-slate-200">
+                                {totalUsage.toLocaleString()} <span className="text-[10px] font-normal text-slate-400">次</span>
+                              </span>
+                              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                                {rate}%
+                              </span>
+                            </div>
+                            <div className="flex items-center text-[10px] text-slate-400 space-x-2 font-mono">
+                              <span className="text-emerald-500">{succ} ok</span>
+                              <span>/</span>
+                              <span className="text-rose-500">{err} err</span>
+                            </div>
+                            <div className="w-full bg-black/[0.04] dark:bg-white/[0.04] rounded-full h-1.5 overflow-hidden">
+                              <div
+                                className="h-full rounded-full bg-emerald-500 transition-all duration-300"
+                                style={{ width: `${rate}%` }}
+                              />
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          {breakdowns.length > 0 ? (
+                            <div className="flex flex-wrap gap-1.5">
+                              {breakdowns.map((m) => (
+                                <span
+                                  key={m.model}
+                                  className="px-2 py-0.5 rounded-md text-[10px] font-mono bg-black/[0.03] dark:bg-white/[0.05] border border-[var(--border-subtle)] text-slate-700 dark:text-slate-300 flex items-center space-x-1"
+                                >
+                                  <span className="font-medium">{m.model.replace('gemini-', '')}:</span>
+                                  <span className="text-indigo-600 dark:text-indigo-400 font-bold">{m.count}次</span>
+                                  {m.error !== undefined && m.error > 0 && (
+                                    <span className="text-rose-500 font-normal">({m.error} err)</span>
+                                  )}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-slate-400 font-mono italic">
+                              {t('accounts.noModelUsageYet', '暂无模型调用数据')}
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Direct Mode Card List */}
+            <div className="block md:hidden divide-y divide-[var(--border-subtle)]">
+              {filteredAccounts.map((acc) => {
+                const totalUsage = getTotalUsage(acc.usage);
+                const succ = acc.usage?.totalSuccess ?? totalUsage;
+                const err = acc.usage?.totalError ?? 0;
+                const rate = totalUsage > 0 ? ((succ / totalUsage) * 100).toFixed(1) : '100.0';
+                const breakdowns = getModelBreakdowns(acc.usage);
+
+                return (
+                  <div key={acc.index} className="p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2 min-w-0">
+                        <span className="font-mono text-xs font-semibold text-slate-400">#{acc.index}</span>
+                        <span className="font-mono text-xs font-medium text-slate-800 dark:text-slate-200 bg-slate-500/10 px-2 py-0.5 rounded border border-slate-500/20 truncate">
+                          {acc.name || `Key #${acc.index}`}
+                        </span>
+                        {acc.name && (
+                          <button
+                            onClick={() => handleCopyAccountName(acc.index, acc.name)}
+                            className="text-slate-500 hover:text-slate-300 transition-colors p-1"
+                            title={t('accounts.copyAccountName')}
+                          >
+                            {copiedKeyIndex === acc.index ? (
+                              <Check className="w-3.5 h-3.5 text-emerald-400" />
+                            ) : (
+                              <Copy className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                        )}
+                      </div>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/25 shrink-0">
+                        {t('accounts.statusActive', '活跃')}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between text-xs font-mono">
+                        <span className="text-slate-600 dark:text-slate-300">
+                          {t('accounts.keyTotalRequests')}: <strong>{totalUsage}</strong>
+                        </span>
+                        <span className="text-slate-400 text-[10px]">
+                          {succ} ok / {err} err ({rate}%)
+                        </span>
+                      </div>
+                      <div className="w-full bg-black/[0.04] dark:bg-white/[0.04] rounded-full h-1.5 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-emerald-500 transition-all duration-300"
+                          style={{ width: `${rate}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {breakdowns.length > 0 && (
+                      <div className="flex flex-wrap gap-1 pt-1">
+                        {breakdowns.map((m) => (
+                          <span
+                            key={m.model}
+                            className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-black/[0.04] dark:bg-white/[0.06] text-slate-600 dark:text-slate-300 border border-[var(--border-subtle)]"
+                          >
+                            {m.model.replace('gemini-', '')}: {m.count}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </>
         ) : (
           <>
             {/* Desktop Table View */}
@@ -1780,7 +2107,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
       )}
 
       {/* Floating Action Bar when rows are selected */}
-      {selectedIndices.length > 0 && (
+      {!isCurrentDirect && selectedIndices.length > 0 && (
         <div className="fixed bottom-16 md:bottom-6 left-1/2 -translate-x-1/2 z-40 animate-in fade-in slide-in-from-bottom-4 duration-300 w-[92vw] sm:w-auto max-w-lg">
           <div className="backdrop-blur-xl bg-[var(--bg-surface)]/95 border border-[var(--border-subtle)] shadow-2xl rounded-2xl px-3 sm:px-5 py-2.5 sm:py-3 flex flex-wrap sm:flex-nowrap items-center justify-between sm:justify-start gap-2 sm:space-x-4">
             <div className="flex items-center space-x-2 text-xs font-semibold text-[var(--text-primary)] pr-2 border-r border-[var(--border-subtle)] shrink-0">
@@ -1845,7 +2172,8 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
       )}
 
       {/* Upstream Terminal Logs Section */}
-      <div className="ui-card overflow-hidden shadow-lg">
+      {!isCurrentDirect && (
+        <div className="ui-card overflow-hidden shadow-lg">
         {/* Terminal Header */}
         <div
           onClick={() => setIsLogsExpanded(!isLogsExpanded)}
@@ -1991,6 +2319,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
           </div>
         )}
       </div>
+      )}
 
       {/* Close Context Confirm Dialog */}
       {closeContextConfirm && createPortal(

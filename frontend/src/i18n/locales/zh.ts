@@ -137,7 +137,16 @@ export const zh: Translations = {
     refreshAll: "刷新全部节点",
     offlineTip: "当前节点无法访问，模型请求已自动跳过该节点。",
     accountUnit: "个账号",
-    mobileTabShort: "S{index}"
+    mobileTabShort: "S{index}",
+    directModeBadge: "直连",
+    proxyModeBadge: "代理",
+    directModeTitle: "Gemini 直连密钥用量监控",
+    directModeDesc: "当前节点直接连接官方端点，请求将在下列已配置的 API Key 之间均匀负载均衡",
+    keyTotalRequests: "总调用量",
+    keySuccess: "成功",
+    keyFailure: "失败",
+    keySuccessRate: "成功率",
+    noKeysConfigured: "当前直连节点尚未配置 API Key，请前往系统设置添加"
   },
   dashboard: {
     title: "代理系统概览",

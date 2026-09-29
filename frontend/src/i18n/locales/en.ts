@@ -135,7 +135,16 @@ export const en = {
     refreshAll: "Refresh All Nodes",
     offlineTip: "This node is unreachable and automatically bypassed by model routing.",
     accountUnit: "accounts",
-    mobileTabShort: "S{index}"
+    mobileTabShort: "S{index}",
+    directModeBadge: "Direct",
+    proxyModeBadge: "Proxy",
+    directModeTitle: "Gemini Direct API Keys Usage",
+    directModeDesc: "This node connects directly to official endpoints. Requests are balanced across configured API keys.",
+    keyTotalRequests: "Total Requests",
+    keySuccess: "Success",
+    keyFailure: "Failed",
+    keySuccessRate: "Success Rate",
+    noKeysConfigured: "No API keys configured on this direct node. Please add keys in Settings."
   },
   dashboard: {
     title: "Proxy System Overview",

@@ -27,8 +27,8 @@ describe('Admin API Upstream Management', () => {
 
   it('PUT /api/admin/config updates upstreamServers and recomputes effectivePercent', async () => {
     const newServers = [
-      { url: 'https://hk.example.com', weight: 70, enabled: true, name: 'HK Gateway' },
-      { url: 'https://us.example.com', weight: 30, enabled: true, name: 'US Gateway' }
+      { url: 'https://hk.example.com', weight: 70, enabled: true, name: 'HK Gateway', type: 'proxy' },
+      { url: 'https://us.example.com', weight: 30, enabled: true, name: 'US Gateway', type: 'proxy' }
     ];
 
     const putRes = await request(app)
