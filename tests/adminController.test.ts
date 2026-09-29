@@ -33,6 +33,28 @@ describe('Admin API Endpoints', () => {
     expect(res.body.config).toHaveProperty('ephemeralSystemMessages');
   });
 
+  test('GET /api/admin/status returns stripSystemFingerprints in config', async () => {
+    const res = await request(app).get('/api/admin/status');
+    expect(res.status).toBe(200);
+    expect(res.body.config).toHaveProperty('stripSystemFingerprints');
+    expect(typeof res.body.config.stripSystemFingerprints).toBe('boolean');
+  });
+
+  test('POST /api/admin/config updates stripSystemFingerprints', async () => {
+    const updateRes = await request(app)
+      .post('/api/admin/config')
+      .send({ stripSystemFingerprints: false });
+    expect(updateRes.status).toBe(200);
+    expect(updateRes.body.config.stripSystemFingerprints).toBe(false);
+
+    // Revert back to true
+    const revertRes = await request(app)
+      .post('/api/admin/config')
+      .send({ stripSystemFingerprints: true });
+    expect(revertRes.status).toBe(200);
+    expect(revertRes.body.config.stripSystemFingerprints).toBe(true);
+  });
+
   test('GET /api/admin/models returns list of configured model mappings', async () => {
     const res = await request(app).get('/api/admin/models');
     expect(res.status).toBe(200);
