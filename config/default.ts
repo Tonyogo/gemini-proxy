@@ -211,7 +211,8 @@ const getEnvConfig = () => {
     timeZone: (process.env.TIME_ZONE || process.env.TZ || 'Asia/Shanghai') as string,
     logRetentionDays: parseInt(process.env.LOG_RETENTION_DAYS || '3', 10) as number,
     countTokensModel: (process.env.COUNT_TOKENS_MODEL || '') as string,
-    customWebApps: parsedCustomWebApps as CustomWebAppItem[]
+    customWebApps: parsedCustomWebApps as CustomWebAppItem[],
+    stripSystemFingerprints: process.env.STRIP_SYSTEM_FINGERPRINTS !== 'false',
   };
 };
 
@@ -223,6 +224,7 @@ export const config = {
 
   ...getEnvConfig(),
   ...runtimeOverrides,
+
 
   get geminiBaseUrl(): string {
     if ((this as any)._geminiBaseUrl !== undefined) {

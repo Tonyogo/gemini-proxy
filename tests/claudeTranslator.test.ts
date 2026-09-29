@@ -1230,3 +1230,10 @@ describe('ClaudeTranslator - normalizeError Status Code Mapping', () => {
     expect(err500.payload.error.type).toEqual('api_error');
   });
 });
+
+describe('Claude Translator System Fingerprint Configuration', () => {
+  it('has stripSystemFingerprints enabled by default in config', () => {
+    expect(config.stripSystemFingerprints).toBe(true);
+  });
+});
+
