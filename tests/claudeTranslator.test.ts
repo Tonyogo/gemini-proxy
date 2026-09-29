@@ -1,5 +1,5 @@
 import translator from '../src/proxy/services/claudeTranslator';
-import { config } from '../config/default';
+import { config, updateConfig } from '../config/default';
 
 describe('Claude to Gemini Request Translation', () => {
   beforeEach(() => {
@@ -1344,6 +1344,156 @@ describe('Claude System Prompt Fingerprint Sanitization', () => {
     expect((config as any).ignoredTools).toContain('ArtifactComments');
   });
 });
+
+describe('Claude Translator Ignored Tools Filtering', () => {
+  it('filters out default ignored tools from claudeBody.tools', () => {
+    const claudePayload = {
+      model: 'gemini-2.5-flash',
+      messages: [{ role: 'user', content: 'Draw something' }],
+      tools: [
+        { name: 'Artifact', description: 'claude artifact tool', input_schema: { type: 'object' } },
+        { name: 'ArtifactCheck', description: 'check tool', input_schema: { type: 'object' } },
+        { name: 'Bash', description: 'execute bash', input_schema: { type: 'object' } }
+      ]
+    } as any;
+
+    const result = translator.translateClaudeToGoogle(claudePayload);
+    expect(result.googleRequest.tools).toBeDefined();
+    expect(result.googleRequest.tools![0].functionDeclarations).toHaveLength(1);
+    expect(result.googleRequest.tools![0].functionDeclarations[0].name).toBe('Bash');
+  });
+
+  it('omits googleRequest.tools completely when all tools are ignored', () => {
+    const claudePayload = {
+      model: 'gemini-2.5-flash',
+      messages: [{ role: 'user', content: 'Draw something' }],
+      tools: [
+        { name: 'Artifact', description: 'artifact tool', input_schema: { type: 'object' } },
+        { name: 'artifactcomments', description: 'case insensitive check', input_schema: { type: 'object' } }
+      ]
+    } as any;
+
+    const result = translator.translateClaudeToGoogle(claudePayload);
+    expect(result.googleRequest.tools).toBeUndefined();
+  });
+
+  it('filters tools case-insensitively and trims whitespace', () => {
+    const claudePayload = {
+      model: 'gemini-2.5-flash',
+      messages: [{ role: 'user', content: 'test' }],
+      tools: [
+        { name: '  aRtIfAcT  ', description: 'artifact tool', input_schema: { type: 'object' } },
+        { name: 'custom_tool', description: 'keep this', input_schema: { type: 'object' } }
+      ]
+    } as any;
+
+    const result = translator.translateClaudeToGoogle(claudePayload);
+    expect(result.googleRequest.tools![0].functionDeclarations).toHaveLength(1);
+    expect(result.googleRequest.tools![0].functionDeclarations[0].name).toBe('custom_tool');
+  });
+
+  it('respects dynamic custom config.ignoredTools', () => {
+    const originalIgnored = config.ignoredTools;
+    try {
+      config.ignoredTools = ['CustomUselessTool'];
+      const claudePayload = {
+        model: 'gemini-2.5-flash',
+        messages: [{ role: 'user', content: 'test' }],
+        tools: [
+          { name: 'CustomUselessTool', description: 'ignored', input_schema: { type: 'object' } },
+          { name: 'Artifact', description: 'now kept because overridden', input_schema: { type: 'object' } }
+        ]
+      } as any;
+
+      const result = translator.translateClaudeToGoogle(claudePayload);
+      expect(result.googleRequest.tools![0].functionDeclarations).toHaveLength(1);
+      expect(result.googleRequest.tools![0].functionDeclarations[0].name).toBe('Artifact');
+    } finally {
+      config.ignoredTools = originalIgnored;
+    }
+  });
+
+  it('handles malformed tool objects (null, undefined, missing name) safely', () => {
+    const claudePayload = {
+      model: 'gemini-2.5-flash',
+      messages: [{ role: 'user', content: 'test' }],
+      tools: [
+        null,
+        undefined,
+        {},
+        { name: '' },
+        { name: '  ' },
+        { name: 'Artifact' },
+        { name: 'valid_tool', description: 'a valid tool', input_schema: { type: 'object' } }
+      ]
+    } as any;
+
+    const result = translator.translateClaudeToGoogle(claudePayload);
+    expect(result.googleRequest.tools).toBeDefined();
+    expect(result.googleRequest.tools![0].functionDeclarations).toHaveLength(1);
+    expect(result.googleRequest.tools![0].functionDeclarations[0].name).toBe('valid_tool');
+  });
+
+  it('preserves valid tools in original order with full schemas intact', () => {
+    const claudePayload = {
+      model: 'gemini-2.5-flash',
+      messages: [{ role: 'user', content: 'test' }],
+      tools: [
+        {
+          name: 'tool_one',
+          description: 'first tool',
+          input_schema: {
+            type: 'object',
+            properties: {
+              paramA: { type: 'string' }
+            },
+            required: ['paramA']
+          }
+        },
+        { name: 'ArtifactData', description: 'ignored tool' },
+        {
+          name: 'tool_two',
+          description: 'second tool',
+          input_schema: {
+            type: 'object',
+            properties: {
+              paramB: { type: 'number' }
+            }
+          }
+        }
+      ]
+    } as any;
+
+    const result = translator.translateClaudeToGoogle(claudePayload);
+    expect(result.googleRequest.tools![0].functionDeclarations).toHaveLength(2);
+    expect(result.googleRequest.tools![0].functionDeclarations[0].name).toBe('tool_one');
+    expect(result.googleRequest.tools![0].functionDeclarations[0].parameters.properties.paramA.type).toBe('STRING');
+    expect(result.googleRequest.tools![0].functionDeclarations[1].name).toBe('tool_two');
+    expect(result.googleRequest.tools![0].functionDeclarations[1].parameters.properties.paramB.type).toBe('NUMBER');
+  });
+
+  it('reflects ignoredTools updated via updateConfig immediately', async () => {
+    const originalIgnored = config.ignoredTools;
+    try {
+      await updateConfig({ ignoredTools: ['SpecificTool'] });
+      const claudePayload = {
+        model: 'gemini-2.5-flash',
+        messages: [{ role: 'user', content: 'test' }],
+        tools: [
+          { name: 'SpecificTool', description: 'ignored', input_schema: { type: 'object' } },
+          { name: 'Artifact', description: 'kept because ignoredTools changed', input_schema: { type: 'object' } }
+        ]
+      } as any;
+
+      const result = translator.translateClaudeToGoogle(claudePayload);
+      expect(result.googleRequest.tools![0].functionDeclarations).toHaveLength(1);
+      expect(result.googleRequest.tools![0].functionDeclarations[0].name).toBe('Artifact');
+    } finally {
+      await updateConfig({ ignoredTools: originalIgnored });
+    }
+  });
+});
+
 
 
 

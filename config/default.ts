@@ -303,7 +303,9 @@ export const config = {
 
   set ignoredTools(val: string[]) {
     (this as any)._ignoredTools = val;
-    runtimeOverrides.ignoredTools = val;
+    if (runtimeOverrides.ignoredTools !== undefined) {
+      runtimeOverrides.ignoredTools = val;
+    }
   }
 };
 

@@ -632,13 +632,24 @@ class ClaudeTranslator {
     }
 
     if (claudeBody.tools && Array.isArray(claudeBody.tools)) {
-      googleRequest.tools = [{
-        functionDeclarations: claudeBody.tools.map((tool: any) => ({
-          name: tool.name,
-          description: tool.description,
-          parameters: this._convertSchemaToGemini(tool.input_schema)
-        }))
-      }];
+      const ignoredToolsList = config.ignoredTools || [];
+      const ignoredSet = new Set(ignoredToolsList.map((t: string) => String(t || '').trim().toLowerCase()).filter(Boolean));
+
+      const validTools = claudeBody.tools.filter((tool: any) => {
+        if (!tool || typeof tool !== 'object') return false;
+        const name = String(tool.name || '').trim().toLowerCase();
+        return name && !ignoredSet.has(name);
+      });
+
+      if (validTools.length > 0) {
+        googleRequest.tools = [{
+          functionDeclarations: validTools.map((tool: any) => ({
+            name: tool.name,
+            description: tool.description,
+            parameters: this._convertSchemaToGemini(tool.input_schema)
+          }))
+        }];
+      }
     }
 
     return {
