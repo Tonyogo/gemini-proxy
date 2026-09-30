@@ -5,6 +5,7 @@ import payloadLogger from '../services/payloadLogger';
 import claudeTranslator from '../services/claudeTranslator';
 import accountUsageService from '../../admin/services/accountUsageService';
 import logger from '../../utils/logger';
+import agentProxyService from '../services/agentProxyService';
 import { StreamLifecycleManager } from '../../utils/streamLifecycleManager';
 import upstreamManager from '../../utils/upstreamManager';
 import {
@@ -101,8 +102,12 @@ class GeminiController {
       const streamManager = new StreamLifecycleManager({ req, res, transactionId, timeoutMs });
       logger.info(`[GeminiProxy] [Transaction: ${transactionId}] Proxying stream to [server ${serverIndex + 1}: ${serverUrl}]: ${req.method} ${targetUrl}`);
 
+      const executeFetch = (serverType === 'agent' && serverSelection.agentId)
+        ? (u: string, o: any) => agentProxyService.agentFetch(serverSelection.agentId!, u, o)
+        : (fetch as any);
+
       try {
-        const response = await fetch(targetUrl, {
+        const response = await executeFetch(targetUrl, {
           method: req.method,
           headers: upstreamHeaders,
           body: req.method !== 'GET' && req.method !== 'HEAD' && clientReq ? JSON.stringify(clientReq) : undefined,
@@ -114,14 +119,16 @@ class GeminiController {
           accountName = maskApiKey(selectedApiKey);
         }
 
-        if (!response.ok) {
+        const isOk = response.ok !== undefined ? response.ok : (response.status >= 200 && response.status < 300);
+
+        if (!isOk) {
           streamManager.markFinished();
           if (response.status >= 500 && response.status < 600) {
             upstreamManager.recordRequestResult(serverIndex, false, response.status);
           } else {
             upstreamManager.recordRequestResult(serverIndex, true);
           }
-          const errText = await response.text();
+          const errText = typeof response.text === 'function' ? await response.text() : '';
           let errJson: any;
           try { errJson = JSON.parse(errText); } catch { errJson = { error: errText }; }
           accountUsageService.record(accountName, targetModelName || 'unknown', false);
@@ -201,7 +208,11 @@ class GeminiController {
     // Non-streaming request
     try {
       logger.info(`[GeminiProxy] [Transaction: ${transactionId}] Proxying request to [server ${serverIndex + 1}: ${serverUrl}]: ${req.method} ${targetUrl}`);
-      const response = await fetch(targetUrl, {
+      const executeFetch = (serverType === 'agent' && serverSelection.agentId)
+        ? (u: string, o: any) => agentProxyService.agentFetch(serverSelection.agentId!, u, o)
+        : (fetch as any);
+
+      const response = await executeFetch(targetUrl, {
         method: req.method,
         headers: upstreamHeaders,
         body: req.method !== 'GET' && req.method !== 'HEAD' && clientReq ? JSON.stringify(clientReq) : undefined
@@ -212,7 +223,9 @@ class GeminiController {
         accountName = maskApiKey(selectedApiKey);
       }
 
-      if (!response.ok) {
+      const isOk = response.ok !== undefined ? response.ok : (response.status >= 200 && response.status < 300);
+
+      if (!isOk) {
         if (response.status >= 500 && response.status < 600) {
           upstreamManager.recordRequestResult(serverIndex, false, response.status);
         } else {
@@ -222,9 +235,9 @@ class GeminiController {
         upstreamManager.recordRequestResult(serverIndex, true);
       }
 
-      accountUsageService.record(accountName, targetModelName || 'unknown', response.ok);
+      accountUsageService.record(accountName, targetModelName || 'unknown', isOk);
 
-      const resText = await response.text();
+      const resText = typeof response.text === 'function' ? await response.text() : '';
       let resJson: any;
       try {
         resJson = JSON.parse(resText);

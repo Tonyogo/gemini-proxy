@@ -6,6 +6,7 @@ import claudeTranslator from '../services/claudeTranslator';
 import payloadLogger from '../services/payloadLogger';
 import accountUsageService from '../../admin/services/accountUsageService';
 import logger from '../../utils/logger';
+import agentProxyService from '../services/agentProxyService';
 import { StreamLifecycleManager } from '../../utils/streamLifecycleManager';
 import upstreamManager from '../../utils/upstreamManager';
 import {
@@ -88,9 +89,12 @@ class ClaudeController {
           ? selectedApiKey
           : apiKey;
         const upstreamHeaders = buildUpstreamHeaders(effectiveApiKey, customUpstreamHeaders);
+        const executeFetch = (serverType === 'agent' && serverSelection.agentId)
+          ? (u: string, o: any) => agentProxyService.agentFetch(serverSelection.agentId!, u, o)
+          : (fetch as any);
 
         try {
-          const response = await fetch(targetUrl, {
+          const response = await executeFetch(targetUrl, {
             method: 'POST',
             headers: upstreamHeaders,
             body: JSON.stringify(gemReq),
@@ -102,14 +106,16 @@ class ClaudeController {
             accountName = maskApiKey(selectedApiKey);
           }
 
-          if (!response.ok) {
+          const isOk = response.ok !== undefined ? response.ok : (response.status >= 200 && response.status < 300);
+
+          if (!isOk) {
             streamManager.markFinished();
             if (response.status >= 500 && response.status < 600) {
               upstreamManager.recordRequestResult(serverIndex, false, response.status);
             } else {
               upstreamManager.recordRequestResult(serverIndex, true);
             }
-            const errorText = await response.text();
+            const errorText = typeof response.text === 'function' ? await response.text() : '';
             let errorJson;
             try { errorJson = JSON.parse(errorText); } catch (e) { /* ignore */ }
             const errMessage = errorJson?.error?.message || errorText || 'Gemini upstream API error';
@@ -295,9 +301,12 @@ class ClaudeController {
         ? selectedApiKey
         : apiKey;
       const upstreamHeaders = buildUpstreamHeaders(effectiveApiKey, customUpstreamHeaders);
+      const executeFetch = (serverType === 'agent' && serverSelection.agentId)
+        ? (u: string, o: any) => agentProxyService.agentFetch(serverSelection.agentId!, u, o)
+        : (fetch as any);
 
       try {
-        const response = await fetch(targetUrl, {
+        const response = await executeFetch(targetUrl, {
           method: 'POST',
           headers: upstreamHeaders,
           body: JSON.stringify(gemReq),
@@ -310,13 +319,15 @@ class ClaudeController {
           accountName = maskApiKey(selectedApiKey);
         }
 
-        if (!response.ok) {
+        const isOk = response.ok !== undefined ? response.ok : (response.status >= 200 && response.status < 300);
+
+        if (!isOk) {
           if (response.status >= 500 && response.status < 600) {
             upstreamManager.recordRequestResult(serverIndex, false, response.status);
           } else {
             upstreamManager.recordRequestResult(serverIndex, true);
           }
-          const errorText = await response.text();
+          const errorText = typeof response.text === 'function' ? await response.text() : '';
           let errorJson;
           try { errorJson = JSON.parse(errorText); } catch (e) { /* ignore */ }
           const errMessage = errorJson?.error?.message || errorText || 'Gemini upstream API error';
@@ -332,7 +343,16 @@ class ClaudeController {
         }
 
         upstreamManager.recordRequestResult(serverIndex, true);
-        const geminiData = await response.json();
+        let geminiData: any;
+        if (typeof response.json === 'function') {
+          geminiData = await response.json();
+        } else if (response.body) {
+          const chunks: Buffer[] = [];
+          for await (const chunk of (response.body as any)) {
+            chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+          }
+          geminiData = JSON.parse(Buffer.concat(chunks).toString('utf-8'));
+        }
         const translatedResponse = claudeTranslator.convertGoogleToClaudeNonStream(geminiData, cleanModelName, clientReq.tools);
 
         accountUsageService.record(accountName, cleanModelName, true);

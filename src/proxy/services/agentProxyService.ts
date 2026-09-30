@@ -6,11 +6,14 @@ import logger from '../../utils/logger';
 export interface AgentFetchResponse {
   status: number;
   statusText: string;
+  ok: boolean;
   headers: {
     get(name: string): string | null;
     raw(): Record<string, string[]>;
   };
   body: NodeJS.ReadableStream;
+  text(): Promise<string>;
+  json(): Promise<any>;
 }
 
 export interface AgentFetchOptions {
@@ -82,12 +85,31 @@ export class AgentProxyService {
               }
             };
 
-            resolve({
-              status: msg.status || 200,
+            const resStatus = msg.status || 200;
+            const readText = async (): Promise<string> => {
+              const chunks: Buffer[] = [];
+              for await (const chunk of passThrough) {
+                chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+              }
+              return Buffer.concat(chunks).toString('utf-8');
+            };
+
+            const responseObj: AgentFetchResponse = {
+              status: resStatus,
               statusText: msg.statusText || 'OK',
+              get ok() {
+                return resStatus >= 200 && resStatus < 300;
+              },
               headers: headersObj,
-              body: passThrough
-            });
+              body: passThrough,
+              text: readText,
+              async json(): Promise<any> {
+                const txt = await readText();
+                return JSON.parse(txt);
+              }
+            };
+
+            resolve(responseObj);
             return;
           }
 
