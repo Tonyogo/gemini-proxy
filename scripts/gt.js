@@ -3593,10 +3593,6 @@ async function main() {
   const cmdArgs = filteredArgs.slice(1);
 
   const commandMigrationMap = {
-    run: "gt agent run",
-    stop: "gt agent stop",
-    restart: "gt agent restart",
-    rm: "gt agent rm",
     hosts: "gt ps",
     nodes: "gt ps",
   };

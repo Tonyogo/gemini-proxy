@@ -29,14 +29,19 @@ describe('gt management commands & legacy deprecation', () => {
     expect(res.stdout).toContain('gt agent run');
   });
 
-  it('rejects top-level agent commands with code 125 and migration guidance', async () => {
-    const commands = ['run', 'stop', 'restart', 'rm'];
-    for (const cmd of commands) {
-      const res = await runGt([cmd, 'test-node']);
-      expect(res.code).toBe(125);
-      expect(res.stderr).toContain(`Error: 'gt ${cmd}' has been moved to 'gt agent ${cmd}'.`);
-      expect(res.stderr).toContain(`Run 'gt agent ${cmd}' instead.`);
-    }
+  it('allows top-level agent commands and does not reject with 125', async () => {
+    // Top-level commands should now be accepted and not throw 125 migration error
+    const resRun = await runGt(['run', '--help']);
+    expect(resRun.code).not.toBe(125);
+    expect(resRun.stderr).not.toContain("has been moved to 'gt agent");
+
+    const resStop = await runGt(['stop', 'non-existent-agent-123']);
+    expect(resStop.code).not.toBe(125);
+    expect(resStop.stderr).not.toContain("has been moved to 'gt agent");
+
+    const resRm = await runGt(['rm', 'non-existent-agent-123']);
+    expect(resRm.code).not.toBe(125);
+    expect(resRm.stderr).not.toContain("has been moved to 'gt agent");
   });
 
   it('rejects legacy "hosts" and "nodes" with code 125 pointing to "gt ps"', async () => {
