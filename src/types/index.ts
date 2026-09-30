@@ -97,7 +97,7 @@ export interface CustomWebAppItem {
   createdAt: number;
 }
 
-export type UpstreamServerType = 'proxy' | 'direct';
+export type UpstreamServerType = 'proxy' | 'direct' | 'agent';
 
 export interface UpstreamServerConfig {
   url: string;
@@ -107,6 +107,7 @@ export interface UpstreamServerConfig {
   allowedModels?: string[];
   type?: UpstreamServerType;
   apiKeys?: string[];
+  agentId?: string;
 }
 
 export interface UpstreamServerStatus extends UpstreamServerConfig {
@@ -125,6 +126,7 @@ export interface UpstreamServerSelection {
   weight: number;
   serverType: UpstreamServerType;
   selectedApiKey?: string;
+  agentId?: string;
 }
 
 export * from './accountUsage';
