@@ -350,6 +350,48 @@ export class TerminalHostManager {
     return session || null;
   }
 
+  public isAgentOnline(agentIdentifier?: string): boolean {
+    if (!agentIdentifier) return false;
+    const hostId = this.resolveCanonicalHostId(agentIdentifier);
+    if (!hostId) return false;
+    const host = this.hosts.get(hostId);
+    if (!host || host.status !== 'online') return false;
+    const session = this.sessions.get(hostId);
+    if (!session) return false;
+    const ws = session.getAgentWs();
+    return Boolean(ws && ws.readyState === 1);
+  }
+
+  public getAgentWs(agentIdentifier?: string): any | null {
+    if (!agentIdentifier) return null;
+    const hostId = this.resolveCanonicalHostId(agentIdentifier);
+    if (!hostId) return null;
+    const host = this.hosts.get(hostId);
+    if (!host || host.status !== 'online') return null;
+    const session = this.sessions.get(hostId);
+    if (!session) return null;
+    const ws = session.getAgentWs();
+    if (ws && ws.readyState === 1) {
+      return ws;
+    }
+    return null;
+  }
+
+  public registerHost(metadata: { id: string; name?: string; hostname?: string; ip?: string; platform?: string; type?: string }, agentWs?: any) {
+    return this.registerAgent({
+      hostId: metadata.id,
+      name: metadata.name,
+      hostname: metadata.hostname,
+      ip: metadata.ip,
+      platform: metadata.platform,
+      agentWs,
+    });
+  }
+
+  public unregisterHost(hostId: string, closingWs?: any): void {
+    return this.unregisterAgent(hostId, closingWs);
+  }
+
   public registerAgent(metadata: {
     hostId: string;
     name?: string;
