@@ -1,5 +1,6 @@
 import config, { parseBaseUrls, parseUpstreamServers } from '../../config/default';
 import { UpstreamServerConfig, UpstreamServerStatus, UpstreamServerSelection } from '../types';
+import { terminalHostManager } from '../terminal/services/terminalHostManager';
 import logger from './logger';
 
 export { UpstreamServerSelection };
@@ -57,15 +58,22 @@ export class UpstreamManager {
     const servers = this.getUpstreamServers();
     const now = Date.now();
 
+    const isServerOnline = (s: UpstreamServerConfig) => {
+      if (s.type === 'agent') {
+        return terminalHostManager.isAgentOnline(s.agentId);
+      }
+      return true;
+    };
+
     // Find active healthy candidates for calculating effectivePercent
     let activeCandidates = servers
       .map((s, idx) => ({ ...s, serverIndex: idx }))
-      .filter(item => item.enabled && !this.isNodeIsolated(item.serverIndex));
+      .filter(item => item.enabled && !this.isNodeIsolated(item.serverIndex) && isServerOnline(item));
 
     if (activeCandidates.length === 0) {
       const enabledNodes = servers
         .map((s, idx) => ({ ...s, serverIndex: idx }))
-        .filter(item => item.enabled);
+        .filter(item => item.enabled && isServerOnline(item));
       if (enabledNodes.length > 0) {
         activeCandidates = enabledNodes;
       } else {
@@ -107,6 +115,7 @@ export class UpstreamManager {
         name: server.name,
         allowedModels: server.allowedModels,
         type: server.type || 'proxy',
+        agentId: server.agentId,
         apiKeys: server.apiKeys,
         keyCount: server.apiKeys ? server.apiKeys.length : 0,
         effectivePercent,
@@ -267,9 +276,17 @@ export class UpstreamManager {
         serverIndex: idx,
         weight: target.weight || 1,
         serverType,
-        selectedApiKey
+        selectedApiKey,
+        agentId: target.agentId
       };
     }
+
+    const isServerOnline = (s: UpstreamServerConfig) => {
+      if (s.type === 'agent') {
+        return terminalHostManager.isAgentOnline(s.agentId);
+      }
+      return true;
+    };
 
     // Extract models
     const originalModel = options?.originalModel || (options?.model && !options?.resolvedModel ? options.model : undefined);
@@ -282,7 +299,7 @@ export class UpstreamManager {
     if (hasModelFilter) {
       const modelCandidatePool = allServers
         .map((s, idx) => ({ ...s, serverIndex: idx }))
-        .filter(item => item.enabled && this.serverSupportsModel(item, originalModel, resolvedModel));
+        .filter(item => item.enabled && isServerOnline(item) && this.serverSupportsModel(item, originalModel, resolvedModel));
 
       if (modelCandidatePool.length > 0) {
         candidates = modelCandidatePool.filter(item => !this.isNodeIsolated(item.serverIndex));
@@ -295,21 +312,29 @@ export class UpstreamManager {
         // Fallback if no enabled server supports the model
         const anySupporting = allServers
           .map((s, idx) => ({ ...s, serverIndex: idx }))
-          .filter(item => this.serverSupportsModel(item, originalModel, resolvedModel));
+          .filter(item => isServerOnline(item) && this.serverSupportsModel(item, originalModel, resolvedModel));
         if (anySupporting.length > 0) {
           candidates = anySupporting;
         } else {
-          candidates = allServers.map((s, idx) => ({ ...s, serverIndex: idx }));
+          const onlineServers = allServers
+            .map((s, idx) => ({ ...s, serverIndex: idx }))
+            .filter(isServerOnline);
+          candidates = onlineServers.length > 0
+            ? onlineServers
+            : allServers.map((s, idx) => ({ ...s, serverIndex: idx }));
         }
       }
     } else {
       // No model filter specified
       let pool = allServers
         .map((s, idx) => ({ ...s, serverIndex: idx }))
-        .filter(item => item.enabled);
+        .filter(item => item.enabled && isServerOnline(item));
 
       if (pool.length === 0) {
-        pool = allServers.map((s, idx) => ({ ...s, serverIndex: idx }));
+        const anyOnline = allServers
+          .map((s, idx) => ({ ...s, serverIndex: idx }))
+          .filter(isServerOnline);
+        pool = anyOnline.length > 0 ? anyOnline : allServers.map((s, idx) => ({ ...s, serverIndex: idx }));
       }
 
       candidates = pool.filter(item => !this.isNodeIsolated(item.serverIndex));
@@ -328,7 +353,8 @@ export class UpstreamManager {
         serverIndex: chosen.serverIndex,
         weight: chosen.weight || 1,
         serverType,
-        selectedApiKey
+        selectedApiKey,
+        agentId: chosen.agentId
       };
     }
 
@@ -384,7 +410,8 @@ export class UpstreamManager {
       serverIndex: chosenServer.serverIndex,
       weight: chosenServer.weight || 1,
       serverType,
-      selectedApiKey
+      selectedApiKey,
+      agentId: chosenServer.agentId
     };
   }
 
