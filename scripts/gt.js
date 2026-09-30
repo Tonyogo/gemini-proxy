@@ -3691,6 +3691,28 @@ async function main() {
     }
 
     case 'prune': {
+      const isLocal = cmdArgs.includes('-l') || cmdArgs.includes('--local');
+      const isAll = cmdArgs.includes('-a') || cmdArgs.includes('--all');
+
+      if (isLocal) {
+        const { removed } = AgentDaemonManager.prune();
+        if (removed.length === 0) {
+          console.log('No stopped agents to prune.');
+        } else {
+          console.log(`Pruned ${removed.length} stopped agent(s): ${removed.join(', ')}`);
+        }
+        process.exit(0);
+      }
+
+      if (isAll) {
+        const { removed } = AgentDaemonManager.prune();
+        if (removed.length > 0) {
+          console.log(`Pruned ${removed.length} local stopped agent(s): ${removed.join(', ')}`);
+        }
+        await handleRemotePrune({ server, key, args: cmdArgs, jsonOutput });
+        break;
+      }
+
       await handleRemotePrune({ server, key, args: cmdArgs, jsonOutput });
       break;
     }
@@ -3960,6 +3982,7 @@ async function main() {
             console.log(JSON.stringify(startRes.data, null, 2));
           } else {
             console.log(taskId);
+            console.log(`Run 'gt task logs -f ${targetHost} ${taskId}' to follow logs.`);
           }
           process.exit(0);
         }

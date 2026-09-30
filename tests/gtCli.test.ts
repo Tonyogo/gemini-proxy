@@ -209,7 +209,8 @@ describe('gt CLI Mock Server Integration', () => {
   it('supports detached mode with -d', async () => {
     const res = await runGt(['exec', '-d', `--server=http://localhost:${serverPort}`, 'node-1', 'sleep 10']);
     expect(res.code).toBe(0);
-    expect(res.stdout.trim()).toBe('task-ok');
+    expect(res.stdout).toContain('task-ok');
+    expect(res.stdout).toContain("Run 'gt task logs -f node-1 task-ok' to follow logs.");
   });
 
   it('lists tasks with gt task ls', async () => {

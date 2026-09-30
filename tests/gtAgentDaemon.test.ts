@@ -661,6 +661,27 @@ describe('gt agent unified authentication and parameter guards', () => {
       timeout: 5000,
     });
   });
+
+  it('supports gt prune -l and gt prune -a for local daemon cleanup', () => {
+    fs.writeFileSync(path.join(testConfigDir, 'config.json'), JSON.stringify({
+      server: 'http://127.0.0.1:3000',
+      key: 'mock-key',
+    }));
+
+    // Create stopped agent record
+    const { AgentDaemonManager } = require('../scripts/gt.js');
+    process.env.GT_CONFIG_DIR = testConfigDir;
+    AgentDaemonManager.saveStatus('prune-agent-1', { pid: 99999991, name: 'prune-agent-1' });
+
+    const pruneLocalRes = spawnSync('node', [gtPath, 'prune', '-l'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+
+    expect(pruneLocalRes.status).toBe(0);
+    expect(pruneLocalRes.stdout).toContain('prune-agent-1');
+  });
 });
 
 
