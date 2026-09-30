@@ -16,26 +16,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **`gt` Unified Terminal CLI**: `npm run gt -- <command>` or `gt <command>` (unified Docker-style CLI for Gemini Terminal):
   - `gt login [server] [key]`: Verifies credentials against `/api/terminal/hosts` and persists to `~/.gt/config.json` (0600 permissions). Also supports `gt login <key>` (defaults to localhost:3000) or `gt login <url>`
   - `gt logout`: Clears persistent credentials and configuration
-  - `gt ps [-a|--all] [--json] [--format <template>]`: Lists connected remote nodes (filters online only by default; `-a` shows all including offline)
-  - `gt prune`: Removes disconnected/offline remote nodes
+  - `gt run [-d] [NAME]`: Run agent in foreground or background daemon (defaults to system hostname, persists state in `~/.gt/agents/<name>.json`, logs to `~/.gt/agents/<name>.log`)
+  - `gt ps [-a|--all] [-l|--local] [--json] [--format <template>]`: Lists connected hosts (default: remote connected hosts; `-l` lists local agent daemons; `-a` includes offline/stopped)
+  - `gt logs [-f] [-n 50] [NAME]`: Dedicated local agent daemon logs inspector (or 2-arg redirect to `gt task logs <node> <taskId>`)
+  - `gt stop [NAME] [--all]`: Stop running local agent daemon(s)
+  - `gt restart [NAME]`: Restart local agent daemon
+  - `gt rm [NAME] [--all]`: Remove stopped agent daemon records and logs
+  - `gt prune [-l|--local] [-a|--all]`: Removes disconnected/offline remote nodes (or `-l` for local stopped agents, `-a` for both)
   - `gt exec [-it] [-d] [-w <dir>] [--timeout <ms>] [--verbose] <node> [--] <cmd...>`: Executes remote command supporting Docker-style interactive pseudo-terminal (`-it` / `-t` / `-i`), background detached mode (`-d`), live stdin piping, pure streaming output, and remote exit code forwarding
   - `gt cp <src> <dest>`: Copies files bidirectionally between local and remote node (`<node>:<path>`)
-  - `gt logs [-f] <node> [taskId] [--json]`: Inspects or follows execution logs for a task (smartly defaults to latest task on target node if taskId omitted)
-  - `gt kill <node> <taskId> [--signal <SIG>]`: Aborts or terminates a running task on target node
+  - `gt task ls <node> [OPTIONS]`: List recent tasks on a host
+  - `gt task logs [-f] <node> [taskId]`: View or follow remote task execution logs
+  - `gt task kill <node> <taskId> [--signal <SIG>]`: Aborts or terminates a running task on target node
   - `gt config <list|get|set> [key] [value]`: Manages persistent client configuration
-  - **Local Agent Daemon Management (`gt agent <command>`)**:
-    - `gt agent run [-d] [NAME]`: Run agent in foreground or background daemon (defaults to system hostname, persists state in `~/.gt/agents/<name>.json`, logs to `~/.gt/agents/<name>.log`)
-    - `gt agent ps [-a|--all]`: List local agent daemons (default: running only; `-a` includes stopped)
-    - `gt agent logs [-f] [-n 50] [NAME]`: View or follow local agent daemon logs
-    - `gt agent stop [NAME] [--all]`: Stop running local agent daemon(s)
-    - `gt agent restart [NAME]`: Restart local agent daemon
-    - `gt agent prune`: Remove all stopped agent daemons and their log files
-    - `gt agent rm [NAME] [--all]`: Remove stopped agent daemon records and logs
-  - **Backward-Compatible Aliases**: `gt host ls/prune`, `gt node ls/prune`, `gt auth login/logout`, `gt task ls/logs/kill`
+  - **Backward-Compatible Aliases**: `gt agent <run|ps|logs|stop|restart|rm|prune>` (full namespace alias), `gt kill <node> <taskId>` (alias for `gt task kill`), `gt host ls/prune`, `gt node ls/prune`, `gt auth login/logout`
 - **Configuration Hierarchy**:
   - Remote commands: `CLI flag (--server/--key) > Environment variable (TERMINAL_SERVER/ADMIN_SECRET_KEY) > Persistent config (~/.gt/config.json) > Default fallback (http://localhost:3000 / empty key)`
-  - Agent daemon commands: Exclusively uses persistent credentials authenticated via `gt login` (or `TERMINAL_SERVER` / `ADMIN_SECRET_KEY`). `--server` and `--key` flags are strictly disallowed on `gt agent run` to prevent multi-source conflicts.
-- **Terminal Agent Daemon**: `gt login http://<host>:3000 <admin-key> && gt agent run -d Node-Name`
+  - Agent daemon commands: Exclusively uses persistent credentials authenticated via `gt login` (or `TERMINAL_SERVER` / `ADMIN_SECRET_KEY`). `--server` and `--key` flags are strictly disallowed on `gt run` to prevent multi-source conflicts.
+- **Terminal Agent Daemon**: `gt login http://<host>:3000 <admin-key> && gt run -d Node-Name`
 - **Run All Tests**: `npm test` (runs complete Jest test suite; use `npx jest --runInBand` if experiencing SIGSEGV clustering issues)
 - **Run Single Test**: `npx jest tests/<test-name>.test.ts` (e.g., `npx jest tests/claudeTranslator.test.ts`)
 

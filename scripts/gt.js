@@ -185,28 +185,26 @@ gt (Gemini Terminal) - Unified Docker-Style Terminal CLI
 Usage:
   gt [GLOBAL_OPTIONS] COMMAND [ARGS...]
 
-Remote Commands (Docker-Style):
-  ps [-a|--all] [OPTIONS]         List remote agent hosts (default: online only, like 'docker ps')
-  exec [OPTIONS] <node> <cmd...>  Execute a command on a remote host (like 'docker exec')
-  logs [-f] <node> [taskId]       View or follow task execution logs (like 'docker logs')
-  kill [--signal <SIG>] <n> <id>  Terminate a running task on a remote host (like 'docker kill')
-  cp <src> <dest>                 Copy files between local and remote host (like 'docker cp')
-  prune                           Remove disconnected/offline agent hosts (like 'docker system prune')
-  task ls <node> [OPTIONS]        List execution tasks on a host
+Agent Lifecycle Commands:
+  run [-d] [NAME]                 Run reverse terminal agent (foreground or daemon)
+  ps [-a] [-l|--local]            List connected hosts (default: remote; -l for local)
+  logs [-f] [-n 50] [NAME]        View local agent daemon logs
+  stop [NAME] [--all]             Stop running agent daemon(s)
+  restart [NAME]                  Restart local agent daemon
+  rm [NAME] [--all]               Remove stopped agent daemon record(s)
+  prune [-l|--local] [-a|--all]   Remove offline remote nodes (or -l for local agents)
+
+Remote Execution Commands:
+  exec [OPTIONS] <node> <cmd...>  Execute a command on a remote host
+  cp <src> <dest>                 Copy files between local and remote host
+  task ls <node> [OPTIONS]        List recent tasks on a host
+  task logs [-f] <node> [taskId]  View or follow task execution logs
+  task kill <node> <taskId>       Terminate a running task on a remote host
 
 Authentication & Config:
-  login [SERVER] [KEY]            Verify and save admin credentials (like 'docker login')
-  logout                          Remove stored credentials (like 'docker logout')
+  login [SERVER] [KEY]            Verify and save admin credentials
+  logout                          Remove stored credentials
   config <list|get|set>           Manage local client configuration settings
-
-Local Agent Commands (Daemon):
-  agent run [-d] [NAME]           Run reverse terminal agent (foreground or daemon)
-  agent ps [-a|--all]             List local agent daemons (default: running only)
-  agent logs [-f] [-n 50] [NAME]  View local agent daemon logs
-  agent stop [NAME] [--all]       Stop running local agent daemon(s)
-  agent restart [NAME]            Restart local agent daemon
-  agent prune                     Remove all stopped agent daemons and logs
-  agent rm [NAME] [--all]         Remove stopped agent daemon record(s)
 
 Exec Options:
   -i, --interactive       Keep STDIN open for live or piped input
@@ -227,24 +225,31 @@ Global Options:
   -v, --version                   Print version information
   -h, --help                      Show this help menu
 
+Aliases & Compatibility:
+  agent run [-d] [NAME]           Alias for 'gt run'
+  agent ps [-a|--all]             Alias for 'gt ps -l'
+  agent logs [-f] [-n 50] [NAME]  Alias for 'gt logs'
+  agent stop [NAME] [--all]       Alias for 'gt stop'
+  agent restart [NAME]            Alias for 'gt restart'
+  agent rm [NAME] [--all]         Alias for 'gt rm'
+  agent prune                     Alias for 'gt prune -l'
+  kill <node> <taskId>            Shortcut for 'gt task kill'
+
 Examples:
   gt login http://localhost:3000 secret
   gt logout
+  gt run -d worker-1
   gt ps [-a|--all]
-  gt ps
-  gt ps -a
+  gt ps -l
+  gt logs -f worker-1
+  gt stop worker-1
+  gt prune -l
   gt exec my-server uptime
   gt exec -it my-server bash
-  gt logs my-server
-  gt logs -f my-server task-123
+  gt task logs -f my-server task-123
   gt kill my-server task-123
   gt cp local.txt my-server:/tmp/remote.txt
-  gt prune
   gt agent run -d worker-1
-  gt agent ps
-  gt agent logs -f worker-1
-  gt agent stop worker-1
-  gt agent rm worker-1
 `);
 }
 

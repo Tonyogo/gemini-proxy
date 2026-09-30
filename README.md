@@ -284,27 +284,27 @@ pm2 logs gemini-proxy            # 查看实时运行日志
 gt login http://<proxy-ip>:3000 <ADMIN_SECRET_KEY>
 
 # 2. 启动 Agent 节点 (Docker 风格多实例运行，-d 代表后台守护进程)
-gt agent run -d Ubuntu-GPU-Server
+gt run -d Ubuntu-GPU-Server
 
-# 3. 常用生命周期操作
-gt agent ps                               # 查看本机运行的 Agent 实例状态 (支持 -a 查看所有)
-gt agent logs -f Ubuntu-GPU-Server        # 实时跟踪 Agent 运行日志
-gt agent stop Ubuntu-GPU-Server           # 停止 Agent
-gt agent restart Ubuntu-GPU-Server        # 重启 Agent
-gt agent prune                            # 一键清理所有已停止的本地 Agent 记录与日志
-gt agent rm Ubuntu-GPU-Server             # 清理指定的已停止 Agent 记录
+# 3. 常用生命周期操作 (兼容 gt agent <cmd> 别名)
+gt ps -l                                  # 查看本机运行的 Agent 实例状态 (加 -a 查看所有含 Stopped)
+gt logs -f Ubuntu-GPU-Server              # 实时跟踪 Agent 运行日志
+gt stop Ubuntu-GPU-Server                 # 停止 Agent (加 --all 停止全部)
+gt restart Ubuntu-GPU-Server              # 重启 Agent
+gt prune -l                               # 一键清理所有已停止的本地 Agent 记录与日志
+gt rm Ubuntu-GPU-Server                   # 清理指定的已停止 Agent 记录
 ```
 
 #### B. Agent 守护进程命令与参数说明
 | 命令 / 选项 | 说明 | 示例 |
 | :--- | :--- | :--- |
-| `gt agent run [-d] [NAME]` | 运行 Agent (前台控制台输出，或 `-d` / `--detach` 后台常驻；默认使用系统 hostname) | `gt agent run -d` / `gt agent run -d worker-1` |
-| `gt agent ps [-a\|--all]` | 列出本地 Agent 实例状态 (默认仅活跃，`-a` 列出全部含 Stopped) | `gt agent ps` / `gt agent ps -a` |
-| `gt agent logs [-f] [-n 50] [NAME]` | 查看或实时跟踪 (`-f`) Agent 运行日志 | `gt agent logs -f worker-1` |
-| `gt agent stop [NAME] [--all]` | 优雅终止 Agent 进程 (支持 `--all` 停止全部) | `gt agent stop worker-1` |
-| `gt agent restart [NAME]` | 重启指定的 Agent 守护进程 | `gt agent restart worker-1` |
-| `gt agent prune` | 一键清理所有已停止的本地 Agent 状态文件及日志记录 | `gt agent prune` |
-| `gt agent rm [NAME] [--all]` | 删除已停止的 Agent 状态文件及日志记录 (支持 `--all`) | `gt agent rm worker-1` |
+| `gt run [-d] [NAME]` | 运行 Agent (前台控制台输出，或 `-d` / `--detach` 后台常驻；默认使用系统 hostname；兼容 `gt agent run`) | `gt run -d` / `gt run -d worker-1` |
+| `gt ps [-l\|--local] [-a\|--all]` | 列出已连接主机（默认列出远端；加 `-l` 列出本地 Agent 实例，`-a` 列出全部含 Stopped；兼容 `gt agent ps`) | `gt ps` / `gt ps -l` / `gt ps -l -a` |
+| `gt logs [-f] [-n 50] [NAME]` | 查看或实时跟踪 (`-f`) 本地 Agent 运行日志（兼容 `gt agent logs`） | `gt logs -f worker-1` |
+| `gt stop [NAME] [--all]` | 优雅终止 Agent 进程 (支持 `--all` 停止全部；兼容 `gt agent stop`) | `gt stop worker-1` |
+| `gt restart [NAME]` | 重启指定的 Agent 守护进程（兼容 `gt agent restart`） | `gt restart worker-1` |
+| `gt prune [-l\|--local] [-a\|--all]` | 清理离线远端节点或本地已停止 Agent 记录（兼容 `gt agent prune`） | `gt prune -l` / `gt prune -a` |
+| `gt rm [NAME] [--all]` | 删除已停止的 Agent 状态文件及日志记录 (支持 `--all`；兼容 `gt agent rm`) | `gt rm worker-1` |
 | `--name=<name>` | 显式指定 Agent 名称 (优先级高于位置参数 `NAME`) | `--name="my-box"` |
 | `--id=<id>` | 主机唯一标识 | 默认为固化在本地的稳定 Machine ID (12位十六进制) |
 | `--shell=<path>` | 指定调起的 Shell 程序路径 | 自动检测 (bash/zsh/PowerShell) |
@@ -433,13 +433,14 @@ gt task ls my-host                            # 查看节点上的所有任务�
 gt cp my-host:/var/log/app.log ./local.log       # 远程文件下载到本地
 gt cp ./config.json my-host:/app/config.json     # 本地文件上传到远程
 
-# 5. 本地 Agent 守护进程管理 (gt agent 命名空间)
-gt agent run -d worker-1                         # 启动后台常驻 Agent 守护进程
-gt agent ps                                      # 查看本地所有 Agent 实例状态 (Running / Stopped)
-gt agent logs -f worker-1                        # 实时查看/跟踪 Agent 运行日志
-gt agent stop worker-1                           # 停止指定的 Agent (支持 --all 停止全部)
-gt agent restart worker-1                        # 重启指定的 Agent
-gt agent rm worker-1                             # 清理已停止的 Agent 记录与日志 (支持 --all)
+# 5. 本地 Agent 守护进程管理 (统一一级命令，亦兼容 gt agent 命名空间)
+gt run -d worker-1                            # 启动后台常驻 Agent 守护进程 (亦可写为 gt agent run)
+gt ps -l                                      # 查看本地所有 Agent 实例状态 (Running / Stopped)
+gt logs -f worker-1                           # 实时查看/跟踪 Agent 运行日志
+gt stop worker-1                              # 停止指定的 Agent (支持 --all 停止全部)
+gt restart worker-1                           # 重启指定的 Agent
+gt prune -l                                   # 一键清理所有已停止的本地 Agent 记录与日志
+gt rm worker-1                                # 清理已停止的 Agent 记录与日志 (支持 --all)
 ```
 
 ---
