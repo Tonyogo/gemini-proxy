@@ -3172,6 +3172,12 @@ async function handleRemotePs({ server, key, args = [], jsonOutput = false, form
 
       if (hosts.length === 0) {
         console.log(showAll ? 'No terminal agent hosts recorded.' : 'No online terminal agent hosts found. (Use -a to show offline)');
+        if (!jsonOutput && !formatTemplateStr) {
+          const runningAgents = AgentDaemonManager.getAllAgents().filter(a => a.running);
+          if (runningAgents.length > 0) {
+            console.log(`\n(Tip: ${runningAgents.length} local agent daemon(s) active. Run 'gt ps -l' to view)`);
+          }
+        }
         process.exit(0);
       }
 
@@ -3195,6 +3201,13 @@ async function handleRemotePs({ server, key, args = [], jsonOutput = false, form
           (h.ip || '').padEnd(18) +
           formatRelativeTime(h.lastSeen)
         );
+      }
+
+      if (!jsonOutput && !formatTemplateStr) {
+        const runningAgents = AgentDaemonManager.getAllAgents().filter(a => a.running);
+        if (runningAgents.length > 0) {
+          console.log(`\n(Tip: ${runningAgents.length} local agent daemon(s) active. Run 'gt ps -l' to view)`);
+        }
       }
       process.exit(0);
     } else {
@@ -3612,6 +3625,12 @@ async function main() {
 
   switch (command) {
     case 'ps': {
+      const isLocal = cmdArgs.includes('-l') || cmdArgs.includes('--local');
+      if (isLocal) {
+        const hasAll = cmdArgs.includes('-a') || cmdArgs.includes('--all');
+        AgentDaemonManager.printAgentsTable(hasAll);
+        break;
+      }
       await handleRemotePs({ server, key, args: cmdArgs, jsonOutput, formatTemplateStr });
       break;
     }

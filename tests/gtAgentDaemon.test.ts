@@ -600,6 +600,38 @@ describe('gt agent unified authentication and parameter guards', () => {
     if (agentRecord2.pid) process.kill(agentRecord2.pid, 'SIGKILL');
     AgentDaemonManager.remove(expectedHostname);
   });
+
+  it('supports gt ps -l to list local agents and shows tip on default gt ps', async () => {
+    // 1. Setup config and start agent daemon
+    fs.writeFileSync(path.join(testConfigDir, 'config.json'), JSON.stringify({
+      server: 'http://127.0.0.1:3000',
+      key: 'mock-key',
+    }));
+
+    const startRes = spawnSync('node', [gtPath, 'run', '-d', '--name=ps-local-test'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(startRes.status).toBe(0);
+
+    // 2. gt ps -l should list local agent table
+    const psLocalRes = spawnSync('node', [gtPath, 'ps', '-l'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(psLocalRes.status).toBe(0);
+    expect(psLocalRes.stdout).toContain('ps-local-test');
+    expect(psLocalRes.stdout).toContain('Running');
+
+    // 3. Stop the agent
+    spawnSync('node', [gtPath, 'stop', 'ps-local-test'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+  });
 });
 
 
