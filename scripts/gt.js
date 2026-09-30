@@ -3303,6 +3303,61 @@ function handleLogout() {
   process.exit(0);
 }
 
+async function handleLogsDispatcher({ server, key, args = [], jsonOutput = false }) {
+  // Extract flags and positional arguments
+  let lines = 50;
+  let follow = false;
+  const positional = [];
+
+  for (let i = 0; i < args.length; i++) {
+    const a = args[i];
+    if (a === '-f' || a === '--follow') {
+      follow = true;
+    } else if (a === '-n' || a === '--lines') {
+      lines = parseInt(args[++i], 10) || 50;
+    } else if (a.startsWith('-n=')) {
+      lines = parseInt(a.slice(3), 10) || 50;
+    } else if (a.startsWith('--lines=')) {
+      lines = parseInt(a.slice(8), 10) || 50;
+    } else if (a === '--json') {
+      jsonOutput = true;
+    } else if (!a.startsWith('-')) {
+      positional.push(a);
+    }
+  }
+
+  // 1. If 2 or more positional args, or first arg explicitly points to remote node & taskId
+  if (positional.length >= 2) {
+    if (!jsonOutput) {
+      process.stderr.write(`[Notice] Redirecting to 'gt task logs ${positional.join(' ')}'...\n`);
+    }
+    await handleRemoteLogs({ server, key, args, jsonOutput });
+    return;
+  }
+
+  // 2. If 0 or 1 positional argument, check local agent daemons
+  const targetName = positional[0];
+  const resolved = AgentDaemonManager.resolveTarget(targetName, 'logs');
+  if (resolved.agent) {
+    await AgentDaemonManager.getLogs(resolved.agent.name, lines, follow);
+    process.exit(0);
+  }
+
+  // If no local agent matched but targetName was provided, attempt fallback to remote task logs
+  if (targetName) {
+    await handleRemoteLogs({ server, key, args, jsonOutput });
+    return;
+  }
+
+  if (resolved.error) {
+    console.error(resolved.error);
+    process.exit(1);
+  }
+
+  console.log('No running agent daemons found.');
+  process.exit(0);
+}
+
 async function handleRemoteLogs({ server, key, args = [], jsonOutput = false }) {
   let follow = false;
   let pollInterval = 500;
@@ -3651,7 +3706,7 @@ async function main() {
     }
 
     case 'logs': {
-      await handleRemoteLogs({ server, key, args: cmdArgs, jsonOutput });
+      await handleLogsDispatcher({ server, key, args: cmdArgs, jsonOutput });
       break;
     }
 

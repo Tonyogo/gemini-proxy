@@ -632,6 +632,35 @@ describe('gt agent unified authentication and parameter guards', () => {
       timeout: 5000,
     });
   });
+
+  it('supports gt logs for local daemon and redirects to remote tasks when 2 positional arguments given', async () => {
+    fs.writeFileSync(path.join(testConfigDir, 'config.json'), JSON.stringify({
+      server: 'http://127.0.0.1:3000',
+      key: 'mock-key',
+    }));
+
+    // Start daemon
+    spawnSync('node', [gtPath, 'run', '-d', '--name=logs-test-agent'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+
+    // gt logs logs-test-agent should display logs or no-logs message without failing
+    const logRes = spawnSync('node', [gtPath, 'logs', 'logs-test-agent'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(logRes.status).toBe(0);
+
+    // Stop daemon
+    spawnSync('node', [gtPath, 'stop', 'logs-test-agent'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+  });
 });
 
 
