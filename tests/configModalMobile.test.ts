@@ -35,4 +35,9 @@ describe('ConfigModal Mobile Enhancements', () => {
     // Verifies that the previous pt-1.5 border-t separator inside mapping item actions is eliminated
     expect(content).not.toContain('pt-1.5 sm:pt-0 border-t border-white/[0.04]');
   });
+
+  test('should layout node card header with desktop inline switcher and mobile full-width segmented switcher', () => {
+    expect(content).toContain('hidden sm:inline-flex rounded p-0.5 bg-slate-900 border border-slate-700/80 ml-1.5 shrink-0');
+    expect(content).toContain('grid grid-cols-2 p-0.5 bg-slate-900 border border-slate-700/80 rounded-lg mt-2 sm:hidden gap-1');
+  });
 });

@@ -751,100 +751,141 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                     : 'bg-slate-900/30 border-slate-800/60 opacity-60'
                                 }`}
                               >
-                                <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-700/40">
-                                  <div className="flex items-center space-x-2">
-                                    <span className={`w-2.5 h-2.5 rounded-full ${server.enabled ? color : 'bg-slate-600'}`} />
-                                    <span className="text-xs font-semibold text-slate-200">
-                                      {server.name || `Node ${idx + 1}`}
-                                    </span>
-                                    <span
-                                      className={`px-1.5 py-0.5 text-[10px] rounded font-mono font-medium ${
-                                        server.enabled
-                                          ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
-                                          : 'bg-slate-800 text-slate-400 border border-slate-700'
-                                      }`}
-                                    >
-                                      {server.enabled ? `${pct}%` : t('config.nodeDisabled', '已禁用')}
-                                    </span>
-
-                                    {/* Server Type Switcher */}
-                                    <div className="inline-flex rounded p-0.5 bg-slate-900 border border-slate-700/80 ml-1.5">
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          const updated = [...upstreamServers];
-                                          updated[idx] = { ...updated[idx], type: 'proxy', agentId: undefined };
-                                          setUpstreamServers(updated);
-                                        }}
-                                        className={`px-2 py-0.5 text-[10px] rounded font-medium transition-all ${
-                                          (server.type || 'proxy') === 'proxy'
-                                            ? 'bg-purple-600 text-white shadow-xs'
-                                            : 'text-slate-400 hover:text-slate-200'
+                                <div className="pb-2.5 mb-2.5 border-b border-slate-700/40">
+                                  {/* First Row: Status, Node Name, Percentage, Controls */}
+                                  <div className="flex items-center justify-between gap-2">
+                                    <div className="flex items-center space-x-2 min-w-0 flex-1">
+                                      <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${server.enabled ? color : 'bg-slate-600'}`} />
+                                      <span className="text-xs font-semibold text-slate-200 truncate">
+                                        {server.name || `Node ${idx + 1}`}
+                                      </span>
+                                      <span
+                                        className={`px-1.5 py-0.5 text-[10px] rounded font-mono font-medium shrink-0 ${
+                                          server.enabled
+                                            ? 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                                            : 'bg-slate-800 text-slate-400 border border-slate-700'
                                         }`}
                                       >
-                                        {t('config.serverTypeProxy', '代理模式 (Proxy)')}
-                                      </button>
+                                        {server.enabled ? `${pct}%` : t('config.nodeDisabled', '已禁用')}
+                                      </span>
+
+                                      {/* Desktop-only Server Type Switcher */}
+                                      <div className="hidden sm:inline-flex rounded p-0.5 bg-slate-900 border border-slate-700/80 ml-1.5 shrink-0">
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const updated = [...upstreamServers];
+                                            updated[idx] = { ...updated[idx], type: 'proxy', agentId: undefined };
+                                            setUpstreamServers(updated);
+                                          }}
+                                          className={`px-2 py-0.5 text-[10px] rounded font-medium transition-all ${
+                                            (server.type || 'proxy') === 'proxy'
+                                              ? 'bg-purple-600 text-white shadow-xs'
+                                              : 'text-slate-400 hover:text-slate-200'
+                                          }`}
+                                        >
+                                          {t('config.serverTypeProxy', '代理模式 (Proxy)')}
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const updated = [...upstreamServers];
+                                            let nextUrl = updated[idx].url;
+                                            if (!nextUrl || nextUrl.includes('proxy') || nextUrl === '') {
+                                              nextUrl = 'https://generativelanguage.googleapis.com';
+                                            }
+                                            updated[idx] = { ...updated[idx], type: 'direct', url: nextUrl };
+                                            setUpstreamServers(updated);
+                                            setGeminiBaseUrl(updated.map(s => s.url).filter(Boolean).join(','));
+                                          }}
+                                          className={`px-2 py-0.5 text-[10px] rounded font-medium transition-all ${
+                                            server.type === 'direct'
+                                              ? 'bg-cyan-600 text-white shadow-xs'
+                                              : 'text-slate-400 hover:text-slate-200'
+                                          }`}
+                                        >
+                                          {t('config.serverTypeDirect', '直连模式 (Direct)')}
+                                        </button>
+                                      </div>
+                                    </div>
+
+                                    {/* Right Controls: Enable Toggle & Delete Button */}
+                                    <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
+                                      <label className="flex items-center cursor-pointer space-x-1.5">
+                                        <input
+                                          type="checkbox"
+                                          checked={server.enabled}
+                                          onChange={(e) => {
+                                            const updated = [...upstreamServers];
+                                            updated[idx] = { ...updated[idx], enabled: e.target.checked };
+                                            setUpstreamServers(updated);
+                                            setGeminiBaseUrl(updated.map(s => s.url).filter(Boolean).join(','));
+                                          }}
+                                          className="sr-only"
+                                        />
+                                        <div className={`w-7 h-4 rounded-full transition-colors relative ${server.enabled ? 'bg-blue-600' : 'bg-slate-700'}`}>
+                                          <div className={`w-3 h-3 rounded-full bg-white absolute top-0.5 transition-transform ${server.enabled ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
+                                        </div>
+                                        <span className="hidden sm:inline text-[11px] text-slate-400">
+                                          {server.enabled ? t('config.nodeEnabled', '已启用') : t('config.nodeDisabled', '已禁用')}
+                                        </span>
+                                      </label>
+
                                       <button
                                         type="button"
+                                        disabled={upstreamServers.length <= 1}
                                         onClick={() => {
-                                          const updated = [...upstreamServers];
-                                          let nextUrl = updated[idx].url;
-                                          if (!nextUrl || nextUrl.includes('proxy') || nextUrl === '') {
-                                            nextUrl = 'https://generativelanguage.googleapis.com';
-                                          }
-                                          updated[idx] = { ...updated[idx], type: 'direct', url: nextUrl };
+                                          if (upstreamServers.length <= 1) return;
+                                          const updated = upstreamServers.filter((_, i) => i !== idx);
                                           setUpstreamServers(updated);
                                           setGeminiBaseUrl(updated.map(s => s.url).filter(Boolean).join(','));
                                         }}
-                                        className={`px-2 py-0.5 text-[10px] rounded font-medium transition-all ${
-                                          server.type === 'direct'
-                                            ? 'bg-cyan-600 text-white shadow-xs'
-                                            : 'text-slate-400 hover:text-slate-200'
+                                        className={`p-1.5 sm:p-1 text-slate-400 hover:text-red-400 transition-colors ${
+                                          upstreamServers.length <= 1 ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'
                                         }`}
+                                        title={upstreamServers.length <= 1 ? t('config.atLeastOneServer', '至少需要保留一个上游网关节点') : 'Delete'}
                                       >
-                                        {t('config.serverTypeDirect', '直连模式 (Direct)')}
+                                        <Trash2 className="w-3.5 h-3.5" />
                                       </button>
                                     </div>
                                   </div>
 
-                                  <div className="flex items-center space-x-3">
-                                    {/* Enable / Disable switch */}
-                                    <label className="flex items-center cursor-pointer space-x-1.5">
-                                      <input
-                                        type="checkbox"
-                                        checked={server.enabled}
-                                        onChange={(e) => {
-                                          const updated = [...upstreamServers];
-                                          updated[idx] = { ...updated[idx], enabled: e.target.checked };
-                                          setUpstreamServers(updated);
-                                          setGeminiBaseUrl(updated.map(s => s.url).filter(Boolean).join(','));
-                                        }}
-                                        className="sr-only"
-                                      />
-                                      <div className={`w-7 h-4 rounded-full transition-colors relative ${server.enabled ? 'bg-blue-600' : 'bg-slate-700'}`}>
-                                        <div className={`w-3 h-3 rounded-full bg-white absolute top-0.5 transition-transform ${server.enabled ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
-                                      </div>
-                                      <span className="text-[11px] text-slate-400">
-                                        {server.enabled ? t('config.nodeEnabled', '已启用') : t('config.nodeDisabled', '已禁用')}
-                                      </span>
-                                    </label>
-
-                                    {/* Delete Button */}
+                                  {/* Mobile-only Full-Width Segmented Mode Switcher */}
+                                  <div className="grid grid-cols-2 p-0.5 bg-slate-900 border border-slate-700/80 rounded-lg mt-2 sm:hidden gap-1">
                                     <button
                                       type="button"
-                                      disabled={upstreamServers.length <= 1}
                                       onClick={() => {
-                                        if (upstreamServers.length <= 1) return;
-                                        const updated = upstreamServers.filter((_, i) => i !== idx);
+                                        const updated = [...upstreamServers];
+                                        updated[idx] = { ...updated[idx], type: 'proxy', agentId: undefined };
+                                        setUpstreamServers(updated);
+                                      }}
+                                      className={`py-1.5 px-2 text-xs rounded-md font-medium text-center transition-all ${
+                                        (server.type || 'proxy') === 'proxy'
+                                          ? 'bg-purple-600 text-white shadow-sm'
+                                          : 'text-slate-400 hover:text-slate-200'
+                                      }`}
+                                    >
+                                      {t('config.serverTypeProxy', '代理模式 (Proxy)')}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const updated = [...upstreamServers];
+                                        let nextUrl = updated[idx].url;
+                                        if (!nextUrl || nextUrl.includes('proxy') || nextUrl === '') {
+                                          nextUrl = 'https://generativelanguage.googleapis.com';
+                                        }
+                                        updated[idx] = { ...updated[idx], type: 'direct', url: nextUrl };
                                         setUpstreamServers(updated);
                                         setGeminiBaseUrl(updated.map(s => s.url).filter(Boolean).join(','));
                                       }}
-                                      className={`p-1 text-slate-400 hover:text-red-400 transition-colors ${
-                                        upstreamServers.length <= 1 ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'
+                                      className={`py-1.5 px-2 text-xs rounded-md font-medium text-center transition-all ${
+                                        server.type === 'direct'
+                                          ? 'bg-cyan-600 text-white shadow-sm'
+                                          : 'text-slate-400 hover:text-slate-200'
                                       }`}
-                                      title={upstreamServers.length <= 1 ? t('config.atLeastOneServer', '至少需要保留一个上游网关节点') : 'Delete'}
                                     >
-                                      <Trash2 className="w-3.5 h-3.5" />
+                                      {t('config.serverTypeDirect', '直连模式 (Direct)')}
                                     </button>
                                   </div>
                                 </div>
