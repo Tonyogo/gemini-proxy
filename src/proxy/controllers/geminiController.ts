@@ -8,6 +8,7 @@ import logger from '../../utils/logger';
 import agentProxyService from '../services/agentProxyService';
 import { StreamLifecycleManager } from '../../utils/streamLifecycleManager';
 import upstreamManager from '../../utils/upstreamManager';
+import { parseModelThinkingSuffix } from '../../utils/modelThinkingHelper';
 import {
   extractClientKey,
   extractTimeoutMs,
@@ -86,7 +87,7 @@ class GeminiController {
       originalModel: originalModel || undefined,
       resolvedModel: targetModelName || undefined
     });
-    const { targetUrl, serverUrl, serverIndex, serverType, selectedApiKey } = serverSelection;
+    let { targetUrl, serverUrl, serverIndex, serverType, selectedApiKey } = serverSelection;
     const customUpstreamHeaders: Record<string, string> = {};
     if (effectiveStrategy) {
       customUpstreamHeaders['x-scheduling-strategy'] = effectiveStrategy;
@@ -97,6 +98,21 @@ class GeminiController {
     const upstreamHeaders = buildUpstreamHeaders(effectiveApiKey, customUpstreamHeaders);
 
     const clientReq = req.body && Object.keys(req.body).length > 0 ? JSON.parse(JSON.stringify(req.body)) : null;
+
+    // Direct mode: strip -high from URL and inject thinkingConfig
+    if (serverType === 'direct' && targetModelName) {
+      const thinkingInfo = parseModelThinkingSuffix(targetModelName);
+      if (thinkingInfo.isHigh) {
+        targetUrl = targetUrl.replace(`models/${targetModelName}`, `models/${thinkingInfo.baseModel}`);
+        if (clientReq) {
+          clientReq.generationConfig = clientReq.generationConfig || {};
+          clientReq.generationConfig.thinkingConfig = {
+            ...(clientReq.generationConfig.thinkingConfig || {}),
+            thinkingLevel: 'HIGH'
+          };
+        }
+      }
+    }
 
     if (isStream) {
       const streamManager = new StreamLifecycleManager({ req, res, transactionId, timeoutMs });
@@ -261,4 +277,5 @@ class GeminiController {
   }
 }
 
-export default new GeminiController();
+export const geminiController = new GeminiController();
+export default geminiController;
