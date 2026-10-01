@@ -890,8 +890,8 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                   </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 text-xs">
-                                  <div className="sm:col-span-4 space-y-1">
+                                <div className="grid grid-cols-12 gap-2 sm:gap-2.5 text-xs">
+                                  <div className="col-span-8 sm:col-span-4 space-y-1">
                                     <label className="text-[11px] text-slate-400 block">{t('config.nodeName', '节点备注名')}</label>
                                     <input
                                       type="text"
@@ -906,7 +906,24 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                     />
                                   </div>
 
-                                  <div className="sm:col-span-5 space-y-1">
+                                  <div className="col-span-4 sm:col-span-3 space-y-1 sm:order-last">
+                                    <label className="text-[11px] text-slate-400 block">{t('config.nodeWeight', '权重')}</label>
+                                    <input
+                                      type="number"
+                                      min="1"
+                                      max="1000"
+                                      value={server.weight}
+                                      onChange={(e) => {
+                                        const val = parseInt(e.target.value, 10);
+                                        const updated = [...upstreamServers];
+                                        updated[idx] = { ...updated[idx], weight: isNaN(val) ? 1 : Math.max(1, Math.min(1000, val)) };
+                                        setUpstreamServers(updated);
+                                      }}
+                                      className="w-full ui-input p-2 text-xs font-mono"
+                                    />
+                                  </div>
+
+                                  <div className="col-span-12 sm:col-span-5 space-y-1">
                                     <label className="text-[11px] text-slate-400 block">{t('config.nodeUrl', '网关 URL')}</label>
                                     <input
                                       type="text"
@@ -930,25 +947,8 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                     />
                                   </div>
 
-                                  <div className="sm:col-span-3 space-y-1">
-                                    <label className="text-[11px] text-slate-400 block">{t('config.nodeWeight', '权重')}</label>
-                                    <input
-                                      type="number"
-                                      min="1"
-                                      max="1000"
-                                      value={server.weight}
-                                      onChange={(e) => {
-                                        const val = parseInt(e.target.value, 10);
-                                        const updated = [...upstreamServers];
-                                        updated[idx] = { ...updated[idx], weight: isNaN(val) ? 1 : Math.max(1, Math.min(1000, val)) };
-                                        setUpstreamServers(updated);
-                                      }}
-                                      className="w-full ui-input p-2 text-xs font-mono"
-                                    />
-                                  </div>
-
                                   {/* Allowed Models (Single line) */}
-                                  <div className="sm:col-span-12 space-y-1">
+                                  <div className="col-span-12 space-y-1">
                                     <label className="text-[11px] text-slate-400 block">{t('config.serverAllowedModelsTitle', '允许模型')}</label>
                                     <div className="relative flex items-center">
                                       <input
@@ -992,7 +992,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
 
                                   {/* Direct Mode Egress Channel Selector */}
                                   {server.type === 'direct' && (
-                                    <div className="sm:col-span-12 space-y-2 mt-1 p-3 rounded-lg bg-slate-900/60 border border-cyan-500/20">
+                                    <div className="col-span-12 space-y-2 mt-1 p-3 rounded-lg bg-slate-900/60 border border-cyan-500/20">
                                       <div className="flex items-center justify-between">
                                         <label className="text-[11px] font-semibold text-cyan-400 flex items-center space-x-1.5">
                                           <ArrowRightLeft className="w-3.5 h-3.5 text-cyan-400" />
@@ -1113,7 +1113,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
 
                                   {/* Direct Mode API Keys (Multi-line) */}
                                   {server.type === 'direct' && (
-                                    <div className="sm:col-span-12 space-y-1 mt-1 p-2.5 rounded bg-slate-900/60 border border-cyan-500/20">
+                                    <div className="col-span-12 space-y-1 mt-1 p-2.5 rounded bg-slate-900/60 border border-cyan-500/20">
                                       <div className="flex items-center justify-between">
                                         <label className="text-[11px] font-semibold text-cyan-400 flex items-center space-x-1">
                                           <span>{t('config.serverApiKeys', 'Gemini API Keys (直连密钥池)')}</span>
