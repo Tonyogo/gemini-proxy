@@ -9,7 +9,7 @@ import logger from '../../utils/logger';
 import agentProxyService from '../services/agentProxyService';
 import { StreamLifecycleManager } from '../../utils/streamLifecycleManager';
 import upstreamManager from '../../utils/upstreamManager';
-import { parseModelThinkingSuffix } from '../../utils/modelThinkingHelper';
+import { parseModelThinkingSuffix, applyThinkingConfigHigh } from '../../utils/modelThinkingHelper';
 import {
   extractClientKey,
   extractTimeoutMs,
@@ -92,10 +92,7 @@ class ClaudeController {
           if (thinkingInfo.isHigh) {
             targetUrl = targetUrl.replace(`models/${cleanModelName}:`, `models/${thinkingInfo.baseModel}:`);
             gemReq.generationConfig = gemReq.generationConfig || {};
-            gemReq.generationConfig.thinkingConfig = {
-              ...(gemReq.generationConfig.thinkingConfig || {}),
-              thinkingLevel: 'HIGH'
-            };
+            applyThinkingConfigHigh(gemReq.generationConfig);
           }
         }
 
@@ -317,10 +314,7 @@ class ClaudeController {
         if (thinkingInfo.isHigh) {
           targetUrl = targetUrl.replace(`models/${cleanModelName}:`, `models/${thinkingInfo.baseModel}:`);
           gemReq.generationConfig = gemReq.generationConfig || {};
-          gemReq.generationConfig.thinkingConfig = {
-            ...(gemReq.generationConfig.thinkingConfig || {}),
-            thinkingLevel: 'HIGH'
-          };
+          applyThinkingConfigHigh(gemReq.generationConfig);
         }
       }
 

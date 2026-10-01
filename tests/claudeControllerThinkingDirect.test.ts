@@ -119,4 +119,32 @@ describe('claudeController Direct Mode Thinking Suffix', () => {
     expect(capturedUpstreamUrl).toBe('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:countTokens');
     expect(capturedBody.generateContentRequest?.model).toBe('models/gemini-2.5-flash');
   });
+
+  it('strips includeThoughts and injects thinkingLevel: HIGH in direct mode when thinking is enabled', async () => {
+    jest.spyOn(upstreamManager, 'getUpstreamUrl').mockReturnValue({
+      targetUrl: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-high:generateContent',
+      serverUrl: 'https://generativelanguage.googleapis.com',
+      serverIndex: 0,
+      weight: 1,
+      serverType: 'direct',
+      selectedApiKey: 'test-direct-key'
+    });
+
+    const res = await request(app)
+      .post('/v1/messages')
+      .set('x-api-key', 'client-key')
+      .send({
+        model: 'gemini-2.5-flash-high',
+        max_tokens: 100,
+        messages: [{ role: 'user', content: 'Hi' }],
+        thinking: { type: 'enabled', budget_tokens: 1024 }
+      });
+
+    expect(res.status).toBe(200);
+    expect(capturedUpstreamUrl).toBe('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent');
+    expect(capturedBody.generationConfig?.thinkingConfig).toEqual({
+      thinkingLevel: 'HIGH'
+    });
+    expect(capturedBody.generationConfig?.thinkingConfig?.includeThoughts).toBeUndefined();
+  });
 });

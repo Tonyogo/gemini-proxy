@@ -72,6 +72,65 @@ describe('geminiController Direct Mode Thinking Suffix', () => {
     expect(capturedBody.generationConfig.thinkingConfig.includeThoughts).toBeUndefined();
   });
 
+  it('strips includeThoughts when client sends it and preserves other thinkingConfig properties', async () => {
+    jest.spyOn(upstreamManager, 'getUpstreamUrl').mockReturnValue({
+      targetUrl: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-high:generateContent',
+      serverUrl: 'https://generativelanguage.googleapis.com',
+      serverIndex: 0,
+      weight: 1,
+      serverType: 'direct',
+      selectedApiKey: 'test-direct-key'
+    });
+
+    const res = await request(app)
+      .post('/v1beta/models/gemini-2.5-flash-high:generateContent')
+      .set('x-goog-api-key', 'client-key')
+      .send({
+        contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
+        generationConfig: {
+          thinkingConfig: {
+            includeThoughts: true,
+            customField: 'preserved'
+          }
+        }
+      });
+
+    expect(res.status).toBe(200);
+    expect(capturedBody.generationConfig.thinkingConfig).toEqual({
+      customField: 'preserved',
+      thinkingLevel: 'HIGH'
+    });
+    expect(capturedBody.generationConfig.thinkingConfig.includeThoughts).toBeUndefined();
+  });
+
+  it('does NOT inject generationConfig in non-generate endpoints like :countTokens and strips -high from request body models', async () => {
+    jest.spyOn(upstreamManager, 'getUpstreamUrl').mockReturnValue({
+      targetUrl: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-high:countTokens',
+      serverUrl: 'https://generativelanguage.googleapis.com',
+      serverIndex: 0,
+      weight: 1,
+      serverType: 'direct',
+      selectedApiKey: 'test-direct-key'
+    });
+
+    const res = await request(app)
+      .post('/v1beta/models/gemini-2.5-flash-high:countTokens')
+      .set('x-goog-api-key', 'client-key')
+      .send({
+        contents: [{ role: 'user', parts: [{ text: 'Count this' }] }],
+        model: 'models/gemini-2.5-flash-high',
+        generateContentRequest: {
+          model: 'models/gemini-2.5-flash-high'
+        }
+      });
+
+    expect(res.status).toBe(200);
+    expect(capturedUpstreamUrl).toBe('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:countTokens');
+    expect(capturedBody.generationConfig).toBeUndefined();
+    expect(capturedBody.model).toBe('models/gemini-2.5-flash');
+    expect(capturedBody.generateContentRequest.model).toBe('models/gemini-2.5-flash');
+  });
+
   it('preserves -high in proxy mode without injecting thinkingLevel', async () => {
     jest.spyOn(upstreamManager, 'getUpstreamUrl').mockReturnValue({
       targetUrl: 'https://custom-proxy.com/v1beta/models/gemini-2.5-flash-high:generateContent',

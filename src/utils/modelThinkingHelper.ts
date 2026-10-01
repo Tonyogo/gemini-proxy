@@ -22,3 +22,18 @@ export function parseModelThinkingSuffix(model?: string): ModelThinkingInfo {
     isHigh: false
   };
 }
+
+/**
+ * Injects thinkingLevel: 'HIGH' into generationConfig.thinkingConfig while stripping includeThoughts.
+ * Preserves other custom thinkingConfig properties.
+ */
+export function applyThinkingConfigHigh(generationConfig: any = {}): any {
+  const existingThinking = generationConfig?.thinkingConfig || {};
+  const { includeThoughts, ...cleanThinking } = existingThinking;
+  generationConfig.thinkingConfig = {
+    ...cleanThinking,
+    thinkingLevel: 'HIGH'
+  };
+  return generationConfig;
+}
+

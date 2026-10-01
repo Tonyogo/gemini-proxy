@@ -8,7 +8,7 @@ import logger from '../../utils/logger';
 import agentProxyService from '../services/agentProxyService';
 import { StreamLifecycleManager } from '../../utils/streamLifecycleManager';
 import upstreamManager from '../../utils/upstreamManager';
-import { parseModelThinkingSuffix } from '../../utils/modelThinkingHelper';
+import { parseModelThinkingSuffix, applyThinkingConfigHigh } from '../../utils/modelThinkingHelper';
 import {
   extractClientKey,
   extractTimeoutMs,
@@ -99,17 +99,26 @@ class GeminiController {
 
     const clientReq = req.body && Object.keys(req.body).length > 0 ? JSON.parse(JSON.stringify(req.body)) : null;
 
-    // Direct mode: strip -high from URL and inject thinkingConfig
+    // Direct mode: strip -high from URL, strip from body models, and inject thinkingConfig for generate endpoints
     if (serverType === 'direct' && targetModelName) {
       const thinkingInfo = parseModelThinkingSuffix(targetModelName);
       if (thinkingInfo.isHigh) {
         targetUrl = targetUrl.replace(`models/${targetModelName}`, `models/${thinkingInfo.baseModel}`);
         if (clientReq) {
-          clientReq.generationConfig = clientReq.generationConfig || {};
-          clientReq.generationConfig.thinkingConfig = {
-            ...(clientReq.generationConfig.thinkingConfig || {}),
-            thinkingLevel: 'HIGH'
-          };
+          // Strip -high from request body models if present (e.g. in :countTokens or other endpoints)
+          if (typeof clientReq.model === 'string' && clientReq.model.toLowerCase().endsWith('-high')) {
+            clientReq.model = parseModelThinkingSuffix(clientReq.model).baseModel;
+          }
+          if (clientReq.generateContentRequest && typeof clientReq.generateContentRequest.model === 'string' && clientReq.generateContentRequest.model.toLowerCase().endsWith('-high')) {
+            clientReq.generateContentRequest.model = parseModelThinkingSuffix(clientReq.generateContentRequest.model).baseModel;
+          }
+
+          // Only inject generationConfig for content generation routes
+          const isGenerateRoute = cleanPath.includes(':generateContent') || cleanPath.includes(':streamGenerateContent');
+          if (isGenerateRoute) {
+            clientReq.generationConfig = clientReq.generationConfig || {};
+            applyThinkingConfigHigh(clientReq.generationConfig);
+          }
         }
       }
     }

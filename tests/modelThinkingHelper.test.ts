@@ -1,4 +1,4 @@
-import { parseModelThinkingSuffix } from '../src/utils/modelThinkingHelper';
+import { parseModelThinkingSuffix, applyThinkingConfigHigh } from '../src/utils/modelThinkingHelper';
 
 describe('modelThinkingHelper', () => {
   it('parses normal models without high suffix', () => {
@@ -30,5 +30,23 @@ describe('modelThinkingHelper', () => {
     expect(parseModelThinkingSuffix(undefined)).toEqual({ baseModel: '', isHigh: false });
     expect(parseModelThinkingSuffix('  ')).toEqual({ baseModel: '', isHigh: false });
     expect(parseModelThinkingSuffix('-high')).toEqual({ baseModel: '', isHigh: true, thinkingLevel: 'HIGH' });
+  });
+
+  it('injects thinkingLevel: HIGH and strips includeThoughts while preserving other properties', () => {
+    const config1 = applyThinkingConfigHigh({});
+    expect(config1.thinkingConfig).toEqual({ thinkingLevel: 'HIGH' });
+    expect(config1.thinkingConfig.includeThoughts).toBeUndefined();
+
+    const config2 = applyThinkingConfigHigh({
+      thinkingConfig: {
+        includeThoughts: true,
+        customProperty: 'keep-me'
+      }
+    });
+    expect(config2.thinkingConfig).toEqual({
+      customProperty: 'keep-me',
+      thinkingLevel: 'HIGH'
+    });
+    expect(config2.thinkingConfig.includeThoughts).toBeUndefined();
   });
 });
