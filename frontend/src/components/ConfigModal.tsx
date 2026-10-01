@@ -680,9 +680,6 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                             <label className="text-xs font-semibold text-slate-200 block">
                               {t('config.upstreamServersTitle', '上游代理服务器与流量分配')}
                             </label>
-                            <p className="hidden sm:block text-[10px] text-slate-400 mt-0.5">
-                              {t('config.upstreamServersDesc', '配置多个上游 Gemini 网关并设置流量百分比权重及启停状态。系统将自动按平滑加权算法进行精确调度。')}
-                            </p>
                           </div>
                           <button
                             type="button"
@@ -892,186 +889,153 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
 
                                 <div className="grid grid-cols-12 gap-2 sm:gap-2.5 text-xs">
                                   <div className="col-span-12 grid grid-cols-12 gap-2 sm:gap-2.5">
-                                    <div className="col-span-8 sm:col-span-4 space-y-1">
-                                      <label className="text-[11px] text-slate-400 block">{t('config.nodeName', '节点备注名')}</label>
-                                      <input
-                                        type="text"
-                                        value={server.name || ''}
-                                        onChange={(e) => {
-                                          const updated = [...upstreamServers];
-                                          updated[idx] = { ...updated[idx], name: e.target.value };
-                                          setUpstreamServers(updated);
-                                        }}
-                                        placeholder="e.g. HK-Gateway"
-                                        className="w-full ui-input p-2 text-xs"
-                                      />
-                                    </div>
-
-                                    <div className="col-span-4 sm:col-span-3 space-y-1 sm:order-last">
-                                      <label className="text-[11px] text-slate-400 block">{t('config.nodeWeight', '权重')}</label>
-                                      <input
-                                        type="number"
-                                        min="1"
-                                        max="1000"
-                                        value={server.weight}
-                                        onChange={(e) => {
-                                          const val = parseInt(e.target.value, 10);
-                                          const updated = [...upstreamServers];
-                                          updated[idx] = { ...updated[idx], weight: isNaN(val) ? 1 : Math.max(1, Math.min(1000, val)) };
-                                          setUpstreamServers(updated);
-                                        }}
-                                        className="w-full ui-input p-2 text-xs font-mono"
-                                      />
-                                    </div>
-
-                                    <div className="col-span-12 sm:col-span-5 space-y-1">
-                                      <label className="text-[11px] text-slate-400 block">{t('config.nodeUrl', '网关 URL')}</label>
-                                      <input
-                                        type="text"
-                                        value={server.url}
-                                        onChange={(e) => {
-                                          const updated = [...upstreamServers];
-                                          updated[idx] = { ...updated[idx], url: e.target.value };
-                                          setUpstreamServers(updated);
-                                          setGeminiBaseUrl(updated.map(s => s.url).filter(Boolean).join(','));
-                                        }}
-                                        onBlur={() => {
-                                          const updated = [...upstreamServers];
-                                          let clean = (updated[idx].url || '').trim().replace(/\/+$/, '');
-                                          if (clean && !/^https?:\/\//i.test(clean)) clean = `https://${clean}`;
-                                          updated[idx] = { ...updated[idx], url: clean };
-                                          setUpstreamServers(updated);
-                                          setGeminiBaseUrl(updated.map(s => s.url).filter(Boolean).join(','));
-                                        }}
-                                        placeholder="https://api.example.com"
-                                        className="w-full ui-input p-2 text-xs font-mono"
-                                      />
-                                    </div>
-                                  </div>
-
-                                  {/* Allowed Models (Single line) */}
-                                  <div className="col-span-12 space-y-1">
-                                    <label className="text-[11px] text-slate-400 block">{t('config.serverAllowedModelsTitle', '允许模型')}</label>
-                                    <div className="relative flex items-center">
-                                      <input
-                                        type="text"
-                                        value={serverModelInputs[idx] !== undefined ? serverModelInputs[idx] : (server.allowedModels || []).join(', ')}
-                                        onChange={(e) => {
-                                          const val = e.target.value;
-                                          setServerModelInputs(prev => ({ ...prev, [idx]: val }));
-                                        }}
-                                        onBlur={() => {
-                                          const raw = serverModelInputs[idx] !== undefined ? serverModelInputs[idx] : (server.allowedModels || []).join(', ');
-                                          const parts = raw.split(',').map(s => s.trim()).filter(Boolean);
-                                          const updated = [...upstreamServers];
-                                          updated[idx] = {
-                                            ...updated[idx],
-                                            allowedModels: parts.length > 0 ? Array.from(new Set(parts)) : undefined
-                                          };
-                                          setUpstreamServers(updated);
-                                          setServerModelInputs(prev => ({ ...prev, [idx]: parts.join(', ') }));
-                                        }}
-                                        placeholder={t('config.serverAllowedModelsPlaceholder', '留空允许全部，多个以英文逗号分隔，如 gemini-2.5-flash, gemini-2.5-pro')}
-                                        className="w-full ui-input p-2 text-xs font-mono pr-8"
-                                      />
-                                      {(() => {
-                                        const currentVal = serverModelInputs[idx] !== undefined ? serverModelInputs[idx] : (server.allowedModels || []).join(', ');
-                                        const count = currentVal.split(',').map(s => s.trim()).filter(Boolean).length;
-                                        if (count <= 1) return null;
-                                        return (
-                                          <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none z-10 flex items-center">
-                                            <span
-                                              className="text-[9px] font-mono font-bold text-blue-400 bg-[var(--bg-surface-sub)] border border-blue-500/40 shadow-sm px-1 py-0.5 rounded leading-none select-none"
-                                              title={`${count} models configured`}
-                                            >
-                                              ×{count}
-                                            </span>
-                                          </div>
-                                        );
-                                      })()}
-                                    </div>
-                                  </div>
-
-                                  {/* Direct Mode Egress Channel Selector */}
-                                  {server.type === 'direct' && (
-                                    <div className="col-span-12 space-y-2 mt-1 p-3 rounded-lg bg-slate-900/60 border border-cyan-500/20">
-                                      <div className="flex items-center justify-between">
-                                        <label className="text-[11px] font-semibold text-cyan-400 flex items-center space-x-1.5">
-                                          <ArrowRightLeft className="w-3.5 h-3.5 text-cyan-400" />
-                                          <span>{t('config.egressChannelTitle', '网络出口通道')}</span>
-                                        </label>
-                                        {server.agentId && (
-                                          <span className="text-[10px] text-cyan-300 font-mono bg-cyan-950/60 px-1.5 py-0.5 rounded border border-cyan-500/30">
-                                            Agent: {server.agentId}
-                                          </span>
-                                        )}
-                                      </div>
-
-                                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                                        {/* Option 1: Local Direct */}
-                                        <label
-                                          onClick={() => {
-                                            const updated = [...upstreamServers];
-                                            updated[idx] = { ...updated[idx], agentId: undefined };
-                                            setUpstreamServers(updated);
-                                          }}
-                                          className={`p-2 sm:p-2.5 rounded border cursor-pointer transition-all flex flex-col justify-between ${
-                                            !server.agentId
-                                              ? 'bg-cyan-950/40 border-cyan-500/60 text-cyan-100 shadow-sm'
-                                              : 'bg-slate-800/40 border-slate-700/60 text-slate-400 hover:border-slate-600'
-                                          }`}
-                                        >
-                                          <div className="flex items-center space-x-2">
-                                            <input
-                                              type="radio"
-                                              name={`egress_channel_${idx}`}
-                                              checked={!server.agentId}
-                                              onChange={() => {}}
-                                              className="text-cyan-600 focus:ring-0 cursor-pointer"
-                                            />
-                                            <span className="font-semibold text-slate-200">{t('config.egressLocal', '本机直接出站 (Local Direct)')}</span>
-                                          </div>
-                                          <p className="text-[10px] text-slate-400 mt-1 pl-5">
-                                            {t('config.egressLocalDesc', '由服务器本机直接请求 Google 官方 API 接口')}
-                                          </p>
-                                        </label>
-
-                                        {/* Option 2: Remote Agent */}
-                                        <label
-                                          onClick={() => {
-                                            if (!server.agentId) {
-                                              const firstOnline = availableHosts.find(h => h.status === 'online');
-                                              const target = firstOnline ? firstOnline.name || firstOnline.id : (availableHosts[0]?.name || availableHosts[0]?.id || 'agent');
+                                    {server.type === 'direct' ? (
+                                      <>
+                                        <div className="col-span-8 space-y-1">
+                                          <label className="text-[11px] text-slate-400 block">{t('config.nodeName', '节点备注名')}</label>
+                                          <input
+                                            type="text"
+                                            value={server.name || ''}
+                                            onChange={(e) => {
                                               const updated = [...upstreamServers];
-                                              updated[idx] = { ...updated[idx], agentId: target };
+                                              updated[idx] = { ...updated[idx], name: e.target.value };
                                               setUpstreamServers(updated);
-                                            }
-                                          }}
-                                          className={`p-2 sm:p-2.5 rounded border cursor-pointer transition-all flex flex-col justify-between ${
-                                            server.agentId
-                                              ? 'bg-cyan-950/40 border-cyan-500/60 text-cyan-100 shadow-sm'
-                                              : 'bg-slate-800/40 border-slate-700/60 text-slate-400 hover:border-slate-600'
-                                          }`}
-                                        >
-                                          <div className="flex items-center space-x-2">
-                                            <input
-                                              type="radio"
-                                              name={`egress_channel_${idx}`}
-                                              checked={Boolean(server.agentId)}
-                                              onChange={() => {}}
-                                              className="text-cyan-600 focus:ring-0 cursor-pointer"
-                                            />
-                                            <span className="font-semibold text-slate-200">{t('config.egressAgent', '借道 Agent 节点出口 (Remote Agent Egress)')}</span>
+                                            }}
+                                            placeholder="e.g. Gemini-Official"
+                                            className="w-full ui-input p-2 text-xs"
+                                          />
+                                        </div>
+                                        <div className="col-span-4 space-y-1">
+                                          <label className="text-[11px] text-slate-400 block">{t('config.nodeWeight', '权重')}</label>
+                                          <input
+                                            type="number"
+                                            min="1"
+                                            max="1000"
+                                            value={server.weight}
+                                            onChange={(e) => {
+                                              const val = parseInt(e.target.value, 10);
+                                              const updated = [...upstreamServers];
+                                              updated[idx] = { ...updated[idx], weight: isNaN(val) ? 1 : Math.max(1, Math.min(1000, val)) };
+                                              setUpstreamServers(updated);
+                                            }}
+                                            className="w-full ui-input p-2 text-xs font-mono"
+                                          />
+                                        </div>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <div className="col-span-8 sm:col-span-4 space-y-1">
+                                          <label className="text-[11px] text-slate-400 block">{t('config.nodeName', '节点备注名')}</label>
+                                          <input
+                                            type="text"
+                                            value={server.name || ''}
+                                            onChange={(e) => {
+                                              const updated = [...upstreamServers];
+                                              updated[idx] = { ...updated[idx], name: e.target.value };
+                                              setUpstreamServers(updated);
+                                            }}
+                                            placeholder="e.g. HK-Gateway"
+                                            className="w-full ui-input p-2 text-xs"
+                                          />
+                                        </div>
+                                        <div className="col-span-4 sm:col-span-3 space-y-1 sm:order-last">
+                                          <label className="text-[11px] text-slate-400 block">{t('config.nodeWeight', '权重')}</label>
+                                          <input
+                                            type="number"
+                                            min="1"
+                                            max="1000"
+                                            value={server.weight}
+                                            onChange={(e) => {
+                                              const val = parseInt(e.target.value, 10);
+                                              const updated = [...upstreamServers];
+                                              updated[idx] = { ...updated[idx], weight: isNaN(val) ? 1 : Math.max(1, Math.min(1000, val)) };
+                                              setUpstreamServers(updated);
+                                            }}
+                                            className="w-full ui-input p-2 text-xs font-mono"
+                                          />
+                                        </div>
+                                        <div className="col-span-12 sm:col-span-5 space-y-1">
+                                          <label className="text-[11px] text-slate-400 block">{t('config.nodeUrl', '网关 URL')}</label>
+                                          <input
+                                            type="text"
+                                            value={server.url}
+                                            onChange={(e) => {
+                                              const updated = [...upstreamServers];
+                                              updated[idx] = { ...updated[idx], url: e.target.value };
+                                              setUpstreamServers(updated);
+                                              setGeminiBaseUrl(updated.map(s => s.url).filter(Boolean).join(','));
+                                            }}
+                                            onBlur={() => {
+                                              const updated = [...upstreamServers];
+                                              let clean = (updated[idx].url || '').trim().replace(/\/+$/, '');
+                                              if (clean && !/^https?:\/\//i.test(clean)) clean = `https://${clean}`;
+                                              updated[idx] = { ...updated[idx], url: clean };
+                                              setUpstreamServers(updated);
+                                              setGeminiBaseUrl(updated.map(s => s.url).filter(Boolean).join(','));
+                                            }}
+                                            placeholder="https://api.example.com"
+                                            className="w-full ui-input p-2 text-xs font-mono"
+                                          />
+                                        </div>
+                                      </>
+                                    )}
+                                  </div>
+
+                                  {/* Direct Mode Minimalist Egress Pill & Endpoint Badge */}
+                                  {server.type === 'direct' && (
+                                    <div className="col-span-12 space-y-2 p-2.5 rounded-lg bg-slate-900/60 border border-cyan-500/20">
+                                      <div className="flex flex-wrap items-center justify-between gap-1.5">
+                                        <div className="flex items-center space-x-1.5">
+                                          <ArrowRightLeft className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                                          <span className="text-[11px] font-semibold text-cyan-400">{t('config.egressChannelTitle', '出口通道')}</span>
+
+                                          {/* Inline Segmented Pill Buttons */}
+                                          <div className="inline-flex rounded-md p-0.5 bg-slate-950 border border-slate-700/80 ml-1">
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                const updated = [...upstreamServers];
+                                                updated[idx] = { ...updated[idx], agentId: undefined };
+                                                setUpstreamServers(updated);
+                                              }}
+                                              className={`px-2 py-0.5 text-[10px] rounded font-medium transition-all ${
+                                                !server.agentId
+                                                  ? 'bg-cyan-600 text-white shadow-xs font-semibold'
+                                                  : 'text-slate-400 hover:text-slate-200'
+                                              }`}
+                                            >
+                                              {t('config.egressLocalShort', '本机出站')}
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                if (!server.agentId) {
+                                                  const firstOnline = availableHosts.find(h => h.status === 'online');
+                                                  const target = firstOnline ? firstOnline.name || firstOnline.id : (availableHosts[0]?.name || availableHosts[0]?.id || 'agent');
+                                                  const updated = [...upstreamServers];
+                                                  updated[idx] = { ...updated[idx], agentId: target };
+                                                  setUpstreamServers(updated);
+                                                }
+                                              }}
+                                              className={`px-2 py-0.5 text-[10px] rounded font-medium transition-all ${
+                                                Boolean(server.agentId)
+                                                  ? 'bg-cyan-600 text-white shadow-xs font-semibold'
+                                                  : 'text-slate-400 hover:text-slate-200'
+                                              }`}
+                                            >
+                                              {t('config.egressAgentShort', 'Agent 节点')}
+                                            </button>
                                           </div>
-                                          <p className="text-[10px] text-slate-400 mt-1 pl-5">
-                                            {t('config.egressAgentDesc', '通过已连接的反向 WebSocket 隧道将请求借道远端节点发出')}
-                                          </p>
-                                        </label>
+                                        </div>
+
+                                        <span className="text-[10px] font-mono text-slate-400 bg-slate-800/80 px-1.5 py-0.5 rounded border border-slate-700/50">
+                                          {t('config.targetOfficialEndpoint', '目标: 官方 Gemini API')}
+                                        </span>
                                       </div>
 
-                                      {/* Agent Host Dropdown when Remote Agent is selected */}
+                                      {/* Compact Agent Host Dropdown when Agent is active */}
                                       {server.agentId && (
-                                        <div className="pt-2 border-t border-cyan-500/10 flex items-center space-x-2">
+                                        <div className="pt-1.5 border-t border-cyan-500/10 flex items-center space-x-2">
                                           <div className="flex-1 min-w-0">
                                             <select
                                               value={server.agentId}
@@ -1080,7 +1044,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                                 updated[idx] = { ...updated[idx], agentId: e.target.value };
                                                 setUpstreamServers(updated);
                                               }}
-                                              className="w-full ui-input p-2 text-xs font-mono bg-slate-950/80 border-cyan-500/30 text-cyan-200 cursor-pointer truncate"
+                                              className="w-full ui-input py-1 px-2 text-xs font-mono bg-slate-950/90 border-cyan-500/30 text-cyan-200 cursor-pointer truncate"
                                             >
                                               {availableHosts.length === 0 ? (
                                                 <option value={server.agentId}>
@@ -1104,14 +1068,57 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                             onClick={fetchAvailableHosts}
                                             disabled={loadingHosts}
                                             title="刷新在线 Agent 列表"
-                                            className="w-8 h-8 sm:w-9 sm:h-9 shrink-0 flex items-center justify-center text-cyan-400 hover:text-cyan-200 bg-cyan-950/50 hover:bg-cyan-900/60 border border-cyan-500/30 rounded cursor-pointer transition-colors"
+                                            className="w-7 h-7 shrink-0 flex items-center justify-center text-cyan-400 hover:text-cyan-200 bg-cyan-950/50 hover:bg-cyan-900/60 border border-cyan-500/30 rounded cursor-pointer transition-colors"
                                           >
-                                            <RefreshCw className={`w-3.5 h-3.5 ${loadingHosts ? 'animate-spin' : ''}`} />
+                                            <RefreshCw className={`w-3 h-3 ${loadingHosts ? 'animate-spin' : ''}`} />
                                           </button>
                                         </div>
                                       )}
                                     </div>
                                   )}
+
+                                  {/* Allowed Models (Single line) */}
+                                  <div className="col-span-12 space-y-1">
+                                    <label className="text-[11px] text-slate-400 block">{t('config.serverAllowedModelsTitle', '允许模型')}</label>
+                                    <div className="relative flex items-center">
+                                      <input
+                                        type="text"
+                                        value={serverModelInputs[idx] !== undefined ? serverModelInputs[idx] : (server.allowedModels || []).join(', ')}
+                                        onChange={(e) => {
+                                          const val = e.target.value;
+                                          setServerModelInputs(prev => ({ ...prev, [idx]: val }));
+                                        }}
+                                        onBlur={() => {
+                                          const raw = serverModelInputs[idx] !== undefined ? serverModelInputs[idx] : (server.allowedModels || []).join(', ');
+                                          const parts = raw.split(',').map(s => s.trim()).filter(Boolean);
+                                          const updated = [...upstreamServers];
+                                          updated[idx] = {
+                                            ...updated[idx],
+                                            allowedModels: parts.length > 0 ? Array.from(new Set(parts)) : undefined
+                                          };
+                                          setUpstreamServers(updated);
+                                          setServerModelInputs(prev => ({ ...prev, [idx]: parts.join(', ') }));
+                                        }}
+                                        placeholder={t('config.serverAllowedModelsPlaceholder', '全部模型 (逗号分隔过滤)')}
+                                        className="w-full ui-input p-2 text-xs font-mono pr-8"
+                                      />
+                                      {(() => {
+                                        const currentVal = serverModelInputs[idx] !== undefined ? serverModelInputs[idx] : (server.allowedModels || []).join(', ');
+                                        const count = currentVal.split(',').map(s => s.trim()).filter(Boolean).length;
+                                        if (count <= 1) return null;
+                                        return (
+                                          <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none z-10 flex items-center">
+                                            <span
+                                              className="text-[9px] font-mono font-bold text-blue-400 bg-[var(--bg-surface-sub)] border border-blue-500/40 shadow-sm px-1 py-0.5 rounded leading-none select-none"
+                                              title={`${count} models configured`}
+                                            >
+                                              ×{count}
+                                            </span>
+                                          </div>
+                                        );
+                                      })()}
+                                    </div>
+                                  </div>
 
                                   {/* Direct Mode API Keys (Multi-line) */}
                                   {server.type === 'direct' && (
@@ -1125,7 +1132,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                           const count = rawKeys.split('\n').map(k => k.trim()).filter(Boolean).length;
                                           return (
                                             <span className="text-[10px] text-cyan-300/80 font-mono bg-cyan-950/60 px-1.5 py-0.5 rounded border border-cyan-500/30">
-                                              {t('config.serverApiKeysHelp', '已配置 {count} 个密钥').replace('{count}', String(count))}
+                                              {t('config.keyPoolCountBadge', 'Key × {count}').replace('{count}', String(count))}
                                             </span>
                                           );
                                         })()}
