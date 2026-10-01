@@ -9,6 +9,7 @@ import logger from '../../utils/logger';
 import agentProxyService from '../services/agentProxyService';
 import { StreamLifecycleManager } from '../../utils/streamLifecycleManager';
 import upstreamManager from '../../utils/upstreamManager';
+import { parseModelThinkingSuffix } from '../../utils/modelThinkingHelper';
 import {
   extractClientKey,
   extractTimeoutMs,
@@ -82,8 +83,21 @@ class ClaudeController {
         const streamManager = new StreamLifecycleManager({ req, res, transactionId, timeoutMs });
         const targetPath = `/v1beta/models/${cleanModelName}:streamGenerateContent?alt=sse`;
         const serverSelection = upstreamManager.getUpstreamUrl(targetPath, { model: cleanModelName, originalModel: clientModel, resolvedModel: cleanModelName });
-        const { targetUrl, serverUrl, serverIndex, serverType, selectedApiKey } = serverSelection;
+        let { targetUrl, serverUrl, serverIndex, serverType, selectedApiKey } = serverSelection;
         logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini [server ${serverIndex + 1}: ${serverUrl}]: POST ${targetPath}`);
+
+        // Direct mode: strip -high and inject thinkingConfig
+        if (serverType === 'direct') {
+          const thinkingInfo = parseModelThinkingSuffix(cleanModelName);
+          if (thinkingInfo.isHigh) {
+            targetUrl = targetUrl.replace(`models/${cleanModelName}:`, `models/${thinkingInfo.baseModel}:`);
+            gemReq.generationConfig = gemReq.generationConfig || {};
+            gemReq.generationConfig.thinkingConfig = {
+              ...(gemReq.generationConfig.thinkingConfig || {}),
+              thinkingLevel: 'HIGH'
+            };
+          }
+        }
 
         const effectiveApiKey = (serverType === 'direct' && selectedApiKey)
           ? selectedApiKey
@@ -294,8 +308,21 @@ class ClaudeController {
       const streamManager = new StreamLifecycleManager({ req, res, transactionId, timeoutMs });
       const targetPath = `/v1beta/models/${cleanModelName}:generateContent`;
       const serverSelection = upstreamManager.getUpstreamUrl(targetPath, { model: cleanModelName, originalModel: clientModel, resolvedModel: cleanModelName });
-      const { targetUrl, serverUrl, serverIndex, serverType, selectedApiKey } = serverSelection;
+      let { targetUrl, serverUrl, serverIndex, serverType, selectedApiKey } = serverSelection;
       logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini [server ${serverIndex + 1}: ${serverUrl}]: POST ${targetPath}`);
+
+      // Direct mode: strip -high and inject thinkingConfig
+      if (serverType === 'direct') {
+        const thinkingInfo = parseModelThinkingSuffix(cleanModelName);
+        if (thinkingInfo.isHigh) {
+          targetUrl = targetUrl.replace(`models/${cleanModelName}:`, `models/${thinkingInfo.baseModel}:`);
+          gemReq.generationConfig = gemReq.generationConfig || {};
+          gemReq.generationConfig.thinkingConfig = {
+            ...(gemReq.generationConfig.thinkingConfig || {}),
+            thinkingLevel: 'HIGH'
+          };
+        }
+      }
 
       const effectiveApiKey = (serverType === 'direct' && selectedApiKey)
         ? selectedApiKey
@@ -461,7 +488,15 @@ class ClaudeController {
 
       const targetPath = `/v1beta/models/${cleanModelName}:countTokens`;
       const serverSelection = upstreamManager.getUpstreamUrl(targetPath, { model: cleanModelName, originalModel: requestedModel, resolvedModel: cleanModelName });
-      const { targetUrl, serverUrl, serverIndex, serverType, selectedApiKey } = serverSelection;
+      let { targetUrl, serverUrl, serverIndex, serverType, selectedApiKey } = serverSelection;
+
+      if (serverType === 'direct') {
+        const thinkingInfo = parseModelThinkingSuffix(cleanModelName);
+        if (thinkingInfo.isHigh) {
+          targetUrl = targetUrl.replace(`models/${cleanModelName}:`, `models/${thinkingInfo.baseModel}:`);
+          countTokensPayload.generateContentRequest.model = `models/${thinkingInfo.baseModel}`;
+        }
+      }
       logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini [server ${serverIndex + 1}: ${serverUrl}]: POST ${targetPath}`);
 
       const effectiveApiKey = (serverType === 'direct' && selectedApiKey)
@@ -724,4 +759,5 @@ class ClaudeController {
   }
 }
 
-export default new ClaudeController();
+export const claudeController = new ClaudeController();
+export default claudeController;
