@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-describe('ConfigModal Mobile Enhancements', () => {
+describe('ConfigModal Mobile Enhancements & Minimalist Upstream Layout', () => {
   const modalPath = path.resolve(__dirname, '../frontend/src/components/ConfigModal.tsx');
   let content: string;
 
@@ -32,7 +32,6 @@ describe('ConfigModal Mobile Enhancements', () => {
   });
 
   test('should remove bottom action separator in mobile mapping card', () => {
-    // Verifies that the previous pt-1.5 border-t separator inside mapping item actions is eliminated
     expect(content).not.toContain('pt-1.5 sm:pt-0 border-t border-white/[0.04]');
   });
 
@@ -49,12 +48,18 @@ describe('ConfigModal Mobile Enhancements', () => {
     expect(content).toContain('col-span-12 sm:col-span-5 space-y-1');
   });
 
-  test('should optimize direct mode egress channel radio cards and agent selector for mobile', () => {
-    expect(content).toContain('p-2 sm:p-2.5 rounded border cursor-pointer');
-    expect(content).toContain('flex-1 min-w-0');
-    expect(content).toContain('w-full ui-input p-2 text-xs font-mono bg-slate-950/80 border-cyan-500/30 text-cyan-200 cursor-pointer truncate');
-    expect(content).toContain('w-8 h-8 sm:w-9 sm:h-9 shrink-0 flex items-center justify-center');
+  test('renders minimalist inline egress pill switch in direct mode', () => {
+    expect(content).toContain("t('config.egressLocalShort'");
+    expect(content).toContain("t('config.egressAgentShort'");
+    expect(content).toContain("t('config.targetOfficialEndpoint'");
+  });
+
+  test('conditionally hides node URL input when server.type is direct', () => {
+    expect(content).toContain("server.type === 'direct' ?");
+    expect(content).toContain("e.g. Gemini-Official");
+  });
+
+  test('removes noisy upstreamServersDesc paragraph', () => {
+    expect(content).not.toContain("{t('config.upstreamServersDesc'");
   });
 });
-
-
