@@ -487,6 +487,13 @@ export const en = {
     serverApiKeys: "Gemini API Keys (Direct Pool)",
     serverApiKeysPlaceholder: "One API Key per line. Requests will be load-balanced evenly across keys",
     serverApiKeysHelp: "{count} API keys configured",
+    egressChannelTitle: "Network Egress Channel",
+    egressLocal: "Local Direct (Server Host)",
+    egressLocalDesc: "Outbound requests are sent directly from this server host",
+    egressAgent: "Remote Agent Egress",
+    egressAgentDesc: "Tunnel outbound requests through a connected remote agent node via reverse WebSocket",
+    selectAgent: "Select Egress Agent Node...",
+    noAgentsAvailable: "No available online agent nodes connected",
   },
   concurrentTest: {
     title: "Concurrency Load Test",

@@ -489,6 +489,13 @@ export const zh: Translations = {
     serverApiKeys: "Gemini API Keys (直连密钥池)",
     serverApiKeysPlaceholder: "每行一个 API Key，请求将在配置的 Key 之间均衡轮询负载",
     serverApiKeysHelp: "已配置 {count} 个密钥",
+    egressChannelTitle: "网络出口通道",
+    egressLocal: "本机直接出站 (Local Direct)",
+    egressLocalDesc: "由服务器本机网络直接发起向 Google 官方接口的请求",
+    egressAgent: "借道 Agent 节点出口 (Remote Agent Egress)",
+    egressAgentDesc: "通过反向 WebSocket 隧道将请求借道已连接的海外节点发出",
+    selectAgent: "选择出站 Agent 节点...",
+    noAgentsAvailable: "暂无在线可用的 Agent 节点",
   },
   concurrentTest: {
     title: "并发压力测试",
