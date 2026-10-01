@@ -17,6 +17,7 @@ describe('ClaudeController Agent Egress Routing', () => {
   });
 
   afterEach(async () => {
+    jest.restoreAllMocks();
     upstreamManager.reset();
   });
 

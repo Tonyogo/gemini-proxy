@@ -8,6 +8,7 @@ describe('UpstreamManager Agent Egress Scheduling', () => {
   });
 
   afterEach(async () => {
+    await updateConfig({}, { resetToEnv: true });
     upstreamManager.reset();
   });
 

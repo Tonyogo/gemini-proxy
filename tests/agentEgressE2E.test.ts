@@ -39,8 +39,10 @@ describe('E2E Agent Egress Proxy Flow', () => {
     });
   });
 
-  afterAll((done) => {
-    mockGoogleServer.close(done);
+  afterAll(async () => {
+    await updateConfig({}, { resetToEnv: true });
+    upstreamManager.reset();
+    await new Promise<void>((resolve) => mockGoogleServer.close(() => resolve()));
   });
 
   it('successfully executes end-to-end Claude SSE stream through simulated gt agent', async () => {
@@ -85,7 +87,7 @@ describe('E2E Agent Egress Proxy Flow', () => {
     await updateConfig({
       upstreamServers: [
         {
-          type: 'agent',
+          type: 'direct',
           agentId: 'hk-vps-agent',
           url: `http://127.0.0.1:${googlePort}`,
           weight: 1,
@@ -153,7 +155,7 @@ describe('E2E Agent Egress Proxy Flow', () => {
     await updateConfig({
       upstreamServers: [
         {
-          type: 'agent',
+          type: 'direct',
           agentId: 'hk-vps-agent-2',
           url: `http://127.0.0.1:${googlePort}`,
           weight: 1,
