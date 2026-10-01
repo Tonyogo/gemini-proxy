@@ -30,6 +30,15 @@ export interface UpstreamServerConfig {
   allowedModels?: string[];
   type?: 'proxy' | 'direct';
   apiKeys?: string[];
+  agentId?: string;
+}
+
+export interface TerminalHostOption {
+  id: string;
+  name: string;
+  ip: string;
+  platform: string;
+  status: 'online' | 'offline';
 }
 
 const SPLIT_COLORS = [
@@ -95,6 +104,26 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
   const [ephemeralSystemMessagesText, setEphemeralSystemMessagesText] = useState<string>('');
   const [serverModelInputs, setServerModelInputs] = useState<Record<number, string>>({});
   const [serverKeyInputs, setServerKeyInputs] = useState<Record<number, string>>({});
+  const [availableHosts, setAvailableHosts] = useState<TerminalHostOption[]>([]);
+  const [loadingHosts, setLoadingHosts] = useState<boolean>(false);
+
+  const fetchAvailableHosts = async () => {
+    setLoadingHosts(true);
+    try {
+      const headers: Record<string, string> = adminKey ? { 'x-admin-key': adminKey } : {};
+      const res = await fetch('/api/terminal/hosts', { headers });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.hosts)) {
+          setAvailableHosts(data.hosts);
+        }
+      }
+    } catch {
+      // Ignore fetch errors
+    } finally {
+      setLoadingHosts(false);
+    }
+  };
 
   const activeTotalWeight = useMemo(() => {
     return upstreamServers
@@ -245,6 +274,13 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
     if (!isOpen) return;
     fetchConfig();
   }, [isOpen, adminKey]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (activeTab === 'upstream') {
+      fetchAvailableHosts();
+    }
+  }, [isOpen, activeTab, adminKey]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -424,7 +460,8 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
               type: s.type || 'proxy',
               ...(s.name?.trim() ? { name: s.name.trim() } : {}),
               ...(Array.isArray(s.allowedModels) && s.allowedModels.length > 0 ? { allowedModels: s.allowedModels } : {}),
-              ...(s.type === 'direct' && cleanKeys.length > 0 ? { apiKeys: cleanKeys } : {})
+              ...(s.type === 'direct' && cleanKeys.length > 0 ? { apiKeys: cleanKeys } : {}),
+              ...(s.type === 'direct' && s.agentId?.trim() ? { agentId: s.agentId.trim() } : {})
             };
           }),
           upstreamTimeoutMs,
@@ -736,7 +773,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                         type="button"
                                         onClick={() => {
                                           const updated = [...upstreamServers];
-                                          updated[idx] = { ...updated[idx], type: 'proxy' };
+                                          updated[idx] = { ...updated[idx], type: 'proxy', agentId: undefined };
                                           setUpstreamServers(updated);
                                         }}
                                         className={`px-2 py-0.5 text-[10px] rounded font-medium transition-all ${
@@ -911,6 +948,127 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                       })()}
                                     </div>
                                   </div>
+
+                                  {/* Direct Mode Egress Channel Selector */}
+                                  {server.type === 'direct' && (
+                                    <div className="sm:col-span-12 space-y-2 mt-1 p-3 rounded-lg bg-slate-900/60 border border-cyan-500/20">
+                                      <div className="flex items-center justify-between">
+                                        <label className="text-[11px] font-semibold text-cyan-400 flex items-center space-x-1.5">
+                                          <ArrowRightLeft className="w-3.5 h-3.5 text-cyan-400" />
+                                          <span>{t('config.egressChannelTitle', '网络出口通道')}</span>
+                                        </label>
+                                        {server.agentId && (
+                                          <span className="text-[10px] text-cyan-300 font-mono bg-cyan-950/60 px-1.5 py-0.5 rounded border border-cyan-500/30">
+                                            Agent: {server.agentId}
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                                        {/* Option 1: Local Direct */}
+                                        <label
+                                          onClick={() => {
+                                            const updated = [...upstreamServers];
+                                            updated[idx] = { ...updated[idx], agentId: undefined };
+                                            setUpstreamServers(updated);
+                                          }}
+                                          className={`p-2.5 rounded border cursor-pointer transition-all flex flex-col justify-between ${
+                                            !server.agentId
+                                              ? 'bg-cyan-950/40 border-cyan-500/60 text-cyan-100 shadow-sm'
+                                              : 'bg-slate-800/40 border-slate-700/60 text-slate-400 hover:border-slate-600'
+                                          }`}
+                                        >
+                                          <div className="flex items-center space-x-2">
+                                            <input
+                                              type="radio"
+                                              name={`egress_channel_${idx}`}
+                                              checked={!server.agentId}
+                                              onChange={() => {}}
+                                              className="text-cyan-600 focus:ring-0 cursor-pointer"
+                                            />
+                                            <span className="font-semibold text-slate-200">{t('config.egressLocal', '本机直接出站 (Local Direct)')}</span>
+                                          </div>
+                                          <p className="text-[10px] text-slate-400 mt-1 pl-5">
+                                            {t('config.egressLocalDesc', '由服务器本机直接请求 Google 官方 API 接口')}
+                                          </p>
+                                        </label>
+
+                                        {/* Option 2: Remote Agent */}
+                                        <label
+                                          onClick={() => {
+                                            if (!server.agentId) {
+                                              const firstOnline = availableHosts.find(h => h.status === 'online');
+                                              const target = firstOnline ? firstOnline.name || firstOnline.id : (availableHosts[0]?.name || availableHosts[0]?.id || 'agent');
+                                              const updated = [...upstreamServers];
+                                              updated[idx] = { ...updated[idx], agentId: target };
+                                              setUpstreamServers(updated);
+                                            }
+                                          }}
+                                          className={`p-2.5 rounded border cursor-pointer transition-all flex flex-col justify-between ${
+                                            server.agentId
+                                              ? 'bg-cyan-950/40 border-cyan-500/60 text-cyan-100 shadow-sm'
+                                              : 'bg-slate-800/40 border-slate-700/60 text-slate-400 hover:border-slate-600'
+                                          }`}
+                                        >
+                                          <div className="flex items-center space-x-2">
+                                            <input
+                                              type="radio"
+                                              name={`egress_channel_${idx}`}
+                                              checked={Boolean(server.agentId)}
+                                              onChange={() => {}}
+                                              className="text-cyan-600 focus:ring-0 cursor-pointer"
+                                            />
+                                            <span className="font-semibold text-slate-200">{t('config.egressAgent', '借道 Agent 节点出口 (Remote Agent Egress)')}</span>
+                                          </div>
+                                          <p className="text-[10px] text-slate-400 mt-1 pl-5">
+                                            {t('config.egressAgentDesc', '通过已连接的反向 WebSocket 隧道将请求借道远端节点发出')}
+                                          </p>
+                                        </label>
+                                      </div>
+
+                                      {/* Agent Host Dropdown when Remote Agent is selected */}
+                                      {server.agentId && (
+                                        <div className="pt-2 border-t border-cyan-500/10 flex items-center space-x-2">
+                                          <div className="flex-1 relative">
+                                            <select
+                                              value={server.agentId}
+                                              onChange={(e) => {
+                                                const updated = [...upstreamServers];
+                                                updated[idx] = { ...updated[idx], agentId: e.target.value };
+                                                setUpstreamServers(updated);
+                                              }}
+                                              className="w-full ui-input p-2 text-xs font-mono bg-slate-950/80 border-cyan-500/30 text-cyan-200 cursor-pointer"
+                                            >
+                                              {availableHosts.length === 0 ? (
+                                                <option value={server.agentId}>
+                                                  {server.agentId} ({t('config.noAgentsAvailable', '暂无在线 Agent')})
+                                                </option>
+                                              ) : (
+                                                availableHosts.map((h) => {
+                                                  const identifier = h.name || h.id;
+                                                  const statusDot = h.status === 'online' ? '● 在线' : '○ 离线';
+                                                  return (
+                                                    <option key={h.id} value={identifier}>
+                                                      {statusDot} | {identifier} ({h.ip || 'no-ip'})
+                                                    </option>
+                                                  );
+                                                })
+                                              )}
+                                            </select>
+                                          </div>
+                                          <button
+                                            type="button"
+                                            onClick={fetchAvailableHosts}
+                                            disabled={loadingHosts}
+                                            title="刷新在线 Agent 列表"
+                                            className="p-2 text-cyan-400 hover:text-cyan-200 bg-cyan-950/50 hover:bg-cyan-900/60 border border-cyan-500/30 rounded cursor-pointer transition-colors"
+                                          >
+                                            <RefreshCw className={`w-3.5 h-3.5 ${loadingHosts ? 'animate-spin' : ''}`} />
+                                          </button>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
 
                                   {/* Direct Mode API Keys (Multi-line) */}
                                   {server.type === 'direct' && (
