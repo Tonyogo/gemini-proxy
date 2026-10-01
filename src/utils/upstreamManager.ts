@@ -2,6 +2,7 @@ import config, { parseBaseUrls, parseUpstreamServers } from '../../config/defaul
 import { UpstreamServerConfig, UpstreamServerStatus, UpstreamServerSelection } from '../types';
 import { terminalHostManager } from '../terminal/services/terminalHostManager';
 import logger from './logger';
+import { parseModelThinkingSuffix } from './modelThinkingHelper';
 
 export { UpstreamServerSelection };
 
@@ -224,6 +225,13 @@ export class UpstreamManager {
 
     if (normOriginal && allowedSet.has(normOriginal)) return true;
     if (normResolved && allowedSet.has(normResolved)) return true;
+
+    // Check base models if either model has a -high suffix
+    const baseOriginal = parseModelThinkingSuffix(normOriginal).baseModel.toLowerCase();
+    if (baseOriginal && allowedSet.has(baseOriginal)) return true;
+
+    const baseResolved = parseModelThinkingSuffix(normResolved).baseModel.toLowerCase();
+    if (baseResolved && allowedSet.has(baseResolved)) return true;
 
     return false;
   }
