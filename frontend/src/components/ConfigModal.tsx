@@ -1015,7 +1015,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                             updated[idx] = { ...updated[idx], agentId: undefined };
                                             setUpstreamServers(updated);
                                           }}
-                                          className={`p-2.5 rounded border cursor-pointer transition-all flex flex-col justify-between ${
+                                          className={`p-2 sm:p-2.5 rounded border cursor-pointer transition-all flex flex-col justify-between ${
                                             !server.agentId
                                               ? 'bg-cyan-950/40 border-cyan-500/60 text-cyan-100 shadow-sm'
                                               : 'bg-slate-800/40 border-slate-700/60 text-slate-400 hover:border-slate-600'
@@ -1047,7 +1047,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                               setUpstreamServers(updated);
                                             }
                                           }}
-                                          className={`p-2.5 rounded border cursor-pointer transition-all flex flex-col justify-between ${
+                                          className={`p-2 sm:p-2.5 rounded border cursor-pointer transition-all flex flex-col justify-between ${
                                             server.agentId
                                               ? 'bg-cyan-950/40 border-cyan-500/60 text-cyan-100 shadow-sm'
                                               : 'bg-slate-800/40 border-slate-700/60 text-slate-400 hover:border-slate-600'
@@ -1072,7 +1072,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                       {/* Agent Host Dropdown when Remote Agent is selected */}
                                       {server.agentId && (
                                         <div className="pt-2 border-t border-cyan-500/10 flex items-center space-x-2">
-                                          <div className="flex-1 relative">
+                                          <div className="flex-1 min-w-0">
                                             <select
                                               value={server.agentId}
                                               onChange={(e) => {
@@ -1080,7 +1080,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                                 updated[idx] = { ...updated[idx], agentId: e.target.value };
                                                 setUpstreamServers(updated);
                                               }}
-                                              className="w-full ui-input p-2 text-xs font-mono bg-slate-950/80 border-cyan-500/30 text-cyan-200 cursor-pointer"
+                                              className="w-full ui-input p-2 text-xs font-mono bg-slate-950/80 border-cyan-500/30 text-cyan-200 cursor-pointer truncate"
                                             >
                                               {availableHosts.length === 0 ? (
                                                 <option value={server.agentId}>
@@ -1104,7 +1104,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                             onClick={fetchAvailableHosts}
                                             disabled={loadingHosts}
                                             title="刷新在线 Agent 列表"
-                                            className="p-2 text-cyan-400 hover:text-cyan-200 bg-cyan-950/50 hover:bg-cyan-900/60 border border-cyan-500/30 rounded cursor-pointer transition-colors"
+                                            className="w-8 h-8 sm:w-9 sm:h-9 shrink-0 flex items-center justify-center text-cyan-400 hover:text-cyan-200 bg-cyan-950/50 hover:bg-cyan-900/60 border border-cyan-500/30 rounded cursor-pointer transition-colors"
                                           >
                                             <RefreshCw className={`w-3.5 h-3.5 ${loadingHosts ? 'animate-spin' : ''}`} />
                                           </button>

@@ -48,5 +48,13 @@ describe('ConfigModal Mobile Enhancements', () => {
     expect(content).toContain('col-span-4 sm:col-span-3 space-y-1 sm:order-last');
     expect(content).toContain('col-span-12 sm:col-span-5 space-y-1');
   });
+
+  test('should optimize direct mode egress channel radio cards and agent selector for mobile', () => {
+    expect(content).toContain('p-2 sm:p-2.5 rounded border cursor-pointer');
+    expect(content).toContain('flex-1 min-w-0');
+    expect(content).toContain('w-full ui-input p-2 text-xs font-mono bg-slate-950/80 border-cyan-500/30 text-cyan-200 cursor-pointer truncate');
+    expect(content).toContain('w-8 h-8 sm:w-9 sm:h-9 shrink-0 flex items-center justify-center');
+  });
 });
+
 
