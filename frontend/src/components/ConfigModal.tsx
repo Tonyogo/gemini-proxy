@@ -891,60 +891,62 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                 </div>
 
                                 <div className="grid grid-cols-12 gap-2 sm:gap-2.5 text-xs">
-                                  <div className="col-span-8 sm:col-span-4 space-y-1">
-                                    <label className="text-[11px] text-slate-400 block">{t('config.nodeName', '节点备注名')}</label>
-                                    <input
-                                      type="text"
-                                      value={server.name || ''}
-                                      onChange={(e) => {
-                                        const updated = [...upstreamServers];
-                                        updated[idx] = { ...updated[idx], name: e.target.value };
-                                        setUpstreamServers(updated);
-                                      }}
-                                      placeholder="e.g. HK-Gateway"
-                                      className="w-full ui-input p-2 text-xs"
-                                    />
-                                  </div>
+                                  <div className="col-span-12 grid grid-cols-12 gap-2 sm:gap-2.5">
+                                    <div className="col-span-8 sm:col-span-4 space-y-1">
+                                      <label className="text-[11px] text-slate-400 block">{t('config.nodeName', '节点备注名')}</label>
+                                      <input
+                                        type="text"
+                                        value={server.name || ''}
+                                        onChange={(e) => {
+                                          const updated = [...upstreamServers];
+                                          updated[idx] = { ...updated[idx], name: e.target.value };
+                                          setUpstreamServers(updated);
+                                        }}
+                                        placeholder="e.g. HK-Gateway"
+                                        className="w-full ui-input p-2 text-xs"
+                                      />
+                                    </div>
 
-                                  <div className="col-span-4 sm:col-span-3 space-y-1 sm:order-last">
-                                    <label className="text-[11px] text-slate-400 block">{t('config.nodeWeight', '权重')}</label>
-                                    <input
-                                      type="number"
-                                      min="1"
-                                      max="1000"
-                                      value={server.weight}
-                                      onChange={(e) => {
-                                        const val = parseInt(e.target.value, 10);
-                                        const updated = [...upstreamServers];
-                                        updated[idx] = { ...updated[idx], weight: isNaN(val) ? 1 : Math.max(1, Math.min(1000, val)) };
-                                        setUpstreamServers(updated);
-                                      }}
-                                      className="w-full ui-input p-2 text-xs font-mono"
-                                    />
-                                  </div>
+                                    <div className="col-span-4 sm:col-span-3 space-y-1 sm:order-last">
+                                      <label className="text-[11px] text-slate-400 block">{t('config.nodeWeight', '权重')}</label>
+                                      <input
+                                        type="number"
+                                        min="1"
+                                        max="1000"
+                                        value={server.weight}
+                                        onChange={(e) => {
+                                          const val = parseInt(e.target.value, 10);
+                                          const updated = [...upstreamServers];
+                                          updated[idx] = { ...updated[idx], weight: isNaN(val) ? 1 : Math.max(1, Math.min(1000, val)) };
+                                          setUpstreamServers(updated);
+                                        }}
+                                        className="w-full ui-input p-2 text-xs font-mono"
+                                      />
+                                    </div>
 
-                                  <div className="col-span-12 sm:col-span-5 space-y-1">
-                                    <label className="text-[11px] text-slate-400 block">{t('config.nodeUrl', '网关 URL')}</label>
-                                    <input
-                                      type="text"
-                                      value={server.url}
-                                      onChange={(e) => {
-                                        const updated = [...upstreamServers];
-                                        updated[idx] = { ...updated[idx], url: e.target.value };
-                                        setUpstreamServers(updated);
-                                        setGeminiBaseUrl(updated.map(s => s.url).filter(Boolean).join(','));
-                                      }}
-                                      onBlur={() => {
-                                        const updated = [...upstreamServers];
-                                        let clean = (updated[idx].url || '').trim().replace(/\/+$/, '');
-                                        if (clean && !/^https?:\/\//i.test(clean)) clean = `https://${clean}`;
-                                        updated[idx] = { ...updated[idx], url: clean };
-                                        setUpstreamServers(updated);
-                                        setGeminiBaseUrl(updated.map(s => s.url).filter(Boolean).join(','));
-                                      }}
-                                      placeholder="https://api.example.com"
-                                      className="w-full ui-input p-2 text-xs font-mono"
-                                    />
+                                    <div className="col-span-12 sm:col-span-5 space-y-1">
+                                      <label className="text-[11px] text-slate-400 block">{t('config.nodeUrl', '网关 URL')}</label>
+                                      <input
+                                        type="text"
+                                        value={server.url}
+                                        onChange={(e) => {
+                                          const updated = [...upstreamServers];
+                                          updated[idx] = { ...updated[idx], url: e.target.value };
+                                          setUpstreamServers(updated);
+                                          setGeminiBaseUrl(updated.map(s => s.url).filter(Boolean).join(','));
+                                        }}
+                                        onBlur={() => {
+                                          const updated = [...upstreamServers];
+                                          let clean = (updated[idx].url || '').trim().replace(/\/+$/, '');
+                                          if (clean && !/^https?:\/\//i.test(clean)) clean = `https://${clean}`;
+                                          updated[idx] = { ...updated[idx], url: clean };
+                                          setUpstreamServers(updated);
+                                          setGeminiBaseUrl(updated.map(s => s.url).filter(Boolean).join(','));
+                                        }}
+                                        placeholder="https://api.example.com"
+                                        className="w-full ui-input p-2 text-xs font-mono"
+                                      />
+                                    </div>
                                   </div>
 
                                   {/* Allowed Models (Single line) */}

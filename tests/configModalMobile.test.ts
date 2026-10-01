@@ -43,6 +43,7 @@ describe('ConfigModal Mobile Enhancements', () => {
 
   test('should layout upstream node input fields in compact mobile grid and desktop single-line grid', () => {
     expect(content).toContain('grid grid-cols-12 gap-2 sm:gap-2.5 text-xs');
+    expect(content).toContain('col-span-12 grid grid-cols-12 gap-2 sm:gap-2.5');
     expect(content).toContain('col-span-8 sm:col-span-4 space-y-1');
     expect(content).toContain('col-span-4 sm:col-span-3 space-y-1 sm:order-last');
     expect(content).toContain('col-span-12 sm:col-span-5 space-y-1');
