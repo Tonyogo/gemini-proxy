@@ -97,7 +97,7 @@ export interface CustomWebAppItem {
   createdAt: number;
 }
 
-export type UpstreamServerType = 'proxy' | 'direct' | 'agent';
+export type UpstreamServerType = 'proxy' | 'direct';
 
 export interface UpstreamServerConfig {
   url: string;

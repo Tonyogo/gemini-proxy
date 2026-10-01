@@ -127,13 +127,10 @@ export function parseUpstreamServers(raw?: any): UpstreamServerConfig[] {
   if (Array.isArray(raw)) {
     const list = raw.map(item => {
       if (!item || typeof item !== 'object') return null;
-      const type: UpstreamServerType = (item.type === 'direct' || item.type === 'agent') ? item.type : 'proxy';
-      const agentId = item.agentId ? String(item.agentId).trim() : undefined;
-      if (type === 'agent' && !agentId) {
-        return null;
-      }
+      const type: UpstreamServerType = item.type === 'direct' ? 'direct' : 'proxy';
+      const agentId = (type === 'direct' && item.agentId) ? String(item.agentId).trim() : undefined;
       let url = String(item.url || '').trim().replace(/\/+$/, '');
-      if ((type === 'direct' || type === 'agent') && !url) {
+      if (type === 'direct' && !url) {
         url = 'https://generativelanguage.googleapis.com';
       }
       if (!url) return null;
@@ -192,8 +189,8 @@ export function parseUpstreamServers(raw?: any): UpstreamServerConfig[] {
       if (paramPart) {
         const params = new URLSearchParams(paramPart);
         const typeParam = params.get('type');
-        if (typeParam === 'direct' || typeParam === 'agent') {
-          type = typeParam;
+        if (typeParam === 'direct') {
+          type = 'direct';
         }
 
         const agentParam = params.get('agentId') || params.get('agent');
@@ -227,11 +224,11 @@ export function parseUpstreamServers(raw?: any): UpstreamServerConfig[] {
         }
       }
 
-      if (type === 'agent' && !agentId) {
-        return null;
+      if (type !== 'direct') {
+        agentId = undefined;
       }
 
-      if ((type === 'direct' || type === 'agent') && !basePart) {
+      if (type === 'direct' && !basePart) {
         basePart = 'https://generativelanguage.googleapis.com';
       }
       if (!basePart) return null;

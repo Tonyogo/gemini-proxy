@@ -1,48 +1,51 @@
 import { parseUpstreamServers } from '../config/default';
 
-describe('parseUpstreamServers - agent type', () => {
-  it('correctly parses an agent upstream config item', () => {
+describe('parseUpstreamServers - direct mode with agentId egress', () => {
+  it('correctly parses direct upstream with agentId egress channel', () => {
     const raw = [
       {
-        type: 'agent',
+        type: 'direct',
         agentId: 'hk-vps-node',
         url: 'https://generativelanguage.googleapis.com',
         weight: 3,
         enabled: true,
-        name: 'HK Agent Node'
+        name: 'HK Agent Direct Node',
+        apiKeys: ['key-1', 'key-2']
       }
     ];
     const servers = parseUpstreamServers(raw);
     expect(servers).toHaveLength(1);
-    expect(servers[0].type).toBe('agent');
+    expect(servers[0].type).toBe('direct');
     expect(servers[0].agentId).toBe('hk-vps-node');
     expect(servers[0].url).toBe('https://generativelanguage.googleapis.com');
     expect(servers[0].weight).toBe(3);
+    expect(servers[0].apiKeys).toEqual(['key-1', 'key-2']);
   });
 
-  it('defaults url to official Gemini endpoint if url is omitted for agent type', () => {
+  it('correctly parses direct upstream with local egress (no agentId)', () => {
     const raw = [
       {
-        type: 'agent',
-        agentId: 'us-node'
+        type: 'direct',
+        name: 'Local Direct Node'
       }
     ];
     const servers = parseUpstreamServers(raw);
     expect(servers).toHaveLength(1);
-    expect(servers[0].type).toBe('agent');
+    expect(servers[0].type).toBe('direct');
     expect(servers[0].url).toBe('https://generativelanguage.googleapis.com');
-    expect(servers[0].agentId).toBe('us-node');
+    expect(servers[0].agentId).toBeUndefined();
   });
 
-  it('rejects agent upstream without agentId', () => {
+  it('does not recognize type: agent, defaults to proxy', () => {
     const raw = [
       {
         type: 'agent',
-        url: 'https://generativelanguage.googleapis.com'
+        agentId: 'some-agent',
+        url: 'https://custom-proxy.com'
       }
     ];
     const servers = parseUpstreamServers(raw);
-    // Should fallback to default because agent item without agentId is invalid
-    expect(servers[0].type).not.toBe('agent');
+    expect(servers[0].type).toBe('proxy');
+    expect(servers[0].agentId).toBeUndefined();
   });
 });
