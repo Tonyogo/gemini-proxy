@@ -102,7 +102,7 @@ class GeminiController {
       const streamManager = new StreamLifecycleManager({ req, res, transactionId, timeoutMs });
       logger.info(`[GeminiProxy] [Transaction: ${transactionId}] Proxying stream to [server ${serverIndex + 1}: ${serverUrl}]: ${req.method} ${targetUrl}`);
 
-      const executeFetch = (serverType === 'agent' && serverSelection.agentId)
+      const executeFetch = (serverSelection.agentId)
         ? (u: string, o: any) => agentProxyService.agentFetch(serverSelection.agentId!, u, o)
         : (fetch as any);
 
@@ -208,7 +208,7 @@ class GeminiController {
     // Non-streaming request
     try {
       logger.info(`[GeminiProxy] [Transaction: ${transactionId}] Proxying request to [server ${serverIndex + 1}: ${serverUrl}]: ${req.method} ${targetUrl}`);
-      const executeFetch = (serverType === 'agent' && serverSelection.agentId)
+      const executeFetch = (serverSelection.agentId)
         ? (u: string, o: any) => agentProxyService.agentFetch(serverSelection.agentId!, u, o)
         : (fetch as any);
 

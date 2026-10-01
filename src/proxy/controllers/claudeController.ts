@@ -89,7 +89,7 @@ class ClaudeController {
           ? selectedApiKey
           : apiKey;
         const upstreamHeaders = buildUpstreamHeaders(effectiveApiKey, customUpstreamHeaders);
-        const executeFetch = (serverType === 'agent' && serverSelection.agentId)
+        const executeFetch = (serverSelection.agentId)
           ? (u: string, o: any) => agentProxyService.agentFetch(serverSelection.agentId!, u, o)
           : (fetch as any);
 
@@ -301,7 +301,7 @@ class ClaudeController {
         ? selectedApiKey
         : apiKey;
       const upstreamHeaders = buildUpstreamHeaders(effectiveApiKey, customUpstreamHeaders);
-      const executeFetch = (serverType === 'agent' && serverSelection.agentId)
+      const executeFetch = (serverSelection.agentId)
         ? (u: string, o: any) => agentProxyService.agentFetch(serverSelection.agentId!, u, o)
         : (fetch as any);
 

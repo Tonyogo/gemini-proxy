@@ -47,7 +47,7 @@ describe('ClaudeController Agent Egress Routing', () => {
       targetUrl: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent',
       serverIndex: 0,
       weight: 1,
-      serverType: 'agent',
+      serverType: 'direct',
       agentId: 'mock-agent'
     });
 

@@ -59,7 +59,7 @@ export class UpstreamManager {
     const now = Date.now();
 
     const isServerOnline = (s: UpstreamServerConfig) => {
-      if (s.type === 'agent') {
+      if (s.type === 'direct' && s.agentId) {
         return terminalHostManager.isAgentOnline(s.agentId);
       }
       return true;
@@ -282,7 +282,7 @@ export class UpstreamManager {
     }
 
     const isServerOnline = (s: UpstreamServerConfig) => {
-      if (s.type === 'agent') {
+      if (s.type === 'direct' && s.agentId) {
         return terminalHostManager.isAgentOnline(s.agentId);
       }
       return true;
