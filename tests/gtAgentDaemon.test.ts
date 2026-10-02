@@ -114,8 +114,8 @@ describe('gt agent unified authentication and parameter guards', () => {
     expect(psRes.status).toBe(0);
     expect(psRes.stdout).toContain('Running');
 
-    // 4. Prevent duplicate start
-    const dupRes = spawnSync('node', [gtPath, 'agent', '-d'], {
+    // 4. Prevent duplicate start for same name
+    const dupRes = spawnSync('node', [gtPath, 'agent', '-d', '--name=my-daemon'], {
       env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
       encoding: 'utf-8',
       timeout: 5000,
@@ -682,7 +682,54 @@ describe('gt agent unified authentication and parameter guards', () => {
     expect(pruneLocalRes.status).toBe(0);
     expect(pruneLocalRes.stdout).toContain('prune-agent-1');
   });
+
+  it('derives hostId deterministically: machineId for hostname, machineId-name for custom name', () => {
+    fs.writeFileSync(path.join(testConfigDir, 'config.json'), JSON.stringify({
+      server: 'http://127.0.0.1:3000',
+      key: 'mock-key',
+    }));
+
+    const { ConfigStore, AgentDaemonManager } = require('../scripts/gt.js');
+    process.env.GT_CONFIG_DIR = testConfigDir;
+    const mid = ConfigStore.getMachineId();
+
+    // 1. Default hostname agent (no name specified)
+    const res1 = spawnSync('node', [gtPath, 'agent', 'run', '-d'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(res1.status).toBe(0);
+
+    const hostname = os.hostname().toLowerCase().replace(/[^a-z0-9-_]/g, '-').replace(/^-+|-+$/g, '') || 'host';
+    const defaultAgent = AgentDaemonManager.getAgent(hostname);
+    expect(defaultAgent).not.toBeNull();
+    expect(defaultAgent.running).toBe(true);
+    expect(defaultAgent.id).toBe(mid);
+
+    // 2. Custom name agent running concurrently
+    const res2 = spawnSync('node', [gtPath, 'agent', 'run', '-d', 'worker-extra'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(res2.status).toBe(0);
+
+    const customAgent = AgentDaemonManager.getAgent('worker-extra');
+    expect(customAgent).not.toBeNull();
+    expect(customAgent.running).toBe(true);
+    expect(customAgent.id).toBe(`${mid}-worker-extra`);
+
+    // Cleanup
+    if (defaultAgent && defaultAgent.pid) {
+      try { process.kill(defaultAgent.pid, 'SIGKILL'); } catch (e) {}
+    }
+    if (customAgent && customAgent.pid) {
+      try { process.kill(customAgent.pid, 'SIGKILL'); } catch (e) {}
+    }
+  });
 });
+
 
 
 

@@ -2388,11 +2388,29 @@ async function runAgent(agentArgs = [], globalOpts = {}) {
   const sanitizedHostname = hostname.toLowerCase().replace(/[^a-z0-9-_]/g, '-').replace(/^-+|-+$/g, '') || 'host';
   const defaultName = sanitizedHostname;
 
-  const sanitizedName = options.name
+  let sanitizedName = options.name
     ? AgentDaemonManager.sanitizeName(options.name)
     : (positionalName ? AgentDaemonManager.sanitizeName(positionalName) : '');
+
+  // If subcommand is restart and no name was explicitly given, resolve target dynamically
+  if (subCmd === 'restart' && !sanitizedName) {
+    const resolved = AgentDaemonManager.resolveTarget(undefined, 'restart');
+    if (resolved.agent) {
+      sanitizedName = resolved.agent.name;
+    }
+  }
+
   const hostName = sanitizedName || defaultName;
-  const hostId = options.id || options.hostId || ConfigStore.getMachineId();
+
+  const machineId = ConfigStore.getMachineId();
+  let hostId = options.id || options.hostId;
+  if (!hostId) {
+    if (hostName === sanitizedHostname) {
+      hostId = machineId;
+    } else {
+      hostId = `${machineId}-${hostName}`;
+    }
+  }
 
   if (subCmd === 'restart') {
     await AgentDaemonManager.stop(hostName);
@@ -2425,15 +2443,6 @@ async function runAgent(agentArgs = [], globalOpts = {}) {
   const isDaemon = subCmd === 'start' || subCmd === 'restart' || agentArgs.includes('-d') || agentArgs.includes('--detach');
 
   if (!isInternalDaemon) {
-    if (isDaemon && !options.name && !positionalName) {
-      const running = AgentDaemonManager.getAllAgents().filter(a => a.running);
-      if (running.length > 0) {
-        const cur = running[0];
-        console.error(`Error: Agent daemon is already running (PID: ${cur.pid}, Name: "${cur.name}"). Use 'gt stop ${cur.name}' or 'gt restart ${cur.name}'.`);
-        process.exit(1);
-      }
-    }
-
     const current = AgentDaemonManager.getAgent(hostName);
     if (current && current.running) {
       console.error(`Error: Agent "${hostName}" is already running (PID: ${current.pid}). Use 'gt stop ${hostName}' or 'gt restart ${hostName}'.`);
