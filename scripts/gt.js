@@ -2397,6 +2397,9 @@ async function runAgent(agentArgs = [], globalOpts = {}) {
     const resolved = AgentDaemonManager.resolveTarget(undefined, 'restart');
     if (resolved.agent) {
       sanitizedName = resolved.agent.name;
+    } else if (resolved.error) {
+      console.error(resolved.error);
+      process.exit(1);
     }
   }
 

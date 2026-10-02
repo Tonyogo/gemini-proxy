@@ -728,6 +728,187 @@ describe('gt agent unified authentication and parameter guards', () => {
       try { process.kill(customAgent.pid, 'SIGKILL'); } catch (e) {}
     }
   });
+
+  it('handles full multi-agent concurrency and lifecycle operations', async () => {
+    fs.writeFileSync(path.join(testConfigDir, 'config.json'), JSON.stringify({
+      server: 'http://127.0.0.1:3000',
+      key: 'mock-key',
+    }));
+
+    const { AgentDaemonManager } = require('../scripts/gt.js');
+    process.env.GT_CONFIG_DIR = testConfigDir;
+
+    // 1. Start agent-1 and agent-2
+    const r1 = spawnSync('node', [gtPath, 'run', '-d', 'agent-one'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(r1.status).toBe(0);
+
+    const r2 = spawnSync('node', [gtPath, 'run', '-d', 'agent-two'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(r2.status).toBe(0);
+
+    // Both should be running
+    const running = AgentDaemonManager.getAllAgents().filter((a: any) => a.running);
+    expect(running.length).toBe(2);
+    const names = running.map((a: any) => a.name);
+    expect(names).toContain('agent-one');
+    expect(names).toContain('agent-two');
+
+    // 2. gt stop without name should fail because 2 are running
+    const stopAmbiguous = spawnSync('node', [gtPath, 'stop'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(stopAmbiguous.status).toBe(1);
+    expect(stopAmbiguous.stderr).toContain('Multiple running agents');
+
+    // 3. gt stop agent-one should stop only agent-one
+    const stopOne = spawnSync('node', [gtPath, 'stop', 'agent-one'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(stopOne.status).toBe(0);
+    expect(stopOne.stdout).toContain('agent-one');
+    expect(stopOne.stdout).toContain('stopped');
+
+    const afterStopOne = AgentDaemonManager.getAllAgents().filter((a: any) => a.running);
+    expect(afterStopOne.length).toBe(1);
+    expect(afterStopOne[0].name).toBe('agent-two');
+
+    // 4. Now with only 1 running, gt stop without name should succeed
+    const stopAuto = spawnSync('node', [gtPath, 'stop'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(stopAuto.status).toBe(0);
+    expect(stopAuto.stdout).toContain('agent-two');
+
+    const afterStopAll = AgentDaemonManager.getAllAgents().filter((a: any) => a.running);
+    expect(afterStopAll.length).toBe(0);
+  });
+
+  it('stops all running agents cleanly with gt stop --all', async () => {
+    fs.writeFileSync(path.join(testConfigDir, 'config.json'), JSON.stringify({
+      server: 'http://127.0.0.1:3000',
+      key: 'mock-key',
+    }));
+
+    const { AgentDaemonManager } = require('../scripts/gt.js');
+    process.env.GT_CONFIG_DIR = testConfigDir;
+
+    spawnSync('node', [gtPath, 'run', '-d', 'batch-1'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    spawnSync('node', [gtPath, 'run', '-d', 'batch-2'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+
+    expect(AgentDaemonManager.getAllAgents().filter((a: any) => a.running).length).toBe(2);
+
+    const stopAllRes = spawnSync('node', [gtPath, 'stop', '--all'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(stopAllRes.status).toBe(0);
+    expect(stopAllRes.stdout).toContain('batch-1');
+    expect(stopAllRes.stdout).toContain('batch-2');
+
+    expect(AgentDaemonManager.getAllAgents().filter((a: any) => a.running).length).toBe(0);
+  });
+
+  it('handles custom name sanitization, duplicate default hostname run prevention, and restart resolution', () => {
+    fs.writeFileSync(path.join(testConfigDir, 'config.json'), JSON.stringify({
+      server: 'http://127.0.0.1:3000',
+      key: 'mock-key',
+    }));
+
+    const { ConfigStore, AgentDaemonManager } = require('../scripts/gt.js');
+    process.env.GT_CONFIG_DIR = testConfigDir;
+    const mid = ConfigStore.getMachineId();
+
+    // 1. Sanitization: Worker_1.Test -> worker_1-test
+    const r1 = spawnSync('node', [gtPath, 'run', '-d', 'Worker_1.Test'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(r1.status).toBe(0);
+
+    const agent1 = AgentDaemonManager.getAgent('worker_1-test');
+    expect(agent1).not.toBeNull();
+    expect(agent1.running).toBe(true);
+    expect(agent1.id).toBe(`${mid}-worker_1-test`);
+
+    // Stop worker_1-test
+    const stop1 = spawnSync('node', [gtPath, 'stop', 'worker_1-test'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(stop1.status).toBe(0);
+
+    // 2. Default hostname twice: second fails with exit code 1
+    const rDefault1 = spawnSync('node', [gtPath, 'run', '-d'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(rDefault1.status).toBe(0);
+
+    const rDefault2 = spawnSync('node', [gtPath, 'run', '-d'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(rDefault2.status).toBe(1);
+    expect(rDefault2.stderr).toContain('already running');
+
+    // 3. Restart with single running agent (auto-resolves target)
+    const restartSingle = spawnSync('node', [gtPath, 'agent', 'restart'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(restartSingle.status).toBe(0);
+
+    // 4. Start second agent
+    const rExtra = spawnSync('node', [gtPath, 'run', '-d', 'worker-two'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(rExtra.status).toBe(0);
+
+    // Restart with 2 running without name -> ambiguous, fails
+    const restartMulti = spawnSync('node', [gtPath, 'agent', 'restart'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(restartMulti.status).toBe(1);
+    expect(restartMulti.stderr).toContain('Multiple running agents');
+
+    // Cleanup all
+    spawnSync('node', [gtPath, 'stop', '--all'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+  });
 });
 
 
