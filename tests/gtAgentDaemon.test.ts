@@ -909,6 +909,40 @@ describe('gt agent unified authentication and parameter guards', () => {
       timeout: 5000,
     });
   });
+
+  it('does not stop running agent when stopping or restarting a non-existent agent', async () => {
+    fs.writeFileSync(path.join(testConfigDir, 'config.json'), JSON.stringify({
+      server: 'http://127.0.0.1:3000',
+      key: 'mock-key',
+    }));
+
+    const { AgentDaemonManager } = require('../scripts/gt.js');
+    process.env.GT_CONFIG_DIR = testConfigDir;
+
+    // Start one agent
+    const rStart = spawnSync('node', [gtPath, 'run', '-d', 'stable-agent'], {
+      env: { ...process.env, GT_CONFIG_DIR: testConfigDir },
+      encoding: 'utf-8',
+      timeout: 5000,
+    });
+    expect(rStart.status).toBe(0);
+
+    const stableAgent = AgentDaemonManager.getAgent('stable-agent');
+    expect(stableAgent).not.toBeNull();
+    expect(stableAgent.running).toBe(true);
+
+    // Call stop with explicit non-existent name
+    const stopResult = await AgentDaemonManager.stop('non-existent-agent');
+    expect(stopResult.message).toContain('non-existent-agent');
+
+    // stable-agent MUST STILL BE RUNNING!
+    const stillRunning = AgentDaemonManager.getAgent('stable-agent');
+    expect(stillRunning).not.toBeNull();
+    expect(stillRunning.running).toBe(true);
+
+    // Cleanup
+    await AgentDaemonManager.stop('stable-agent');
+  });
 });
 
 

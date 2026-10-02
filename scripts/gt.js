@@ -1014,7 +1014,7 @@ class AgentDaemonManager {
   static async stop(name) {
     const sName = this.sanitizeName(name);
     let agent = sName ? this.getAgent(sName) : null;
-    if (!agent) {
+    if (!agent && !sName) {
       const resolved = this.resolveTarget(undefined, 'stop');
       if (resolved.agent) agent = resolved.agent;
     }
