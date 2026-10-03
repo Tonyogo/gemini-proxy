@@ -14,15 +14,15 @@ LOG_RETENTION_DAYS = "3"
 
 # Optional Cloudflare KV for dynamic runtime configuration hot-reloading
 # Create with: npx wrangler kv namespace create CONFIG_KV
-# [[kv_namespaces]]
-# binding = "CONFIG_KV"
-# id = "<YOUR_CONFIG_KV_ID>"
+[[kv_namespaces]]
+binding = "CONFIG_KV"
+id = "961464bfad2648c2b67c2abe76994fd0"
 
 # Optional Cloudflare R2 Bucket for audit logs storage & replay
 # Create with: npx wrangler r2 bucket create gemini-proxy-logs
-# [[r2_buckets]]
-# binding = "LOGS_BUCKET"
-# bucket_name = "gemini-proxy-logs"
+[[r2_buckets]]
+binding = "LOGS_BUCKET"
+bucket_name = "gemini-proxy-logs"
 
 # Static assets binding for web admin console
 [assets]
