@@ -1,8 +1,6 @@
 import { Router } from 'express';
 import adminController from '../controllers/adminController';
 import accountController from '../controllers/accountController';
-import terminalRoutes from '../../terminal/routes/terminalRoutes';
-import terminalLogController from '../../terminal/controllers/terminalLogController';
 import adminAuthMiddleware from '../middlewares/adminAuth';
 
 const router = Router();
@@ -17,10 +15,6 @@ router.get('/logs/:date/:hour/:filename', (req, res) => adminController.getLogDe
 router.get('/stats', (req, res) => adminController.getStats(req, res));
 router.post('/config', (req, res) => adminController.updateConfig(req, res));
 router.put('/config', (req, res) => adminController.updateConfig(req, res));
-
-// Backward Compatibility Aliases for Terminal
-router.use('/terminal', terminalRoutes);
-router.get('/terminal-logs', (req, res) => terminalLogController.getTerminalLogs(req, res));
 
 // Account Management Routes
 router.get('/accounts/servers', (req, res) => accountController.getServers(req, res));
