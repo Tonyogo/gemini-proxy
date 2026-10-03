@@ -13,8 +13,8 @@
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
     "test": "jest --detectOpenHandles --forceExit",
     "deploy": "bash scripts/deploy.sh",
-    "dev:worker": "wrangler dev",
-    "deploy:worker": "npm run build:frontend && wrangler deploy",
+    "dev:worker": "npx wrangler dev",
+    "deploy:worker": "npm run build:frontend && npx wrangler deploy",
     "clean": "rm -rf dist"
   },
   "dependencies": {
