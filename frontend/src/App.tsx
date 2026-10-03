@@ -3,7 +3,6 @@ import {
   LayoutDashboard,
   Users,
   FileText,
-  Terminal,
   Play,
   Settings,
   Globe,
@@ -34,14 +33,11 @@ import type { CustomWebAppItem } from './types/customWebApps';
 import { syncCustomWebAppsFromRemote } from './utils/customWebAppsStorage';
 import { useTranslation } from './i18n/LanguageContext';
 import { ThemeSwitcher } from './components/ThemeSwitcher';
-import { isMobileScreenOrDevice } from './utils/mobileViewportHelper';
 
 const DashboardView = lazy(() => import('./components/DashboardView'));
 const AccountsView = lazy(() => import('./components/AccountsView'));
 const LogsView = lazy(() => import('./components/LogsView'));
 const PlaygroundView = lazy(() => import('./components/PlaygroundView'));
-const UnifiedTerminalView = lazy(() => import('./components/UnifiedTerminalView'));
-const TerminalLogsView = lazy(() => import('./components/TerminalLogsView'));
 const TranslateView = lazy(() => import('./components/TranslateView'));
 const DiscoverHubView = lazy(() => import('./components/DiscoverHubView'));
 const EmbeddedWebView = lazy(() => import('./components/EmbeddedWebView'));
@@ -55,7 +51,7 @@ const ViewLoadingFallback: React.FC = () => (
 );
 
 type TabType = 'dashboard' | 'accounts' | 'logs' | 'discover';
-export type DiscoverSubView = 'hub' | 'terminal' | 'systemLogs' | 'playground' | 'translate' | 'embeddedWeb';
+export type DiscoverSubView = 'hub' | 'playground' | 'translate' | 'embeddedWeb';
 
 interface NavItem {
   id: TabType;
@@ -74,84 +70,29 @@ const VALID_TABS: TabType[] = ['dashboard', 'accounts', 'logs', 'discover'];
 
 const GITHUB_REPO_URL = 'https://github.com/Tonyogo/gemini-proxy';
 
-const isTerminalRoute = (): boolean => {
-  return (
-    window.location.pathname === '/terminal' ||
-    window.location.pathname.startsWith('/terminal/') ||
-    window.location.hash === '#/terminal' ||
-    window.location.hash === '#terminal'
-  );
-};
-
 export default function App() {
   const { t, lang, setLang } = useTranslation();
   const [activeTab, setActiveTab] = useState<TabType>(() => {
-    if (isTerminalRoute()) {
-      return 'discover';
-    }
     const rawSaved = localStorage.getItem('admin_active_tab');
-    if (rawSaved === 'terminal' || rawSaved === 'systemLogs' || rawSaved === 'playground' || rawSaved === 'translate') {
+    if (rawSaved === 'playground' || rawSaved === 'translate') {
       return 'discover';
     }
-    const saved = rawSaved === 'webTerminal' ? 'discover' : (rawSaved as TabType);
+    const saved = rawSaved as TabType;
     return VALID_TABS.includes(saved) ? saved : 'dashboard';
   });
   const [discoverSubView, setDiscoverSubView] = useState<DiscoverSubView>(() => {
-    if (isTerminalRoute()) {
-      return 'terminal';
-    }
     const rawSaved = localStorage.getItem('admin_active_tab');
-    if (rawSaved === 'terminal' || rawSaved === 'systemLogs' || rawSaved === 'playground' || rawSaved === 'translate') {
+    if (rawSaved === 'playground' || rawSaved === 'translate') {
       return rawSaved as DiscoverSubView;
     }
     return 'hub';
   });
-  const [isStandaloneTerminal, setIsStandaloneTerminal] = useState<boolean>(() => isTerminalRoute());
   const [adminKey, setAdminKey] = useState(localStorage.getItem('adminKey') || '');
   const [inputKey, setInputKey] = useState(localStorage.getItem('adminKey') || '');
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [authError, setAuthError] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
-
-  useEffect(() => {
-    const handlePopState = () => {
-      const isTerm = isTerminalRoute();
-      setIsStandaloneTerminal(isTerm);
-      if (isTerm) {
-        setActiveTab('discover');
-        setDiscoverSubView('terminal');
-      }
-      if (!isTerm && isMobileScreenOrDevice()) {
-        setDiscoverSubView('hub');
-      }
-    };
-    window.addEventListener('popstate', handlePopState);
-    window.addEventListener('hashchange', handlePopState);
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-      window.removeEventListener('hashchange', handlePopState);
-    };
-  }, []);
-
-  const handleExitStandalone = () => {
-    setIsStandaloneTerminal(false);
-    if (isMobileScreenOrDevice()) {
-      setDiscoverSubView('hub');
-    }
-    if (window.location.pathname === '/terminal' || window.location.pathname.startsWith('/terminal/')) {
-      window.history.pushState(null, '', '/');
-    } else if (window.location.hash === '#/terminal' || window.location.hash === '#terminal') {
-      window.history.pushState(null, '', window.location.pathname);
-    }
-  };
-
-  const handleEnterStandalone = () => {
-    setActiveTab('discover');
-    setDiscoverSubView('terminal');
-    setIsStandaloneTerminal(true);
-    window.history.pushState(null, '', '#/terminal');
-  };
 
   // Sidebar Collapse State (Desktop)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => {
@@ -210,10 +151,6 @@ export default function App() {
 
   const handleSelectDiscoverTool = (tool: DiscoverToolId) => {
     setIsEmbeddedFullscreen(false);
-    if (tool === 'terminal' && isMobileScreenOrDevice()) {
-      handleEnterStandalone();
-      return;
-    }
     setDiscoverSubView(tool);
   };
 
@@ -709,8 +646,6 @@ export default function App() {
                     </button>
                     <ChevronRight className="hidden sm:inline w-3.5 h-3.5 text-slate-600 shrink-0" />
                     <span className="text-[var(--text-primary)] font-semibold truncate max-w-[130px] sm:max-w-none">
-                      {discoverSubView === 'terminal' && t('discover.terminalTitle')}
-                      {discoverSubView === 'systemLogs' && t('discover.systemLogsTitle')}
                       {discoverSubView === 'playground' && t('discover.playgroundTitle')}
                       {discoverSubView === 'translate' && t('discover.translateTitle')}
                       {discoverSubView === 'embeddedWeb' && (activeEmbeddedApp?.name || t('discover.customAppsTitle'))}
@@ -849,13 +784,11 @@ export default function App() {
 
         {/* Main View Workspace */}
         <main className={`flex-1 min-h-0 min-w-0 ${
-          activeTab === 'discover' && discoverSubView === 'terminal'
-            ? 'p-0 pb-0 flex flex-col h-full'
-            : isMobileDetailActive
-              ? 'p-0 md:p-6 pb-0 md:pb-6 flex flex-col h-full'
-              : isWorkbenchTab
-                ? 'p-2 sm:p-4 md:p-6 pb-[calc(3.75rem+env(safe-area-inset-bottom,0px))] md:pb-6 flex flex-col h-full'
-                : 'p-2.5 sm:p-4 md:p-6 pb-20 md:pb-6 overflow-y-auto'
+          isMobileDetailActive
+            ? 'p-0 md:p-6 pb-0 md:pb-6 flex flex-col h-full'
+            : isWorkbenchTab
+              ? 'p-2 sm:p-4 md:p-6 pb-[calc(3.75rem+env(safe-area-inset-bottom,0px))] md:pb-6 flex flex-col h-full'
+              : 'p-2.5 sm:p-4 md:p-6 pb-20 md:pb-6 overflow-y-auto'
         }`}>
           <Suspense fallback={<ViewLoadingFallback />}>
             {activeTab === 'dashboard' && (
@@ -885,21 +818,6 @@ export default function App() {
                     adminKey={adminKey}
                     onSelectTool={handleSelectDiscoverTool}
                     onSelectCustomApp={handleSelectCustomApp}
-                  />
-                )}
-                {discoverSubView === 'terminal' && (
-                  <UnifiedTerminalView
-                    key={refreshTrigger}
-                    adminKey={adminKey}
-                    isStandalone={isStandaloneTerminal}
-                    onEnterStandalone={handleEnterStandalone}
-                    onExitStandalone={handleExitStandalone}
-                  />
-                )}
-                {discoverSubView === 'systemLogs' && (
-                  <TerminalLogsView
-                    key={refreshTrigger}
-                    adminKey={adminKey}
                   />
                 )}
                 {discoverSubView === 'playground' && (

@@ -30,15 +30,6 @@ export interface UpstreamServerConfig {
   allowedModels?: string[];
   type?: 'proxy' | 'direct';
   apiKeys?: string[];
-  agentId?: string;
-}
-
-export interface TerminalHostOption {
-  id: string;
-  name: string;
-  ip: string;
-  platform: string;
-  status: 'online' | 'offline';
 }
 
 const SPLIT_COLORS = [
@@ -104,26 +95,6 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
   const [ephemeralSystemMessagesText, setEphemeralSystemMessagesText] = useState<string>('');
   const [serverModelInputs, setServerModelInputs] = useState<Record<number, string>>({});
   const [serverKeyInputs, setServerKeyInputs] = useState<Record<number, string>>({});
-  const [availableHosts, setAvailableHosts] = useState<TerminalHostOption[]>([]);
-  const [loadingHosts, setLoadingHosts] = useState<boolean>(false);
-
-  const fetchAvailableHosts = async () => {
-    setLoadingHosts(true);
-    try {
-      const headers: Record<string, string> = adminKey ? { 'x-admin-key': adminKey } : {};
-      const res = await fetch('/api/terminal/hosts', { headers });
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data.hosts)) {
-          setAvailableHosts(data.hosts);
-        }
-      }
-    } catch {
-      // Ignore fetch errors
-    } finally {
-      setLoadingHosts(false);
-    }
-  };
 
   const activeTotalWeight = useMemo(() => {
     return upstreamServers
@@ -274,13 +245,6 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
     if (!isOpen) return;
     fetchConfig();
   }, [isOpen, adminKey]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    if (activeTab === 'upstream') {
-      fetchAvailableHosts();
-    }
-  }, [isOpen, activeTab, adminKey]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -460,8 +424,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
               type: s.type || 'proxy',
               ...(s.name?.trim() ? { name: s.name.trim() } : {}),
               ...(Array.isArray(s.allowedModels) && s.allowedModels.length > 0 ? { allowedModels: s.allowedModels } : {}),
-              ...(s.type === 'direct' && cleanKeys.length > 0 ? { apiKeys: cleanKeys } : {}),
-              ...(s.type === 'direct' && s.agentId?.trim() ? { agentId: s.agentId.trim() } : {})
+              ...(s.type === 'direct' && cleanKeys.length > 0 ? { apiKeys: cleanKeys } : {})
             };
           }),
           upstreamTimeoutMs,
@@ -772,7 +735,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                           type="button"
                                           onClick={() => {
                                             const updated = [...upstreamServers];
-                                            updated[idx] = { ...updated[idx], type: 'proxy', agentId: undefined };
+                                            updated[idx] = { ...updated[idx], type: 'proxy' };
                                             setUpstreamServers(updated);
                                           }}
                                           className={`px-2 py-0.5 text-[10px] rounded font-medium transition-all ${
@@ -853,7 +816,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                       type="button"
                                       onClick={() => {
                                         const updated = [...upstreamServers];
-                                        updated[idx] = { ...updated[idx], type: 'proxy', agentId: undefined };
+                                        updated[idx] = { ...updated[idx], type: 'proxy' };
                                         setUpstreamServers(updated);
                                       }}
                                       className={`py-1.5 px-2 text-xs rounded-md font-medium text-center transition-all ${
@@ -988,92 +951,15 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                         <div className="flex items-center space-x-1.5">
                                           <ArrowRightLeft className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
                                           <span className="text-[11px] font-semibold text-cyan-400">{t('config.egressChannelTitle', '出口通道')}</span>
-
-                                          {/* Inline Segmented Pill Buttons */}
-                                          <div className="inline-flex rounded-md p-0.5 bg-slate-950 border border-slate-700/80 ml-1">
-                                            <button
-                                              type="button"
-                                              onClick={() => {
-                                                const updated = [...upstreamServers];
-                                                updated[idx] = { ...updated[idx], agentId: undefined };
-                                                setUpstreamServers(updated);
-                                              }}
-                                              className={`px-2 py-0.5 text-[10px] rounded font-medium transition-all ${
-                                                !server.agentId
-                                                  ? 'bg-cyan-600 text-white shadow-xs font-semibold'
-                                                  : 'text-slate-400 hover:text-slate-200'
-                                              }`}
-                                            >
-                                              {t('config.egressLocalShort', '本机出站')}
-                                            </button>
-                                            <button
-                                              type="button"
-                                              onClick={() => {
-                                                if (!server.agentId) {
-                                                  const firstOnline = availableHosts.find(h => h.status === 'online');
-                                                  const target = firstOnline ? firstOnline.name || firstOnline.id : (availableHosts[0]?.name || availableHosts[0]?.id || 'agent');
-                                                  const updated = [...upstreamServers];
-                                                  updated[idx] = { ...updated[idx], agentId: target };
-                                                  setUpstreamServers(updated);
-                                                }
-                                              }}
-                                              className={`px-2 py-0.5 text-[10px] rounded font-medium transition-all ${
-                                                Boolean(server.agentId)
-                                                  ? 'bg-cyan-600 text-white shadow-xs font-semibold'
-                                                  : 'text-slate-400 hover:text-slate-200'
-                                              }`}
-                                            >
-                                              {t('config.egressAgentShort', 'Agent 节点')}
-                                            </button>
-                                          </div>
+                                          <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-cyan-600 text-white shadow-xs ml-1">
+                                            {t('config.egressLocalShort', '本机出站')}
+                                          </span>
                                         </div>
 
                                         <span className="text-[10px] font-mono text-slate-400 bg-slate-800/80 px-1.5 py-0.5 rounded border border-slate-700/50">
                                           {t('config.targetOfficialEndpoint', '目标: 官方 Gemini API')}
                                         </span>
                                       </div>
-
-                                      {/* Compact Agent Host Dropdown when Agent is active */}
-                                      {server.agentId && (
-                                        <div className="pt-1.5 border-t border-cyan-500/10 flex items-center space-x-2">
-                                          <div className="flex-1 min-w-0">
-                                            <select
-                                              value={server.agentId}
-                                              onChange={(e) => {
-                                                const updated = [...upstreamServers];
-                                                updated[idx] = { ...updated[idx], agentId: e.target.value };
-                                                setUpstreamServers(updated);
-                                              }}
-                                              className="w-full ui-input py-1 px-2 text-xs font-mono bg-slate-950/90 border-cyan-500/30 text-cyan-200 cursor-pointer truncate"
-                                            >
-                                              {availableHosts.length === 0 ? (
-                                                <option value={server.agentId}>
-                                                  {server.agentId} ({t('config.noAgentsAvailable', '暂无在线 Agent')})
-                                                </option>
-                                              ) : (
-                                                availableHosts.map((h) => {
-                                                  const identifier = h.name || h.id;
-                                                  const statusDot = h.status === 'online' ? '● 在线' : '○ 离线';
-                                                  return (
-                                                    <option key={h.id} value={identifier}>
-                                                      {statusDot} | {identifier} ({h.ip || 'no-ip'})
-                                                    </option>
-                                                  );
-                                                })
-                                              )}
-                                            </select>
-                                          </div>
-                                          <button
-                                            type="button"
-                                            onClick={fetchAvailableHosts}
-                                            disabled={loadingHosts}
-                                            title="刷新在线 Agent 列表"
-                                            className="w-7 h-7 shrink-0 flex items-center justify-center text-cyan-400 hover:text-cyan-200 bg-cyan-950/50 hover:bg-cyan-900/60 border border-cyan-500/30 rounded cursor-pointer transition-colors"
-                                          >
-                                            <RefreshCw className={`w-3 h-3 ${loadingHosts ? 'animate-spin' : ''}`} />
-                                          </button>
-                                        </div>
-                                      )}
                                     </div>
                                   )}
 

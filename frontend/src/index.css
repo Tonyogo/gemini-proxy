@@ -178,33 +178,3 @@
   }
 }
 
-/* Terminal Selection Mode: Disable all browser native text drag & magnifier callouts */
-.terminal-select-mode,
-.terminal-select-mode .xterm,
-.terminal-select-mode .xterm-screen,
-.terminal-select-mode .xterm-rows,
-.terminal-select-mode .xterm-rows * {
-  user-select: none !important;
-  -webkit-user-select: none !important;
-  -webkit-touch-callout: none !important;
-  touch-action: none !important;
-}
-
-/* Terminal Viewport: Transparent & Invisible Scrollbar to prevent text obstruction */
-.xterm .xterm-viewport {
-  scrollbar-width: none !important;
-  -ms-overflow-style: none !important;
-}
-.xterm .xterm-viewport::-webkit-scrollbar {
-  display: none !important;
-  width: 0 !important;
-  height: 0 !important;
-  background: transparent !important;
-}
-.xterm .xterm-viewport::-webkit-scrollbar-thumb {
-  background: transparent !important;
-}
-.xterm .xterm-viewport::-webkit-scrollbar-track {
-  background: transparent !important;
-}
-

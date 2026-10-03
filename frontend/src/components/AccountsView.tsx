@@ -196,7 +196,6 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
   const [refreshingLogs, setRefreshingLogs] = useState<boolean>(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const terminalLogsEndRef = useRef<HTMLDivElement>(null);
 
   const showToast = (text: string, type: 'success' | 'error' = 'success') => {
     setToastMessage({ text, type });
@@ -377,24 +376,6 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
       window.removeEventListener('keydown', handleDismiss);
     };
   }, [popoverAnchor]);
-
-  // Periodic 3s refresh when terminal logs are expanded and live polling is enabled
-  useEffect(() => {
-    if (!isLogsExpanded || !enableLivePolling) return;
-
-    fetchStatus(true, activeServerIndex);
-    const timer = setInterval(() => {
-      fetchStatus(true, activeServerIndex);
-    }, 3000);
-
-    return () => clearInterval(timer);
-  }, [isLogsExpanded, enableLivePolling, adminKey, activeServerIndex]);
-
-  useEffect(() => {
-    if (autoScrollLogs && isLogsExpanded && terminalLogsEndRef.current) {
-      terminalLogsEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [data?.logs, autoScrollLogs, isLogsExpanded]);
 
   const totalCount = accounts.length;
 
@@ -2309,7 +2290,6 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                     </div>
                   );
                 })}
-                <div ref={terminalLogsEndRef} />
               </div>
             ) : (
               <div className="text-slate-500 italic py-2 text-center">
