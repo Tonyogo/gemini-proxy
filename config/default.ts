@@ -128,7 +128,6 @@ export function parseUpstreamServers(raw?: any): UpstreamServerConfig[] {
     const list = raw.map(item => {
       if (!item || typeof item !== 'object') return null;
       const type: UpstreamServerType = item.type === 'direct' ? 'direct' : 'proxy';
-      const agentId = (type === 'direct' && item.agentId) ? String(item.agentId).trim() : undefined;
       let url = String(item.url || '').trim().replace(/\/+$/, '');
       if (type === 'direct' && !url) {
         url = 'https://generativelanguage.googleapis.com';
@@ -146,7 +145,6 @@ export function parseUpstreamServers(raw?: any): UpstreamServerConfig[] {
       if (name) res.name = name;
       if (allowedModels) res.allowedModels = allowedModels;
       if (apiKeys) res.apiKeys = apiKeys;
-      if (agentId) res.agentId = agentId;
       return res;
     }).filter(Boolean) as UpstreamServerConfig[];
 
@@ -184,18 +182,12 @@ export function parseUpstreamServers(raw?: any): UpstreamServerConfig[] {
       let allowedModels: string[] | undefined = undefined;
       let type: UpstreamServerType = 'proxy';
       let apiKeys: string[] | undefined = undefined;
-      let agentId: string | undefined = undefined;
 
       if (paramPart) {
         const params = new URLSearchParams(paramPart);
         const typeParam = params.get('type');
         if (typeParam === 'direct') {
           type = 'direct';
-        }
-
-        const agentParam = params.get('agentId') || params.get('agent');
-        if (agentParam) {
-          agentId = decodeURIComponent(agentParam).trim();
         }
 
         const wStr = params.get('weight') || params.get('percent');
@@ -224,10 +216,6 @@ export function parseUpstreamServers(raw?: any): UpstreamServerConfig[] {
         }
       }
 
-      if (type !== 'direct') {
-        agentId = undefined;
-      }
-
       if (type === 'direct' && !basePart) {
         basePart = 'https://generativelanguage.googleapis.com';
       }
@@ -238,7 +226,6 @@ export function parseUpstreamServers(raw?: any): UpstreamServerConfig[] {
       if (name) res.name = name;
       if (allowedModels) res.allowedModels = allowedModels;
       if (apiKeys) res.apiKeys = apiKeys;
-      if (agentId) res.agentId = agentId;
       return res;
     }).filter(Boolean) as UpstreamServerConfig[];
 

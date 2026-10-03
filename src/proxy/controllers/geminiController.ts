@@ -5,7 +5,6 @@ import payloadLogger from '../services/payloadLogger';
 import claudeTranslator from '../services/claudeTranslator';
 import accountUsageService from '../../admin/services/accountUsageService';
 import logger from '../../utils/logger';
-import agentProxyService from '../services/agentProxyService';
 import { StreamLifecycleManager } from '../../utils/streamLifecycleManager';
 import upstreamManager from '../../utils/upstreamManager';
 import { parseModelThinkingSuffix, applyThinkingConfigHigh } from '../../utils/modelThinkingHelper';
@@ -127,12 +126,8 @@ class GeminiController {
       const streamManager = new StreamLifecycleManager({ req, res, transactionId, timeoutMs });
       logger.info(`[GeminiProxy] [Transaction: ${transactionId}] Proxying stream to [server ${serverIndex + 1}: ${serverUrl}]: ${req.method} ${targetUrl}`);
 
-      const executeFetch = (serverSelection.agentId)
-        ? (u: string, o: any) => agentProxyService.agentFetch(serverSelection.agentId!, u, o)
-        : (fetch as any);
-
       try {
-        const response = await executeFetch(targetUrl, {
+        const response = await (fetch as any)(targetUrl, {
           method: req.method,
           headers: upstreamHeaders,
           body: req.method !== 'GET' && req.method !== 'HEAD' && clientReq ? JSON.stringify(clientReq) : undefined,
@@ -233,11 +228,8 @@ class GeminiController {
     // Non-streaming request
     try {
       logger.info(`[GeminiProxy] [Transaction: ${transactionId}] Proxying request to [server ${serverIndex + 1}: ${serverUrl}]: ${req.method} ${targetUrl}`);
-      const executeFetch = (serverSelection.agentId)
-        ? (u: string, o: any) => agentProxyService.agentFetch(serverSelection.agentId!, u, o)
-        : (fetch as any);
 
-      const response = await executeFetch(targetUrl, {
+      const response = await (fetch as any)(targetUrl, {
         method: req.method,
         headers: upstreamHeaders,
         body: req.method !== 'GET' && req.method !== 'HEAD' && clientReq ? JSON.stringify(clientReq) : undefined

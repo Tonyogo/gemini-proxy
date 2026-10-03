@@ -107,7 +107,6 @@ export interface UpstreamServerConfig {
   allowedModels?: string[];
   type?: UpstreamServerType;
   apiKeys?: string[];
-  agentId?: string;
 }
 
 export interface UpstreamServerStatus extends UpstreamServerConfig {
@@ -126,7 +125,6 @@ export interface UpstreamServerSelection {
   weight: number;
   serverType: UpstreamServerType;
   selectedApiKey?: string;
-  agentId?: string;
 }
 
 export * from './accountUsage';
