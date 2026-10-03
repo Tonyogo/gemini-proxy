@@ -50,8 +50,12 @@ jobs:
           echo "Deploy Path : $DEPLOY_PATH"
           echo "=========================================="
 
-          # 2. Trigger deployment command via gt exec
-          node scripts/gt.js exec \
+          # 2. Download standalone gt CLI from TERMINAL_SERVER and trigger deployment
+          curl -fsSL "$TERMINAL_SERVER/gt" -o /tmp/gt.js || {
+            echo "::error::Failed to download gt CLI from $TERMINAL_SERVER"
+            exit 1
+          }
+          node /tmp/gt.js exec \
             --verbose \
             -w "$DEPLOY_PATH" \
             "$TARGET_HOST" \

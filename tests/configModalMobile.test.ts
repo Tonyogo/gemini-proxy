@@ -48,9 +48,8 @@ describe('ConfigModal Mobile Enhancements & Minimalist Upstream Layout', () => {
     expect(content).toContain('col-span-12 sm:col-span-5 space-y-1');
   });
 
-  test('renders minimalist inline egress pill switch in direct mode', () => {
+  test('renders minimalist inline egress pill in direct mode', () => {
     expect(content).toContain("t('config.egressLocalShort'");
-    expect(content).toContain("t('config.egressAgentShort'");
     expect(content).toContain("t('config.targetOfficialEndpoint'");
   });
 

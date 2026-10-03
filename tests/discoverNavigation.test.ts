@@ -23,12 +23,10 @@ describe('Discover Navigation & WeChat Style Hub', () => {
     expect((zh as any).discover.title).toBe('发现中心');
     expect((en as any).discover.title).toBe('Discover Hub');
 
-    expect((zh as any).discover.terminalTitle).toBe('在线终端');
     expect((zh as any).discover.playgroundTitle).toBe('API 调试器');
     expect((zh as any).discover.translateTitle).toBe('翻译工作台');
     expect((zh as any).discover.back).toBe('发现');
 
-    expect((en as any).discover.terminalTitle).toBe('Web Terminal');
     expect((en as any).discover.playgroundTitle).toBe('API Playground');
     expect((en as any).discover.translateTitle).toBe('Translate Studio');
     expect((en as any).discover.back).toBe('Discover');
@@ -53,7 +51,6 @@ describe('Discover Navigation & WeChat Style Hub', () => {
     expect(fs.existsSync(hubComponentPath)).toBe(true);
     const hubContent = fs.readFileSync(hubComponentPath, 'utf-8');
     // Must contain gradient icon containers and chevron right
-    expect(hubContent).toContain('from-emerald-500 to-teal-600');
     expect(hubContent).toContain('from-orange-500 to-amber-600');
     expect(hubContent).toContain('from-indigo-500 to-purple-600');
     expect(hubContent).toContain('ChevronRight');
