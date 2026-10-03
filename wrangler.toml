@@ -1,0 +1,30 @@
+name = "gemini-proxy"
+main = "worker/index.ts"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+GEMINI_BASE_URL = "https://generativelanguage.googleapis.com"
+UPSTREAM_TIMEOUT_MS = "180000"
+TIME_ZONE = "Asia/Shanghai"
+ENABLE_UI = "true"
+SYSTEM_ROLE_TO_INSTRUCTION = "false"
+RUNTIME_CONTEXT_TAG = "system-context"
+LOG_RETENTION_DAYS = "3"
+
+# Optional Cloudflare KV for dynamic runtime configuration hot-reloading
+# Create with: npx wrangler kv namespace create CONFIG_KV
+# [[kv_namespaces]]
+# binding = "CONFIG_KV"
+# id = "<YOUR_CONFIG_KV_ID>"
+
+# Optional Cloudflare R2 Bucket for audit logs storage & replay
+# Create with: npx wrangler r2 bucket create gemini-proxy-logs
+# [[r2_buckets]]
+# binding = "LOGS_BUCKET"
+# bucket_name = "gemini-proxy-logs"
+
+# Static assets binding for web admin console
+[assets]
+directory = "./dist/frontend"
+binding = "ASSETS"
