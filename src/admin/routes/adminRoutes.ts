@@ -1,33 +1,104 @@
-import { Router } from 'express';
-import adminController from '../controllers/adminController';
-import accountController from '../controllers/accountController';
-import adminAuthMiddleware from '../middlewares/adminAuth';
+import { Hono } from 'hono';
+import { WorkerEnv } from '../../env';
+import { getConfig, updateConfig } from '../../config/configManager';
+import {
+  listAuditLogs,
+  getAuditLog,
+  deleteAuditLog,
+} from '../services/r2LoggerService';
+import { getKeyStatesSummary } from '../../proxy/services/upstreamService';
 
-const router = Router();
+export const adminRoutes = new Hono<{ Bindings: WorkerEnv }>();
 
-router.use(adminAuthMiddleware);
+// Admin authentication middleware
+adminRoutes.use('*', async (c, next) => {
+  const adminKey = c.req.header('x-admin-key');
+  const auth = c.req.header('authorization');
+  const bearerKey = auth && auth.startsWith('Bearer ') ? auth.substring(7).trim() : null;
+  const provided = adminKey || bearerKey;
 
-// Admin Core Routes
-router.get('/status', (req, res) => adminController.getStatus(req, res));
-router.get('/models', (req, res) => adminController.getModels(req, res));
-router.get('/logs', (req, res) => adminController.getLogs(req, res));
-router.get('/logs/:date/:hour/:filename', (req, res) => adminController.getLogDetail(req, res));
-router.get('/stats', (req, res) => adminController.getStats(req, res));
-router.post('/config', (req, res) => adminController.updateConfig(req, res));
-router.put('/config', (req, res) => adminController.updateConfig(req, res));
+  const expected = c.env.ADMIN_SECRET_KEY;
+  if (!expected || provided !== expected) {
+    return c.json({ error: 'Unauthorized: Invalid admin key' }, 401);
+  }
+  await next();
+});
 
-// Account Management Routes
-router.get('/accounts/servers', (req, res) => accountController.getServers(req, res));
-router.get('/accounts/status', (req, res) => accountController.getStatus(req, res));
-router.get('/accounts/usage', (req, res) => accountController.getUsage(req, res));
-router.post('/accounts/upload', (req, res) => accountController.upload(req, res));
-router.post('/accounts/toggle-disabled', (req, res) => accountController.toggleDisabled(req, res));
-router.post('/accounts/:index/close-context', (req, res) => accountController.closeContext(req, res));
-router.delete('/accounts/:index', (req, res) => accountController.deleteAccount(req, res));
-router.post('/accounts/batch-delete', (req, res) => accountController.batchDelete(req, res));
-router.post('/accounts/deduplicate', (req, res) => accountController.deduplicate(req, res));
-router.put('/accounts/current', (req, res) => accountController.switchCurrent(req, res));
-router.get('/accounts/files/:filename', (req, res) => accountController.downloadFile(req, res));
-router.post('/accounts/batch-download', (req, res) => accountController.batchDownload(req, res));
+adminRoutes.get('/status', async (c) => {
+  return c.json({
+    status: 'ok',
+    runtime: 'cloudflare-worker',
+    timestamp: new Date().toISOString(),
+    hasKv: !!c.env.CONFIG_KV,
+    hasR2: !!c.env.LOGS_BUCKET,
+    hasAssets: !!c.env.ASSETS,
+  });
+});
 
-export default router;
+adminRoutes.get('/config', async (c) => {
+  const config = await getConfig(c.env);
+  return c.json(config);
+});
+
+adminRoutes.post('/config', async (c) => {
+  try {
+    const updates = await c.req.json();
+    const updated = await updateConfig(c.env, updates);
+    return c.json(updated);
+  } catch (err: any) {
+    return c.json({ error: 'Invalid config JSON' }, 400);
+  }
+});
+
+adminRoutes.get('/models', async (c) => {
+  const config = await getConfig(c.env);
+  return c.json({
+    modelMappings: config.MODEL_MAPPINGS,
+    defaultModels: [
+      'gemini-2.5-pro',
+      'gemini-2.5-flash',
+      'gemini-2.0-flash',
+      'gemini-1.5-pro',
+      'gemini-1.5-flash',
+    ],
+  });
+});
+
+adminRoutes.get('/stats', async (c) => {
+  return c.json({
+    uptime: 0,
+    activeConnections: 0,
+    requestsTotal: 0,
+    successTotal: 0,
+    errorTotal: 0,
+  });
+});
+
+adminRoutes.get('/logs', async (c) => {
+  const date = c.req.query('date');
+  const hour = c.req.query('hour');
+  const logs = await listAuditLogs(c.env, date, hour);
+  return c.json({ logs });
+});
+
+adminRoutes.get('/logs/:date/:hour/:filename', async (c) => {
+  const { date, hour, filename } = c.req.param();
+  const key = `logs/${date}/${hour}/${filename}`;
+  const log = await getAuditLog(c.env, key);
+  if (!log) {
+    return c.json({ error: 'Log not found' }, 404);
+  }
+  return c.json(log);
+});
+
+adminRoutes.delete('/logs/:date/:hour/:filename', async (c) => {
+  const { date, hour, filename } = c.req.param();
+  const key = `logs/${date}/${hour}/${filename}`;
+  const success = await deleteAuditLog(c.env, key);
+  return c.json({ success });
+});
+
+adminRoutes.get('/accounts', async (c) => {
+  const accounts = getKeyStatesSummary();
+  return c.json({ accounts });
+});
