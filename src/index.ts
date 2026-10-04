@@ -1,18 +1,52 @@
-import http from 'http';
-import app from './app';
-import config from '../config/default';
-import logger from './utils/logger';
-import metricsService from './admin/services/metricsService';
-import accountUsageService from './admin/services/accountUsageService';
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+import { WorkerEnv } from './env';
+import { claudeRoutes } from './proxy/routes/claudeRoutes';
+import { geminiRoutes } from './proxy/routes/geminiRoutes';
+import { adminRoutes } from './admin/routes/adminRoutes';
+import { claudeTranslator } from './proxy/services/claudeTranslator';
 
-const server = http.createServer(app);
+const app = new Hono<{ Bindings: WorkerEnv }>();
 
-Promise.all([
-  metricsService.init(),
-  accountUsageService.init()
-]).then(() => {
-  server.listen(config.port, () => {
-    logger.info(`Server is running on port ${config.port}`);
-    logger.info(`Proxying upstream requests to Gemini: ${config.geminiBaseUrl}`);
-  });
+// Global CORS middleware
+app.use('*', cors({
+  origin: '*',
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowHeaders: ['*'],
+  exposeHeaders: ['*'],
+}));
+
+// Mount API routes
+app.route('/v1', claudeRoutes);
+app.route('/v1beta', geminiRoutes);
+app.route('/api/admin', adminRoutes);
+
+// Global Error Handler
+app.onError((err, c) => {
+  console.error('[Worker Error]', err);
+  const normalized = claudeTranslator.normalizeError(err);
+  return c.json(normalized.payload, normalized.status as any);
 });
+
+// 404 / Assets Fallback
+app.notFound(async (c) => {
+  const path = c.req.path;
+  if (path.startsWith('/v1') || path.startsWith('/api')) {
+    return c.json({
+      type: 'error',
+      error: {
+        type: 'invalid_request_error',
+        message: `Endpoint not found: ${c.req.method} ${path}`,
+      },
+    }, 404);
+  }
+
+  // Fallback to static SPA assets
+  if (c.env.ASSETS) {
+    return await c.env.ASSETS.fetch(c.req.raw);
+  }
+
+  return c.text('Gemini Proxy Worker is running.', 200);
+});
+
+export default app;

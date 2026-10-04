@@ -1,3 +1,4 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   syncCustomWebAppsFromRemote,
   syncCustomWebAppsToRemote,
@@ -26,11 +27,11 @@ if (typeof (global as any).localStorage === 'undefined') {
 describe('customWebAppsStorage Cloud Sync', () => {
   beforeEach(() => {
     localStorage.clear();
-    global.fetch = jest.fn();
+    global.fetch = vi.fn();
   });
 
   afterEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   it('syncCustomWebAppsFromRemote updates localStorage and returns remote list when non-empty', () => {
@@ -55,7 +56,7 @@ describe('customWebAppsStorage Cloud Sync', () => {
   });
 
   it('syncCustomWebAppsToRemote sends POST /api/admin/config with admin key', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (global.fetch as any).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ status: 'ok' }),
     });
@@ -85,7 +86,7 @@ describe('customWebAppsStorage Cloud Sync', () => {
   });
 
   it('saveCustomWebApp triggers remote sync when adminKey is provided', async () => {
-    (global.fetch as jest.Mock).mockResolvedValueOnce({
+    (global.fetch as any).mockResolvedValueOnce({
       ok: true,
       json: async () => ({ status: 'ok' }),
     });
@@ -107,13 +108,13 @@ describe('customWebAppsStorage Cloud Sync', () => {
   });
 
   it('deleteCustomWebApp triggers remote sync when adminKey is provided', async () => {
-    (global.fetch as jest.Mock).mockResolvedValue({
+    (global.fetch as any).mockResolvedValue({
       ok: true,
       json: async () => ({ status: 'ok' }),
     });
 
     const app = saveCustomWebApp({ name: 'To Delete', url: 'https://delete.me' });
-    (global.fetch as jest.Mock).mockClear();
+    (global.fetch as any).mockClear();
 
     deleteCustomWebApp(app.id, 'my-admin-key');
     expect(loadCustomWebApps().find((a) => a.id === app.id)).toBeUndefined();
