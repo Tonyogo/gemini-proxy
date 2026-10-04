@@ -1,4 +1,3 @@
-import config from '../../../config/default';
 import logger from '../../utils/logger';
 import {
   ClaudeRequest,
@@ -6,22 +5,46 @@ import {
   GeminiContent,
   GeminiPart,
   GeminiModelsResponse,
-  SchedulingStrategy
+  SchedulingStrategy,
+  ModelMappingsConfig
 } from '../../types';
+
+export interface TranslatorOptions {
+  modelMappings?: ModelMappingsConfig;
+  ephemeralUserMessages?: string[];
+  ephemeralSystemMessages?: string[];
+  stripSystemFingerprints?: boolean;
+  customSystemInstruction?: string;
+  runtimeContextTag?: string;
+  systemRoleToInstruction?: boolean;
+  ignoredTools?: string[];
+}
+
+export const DEFAULT_TRANSLATOR_OPTIONS: TranslatorOptions = {
+  modelMappings: {},
+  ephemeralUserMessages: ["[Your previous response had no visible output. Please continue and produce a user-visible response.]"],
+  ephemeralSystemMessages: [],
+  stripSystemFingerprints: false,
+  customSystemInstruction: '',
+  runtimeContextTag: 'system-context',
+  systemRoleToInstruction: false,
+  ignoredTools: ['Artifact', 'ArtifactCheck', 'ArtifactData', 'ArtifactComments'],
+};
 
 const BYPASS_SIGNATURE = 'context_engineering_is_the_way_to_go';
 
 class ClaudeTranslator {
   private roundRobinCounters: Map<string, number> = new Map();
+  public options: TranslatorOptions = { ...DEFAULT_TRANSLATOR_OPTIONS };
 
   /**
-   * Dynamically resolves raw model aliases against config.modelMappings
+   * Dynamically resolves raw model aliases against options.modelMappings
    * Supports plain string target, string array, or object target { target, targets, strategy }
    */
   public getModelMappingInfo(rawModel: string): { targetModel: string; strategy?: SchedulingStrategy } {
     if (!rawModel) return { targetModel: rawModel };
-    if (config.modelMappings && typeof config.modelMappings === 'object') {
-      const mapping = config.modelMappings[rawModel];
+    if (this.options.modelMappings && typeof this.options.modelMappings === 'object') {
+      const mapping = this.options.modelMappings[rawModel];
       if (mapping) {
         if (typeof mapping === 'string') {
           return { targetModel: mapping };
@@ -307,8 +330,8 @@ class ClaudeTranslator {
       return messages || [];
     }
 
-    const userPatterns = (config.ephemeralUserMessages || []).map(s => s.trim()).filter(Boolean);
-    const systemPatterns = (config.ephemeralSystemMessages || []).map(s => s.trim()).filter(Boolean);
+    const userPatterns = (this.options.ephemeralUserMessages || []).map(s => s.trim()).filter(Boolean);
+    const systemPatterns = (this.options.ephemeralSystemMessages || []).map(s => s.trim()).filter(Boolean);
 
     if (userPatterns.length === 0 && systemPatterns.length === 0) {
       return messages;
@@ -368,7 +391,7 @@ class ClaudeTranslator {
 
   public cleanSystemContent(rawText: string): string | null {
     if (!rawText) return null;
-    if (!config.stripSystemFingerprints) return rawText;
+    if (!this.options.stripSystemFingerprints) return rawText;
 
     // Option A: Drop entire block if it starts with x-anthropic-billing-header
     if (/^\s*x-anthropic-billing-header/i.test(rawText)) {
@@ -447,11 +470,11 @@ class ClaudeTranslator {
       appendSystemContent(claudeBody.system);
     }
 
-    if (config.customSystemInstruction) {
-      appendSystemContent(config.customSystemInstruction);
+    if (this.options.customSystemInstruction) {
+      appendSystemContent(this.options.customSystemInstruction);
     }
 
-    const tag = config.runtimeContextTag || 'system-context';
+    const tag = this.options.runtimeContextTag || 'system-context';
 
     const wrapSystemMessageContent = (content: any): GeminiPart[] => {
       const parts: GeminiPart[] = [];
@@ -484,7 +507,7 @@ class ClaudeTranslator {
       ? this.filterEphemeralMessages(claudeBody.messages)
       : [];
 
-    if (config.systemRoleToInstruction) {
+    if (this.options.systemRoleToInstruction) {
       const deduplicatedSystemMsgs = this.deduplicateSystemMessages(inputMessages);
       for (const sysMsg of deduplicatedSystemMsgs) {
         appendSystemContent(sysMsg.content);
@@ -584,7 +607,7 @@ class ClaudeTranslator {
             parts: parseUserMessageParts(msg)
           });
         } else if (msg.role === 'system') {
-          if (config.systemRoleToInstruction) {
+          if (this.options.systemRoleToInstruction) {
             continue;
           }
           if (!pendingUserSegment) {
@@ -632,7 +655,7 @@ class ClaudeTranslator {
     }
 
     if (claudeBody.tools && Array.isArray(claudeBody.tools)) {
-      const ignoredToolsList = config.ignoredTools || [];
+      const ignoredToolsList = this.options.ignoredTools || [];
       const ignoredSet = new Set(ignoredToolsList.map((t: string) => String(t || '').trim().toLowerCase()).filter(Boolean));
 
       const validTools = claudeBody.tools.filter((tool: any) => {
@@ -958,4 +981,48 @@ class ClaudeTranslator {
   }
 }
 
-export default new ClaudeTranslator();
+export const claudeTranslator = new ClaudeTranslator();
+
+export function translateClaudeToGoogle(
+  body: any,
+  isDirectMode: boolean = false,
+  customSystemInstruction?: string,
+  options?: Partial<TranslatorOptions>
+) {
+  if (options) {
+    const prev = { ...claudeTranslator.options };
+    claudeTranslator.options = { ...prev, ...options };
+    try {
+      return claudeTranslator.translateClaudeToGoogle(body, isDirectMode, customSystemInstruction);
+    } finally {
+      claudeTranslator.options = prev;
+    }
+  }
+  return claudeTranslator.translateClaudeToGoogle(body, isDirectMode, customSystemInstruction);
+}
+
+export function translateGoogleToClaudeResponse(geminiJson: any, model: string, tools?: any[]) {
+  return claudeTranslator.convertGoogleToClaudeNonStream(geminiJson, model, tools);
+}
+
+export function translateGoogleToClaudeStream(chunk: string | object, state: any, model: string = 'claude-3-5-sonnet') {
+  const chunkStr = typeof chunk === 'string' ? chunk : JSON.stringify(chunk);
+  return claudeTranslator.translateGoogleToClaudeStream(chunkStr, model, state) || [];
+}
+
+export function createInitialStreamState() {
+  return {
+    isFirstChunk: true,
+    messageStartSent: false,
+    contentBlockIndex: 0,
+    textBlockStarted: false,
+    thinkingBlockStarted: false,
+    thinkingBlockIndex: -1,
+    toolBlockStarted: false,
+    toolBlockIndex: -1,
+    currentToolCalls: new Map(),
+  };
+}
+
+export { ClaudeTranslator };
+export default claudeTranslator;

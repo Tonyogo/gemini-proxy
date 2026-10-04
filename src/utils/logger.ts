@@ -1,24 +1,27 @@
-import config from '../../config/default';
-
 const levels: Record<string, number> = { error: 0, warn: 1, info: 2, debug: 3 };
 
-const getCurrentLevel = (): number => {
-  const current = config.logLevel;
-  return levels[current] !== undefined ? levels[current] : 2;
+let currentLevel = 'info';
+let currentTimeZone = 'Asia/Shanghai';
+
+export const setLogLevel = (lvl: string) => {
+  currentLevel = lvl;
+};
+
+export const setLogTimeZone = (tz: string) => {
+  currentTimeZone = tz;
 };
 
 const getFormattedTimestamp = (): string => {
   try {
-    const timeZone = config.timeZone || 'Asia/Shanghai';
     const formatter = new Intl.DateTimeFormat('sv-SE', {
-      timeZone,
+      timeZone: currentTimeZone,
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
-      hourCycle: 'h23'
+      hourCycle: 'h23',
     });
     return formatter.format(new Date());
   } catch {
@@ -27,8 +30,13 @@ const getFormattedTimestamp = (): string => {
 };
 
 const log = (level: string, message: string, ...meta: any[]) => {
-  const currentLevelNum = getCurrentLevel();
+  const currentLevelNum = levels[currentLevel] ?? 2;
   if (levels[level] > currentLevelNum) {
+    return;
+  }
+
+  // Suppress all console logs during testing unless explicitly enabled
+  if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'test') {
     return;
   }
 
@@ -38,11 +46,6 @@ const log = (level: string, message: string, ...meta: any[]) => {
     : '';
   const fullMsg = `${message}${formattedMeta}`;
 
-  // Suppress all console logs during testing
-  if (process.env.NODE_ENV === 'test') {
-    return;
-  }
-
   console.log(`[${timestamp}] [${level.toUpperCase()}] ${fullMsg}`);
 };
 
@@ -50,7 +53,7 @@ const logger = {
   error: (msg: string, ...meta: any[]) => log('error', msg, ...meta),
   warn: (msg: string, ...meta: any[]) => log('warn', msg, ...meta),
   info: (msg: string, ...meta: any[]) => log('info', msg, ...meta),
-  debug: (msg: string, ...meta: any[]) => log('debug', msg, ...meta)
+  debug: (msg: string, ...meta: any[]) => log('debug', msg, ...meta),
 };
 
 export default logger;

@@ -1,49 +1,52 @@
-import { Request } from 'express';
-import config from '../../config/default';
-import upstreamManager, { UpstreamUrlSelection } from './upstreamManager';
-
 /**
  * Extracts the Google Gemini API key from various client request headers or query parameters.
  */
 export function extractClientKey(req: Request): string | null {
-  if (req.headers["x-api-key"]) {
-    return req.headers["x-api-key"] as string;
+  const headers = req.headers;
+  const xApiKey = headers.get('x-api-key');
+  if (xApiKey) return xApiKey;
+
+  const xGoogApiKey = headers.get('x-goog-api-key');
+  if (xGoogApiKey) return xGoogApiKey;
+
+  const auth = headers.get('authorization');
+  if (auth && auth.startsWith('Bearer ')) {
+    return auth.substring(7).trim();
   }
-  if (req.headers["x-goog-api-key"]) {
-    return req.headers["x-goog-api-key"] as string;
+
+  const xAdminKey = headers.get('x-admin-key');
+  if (xAdminKey) return xAdminKey;
+
+  try {
+    const url = new URL(req.url);
+    const key = url.searchParams.get('key');
+    if (key) return key;
+  } catch {
+    // URL parsing failed
   }
-  if (req.headers.authorization && req.headers.authorization.startsWith("Bearer ")) {
-    return req.headers.authorization.substring(7).trim();
-  }
-  if (req.headers["x-admin-key"]) {
-    return req.headers["x-admin-key"] as string;
-  }
-  if (req.query && req.query.key) {
-    return req.query.key as string;
-  }
+
   return null;
 }
 
 /**
- * Extracts per-request timeout in milliseconds from 'x-timeout-ms' header,
- * falling back to default config.upstreamTimeoutMs.
+ * Extracts per-request timeout in milliseconds from 'x-timeout-ms' header.
  */
-export function extractTimeoutMs(req: Request): number {
-  const headerValue = req.headers['x-timeout-ms'];
-  if (headerValue !== undefined && headerValue !== null) {
+export function extractTimeoutMs(req: Request, defaultTimeoutMs: number = 180000): number {
+  const headerValue = req.headers.get('x-timeout-ms');
+  if (headerValue !== null && headerValue !== undefined) {
     const parsed = parseInt(String(headerValue), 10);
     if (!isNaN(parsed) && parsed >= 0) {
       return parsed;
     }
   }
-  return config.upstreamTimeoutMs;
+  return defaultTimeoutMs;
 }
 
 /**
  * Extracts per-request scheduling strategy from 'x-scheduling-strategy' header.
  */
 export function extractClientSchedulingStrategy(req: Request): string | null {
-  const headerValue = req.headers['x-scheduling-strategy'];
+  const headerValue = req.headers.get('x-scheduling-strategy');
   if (typeof headerValue === 'string' && headerValue.trim()) {
     return headerValue.trim();
   }
@@ -51,43 +54,28 @@ export function extractClientSchedulingStrategy(req: Request): string | null {
 }
 
 /**
- * Normalizes and builds the absolute upstream Gemini URL for proxying.
- * Supports per-model round-robin or explicit server index via options.
- */
-export function getUpstreamUrl(
-  pathAndQuery: string,
-  options?: { model?: string; serverIndex?: number } | string
-): string {
-  const opts = typeof options === 'string' ? { model: options } : options;
-  return upstreamManager.getUpstreamUrl(pathAndQuery, opts).targetUrl;
-}
-
-/**
- * Generates a unique short ID (9 characters) for logging.
- */
-export function generateShortId(): string {
-  return Math.random().toString(36).substring(2, 11);
-}
-
-/**
  * Generates a unique transaction ID for tracing request-response cycles.
  */
 export function generateTransactionId(): string {
-  return generateShortId();
+  return Math.random().toString(36).substring(2, 11);
 }
 
 /**
  * Builds standard HTTP headers for proxying requests to Gemini upstream.
  */
-export function buildUpstreamHeaders(apiKey: string, customHeaders?: Record<string, string>): Record<string, string> {
+export function buildUpstreamHeaders(
+  apiKey: string,
+  adminSecretKey?: string,
+  customHeaders?: Record<string, string>
+): Record<string, string> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     'x-goog-api-key': apiKey,
-    ...customHeaders
+    ...customHeaders,
   };
 
   const hasAuth = Object.keys(headers).some(k => k.toLowerCase() === 'authorization');
-  if (config.adminSecretKey && apiKey === config.adminSecretKey && !hasAuth) {
+  if (adminSecretKey && apiKey === adminSecretKey && !hasAuth) {
     headers['Authorization'] = `Bearer ${apiKey}`;
   }
 
@@ -116,7 +104,7 @@ export function sanitizeData(data: any): any {
   if (typeof data === 'object') {
     const sanitized = Array.isArray(data) ? [] : {};
     for (const [k, v] of Object.entries(data)) {
-      if (['key', 'apikey', 'api_key', 'x-goog-api-key', 'x-api-key'].includes(k.toLowerCase()) && typeof v === 'string') {
+      if (['key', 'apikey', 'api_key', 'x-goog-api-key', 'x-api-key', 'x-admin-key'].includes(k.toLowerCase()) && typeof v === 'string') {
         (sanitized as any)[k] = maskApiKey(v);
       } else if (k.toLowerCase() === 'authorization' && typeof v === 'string') {
         if (/^bearer\s+/i.test(v)) {
