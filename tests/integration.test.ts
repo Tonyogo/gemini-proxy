@@ -22,5 +22,18 @@ describe('Worker Gateway Integration', () => {
     const uiRes = await workerApp.request('/ui', {}, env);
     expect(mockAssets.fetch).toHaveBeenCalled();
     expect(uiRes.status).toBe(200);
+
+    // Root Worker Admin Accounts Servers test
+    const adminEnv: WorkerEnv = {
+      ...env,
+      ADMIN_SECRET_KEY: 'root-admin-secret',
+    };
+    const serversRes = await workerApp.request('/api/admin/accounts/servers', {
+      headers: { 'x-admin-key': 'root-admin-secret' },
+    }, adminEnv);
+    expect(serversRes.status).toBe(200);
+    const serversData: any = await serversRes.json();
+    expect(serversData.servers).toBeDefined();
+    expect(serversData.serversMeta[0].type).toBe('direct');
   });
 });

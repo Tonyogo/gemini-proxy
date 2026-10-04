@@ -15,7 +15,7 @@ export function resetKeyPool(): void {
   roundRobinIndex = 0;
 }
 
-function parseKeys(env: WorkerEnv): string[] {
+export function parseKeys(env: WorkerEnv): string[] {
   const raw = env.GEMINI_API_KEYS;
   if (!raw) return [];
   if (Array.isArray(raw)) return raw.map(String).map(s => s.trim()).filter(Boolean);
