@@ -561,11 +561,6 @@ async function downloadRemoteFile({ serverUrl, apiKey, hostId, remotePath, local
   const finalPathname = (basePath + '/' + epPath.replace(/^\/+/, '')).replace(/\/+/g, '/');
   const finalSearch = epQuery ? `?${epQuery}` : '';
 
-  const headers = {};
-  if (apiKey) {
-    headers['x-admin-key'] = apiKey;
-  }
-
   let destFile = localPath;
   if (fs.existsSync(localPath) && fs.statSync(localPath).isDirectory()) {
     destFile = path.join(localPath, path.basename(remotePath));
@@ -579,43 +574,89 @@ async function downloadRemoteFile({ serverUrl, apiKey, hostId, remotePath, local
     fs.mkdirSync(parentDir, { recursive: true });
   }
 
-  return new Promise((resolve, reject) => {
-    const req = client.request({
-      protocol: serverParsed.protocol,
-      hostname: serverParsed.hostname,
-      port: serverParsed.port || (isHttps ? 443 : 80),
-      path: `${finalPathname}${finalSearch}`,
-      method: 'GET',
-      headers,
-    }, (res) => {
-      if (res.statusCode >= 400) {
-        let data = '';
-        res.on('data', (chunk) => { data += chunk; });
-        res.on('end', () => {
-          let json = null;
-          try { json = JSON.parse(data); } catch { json = { raw: data }; }
-          reject(new Error(`Download failed: ${json?.error || `HTTP ${res.statusCode}`}`));
-        });
-        return;
+  const partFile = `${destFile}.part`;
+
+  const executeDownload = (allowResume = true) => {
+    return new Promise((resolve, reject) => {
+      const headers = {};
+      if (apiKey) {
+        headers['x-admin-key'] = apiKey;
       }
 
-      const writeStream = fs.createWriteStream(destFile);
-      let totalBytes = 0;
-      res.on('data', (chunk) => {
-        totalBytes += chunk.length;
+      let existingBytes = 0;
+      if (allowResume && fs.existsSync(partFile)) {
+        try {
+          existingBytes = fs.statSync(partFile).size;
+        } catch {
+          existingBytes = 0;
+        }
+      }
+
+      if (existingBytes > 0) {
+        headers['Range'] = `bytes=${existingBytes}-`;
+      }
+
+      const req = client.request({
+        protocol: serverParsed.protocol,
+        hostname: serverParsed.hostname,
+        port: serverParsed.port || (isHttps ? 443 : 80),
+        path: `${finalPathname}${finalSearch}`,
+        method: 'GET',
+        headers,
+      }, (res) => {
+        // If 416 (Range Not Satisfiable), our .part file might be corrupted or complete. Reset and redownload.
+        if (res.statusCode === 416) {
+          try { if (fs.existsSync(partFile)) fs.unlinkSync(partFile); } catch {}
+          return executeDownload(false).then(resolve, reject);
+        }
+
+        if (res.statusCode >= 400) {
+          let data = '';
+          res.on('data', (chunk) => { data += chunk; });
+          res.on('end', () => {
+            let json = null;
+            try { json = JSON.parse(data); } catch { json = { raw: data }; }
+            reject(new Error(`Download failed: ${json?.error || `HTTP ${res.statusCode}`}`));
+          });
+          return;
+        }
+
+        const isPartial = res.statusCode === 206;
+        const writeFlags = isPartial ? 'a' : 'w';
+        const writeStream = fs.createWriteStream(partFile, { flags: writeFlags });
+
+        let sessionBytes = 0;
+        res.on('data', (chunk) => {
+          sessionBytes += chunk.length;
+        });
+
+        res.pipe(writeStream);
+
+        writeStream.on('finish', () => {
+          try {
+            if (fs.existsSync(destFile)) {
+              fs.unlinkSync(destFile);
+            }
+            fs.renameSync(partFile, destFile);
+            const totalBytes = existingBytes + sessionBytes;
+            console.log(`Successfully copied [${hostId}]:${remotePath} -> ${destFile} (${(totalBytes / 1024).toFixed(1)} KB${isPartial ? ' [resumed]' : ''})`);
+            resolve(0);
+          } catch (renameErr) {
+            reject(new Error(`Failed to finalize local file: ${renameErr.message}`));
+          }
+        });
+
+        writeStream.on('error', (err) => {
+          reject(new Error(`Failed to write local file: ${err.message}`));
+        });
       });
-      res.pipe(writeStream);
-      writeStream.on('finish', () => {
-        console.log(`Successfully copied [${hostId}]:${remotePath} -> ${destFile} (${(totalBytes / 1024).toFixed(1)} KB)`);
-        resolve(0);
-      });
-      writeStream.on('error', (err) => {
-        reject(new Error(`Failed to write local file: ${err.message}`));
-      });
+
+      req.on('error', reject);
+      req.end();
     });
-    req.on('error', reject);
-    req.end();
-  });
+  };
+
+  return executeDownload(true);
 }
 
 async function runCp(serverUrl, apiKey, args) {
@@ -2148,10 +2189,53 @@ function handleFileRpc(control, targetWs) {
       return reply(true, { success: true });
     }
 
+    if (action === 'stat') {
+      if (!fs.existsSync(resolvedPath)) return reply(false, null, 'File not found');
+      const stat = fs.statSync(resolvedPath);
+      return reply(true, {
+        size: stat.size,
+        mtime: stat.mtimeMs,
+        isDirectory: stat.isDirectory(),
+      });
+    }
+
     if (action === 'download_chunk') {
       if (!fs.existsSync(resolvedPath)) return reply(false, null, 'File not found');
-      const buf = fs.readFileSync(resolvedPath);
-      return reply(true, buf.toString('base64'));
+      const stat = fs.statSync(resolvedPath);
+      if (stat.isDirectory()) return reply(false, null, 'Target is a directory');
+
+      const hasSliceParams = params && (params.offset !== undefined || params.length !== undefined);
+      if (!hasSliceParams) {
+        const buf = fs.readFileSync(resolvedPath);
+        return reply(true, buf.toString('base64'));
+      }
+
+      const offset = Number(params.offset) || 0;
+      const length = params.length !== undefined ? Number(params.length) : (stat.size - offset);
+
+      if (isNaN(offset) || isNaN(length) || offset < 0 || length < 0 || offset > stat.size) {
+        return reply(false, null, 'Invalid offset or length');
+      }
+
+      if (length === 0 || offset === stat.size) {
+        return reply(true, { data: '', size: stat.size, offset, length: 0 });
+      }
+
+      const safeLength = Math.min(length, stat.size - offset);
+      const fd = fs.openSync(resolvedPath, 'r');
+      try {
+        const buffer = Buffer.alloc(safeLength);
+        const bytesRead = fs.readSync(fd, buffer, 0, safeLength, offset);
+        const chunk = bytesRead < safeLength ? buffer.slice(0, bytesRead) : buffer;
+        return reply(true, {
+          data: chunk.toString('base64'),
+          size: stat.size,
+          offset,
+          length: bytesRead,
+        });
+      } finally {
+        fs.closeSync(fd);
+      }
     }
 
     reply(false, null, `Unknown action: ${action}`);

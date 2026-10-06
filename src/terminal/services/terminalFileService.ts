@@ -134,12 +134,45 @@ export class TerminalFileService {
   }
 
   /**
-   * Get file stream for download via agent RPC
+   * Get file metadata (size, mtime) via agent RPC
    */
-  public async getFileStream(hostId: string, filePath: string): Promise<{
+  public async getFileStat(hostId: string, filePath: string): Promise<{
+    success: boolean;
+    size?: number;
+    mtime?: number;
+    isDirectory?: boolean;
+    error?: string;
+  }> {
+    if (!hostId || !hostId.trim()) {
+      return { success: false, error: 'hostId is required' };
+    }
+    const res = await this.rpcAgent(hostId, 'stat', filePath);
+    if (res && res.success && res.data) {
+      return {
+        success: true,
+        size: res.data.size,
+        mtime: res.data.mtime,
+        isDirectory: res.data.isDirectory,
+      };
+    }
+    return {
+      success: false,
+      error: res?.error || 'Failed to stat file from agent',
+    };
+  }
+
+  /**
+   * Get file stream for download via agent RPC, supporting optional slice range
+   */
+  public async getFileStream(
+    hostId: string,
+    filePath: string,
+    range?: { offset: number; length: number }
+  ): Promise<{
     status: number;
     filename: string;
     size?: number;
+    totalSize?: number;
     stream?: NodeJS.ReadableStream;
     error?: string;
   }> {
@@ -147,14 +180,26 @@ export class TerminalFileService {
       return { status: 400, filename: path.basename(filePath), error: 'hostId is required' };
     }
 
-    const res = await this.rpcAgent(hostId, 'download_chunk', filePath);
+    const params = range ? { offset: range.offset, length: range.length } : undefined;
+    const res = await this.rpcAgent(hostId, 'download_chunk', filePath, params);
     if (!res.success || !res.data) {
       const isNotFound = res.error && (res.error.toLowerCase().includes('not found') || res.error.toLowerCase().includes('no such file'));
       return { status: isNotFound ? 404 : 500, filename: path.basename(filePath), error: res.error || 'Failed to fetch file from agent' };
     }
-    const buffer = Buffer.from(res.data, 'base64');
+
+    let buffer: Buffer;
+    let totalSize: number | undefined;
+
+    if (typeof res.data === 'string') {
+      buffer = Buffer.from(res.data, 'base64');
+      totalSize = buffer.length;
+    } else {
+      buffer = Buffer.from(res.data.data || '', 'base64');
+      totalSize = typeof res.data.size === 'number' ? res.data.size : undefined;
+    }
+
     const stream = Readable.from(buffer);
-    return { status: 200, filename: path.basename(filePath), size: buffer.length, stream };
+    return { status: 200, filename: path.basename(filePath), size: buffer.length, totalSize, stream };
   }
 
   /**

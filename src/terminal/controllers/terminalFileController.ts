@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import path from 'path';
 import terminalFileService from '../services/terminalFileService';
 import logger from '../../utils/logger';
+import { parseRangeHeader, applyRangeHeaders, applyUnsatisfiableHeaders } from '../utils/rangeParser';
 
 function parseMultipartForm(buffer: Buffer, boundary: string): { filename: string; data: Buffer }[] {
   const delimiter = Buffer.from(`--${boundary}`);
@@ -201,12 +202,60 @@ class TerminalFileController {
         res.status(400).json({ success: false, error: 'path query parameter is required' });
         return;
       }
+
+      // Disable request/response timeouts for streaming large files
+      req.setTimeout(0);
+      res.setTimeout(0);
+
+      const rangeHeader = req.headers.range;
+
+      // Handle Range request if Range header is present
+      if (rangeHeader) {
+        const statRes = await terminalFileService.getFileStat(hostId, targetPath);
+        if (!statRes.success || typeof statRes.size !== 'number') {
+          const isNotFound = statRes.error && (statRes.error.toLowerCase().includes('not found') || statRes.error.toLowerCase().includes('no such file'));
+          res.status(isNotFound ? 404 : 500).json({ success: false, error: statRes.error || 'Failed to stat file' });
+          return;
+        }
+
+        const totalSize = statRes.size;
+        const parsed = parseRangeHeader(rangeHeader, totalSize);
+
+        if (parsed?.status === 'unsatisfiable') {
+          applyUnsatisfiableHeaders(res, totalSize);
+          res.end();
+          return;
+        }
+
+        if (parsed?.status === 'valid') {
+          const sliceResult = await terminalFileService.getFileStream(hostId, targetPath, {
+            offset: parsed.range.start,
+            length: parsed.range.length,
+          });
+
+          if (sliceResult.status === 200 && sliceResult.stream) {
+            res.type(sliceResult.filename);
+            applyRangeHeaders(res, parsed.range, sliceResult.filename);
+            sliceResult.stream.pipe(res);
+            return;
+          } else {
+            res.status(sliceResult.status).json({ success: false, error: sliceResult.error });
+            return;
+          }
+        }
+        // If parsed is null (malformed Range header), fall through to full 200 stream as per RFC 9110
+      }
+
+      // Normal full stream download (200 OK)
       const result = await terminalFileService.getFileStream(hostId, targetPath);
       if (result.status === 200 && result.stream) {
+        res.status(200);
+        res.setHeader('Accept-Ranges', 'bytes');
         res.type(result.filename);
         res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(result.filename)}"`);
-        if (result.size) {
-          res.setHeader('Content-Length', result.size);
+        const totalLength = result.totalSize !== undefined ? result.totalSize : result.size;
+        if (totalLength !== undefined) {
+          res.setHeader('Content-Length', totalLength);
         }
         result.stream.pipe(res);
       } else {
