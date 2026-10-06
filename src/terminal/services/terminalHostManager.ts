@@ -637,7 +637,11 @@ export class TerminalHostManager {
     });
   }
 
-  public async executeFileRpc(hostIdOrName: string, payload: { action: string; path: string; params?: any }): Promise<any> {
+  public async executeFileRpc(
+    hostIdOrName: string,
+    payload: { action: string; path: string; params?: any },
+    timeoutMs: number = 30000
+  ): Promise<any> {
     const canonicalId = this.resolveCanonicalHostId(hostIdOrName);
     if (!canonicalId) {
       return { success: false, error: `Agent "${hostIdOrName}" is offline or unavailable` };
@@ -658,9 +662,9 @@ export class TerminalHostManager {
       const timeoutTimer = setTimeout(() => {
         if (this.rpcResolvers.has(reqId)) {
           this.rpcResolvers.delete(reqId);
-          resolve({ success: false, error: 'Agent file request timed out (30s)' });
+          resolve({ success: false, error: `Agent file request timed out (${Math.round(timeoutMs / 1000)}s)` });
         }
-      }, 30000);
+      }, timeoutMs);
 
       this.rpcResolvers.set(reqId, (res) => {
         clearTimeout(timeoutTimer);

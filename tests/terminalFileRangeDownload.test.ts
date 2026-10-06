@@ -28,6 +28,17 @@ describe('Terminal File Range Download Integration Tests', () => {
                   success: false,
                   error: 'File not found',
                 });
+              } else if (targetPath.includes('large.log')) {
+                const largeSize = 2500000;
+                terminalHostManager.handleAgentRpcResponse({
+                  reqId,
+                  success: true,
+                  data: {
+                    size: largeSize,
+                    mtime: Date.now(),
+                    isDirectory: false,
+                  },
+                });
               } else {
                 terminalHostManager.handleAgentRpcResponse({
                   reqId,
@@ -45,6 +56,22 @@ describe('Terminal File Range Download Integration Tests', () => {
                   reqId,
                   success: false,
                   error: 'File not found',
+                });
+              } else if (targetPath.includes('large.log')) {
+                const largeSize = 2500000;
+                const offset = Number(params?.offset) || 0;
+                const length = params?.length !== undefined ? Number(params.length) : (largeSize - offset);
+                const actualLen = Math.min(length, largeSize - offset);
+                const chunkBuf = Buffer.alloc(actualLen, 65); // 'A'
+                terminalHostManager.handleAgentRpcResponse({
+                  reqId,
+                  success: true,
+                  data: {
+                    data: chunkBuf.toString('base64'),
+                    size: largeSize,
+                    offset,
+                    length: actualLen,
+                  },
                 });
               } else if (params && (params.offset !== undefined || params.length !== undefined)) {
                 const offset = Number(params.offset) || 0;
@@ -133,5 +160,17 @@ describe('Terminal File Range Download Integration Tests', () => {
 
     expect(res.status).toBe(416);
     expect(res.headers['content-range']).toBe(`bytes */${totalFileSize}`);
+  });
+
+  test('streams large file (2.5MB > 1MB threshold) chunk-by-chunk without timing out', async () => {
+    const res = await request(app)
+      .get('/api/admin/terminal/files/download')
+      .set('x-admin-key', secretKey)
+      .query({ hostId: testHostId, path: '/var/log/large.log' });
+
+    expect(res.status).toBe(200);
+    expect(res.headers['accept-ranges']).toBe('bytes');
+    expect(res.headers['content-length']).toBe('2500000');
+    expect(res.body.length || res.text.length).toBe(2500000);
   });
 });

@@ -86,6 +86,16 @@ describe('Terminal File Manager Pure RPC Integration Tests', () => {
                 reqId,
                 success: true,
               });
+            } else if (action === 'stat') {
+              terminalHostManager.handleAgentRpcResponse({
+                reqId,
+                success: true,
+                data: {
+                  size: 21,
+                  mtime: Date.now(),
+                  isDirectory: false,
+                },
+              });
             } else if (action === 'download_chunk') {
               terminalHostManager.handleAgentRpcResponse({
                 reqId,

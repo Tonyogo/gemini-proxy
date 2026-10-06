@@ -162,7 +162,8 @@ export class TerminalFileService {
   }
 
   /**
-   * Get file stream for download via agent RPC, supporting optional slice range
+   * Get file stream for download via agent RPC, supporting optional slice range.
+   * For files/slices larger than 1MB, streams chunk-by-chunk to prevent memory spikes & 30s timeouts.
    */
   public async getFileStream(
     hostId: string,
@@ -180,11 +181,41 @@ export class TerminalFileService {
       return { status: 400, filename: path.basename(filePath), error: 'hostId is required' };
     }
 
+    const filename = path.basename(filePath);
+    const CHUNK_THRESHOLD = 1024 * 1024; // 1MB
+
+    // If a range is provided and length is greater than 1MB, stream in chunks
+    if (range && range.length > CHUNK_THRESHOLD) {
+      const stream = this.createAgentChunkedStream(hostId, filePath, range.offset, range.length);
+      return {
+        status: 200,
+        filename,
+        size: range.length,
+        stream,
+      };
+    }
+
+    // If no range is provided, check if we can get totalSize and stream chunk-by-chunk
+    if (!range) {
+      const statRes = await this.getFileStat(hostId, filePath);
+      if (statRes.success && typeof statRes.size === 'number' && statRes.size > CHUNK_THRESHOLD) {
+        const stream = this.createAgentChunkedStream(hostId, filePath, 0, statRes.size);
+        return {
+          status: 200,
+          filename,
+          size: statRes.size,
+          totalSize: statRes.size,
+          stream,
+        };
+      }
+    }
+
+    // Single chunk fetch for files/slices <= 1MB (or fallback when stat fails)
     const params = range ? { offset: range.offset, length: range.length } : undefined;
-    const res = await this.rpcAgent(hostId, 'download_chunk', filePath, params);
-    if (!res.success || !res.data) {
-      const isNotFound = res.error && (res.error.toLowerCase().includes('not found') || res.error.toLowerCase().includes('no such file'));
-      return { status: isNotFound ? 404 : 500, filename: path.basename(filePath), error: res.error || 'Failed to fetch file from agent' };
+    const res = await this.rpcAgent(hostId, 'download_chunk', filePath, params, 60000);
+    if (!res || !res.success || !res.data) {
+      const isNotFound = res?.error && (res.error.toLowerCase().includes('not found') || res.error.toLowerCase().includes('no such file'));
+      return { status: isNotFound ? 404 : 500, filename, error: res?.error || 'Failed to fetch file from agent' };
     }
 
     let buffer: Buffer;
@@ -199,7 +230,79 @@ export class TerminalFileService {
     }
 
     const stream = Readable.from(buffer);
-    return { status: 200, filename: path.basename(filePath), size: buffer.length, totalSize, stream };
+    return { status: 200, filename, size: buffer.length, totalSize, stream };
+  }
+
+  /**
+   * Creates a Readable stream that pulls data from the agent in 1MB chunks sequentially.
+   * Completely avoids memory spikes and 30s RPC timeouts for large files.
+   */
+  private createAgentChunkedStream(
+    hostId: string,
+    filePath: string,
+    startOffset: number,
+    totalLength: number,
+    chunkSize: number = 1024 * 1024
+  ): NodeJS.ReadableStream {
+    const endOffset = startOffset + totalLength - 1;
+    let currentOffset = startOffset;
+    let isFetching = false;
+    let isDestroyed = false;
+
+    const self = this;
+    return new Readable({
+      async read() {
+        if (isFetching || isDestroyed) return;
+        if (currentOffset > endOffset) {
+          this.push(null); // EOF
+          return;
+        }
+
+        isFetching = true;
+        try {
+          const remaining = endOffset - currentOffset + 1;
+          const fetchLength = Math.min(chunkSize, remaining);
+
+          const res = await self.rpcAgent(hostId, 'download_chunk', filePath, {
+            offset: currentOffset,
+            length: fetchLength,
+          }, 60000);
+
+          if (isDestroyed) return;
+
+          if (!res || !res.success || !res.data) {
+            this.destroy(new Error(res?.error || 'Failed to read chunk from agent'));
+            return;
+          }
+
+          let buffer: Buffer;
+          if (typeof res.data === 'string') {
+            buffer = Buffer.from(res.data, 'base64');
+          } else if (res.data.data) {
+            buffer = Buffer.from(res.data.data, 'base64');
+          } else {
+            buffer = Buffer.alloc(0);
+          }
+
+          if (buffer.length === 0) {
+            this.push(null);
+            return;
+          }
+
+          currentOffset += buffer.length;
+          isFetching = false;
+          this.push(buffer);
+        } catch (err: any) {
+          if (!isDestroyed) {
+            this.destroy(err);
+          }
+        }
+      },
+      destroy(err, callback) {
+        isDestroyed = true;
+        callback(err);
+      },
+    });
   }
 
   /**
@@ -223,12 +326,12 @@ export class TerminalFileService {
   /**
    * RPC bridge for Remote Agent
    */
-  private async rpcAgent(hostId: string, action: string, targetPath: string, params?: any): Promise<any> {
+  private async rpcAgent(hostId: string, action: string, targetPath: string, params?: any, timeoutMs?: number): Promise<any> {
     return terminalHostManager.executeFileRpc(hostId, {
       action,
       path: targetPath,
       params,
-    });
+    }, timeoutMs);
   }
 }
 
