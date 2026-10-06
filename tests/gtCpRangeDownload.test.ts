@@ -23,6 +23,33 @@ describe('gt cp CLI Resumable Range Download Tests', () => {
       if (url.pathname === '/api/terminal/files/download') {
         const range = req.headers['range'];
         requestedRanges.push(range);
+        const remoteFilePath = url.searchParams.get('path');
+
+        if (remoteFilePath === '/remote/drop-midway.txt' && !range) {
+          res.writeHead(200, {
+            'Content-Type': 'application/octet-stream',
+            'Content-Length': testData.length,
+            'Accept-Ranges': 'bytes',
+          });
+          res.write(testData.slice(0, 25));
+          setTimeout(() => {
+            res.socket?.destroy();
+          }, 30);
+          return;
+        }
+
+        if (remoteFilePath === '/remote/premature-end.txt' && !range) {
+          res.writeHead(200, {
+            'Content-Type': 'application/octet-stream',
+            'Content-Length': testData.length,
+            'Accept-Ranges': 'bytes',
+          });
+          res.write(testData.slice(0, 30));
+          setTimeout(() => {
+            res.destroy();
+          }, 30);
+          return;
+        }
 
         if (!range) {
           res.writeHead(200, {
@@ -136,6 +163,42 @@ describe('gt cp CLI Resumable Range Download Tests', () => {
       localPath: destFile,
     });
 
+    expect(fs.existsSync(destFile)).toBe(true);
+    expect(fs.readFileSync(destFile, 'utf-8')).toBe(testData);
+    expect(fs.existsSync(partFile)).toBe(false);
+  });
+
+  test('auto-resumes when connection is abruptly destroyed mid-stream', async () => {
+    const destFile = path.join(tempDir, 'file-drop.txt');
+    const partFile = `${destFile}.part`;
+
+    await downloadRemoteFile({
+      serverUrl,
+      apiKey: 'test-key',
+      hostId: 'test-node',
+      remotePath: '/remote/drop-midway.txt',
+      localPath: destFile,
+    });
+
+    expect(requestedRanges).toContain('bytes=25-');
+    expect(fs.existsSync(destFile)).toBe(true);
+    expect(fs.readFileSync(destFile, 'utf-8')).toBe(testData);
+    expect(fs.existsSync(partFile)).toBe(false);
+  });
+
+  test('auto-resumes when stream ends prematurely without full content', async () => {
+    const destFile = path.join(tempDir, 'file-premature.txt');
+    const partFile = `${destFile}.part`;
+
+    await downloadRemoteFile({
+      serverUrl,
+      apiKey: 'test-key',
+      hostId: 'test-node',
+      remotePath: '/remote/premature-end.txt',
+      localPath: destFile,
+    });
+
+    expect(requestedRanges).toContain('bytes=30-');
     expect(fs.existsSync(destFile)).toBe(true);
     expect(fs.readFileSync(destFile, 'utf-8')).toBe(testData);
     expect(fs.existsSync(partFile)).toBe(false);

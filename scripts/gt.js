@@ -576,8 +576,46 @@ async function downloadRemoteFile({ serverUrl, apiKey, hostId, remotePath, local
 
   const partFile = `${destFile}.part`;
 
+  const maxRetries = 10;
+  let retryCount = 0;
+
   const executeDownload = (allowResume = true) => {
     return new Promise((resolve, reject) => {
+      let isSettled = false;
+      let attemptHandled = false;
+      let writeStream = null;
+      let req = null;
+
+      const safeCleanup = () => {
+        if (writeStream) {
+          try {
+            writeStream.removeAllListeners();
+            writeStream.destroy();
+          } catch {}
+          writeStream = null;
+        }
+      };
+
+      const handleRetryOrReject = (err) => {
+        if (isSettled || attemptHandled) return;
+        attemptHandled = true;
+        safeCleanup();
+
+        if (retryCount >= maxRetries) {
+          isSettled = true;
+          reject(new Error(`Download failed after ${maxRetries} retries: ${err.message}`));
+          return;
+        }
+
+        retryCount++;
+        const backoffMs = Math.min(500 * Math.pow(1.5, retryCount - 1), 3000);
+        console.warn(`[gt cp] Transfer interrupted (${err.message}). Resuming in ${(backoffMs / 1000).toFixed(1)}s (retry ${retryCount}/${maxRetries})...`);
+        setTimeout(() => {
+          if (isSettled) return;
+          executeDownload(true).then(resolve, reject);
+        }, backoffMs);
+      };
+
       const headers = {};
       if (apiKey) {
         headers['x-admin-key'] = apiKey;
@@ -596,7 +634,7 @@ async function downloadRemoteFile({ serverUrl, apiKey, hostId, remotePath, local
         headers['Range'] = `bytes=${existingBytes}-`;
       }
 
-      const req = client.request({
+      req = client.request({
         protocol: serverParsed.protocol,
         hostname: serverParsed.hostname,
         port: serverParsed.port || (isHttps ? 443 : 80),
@@ -606,14 +644,23 @@ async function downloadRemoteFile({ serverUrl, apiKey, hostId, remotePath, local
       }, (res) => {
         // If 416 (Range Not Satisfiable), our .part file might be corrupted or complete. Reset and redownload.
         if (res.statusCode === 416) {
+          attemptHandled = true;
           try { if (fs.existsSync(partFile)) fs.unlinkSync(partFile); } catch {}
-          return executeDownload(false).then(resolve, reject);
+          if (allowResume) {
+            return executeDownload(false).then(resolve, reject);
+          }
+          isSettled = true;
+          reject(new Error('Download failed: 416 Range Not Satisfiable'));
+          return;
         }
 
         if (res.statusCode >= 400) {
+          attemptHandled = true;
           let data = '';
           res.on('data', (chunk) => { data += chunk; });
           res.on('end', () => {
+            if (isSettled) return;
+            isSettled = true;
             let json = null;
             try { json = JSON.parse(data); } catch { json = { raw: data }; }
             reject(new Error(`Download failed: ${json?.error || `HTTP ${res.statusCode}`}`));
@@ -623,7 +670,23 @@ async function downloadRemoteFile({ serverUrl, apiKey, hostId, remotePath, local
 
         const isPartial = res.statusCode === 206;
         const writeFlags = isPartial ? 'a' : 'w';
-        const writeStream = fs.createWriteStream(partFile, { flags: writeFlags });
+        const currentExistingBytes = isPartial ? existingBytes : 0;
+
+        let expectedTotal = null;
+        if (isPartial && res.headers['content-range']) {
+          const crMatch = res.headers['content-range'].match(/\/(\d+)/);
+          if (crMatch) {
+            expectedTotal = parseInt(crMatch[1], 10);
+          }
+        }
+        if (res.headers['content-length']) {
+          const sessionLen = parseInt(res.headers['content-length'], 10);
+          if (!expectedTotal && !isNaN(sessionLen)) {
+            expectedTotal = currentExistingBytes + sessionLen;
+          }
+        }
+
+        writeStream = fs.createWriteStream(partFile, { flags: writeFlags });
 
         let sessionBytes = 0;
         res.on('data', (chunk) => {
@@ -632,26 +695,58 @@ async function downloadRemoteFile({ serverUrl, apiKey, hostId, remotePath, local
 
         res.pipe(writeStream);
 
+        res.on('error', (err) => {
+          handleRetryOrReject(err);
+        });
+
+        res.on('close', () => {
+          if (!res.complete && !isSettled) {
+            handleRetryOrReject(new Error('Connection closed prematurely by server'));
+          }
+        });
+
         writeStream.on('finish', () => {
+          if (isSettled || attemptHandled) return;
+
+          let currentSize = 0;
+          try {
+            currentSize = fs.statSync(partFile).size;
+          } catch {}
+
+          if (!res.complete || (expectedTotal !== null && currentSize < expectedTotal)) {
+            handleRetryOrReject(new Error(`Incomplete download: received ${currentSize} bytes${expectedTotal ? `/${expectedTotal}` : ''}`));
+            return;
+          }
+
           try {
             if (fs.existsSync(destFile)) {
               fs.unlinkSync(destFile);
             }
             fs.renameSync(partFile, destFile);
-            const totalBytes = existingBytes + sessionBytes;
+            attemptHandled = true;
+            isSettled = true;
+            const totalBytes = currentSize;
             console.log(`Successfully copied [${hostId}]:${remotePath} -> ${destFile} (${(totalBytes / 1024).toFixed(1)} KB${isPartial ? ' [resumed]' : ''})`);
             resolve(0);
           } catch (renameErr) {
+            attemptHandled = true;
+            isSettled = true;
             reject(new Error(`Failed to finalize local file: ${renameErr.message}`));
           }
         });
 
         writeStream.on('error', (err) => {
+          if (isSettled || attemptHandled) return;
+          attemptHandled = true;
+          isSettled = true;
           reject(new Error(`Failed to write local file: ${err.message}`));
         });
       });
 
-      req.on('error', reject);
+      req.on('error', (err) => {
+        handleRetryOrReject(err);
+      });
+
       req.end();
     });
   };
@@ -688,8 +783,8 @@ async function runCp(serverUrl, apiKey, args) {
 // --------------------------------------------------------------------------
 
 const HANDSHAKE_TIMEOUT_MS = 4000;
-const HEARTBEAT_INTERVAL_MS = 10000;
-const HEARTBEAT_TIMEOUT_MS = 3000;
+const HEARTBEAT_INTERVAL_MS = 15000;
+const HEARTBEAT_TIMEOUT_MS = 20000;
 
 function getLocalIp() {
   const ifaces = os.networkInterfaces();

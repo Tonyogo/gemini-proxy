@@ -182,9 +182,9 @@ export class TerminalFileService {
     }
 
     const filename = path.basename(filePath);
-    const CHUNK_THRESHOLD = 1024 * 1024; // 1MB
+    const CHUNK_THRESHOLD = 512 * 1024; // 512KB
 
-    // If a range is provided and length is greater than 1MB, stream in chunks
+    // If a range is provided and length is greater than 512KB, stream in chunks
     if (range && range.length > CHUNK_THRESHOLD) {
       const stream = this.createAgentChunkedStream(hostId, filePath, range.offset, range.length);
       return {
@@ -210,7 +210,7 @@ export class TerminalFileService {
       }
     }
 
-    // Single chunk fetch for files/slices <= 1MB (or fallback when stat fails)
+    // Single chunk fetch for files/slices <= 512KB (or fallback when stat fails)
     const params = range ? { offset: range.offset, length: range.length } : undefined;
     const res = await this.rpcAgent(hostId, 'download_chunk', filePath, params, 60000);
     if (!res || !res.success || !res.data) {
@@ -234,15 +234,15 @@ export class TerminalFileService {
   }
 
   /**
-   * Creates a Readable stream that pulls data from the agent in 1MB chunks sequentially.
-   * Completely avoids memory spikes and 30s RPC timeouts for large files.
+   * Creates a Readable stream that pulls data from the agent in 512KB chunks sequentially.
+   * Completely avoids memory spikes and RPC timeouts for large files over WAN.
    */
   private createAgentChunkedStream(
     hostId: string,
     filePath: string,
     startOffset: number,
     totalLength: number,
-    chunkSize: number = 1024 * 1024
+    chunkSize: number = 512 * 1024
   ): NodeJS.ReadableStream {
     const endOffset = startOffset + totalLength - 1;
     let currentOffset = startOffset;

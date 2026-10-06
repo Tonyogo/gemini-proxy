@@ -236,7 +236,7 @@ class TerminalFileController {
           if (sliceResult.status === 200 && sliceResult.stream) {
             res.type(sliceResult.filename);
             applyRangeHeaders(res, parsed.range, sliceResult.filename);
-            sliceResult.stream.pipe(res);
+            this.pipeStreamToResponse(sliceResult.stream, res);
             return;
           } else {
             res.status(sliceResult.status).json({ success: false, error: sliceResult.error });
@@ -257,13 +257,43 @@ class TerminalFileController {
         if (totalLength !== undefined) {
           res.setHeader('Content-Length', totalLength);
         }
-        result.stream.pipe(res);
+        this.pipeStreamToResponse(result.stream, res);
       } else {
         res.status(result.status).json({ success: false, error: result.error });
       }
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message });
     }
+  }
+
+  private pipeStreamToResponse(stream: NodeJS.ReadableStream, res: Response): void {
+    let isStreamDestroyed = false;
+    const safeDestroy = (err?: Error) => {
+      if (isStreamDestroyed) return;
+      isStreamDestroyed = true;
+      if (typeof (stream as any).destroy === 'function') {
+        (stream as any).destroy(err);
+      }
+    };
+
+    stream.on('error', (err: any) => {
+      logger.error(`[TerminalFileController] Stream error during download: ${err?.message || err}`);
+      safeDestroy(err);
+      if (!res.headersSent) {
+        res.status(500).json({ success: false, error: err?.message || 'Download stream error' });
+      } else {
+        res.destroy(err);
+      }
+    });
+
+    res.on('close', () => {
+      if (!res.writableEnded) {
+        logger.info(`[TerminalFileController] Client closed connection prematurely, destroying stream`);
+        safeDestroy();
+      }
+    });
+
+    stream.pipe(res);
   }
 
   public async uploadFile(req: Request, res: Response): Promise<void> {

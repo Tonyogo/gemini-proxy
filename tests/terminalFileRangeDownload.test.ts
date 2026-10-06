@@ -39,6 +39,17 @@ describe('Terminal File Range Download Integration Tests', () => {
                     isDirectory: false,
                   },
                 });
+              } else if (targetPath.includes('fail-chunk.log')) {
+                const failSize = 2000000;
+                terminalHostManager.handleAgentRpcResponse({
+                  reqId,
+                  success: true,
+                  data: {
+                    size: failSize,
+                    mtime: Date.now(),
+                    isDirectory: false,
+                  },
+                });
               } else {
                 terminalHostManager.handleAgentRpcResponse({
                   reqId,
@@ -57,6 +68,27 @@ describe('Terminal File Range Download Integration Tests', () => {
                   success: false,
                   error: 'File not found',
                 });
+              } else if (targetPath.includes('fail-chunk.log')) {
+                const offset = Number(params?.offset) || 0;
+                if (offset > 0) {
+                  terminalHostManager.handleAgentRpcResponse({
+                    reqId,
+                    success: false,
+                    error: 'Agent disk read failed mid-transfer',
+                  });
+                } else {
+                  const chunkBuf = Buffer.alloc(512 * 1024, 66);
+                  terminalHostManager.handleAgentRpcResponse({
+                    reqId,
+                    success: true,
+                    data: {
+                      data: chunkBuf.toString('base64'),
+                      size: 2000000,
+                      offset: 0,
+                      length: chunkBuf.length,
+                    },
+                  });
+                }
               } else if (targetPath.includes('large.log')) {
                 const largeSize = 2500000;
                 const offset = Number(params?.offset) || 0;
@@ -172,5 +204,23 @@ describe('Terminal File Range Download Integration Tests', () => {
     expect(res.headers['accept-ranges']).toBe('bytes');
     expect(res.headers['content-length']).toBe('2500000');
     expect(res.body.length || res.text.length).toBe(2500000);
+  });
+
+  test('handles stream error gracefully when agent chunk read fails mid-stream', async () => {
+    try {
+      await request(app)
+        .get('/api/admin/terminal/files/download')
+        .set('x-admin-key', secretKey)
+        .query({ hostId: testHostId, path: '/var/log/fail-chunk.log' });
+    } catch (err: any) {
+      expect(err).toBeDefined();
+    }
+    // Verify server remains healthy and subsequent requests succeed
+    const checkRes = await request(app)
+      .get('/api/admin/terminal/files/download')
+      .set('x-admin-key', secretKey)
+      .query({ hostId: testHostId, path: '/var/log/app.log' });
+    expect(checkRes.status).toBe(200);
+    expect(checkRes.text).toBe(fullMockContent);
   });
 });
