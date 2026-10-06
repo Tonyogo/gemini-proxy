@@ -12,6 +12,7 @@ describe('gt cp CLI Resumable Range Download Tests', () => {
 
   const testData = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'; // 62 bytes
   let requestedRanges: (string | undefined)[] = [];
+  let transient500Sent = false;
 
   const tempDir = path.join(os.tmpdir(), `gt-cp-test-${Date.now()}`);
 
@@ -49,6 +50,37 @@ describe('gt cp CLI Resumable Range Download Tests', () => {
             res.destroy();
           }, 30);
           return;
+        }
+
+        if (remoteFilePath === '/remote/empty.txt') {
+          res.writeHead(200, {
+            'Content-Type': 'application/octet-stream',
+            'Content-Length': 0,
+            'Accept-Ranges': 'bytes',
+          });
+          res.end('');
+          return;
+        }
+
+        if (remoteFilePath === '/remote/transient-500.txt') {
+          if (!range) {
+            res.writeHead(200, {
+              'Content-Type': 'application/octet-stream',
+              'Content-Length': testData.length,
+              'Accept-Ranges': 'bytes',
+            });
+            res.write(testData.slice(0, 20));
+            setTimeout(() => {
+              res.socket?.destroy();
+            }, 30);
+            return;
+          }
+          if (!transient500Sent) {
+            transient500Sent = true;
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: false, error: 'Agent reconnecting; temporary failure' }));
+            return;
+          }
         }
 
         if (!range) {
@@ -110,6 +142,7 @@ describe('gt cp CLI Resumable Range Download Tests', () => {
 
   beforeEach(() => {
     requestedRanges = [];
+    transient500Sent = false;
   });
 
   test('downloads whole file cleanly when no partial file exists', async () => {
@@ -201,6 +234,62 @@ describe('gt cp CLI Resumable Range Download Tests', () => {
     expect(requestedRanges).toContain('bytes=30-');
     expect(fs.existsSync(destFile)).toBe(true);
     expect(fs.readFileSync(destFile, 'utf-8')).toBe(testData);
+    expect(fs.existsSync(partFile)).toBe(false);
+  });
+
+  test('auto-resumes when transient 500 error occurs during resumption', async () => {
+    const destFile = path.join(tempDir, 'file-transient-500.txt');
+    const partFile = `${destFile}.part`;
+
+    await downloadRemoteFile({
+      serverUrl,
+      apiKey: 'test-key',
+      hostId: 'test-node',
+      remotePath: '/remote/transient-500.txt',
+      localPath: destFile,
+    });
+
+    // Should have retried with range after the 500 response
+    expect(requestedRanges.filter(r => r === 'bytes=20-').length).toBeGreaterThanOrEqual(2);
+    expect(fs.existsSync(destFile)).toBe(true);
+    expect(fs.readFileSync(destFile, 'utf-8')).toBe(testData);
+    expect(fs.existsSync(partFile)).toBe(false);
+  });
+
+  test('auto-resets when .part file is corrupted with size exceeding expected total', async () => {
+    const destFile = path.join(tempDir, 'file-oversized-part.txt');
+    const partFile = `${destFile}.part`;
+
+    // Create corrupted .part file with 200 bytes (testData is only 62 bytes)
+    fs.writeFileSync(partFile, 'Z'.repeat(200), 'utf-8');
+
+    await downloadRemoteFile({
+      serverUrl,
+      apiKey: 'test-key',
+      hostId: 'test-node',
+      remotePath: '/remote/file1.txt',
+      localPath: destFile,
+    });
+
+    expect(fs.existsSync(destFile)).toBe(true);
+    expect(fs.readFileSync(destFile, 'utf-8')).toBe(testData);
+    expect(fs.existsSync(partFile)).toBe(false);
+  });
+
+  test('downloads empty 0-byte file cleanly', async () => {
+    const destFile = path.join(tempDir, 'empty-download.txt');
+    const partFile = `${destFile}.part`;
+
+    await downloadRemoteFile({
+      serverUrl,
+      apiKey: 'test-key',
+      hostId: 'test-node',
+      remotePath: '/remote/empty.txt',
+      localPath: destFile,
+    });
+
+    expect(fs.existsSync(destFile)).toBe(true);
+    expect(fs.readFileSync(destFile, 'utf-8')).toBe('');
     expect(fs.existsSync(partFile)).toBe(false);
   });
 });

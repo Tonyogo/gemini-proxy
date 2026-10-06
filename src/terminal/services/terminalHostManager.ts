@@ -503,7 +503,7 @@ export class TerminalHostManager {
     }
     if (session && (!closingWs || session.getAgentWs() === closingWs)) {
       session.updateAgentWs(null);
-      this.clearPendingRpcForHost(canonicalId);
+      this.clearPendingRpcForHost(canonicalId, `Agent ${canonicalId} disconnected; RPC cancelled`);
     }
   }
 
@@ -595,17 +595,19 @@ export class TerminalHostManager {
     }
   }
 
-  public clearPendingRpcForHost(hostId: string): void {
+  public clearPendingRpcForHost(hostId: string, reason?: string): void {
     const canonicalId = this.resolveCanonicalHostId(hostId) || hostId;
+    const rpcError = reason || `Agent ${canonicalId} reconnected; previous RPC cancelled`;
+    const cmdRpcError = reason || `Agent ${canonicalId} reconnected; previous command RPC cancelled`;
     for (const [reqId, entry] of this.rpcResolvers.entries()) {
       if (entry.hostId === canonicalId) {
-        entry.resolver({ success: false, error: `Agent ${canonicalId} reconnected; previous RPC cancelled` });
+        entry.resolver({ success: false, error: rpcError });
         this.rpcResolvers.delete(reqId);
       }
     }
     for (const [reqId, entry] of this.cmdRpcResolvers.entries()) {
       if (entry.hostId === canonicalId) {
-        entry.resolver({ success: false, error: `Agent ${canonicalId} reconnected; previous command RPC cancelled` });
+        entry.resolver({ success: false, error: cmdRpcError });
         this.cmdRpcResolvers.delete(reqId);
       }
     }

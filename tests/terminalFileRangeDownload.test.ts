@@ -50,6 +50,16 @@ describe('Terminal File Range Download Integration Tests', () => {
                     isDirectory: false,
                   },
                 });
+              } else if (targetPath.includes('zero.log')) {
+                terminalHostManager.handleAgentRpcResponse({
+                  reqId,
+                  success: true,
+                  data: {
+                    size: 0,
+                    mtime: Date.now(),
+                    isDirectory: false,
+                  },
+                });
               } else {
                 terminalHostManager.handleAgentRpcResponse({
                   reqId,
@@ -67,6 +77,12 @@ describe('Terminal File Range Download Integration Tests', () => {
                   reqId,
                   success: false,
                   error: 'File not found',
+                });
+              } else if (targetPath.includes('zero.log')) {
+                terminalHostManager.handleAgentRpcResponse({
+                  reqId,
+                  success: true,
+                  data: '',
                 });
               } else if (targetPath.includes('fail-chunk.log')) {
                 const offset = Number(params?.offset) || 0;
@@ -222,5 +238,15 @@ describe('Terminal File Range Download Integration Tests', () => {
       .query({ hostId: testHostId, path: '/var/log/app.log' });
     expect(checkRes.status).toBe(200);
     expect(checkRes.text).toBe(fullMockContent);
+  });
+
+  test('handles 0-byte file cleanly returning status 200 with Content-Length 0', async () => {
+    const res = await request(app)
+      .get('/api/admin/terminal/files/download')
+      .set('x-admin-key', secretKey)
+      .query({ hostId: testHostId, path: '/var/log/zero.log' });
+    expect(res.status).toBe(200);
+    expect(res.headers['content-length']).toBe('0');
+    expect(res.text).toBe('');
   });
 });

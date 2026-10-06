@@ -213,7 +213,7 @@ export class TerminalFileService {
     // Single chunk fetch for files/slices <= 512KB (or fallback when stat fails)
     const params = range ? { offset: range.offset, length: range.length } : undefined;
     const res = await this.rpcAgent(hostId, 'download_chunk', filePath, params, 60000);
-    if (!res || !res.success || !res.data) {
+    if (!res || !res.success || res.data === undefined || res.data === null) {
       const isNotFound = res?.error && (res.error.toLowerCase().includes('not found') || res.error.toLowerCase().includes('no such file'));
       return { status: isNotFound ? 404 : 500, filename, error: res?.error || 'Failed to fetch file from agent' };
     }
@@ -270,7 +270,7 @@ export class TerminalFileService {
 
           if (isDestroyed) return;
 
-          if (!res || !res.success || !res.data) {
+          if (!res || !res.success || res.data === undefined || res.data === null) {
             this.destroy(new Error(res?.error || 'Failed to read chunk from agent'));
             return;
           }

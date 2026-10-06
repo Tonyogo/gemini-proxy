@@ -585,8 +585,24 @@ async function downloadRemoteFile({ serverUrl, apiKey, hostId, remotePath, local
       let attemptHandled = false;
       let writeStream = null;
       let req = null;
+      let res = null;
 
       const safeCleanup = () => {
+        if (res) {
+          try {
+            if (writeStream) res.unpipe(writeStream);
+            res.removeAllListeners();
+            res.destroy();
+          } catch {}
+          res = null;
+        }
+        if (req) {
+          try {
+            req.removeAllListeners();
+            req.destroy();
+          } catch {}
+          req = null;
+        }
         if (writeStream) {
           try {
             writeStream.removeAllListeners();
@@ -641,29 +657,45 @@ async function downloadRemoteFile({ serverUrl, apiKey, hostId, remotePath, local
         path: `${finalPathname}${finalSearch}`,
         method: 'GET',
         headers,
-      }, (res) => {
+      }, (incomingRes) => {
+        res = incomingRes;
+
         // If 416 (Range Not Satisfiable), our .part file might be corrupted or complete. Reset and redownload.
         if (res.statusCode === 416) {
-          attemptHandled = true;
+          safeCleanup();
           try { if (fs.existsSync(partFile)) fs.unlinkSync(partFile); } catch {}
           if (allowResume) {
+            attemptHandled = true;
             return executeDownload(false).then(resolve, reject);
           }
+          attemptHandled = true;
           isSettled = true;
           reject(new Error('Download failed: 416 Range Not Satisfiable'));
           return;
         }
 
         if (res.statusCode >= 400) {
-          attemptHandled = true;
           let data = '';
           res.on('data', (chunk) => { data += chunk; });
           res.on('end', () => {
-            if (isSettled) return;
-            isSettled = true;
             let json = null;
             try { json = JSON.parse(data); } catch { json = { raw: data }; }
-            reject(new Error(`Download failed: ${json?.error || `HTTP ${res.statusCode}`}`));
+            const errorMsg = json?.error || `HTTP ${res.statusCode}`;
+
+            // Transient server errors (500, 502, 503, 504) or rate limit (429) may be temporary (e.g. agent reconnecting).
+            if (res.statusCode >= 500 || res.statusCode === 429) {
+              handleRetryOrReject(new Error(errorMsg));
+              return;
+            }
+
+            if (isSettled || attemptHandled) return;
+            attemptHandled = true;
+            isSettled = true;
+            safeCleanup();
+            reject(new Error(`Download failed: ${errorMsg}`));
+          });
+          res.on('error', (err) => {
+            handleRetryOrReject(err);
           });
           return;
         }
@@ -681,7 +713,7 @@ async function downloadRemoteFile({ serverUrl, apiKey, hostId, remotePath, local
         }
         if (res.headers['content-length']) {
           const sessionLen = parseInt(res.headers['content-length'], 10);
-          if (!expectedTotal && !isNaN(sessionLen)) {
+          if (expectedTotal === null && !isNaN(sessionLen)) {
             expectedTotal = currentExistingBytes + sessionLen;
           }
         }
@@ -700,7 +732,7 @@ async function downloadRemoteFile({ serverUrl, apiKey, hostId, remotePath, local
         });
 
         res.on('close', () => {
-          if (!res.complete && !isSettled) {
+          if (!res?.complete && !isSettled) {
             handleRetryOrReject(new Error('Connection closed prematurely by server'));
           }
         });
@@ -713,8 +745,16 @@ async function downloadRemoteFile({ serverUrl, apiKey, hostId, remotePath, local
             currentSize = fs.statSync(partFile).size;
           } catch {}
 
-          if (!res.complete || (expectedTotal !== null && currentSize < expectedTotal)) {
-            handleRetryOrReject(new Error(`Incomplete download: received ${currentSize} bytes${expectedTotal ? `/${expectedTotal}` : ''}`));
+          if (!res?.complete || (expectedTotal !== null && currentSize !== expectedTotal)) {
+            if (expectedTotal !== null && currentSize > expectedTotal) {
+              // Corrupted .part file is larger than expected remote file: reset and redownload from scratch
+              safeCleanup();
+              try { if (fs.existsSync(partFile)) fs.unlinkSync(partFile); } catch {}
+              attemptHandled = true;
+              executeDownload(false).then(resolve, reject);
+              return;
+            }
+            handleRetryOrReject(new Error(`Incomplete download: received ${currentSize} bytes${expectedTotal !== null ? `/${expectedTotal}` : ''}`));
             return;
           }
 
@@ -725,12 +765,14 @@ async function downloadRemoteFile({ serverUrl, apiKey, hostId, remotePath, local
             fs.renameSync(partFile, destFile);
             attemptHandled = true;
             isSettled = true;
+            safeCleanup();
             const totalBytes = currentSize;
             console.log(`Successfully copied [${hostId}]:${remotePath} -> ${destFile} (${(totalBytes / 1024).toFixed(1)} KB${isPartial ? ' [resumed]' : ''})`);
             resolve(0);
           } catch (renameErr) {
             attemptHandled = true;
             isSettled = true;
+            safeCleanup();
             reject(new Error(`Failed to finalize local file: ${renameErr.message}`));
           }
         });
@@ -739,6 +781,7 @@ async function downloadRemoteFile({ serverUrl, apiKey, hostId, remotePath, local
           if (isSettled || attemptHandled) return;
           attemptHandled = true;
           isSettled = true;
+          safeCleanup();
           reject(new Error(`Failed to write local file: ${err.message}`));
         });
       });

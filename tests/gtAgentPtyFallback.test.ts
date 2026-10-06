@@ -12,6 +12,9 @@ describe('StreamSessionManager PTY Fallback & Interactive Execution', () => {
   });
 
   it('runs Layer 1 NodePtyDriver when available', (done) => {
+    if (!tryRequirePty()) {
+      return done();
+    }
     const messages: any[] = [];
     const taskId = `test-node-pty-${Date.now()}`;
     const mgr = new StreamSessionManager((msg: any) => {
