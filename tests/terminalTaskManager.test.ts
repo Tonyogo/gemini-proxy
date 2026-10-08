@@ -1,4 +1,7 @@
-const { TaskManager, handleCmdExec, killProcessTree, killProcessTreeSync } = require('../scripts/gt.js');
+const { TaskManager, handleCmdExec, killProcessTree, killProcessTreeSync, resolveWorkingDir, getDefaultShell } = require('../scripts/gt.js');
+const os = require('os');
+const path = require('path');
+const fs = require('fs');
 
 describe('TaskManager & handleCmdExec', () => {
   let tm: any;
@@ -242,5 +245,92 @@ describe('TaskManager & handleCmdExec', () => {
     expect(parsed.reqId).toBe('req-list-1');
     expect(parsed.success).toBe(true);
     expect(parsed.data.tasks).toBeDefined();
+  });
+
+  describe('Working directory and path resolution', () => {
+    it('expands tilde (~) and subpaths in resolveWorkingDir', () => {
+      const home = os.homedir() || process.env.HOME || process.cwd();
+      expect(resolveWorkingDir('~')).toBe(home);
+      expect(resolveWorkingDir('~/my-folder')).toBe(path.join(home, 'my-folder'));
+      expect(resolveWorkingDir('/var/log')).toBe(path.resolve('/var/log'));
+      expect(resolveWorkingDir('')).toBe(home);
+      // Strips outer quotes
+      expect(resolveWorkingDir('"~/my-folder"')).toBe(path.join(home, 'my-folder'));
+      expect(resolveWorkingDir("'~/my-folder'")).toBe(path.join(home, 'my-folder'));
+      expect(resolveWorkingDir('"/var/log"')).toBe(path.resolve('/var/log'));
+    });
+
+    it('rejects startTask immediately with a clear error if working directory does not exist', () => {
+      const nonExistent = path.join(os.tmpdir(), `nonexistent-dir-${Date.now()}`);
+      const res = tm.startTask({
+        taskId: 'test-invalid-cwd',
+        command: 'echo "should not run"',
+        cwd: nonExistent,
+      });
+
+      expect(res.success).toBe(false);
+      expect(res.error).toContain('Working directory does not exist');
+      expect(res.error).toContain(nonExistent);
+      expect(tm.tasks.has('test-invalid-cwd')).toBe(false);
+    });
+
+    it('rejects startTask immediately if working directory is a regular file', () => {
+      const tempFile = path.join(os.tmpdir(), `test-regular-file-${Date.now()}.txt`);
+      fs.writeFileSync(tempFile, 'not a directory');
+      try {
+        const res = tm.startTask({
+          taskId: 'test-file-as-cwd',
+          command: 'echo "should fail"',
+          cwd: tempFile,
+        });
+
+        expect(res.success).toBe(false);
+        expect(res.error).toContain('not a directory');
+        expect(tm.tasks.has('test-file-as-cwd')).toBe(false);
+      } finally {
+        try { fs.unlinkSync(tempFile); } catch {}
+      }
+    });
+
+    it('StreamSessionManager rejects non-existent working directory immediately', () => {
+      const sent: any[] = [];
+      const { StreamSessionManager } = require('../scripts/gt.js');
+      const ssm = new StreamSessionManager((msg: any) => sent.push(msg));
+      const nonExistent = path.join(os.tmpdir(), `nonexistent-stream-${Date.now()}`);
+
+      ssm.startStream({
+        taskId: 'stream-invalid-cwd',
+        command: 'echo "test"',
+        cwd: nonExistent,
+      });
+
+      expect(sent.length).toBe(2);
+      expect(sent[0].type).toBe('cmd_stream_data');
+      const decoded = Buffer.from(sent[0].data, 'base64').toString('utf-8');
+      expect(decoded).toContain('Working directory does not exist');
+      expect(sent[1].type).toBe('cmd_stream_exit');
+      expect(sent[1].exitCode).toBe(1);
+    });
+
+    it('successfully runs in expanded tilde cwd if directory exists', async () => {
+      const home = os.homedir() || process.env.HOME || process.cwd();
+      const res = tm.startTask({
+        taskId: 'test-tilde-cwd',
+        command: 'pwd',
+        cwd: '~',
+      });
+
+      expect(res.success).toBe(true);
+      let poll: any;
+      for (let i = 0; i < 30; i++) {
+        await new Promise((r) => setTimeout(r, 100));
+        poll = tm.getTask('test-tilde-cwd');
+        if (poll.status === 'completed' || poll.status === 'failed') break;
+      }
+
+      expect(poll.status).toBe('completed');
+      expect(poll.exitCode).toBe(0);
+      expect(poll.stdout.trim()).toBe(home);
+    });
   });
 });

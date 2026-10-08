@@ -842,15 +842,33 @@ function getLocalIp() {
 }
 
 function getDefaultShell(options = {}) {
+  if (options.shell) return options.shell;
   if (os.platform() === 'win32') {
     return process.env.COMSPEC || 'powershell.exe';
   }
-  if (options.shell) return options.shell;
   if (process.env.SHELL && fs.existsSync(process.env.SHELL)) return process.env.SHELL;
   if (fs.existsSync('/bin/bash')) return '/bin/bash';
   if (fs.existsSync('/usr/bin/bash')) return '/usr/bin/bash';
   if (fs.existsSync('/bin/sh')) return '/bin/sh';
   return '/bin/sh';
+}
+
+function resolveWorkingDir(cwd) {
+  const defaultDir = os.homedir() || process.env.HOME || process.cwd();
+  if (!cwd || typeof cwd !== 'string') return defaultDir;
+  let trimmed = cwd.trim();
+  if ((trimmed.startsWith('"') && trimmed.endsWith('"')) || (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+    trimmed = trimmed.slice(1, -1).trim();
+  }
+  if (!trimmed) return defaultDir;
+  const home = os.homedir() || process.env.HOME || defaultDir;
+  if (trimmed === '~') {
+    return home;
+  }
+  if (trimmed.startsWith('~/') || trimmed.startsWith('~\\')) {
+    return path.resolve(path.join(home, trimmed.slice(2)));
+  }
+  return path.resolve(trimmed);
 }
 
 function resolveWebSocketUrl(serverUrl, metadata = {}) {
@@ -1356,12 +1374,44 @@ class TaskManager {
       return { success: true, taskId, status: existing.status, startTime: existing.startTime };
     }
 
-    const shell = getDefaultShell();
+    let workingDir = resolveWorkingDir(cwd);
+    if (cwd) {
+      if (!fs.existsSync(workingDir)) {
+        return {
+          success: false,
+          error: `Working directory does not exist: ${workingDir}`,
+        };
+      }
+      try {
+        const stat = fs.statSync(workingDir);
+        if (!stat.isDirectory()) {
+          return {
+            success: false,
+            error: `Working directory is not a directory: ${workingDir}`,
+          };
+        }
+      } catch (err) {
+        return {
+          success: false,
+          error: `Cannot access working directory: ${err.message}`,
+        };
+      }
+    } else {
+      if (!fs.existsSync(workingDir)) {
+        workingDir = process.cwd();
+      }
+    }
+
     const isWindows = os.platform() === 'win32';
+    let shell = (env && env.SHELL && fs.existsSync(env.SHELL)) ? env.SHELL : getDefaultShell();
+    if (!isWindows && !fs.existsSync(shell)) {
+      if (fs.existsSync('/bin/bash')) shell = '/bin/bash';
+      else if (fs.existsSync('/usr/bin/bash')) shell = '/usr/bin/bash';
+      else if (fs.existsSync('/bin/sh')) shell = '/bin/sh';
+    }
     const shellArgs = isWindows
       ? (shell.toLowerCase().includes('powershell') ? ['-Command', command] : ['/c', command])
       : ['-c', command];
-    const workingDir = cwd ? path.resolve(cwd) : (process.env.HOME || process.cwd());
 
     const taskEnv = {
       ...process.env,
@@ -1443,7 +1493,15 @@ class TaskManager {
     child.stderr.on('data', (chunk) => appendChunk('stderr', chunk));
 
     child.on('error', (err) => {
-      appendChunk('stderr', Buffer.from(`\nProcess execution error: ${err.message}\n`));
+      let extra = '';
+      if (err.code === 'ENOENT') {
+        if (!fs.existsSync(workingDir)) {
+          extra = ` (working directory "${workingDir}" not found)`;
+        } else if (!fs.existsSync(shell)) {
+          extra = ` (shell executable "${shell}" not found)`;
+        }
+      }
+      appendChunk('stderr', Buffer.from(`\nProcess execution error: ${err.message}${extra}\n`));
       taskRecord.status = 'failed';
       taskRecord.endTime = Date.now();
       if (taskRecord.timeoutTimer) clearTimeout(taskRecord.timeoutTimer);
@@ -1972,7 +2030,13 @@ class StreamSessionManager {
   }
 
   startStream({ taskId, command, cwd, env = {}, cols = 80, rows = 24, timeoutMs = 0, tty = true, interactive = false, _forceFallback = false, _forcePipeFallback = false }) {
-    const workingDir = cwd ? path.resolve(cwd) : (process.env.HOME || process.cwd());
+    const workingDir = resolveWorkingDir(cwd);
+    if (cwd && !fs.existsSync(workingDir)) {
+      const errMsg = Buffer.from(`\r\n\x1b[31m[Error] Working directory does not exist: ${workingDir}\x1b[0m\r\n`);
+      this.send({ type: 'cmd_stream_data', taskId, data: errMsg.toString('base64') });
+      this.send({ type: 'cmd_stream_exit', taskId, exitCode: 1, signal: null });
+      return;
+    }
     const shell = getDefaultShell();
     const taskEnv = {
       ...process.env,
@@ -2237,7 +2301,7 @@ function handleFileRpc(control, targetWs) {
   };
 
   try {
-    const resolvedPath = path.resolve(targetPath || os.homedir() || process.cwd());
+    const resolvedPath = resolveWorkingDir(targetPath);
 
     if (action === 'list') {
       if (!fs.existsSync(resolvedPath)) {
@@ -2305,7 +2369,7 @@ function handleFileRpc(control, targetWs) {
     }
 
     if (action === 'rename') {
-      const newPath = path.resolve(params.newPath);
+      const newPath = resolveWorkingDir(params.newPath);
       fs.renameSync(resolvedPath, newPath);
       return reply(true, { success: true });
     }
@@ -4655,5 +4719,6 @@ module.exports = {
   createWebSocketAdapter,
   tryRequirePty,
   getDefaultShell,
+  resolveWorkingDir,
   AgentProxyDispatcher,
 };

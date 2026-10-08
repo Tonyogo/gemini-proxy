@@ -43,7 +43,13 @@ export function getDefaultShell(): string {
   if (os.platform() === 'win32') {
     return process.env.COMSPEC || 'powershell.exe';
   }
-  return process.env.SHELL || '/bin/bash';
+  if (process.env.SHELL && fs.existsSync(process.env.SHELL)) {
+    return process.env.SHELL;
+  }
+  if (fs.existsSync('/bin/bash')) return '/bin/bash';
+  if (fs.existsSync('/usr/bin/bash')) return '/usr/bin/bash';
+  if (fs.existsSync('/bin/sh')) return '/bin/sh';
+  return '/bin/sh';
 }
 
 export function spawnTerminalSession(options: TerminalSessionOptions = {}): pty.IPty {
@@ -52,7 +58,18 @@ export function spawnTerminalSession(options: TerminalSessionOptions = {}): pty.
   const shell = getDefaultShell();
   const cols = options.cols || 80;
   const rows = options.rows || 24;
-  const cwd = options.cwd || process.cwd();
+  const fallbackDir = process.env.HOME || os.homedir() || process.cwd();
+  let cwd = options.cwd ? options.cwd.trim() : fallbackDir;
+  if (cwd === '~') {
+    cwd = fallbackDir;
+  } else if (cwd.startsWith('~/') || cwd.startsWith('~\\')) {
+    cwd = path.resolve(path.join(fallbackDir, cwd.slice(2)));
+  } else {
+    cwd = path.resolve(cwd);
+  }
+  if (!fs.existsSync(cwd)) {
+    cwd = fallbackDir;
+  }
 
   const env = {
     ...process.env,

@@ -194,8 +194,8 @@ pm2 logs gemini-proxy            # 查看实时运行日志
 | :--- | :--- | :--- |
 | `TERMINAL_SERVER` | **是** | Gemini Proxy Hub 服务访问地址（如 `https://proxy.yourdomain.com`） |
 | `ADMIN_SECRET_KEY` | **是** | 管理员密钥（与服务器端 `.env` 中配置的 `ADMIN_SECRET_KEY` 相同） |
-| `DEPLOY_PATH` | **是** | 目标服务器上的部署绝对路径（如 `/home/yogo/gemini-proxy`） |
-| `GT_HOST` | 否 | 目标 Agent 主机标识/名称（选填，默认约定固定为 `gemini-proxy-server`） |
+| `DEPLOY_PATH` | 否 | 目标服务器上的部署绝对路径（选填，默认 `~/gemini-proxy`，支持自动探测与波浪号展开） |
+| `GT_HOST` | 否 | 目标 Agent 主机标识/名称（选填，默认为 `gemini-proxy`） |
 
 配置完成后，推送代码到 `main` 分支即可全自动触发构建、平滑热重载并在 GitHub Actions 中实时回显部署流式日志。
 

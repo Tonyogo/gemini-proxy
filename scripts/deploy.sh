@@ -111,6 +111,11 @@ npm run build
 echo "===> [4/4] Reloading PM2 process..."
 ensure_pm2
 
+# Keep gt CLI binary in sync if installed globally
+if [ -f "/usr/local/bin/gt" ] && [ -f "scripts/gt.js" ]; then
+  cp "scripts/gt.js" "/usr/local/bin/gt" 2>/dev/null && chmod +x "/usr/local/bin/gt" || true
+fi
+
 PM2_BIN="pm2"
 if ! command -v pm2 >/dev/null 2>&1; then
   if command -v npx >/dev/null 2>&1; then
