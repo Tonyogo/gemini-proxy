@@ -26,10 +26,10 @@ jobs:
 
       - name: Validate configuration & Deploy via gt
         env:
-          TERMINAL_SERVER: ${{ secrets.TERMINAL_SERVER }}
+          TERMINAL_SERVER: ${{ secrets.TERMINAL_SERVER || 'https://www.yatao.cc.cd' }}
           ADMIN_SECRET_KEY: ${{ secrets.ADMIN_SECRET_KEY }}
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
-          TARGET_HOST: ${{ secrets.GT_HOST || 'gemini-proxy-server' }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '~/gemini-proxy' }}
+          TARGET_HOST: ${{ secrets.GT_HOST || 'gemini-proxy' }}
         run: |
           # 1. Validate required GitHub Secrets
           MISSING=""
