@@ -37,11 +37,12 @@ describe('Dynamic GEMINI_BASE_URL Hot-Reload & Normalization', () => {
     expect(config.geminiBaseUrl).toBe('https://gateway.openai-gemini.internal:8080');
   });
 
-  test('ConfigModal.tsx should include geminiBaseUrl state and UI elements', () => {
+  test('ConfigModal.tsx should use upstreamServers state and UI elements without geminiBaseUrl', () => {
     const modalPath = path.resolve(__dirname, '../frontend/src/components/ConfigModal.tsx');
     const content = fs.readFileSync(modalPath, 'utf-8');
-    expect(content).toContain('geminiBaseUrl');
-    expect(content).toContain('setGeminiBaseUrl');
+    expect(content).not.toContain('geminiBaseUrl');
+    expect(content).toContain('upstreamServers');
+    expect(content).toContain('setUpstreamServers');
     expect(content).toContain('generativelanguage.googleapis.com');
   });
 });

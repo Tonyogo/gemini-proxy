@@ -83,6 +83,7 @@ class AdminController {
   public async updateConfig(req: Request, res: Response): Promise<void> {
     try {
       const newConfig = req.body;
+      delete newConfig.geminiBaseUrl;
       if (newConfig.stripSystemFingerprints !== undefined) {
         newConfig.stripSystemFingerprints =
           newConfig.stripSystemFingerprints === true ||

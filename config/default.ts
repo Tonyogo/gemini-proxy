@@ -85,6 +85,7 @@ if (existsSync(runtimeJsonPath)) {
   try {
     const raw = readFileSync(runtimeJsonPath, 'utf8');
     runtimeOverrides = JSON.parse(raw);
+    delete runtimeOverrides.geminiBaseUrl;
   } catch {
     // Ignore corrupted file
   }
@@ -262,9 +263,7 @@ export function parseBaseUrls(raw?: string): string[] {
 }
 
 const getEnvConfig = () => {
-  const envServers = parseUpstreamServers(process.env.GEMINI_BASE_URL);
   return {
-    geminiBaseUrl: envServers.map(s => s.url).join(','),
     logLevel: (process.env.LOG_LEVEL || 'info') as string,
     modelMappings: parsedModelMappings as ModelMappingsConfig,
     ephemeralUserMessages: parsedEphemeralUserMessages as string[],
@@ -291,31 +290,16 @@ export const config = {
   ...getEnvConfig(),
   ...runtimeOverrides,
 
-
   get geminiBaseUrl(): string {
-    if ((this as any)._geminiBaseUrl !== undefined) {
-      return (this as any)._geminiBaseUrl;
-    }
-    if (runtimeOverrides.geminiBaseUrl !== undefined) {
-      return runtimeOverrides.geminiBaseUrl;
+    const servers = this.upstreamServers;
+    if (servers && servers.length > 0) {
+      return servers.map(s => s.url).join(',');
     }
     return normalizeBaseUrls(process.env.GEMINI_BASE_URL);
   },
 
   set geminiBaseUrl(val: string) {
-    (this as any)._geminiBaseUrl = val;
-    const currentUrls = ((this as any)._upstreamServers || []).map((s: any) => s.url).join(',');
-    const newServers = parseUpstreamServers(val);
-    const newUrls = newServers.map(s => s.url).join(',');
-    if (currentUrls !== newUrls) {
-      (this as any)._upstreamServers = newServers;
-      if (runtimeOverrides.upstreamServers !== undefined) {
-        delete runtimeOverrides.upstreamServers;
-      }
-    }
-    if (runtimeOverrides.geminiBaseUrl !== undefined) {
-      runtimeOverrides.geminiBaseUrl = val;
-    }
+    this.upstreamServers = parseUpstreamServers(val);
   },
 
   get upstreamServers(): UpstreamServerConfig[] {
@@ -325,18 +309,16 @@ export const config = {
     if (runtimeOverrides.upstreamServers !== undefined) {
       return parseUpstreamServers(runtimeOverrides.upstreamServers);
     }
-    return parseUpstreamServers(this.geminiBaseUrl);
+    return parseUpstreamServers(process.env.GEMINI_BASE_URL);
   },
 
   set upstreamServers(val: UpstreamServerConfig[]) {
     const servers = parseUpstreamServers(val);
     (this as any)._upstreamServers = servers;
-    (this as any)._geminiBaseUrl = servers.map(s => s.url).join(',');
+    delete (this as any)._geminiBaseUrl;
+    delete runtimeOverrides.geminiBaseUrl;
     if (runtimeOverrides.upstreamServers !== undefined) {
       runtimeOverrides.upstreamServers = servers;
-    }
-    if (runtimeOverrides.geminiBaseUrl !== undefined) {
-      runtimeOverrides.geminiBaseUrl = servers.map(s => s.url).join(',');
     }
   },
 
@@ -380,22 +362,23 @@ export async function updateConfig(
     return;
   }
 
+  // Ensure legacy geminiBaseUrl is stripped from runtimeOverrides
+  delete runtimeOverrides.geminiBaseUrl;
+  delete (config as any)._geminiBaseUrl;
+
   if (partialConfig.upstreamServers !== undefined) {
     const servers = parseUpstreamServers(partialConfig.upstreamServers);
     partialConfig.upstreamServers = servers;
-    if (partialConfig.geminiBaseUrl === undefined) {
-      partialConfig.geminiBaseUrl = servers.map(s => s.url).join(',');
-    }
+    delete partialConfig.geminiBaseUrl;
   } else if (partialConfig.geminiBaseUrl !== undefined) {
     if (typeof partialConfig.geminiBaseUrl === 'string') {
       let raw = partialConfig.geminiBaseUrl.trim();
       if (!raw) {
         raw = process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com';
       }
-      const parsedServers = parseUpstreamServers(raw);
-      partialConfig.geminiBaseUrl = parsedServers.map(s => s.url).join(',');
-      partialConfig.upstreamServers = parsedServers;
+      partialConfig.upstreamServers = parseUpstreamServers(raw);
     }
+    delete partialConfig.geminiBaseUrl;
   }
 
   if (partialConfig.stripSystemFingerprints !== undefined) {
@@ -403,9 +386,11 @@ export async function updateConfig(
     partialConfig.stripSystemFingerprints = rawVal === true || rawVal === 'true';
   }
 
-  // Record only explicit keys
+  // Record only explicit keys, ensuring geminiBaseUrl is never saved in runtimeOverrides
   Object.assign(runtimeOverrides, partialConfig);
+  delete runtimeOverrides.geminiBaseUrl;
   Object.assign(config, partialConfig);
+  delete (config as any)._geminiBaseUrl;
 
   try {
     if (Object.keys(runtimeOverrides).length > 0) {

@@ -54,8 +54,9 @@ describe('AccountsView & ConfigModal Multi-Server UI Integration', () => {
     expect(accountsCode).not.toContain('py-0.2');
   });
 
-  it('ConfigModal should support comma-separated multi-server GEMINI_BASE_URL cleaning', () => {
-    expect(configCode).toContain("geminiBaseUrl.split(',').map");
-    expect(configCode).toContain("placeholder=\"https://generativelanguage.googleapis.com,https://s2.example.com\"");
+  it('ConfigModal should manage multi-server via upstreamServers without legacy geminiBaseUrl input', () => {
+    expect(configCode).toContain('upstreamServers');
+    expect(configCode).toContain('setUpstreamServers');
+    expect(configCode).not.toContain('geminiBaseUrl');
   });
 });

@@ -408,8 +408,6 @@ export const en = {
     tabSecurityShort: "Security",
     generalGroup: "General Runtime & Logging Policies",
     upstreamGroup: "Upstream Gemini Gateway & Timeouts",
-    geminiBaseUrlTitle: "GEMINI_BASE_URL",
-    geminiBaseUrlDesc: "Official Gemini API or reverse proxy gateway URL. Supports multiple servers separated by commas, load-balanced via per-model round-robin.",
     upstreamServersTitle: "Upstream Gateways & Traffic Allocation",
     upstreamServersDesc: "",
     trafficSplitPreview: "Live Traffic Split Preview",

@@ -84,7 +84,7 @@ export default function LogsView({
   const [page, setPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(50);
   const [totalLogs, setTotalLogs] = useState<number>(0);
-  const [geminiBaseUrl, setGeminiBaseUrl] = useState<string>('https://generativelanguage.googleapis.com');
+  const [upstreamServers, setUpstreamServers] = useState<any[]>([]);
 
   // Copy feedback states
   const [copiedClaudeCurl, setCopiedClaudeCurl] = useState(false);
@@ -153,8 +153,8 @@ export default function LogsView({
     fetch('/api/admin/status', { headers })
       .then(r => r.json())
       .then(data => {
-        if (data?.config?.geminiBaseUrl) {
-          setGeminiBaseUrl(data.config.geminiBaseUrl);
+        if (Array.isArray(data?.config?.upstreamServers)) {
+          setUpstreamServers(data.config.upstreamServers);
         }
       })
       .catch(() => {});
@@ -340,7 +340,14 @@ export default function LogsView({
   const handleCopyGeminiCurl = () => {
     if (!selectedLog) return;
     try {
-      const baseUrl = (geminiBaseUrl || 'https://generativelanguage.googleapis.com').replace(/\/+$/, '');
+      const activeServer = (upstreamServers || []).find((s: any) => s.enabled) || upstreamServers?.[0];
+      let baseUrl = 'https://generativelanguage.googleapis.com';
+      if (activeServer) {
+        baseUrl = (activeServer.type === 'direct' || !activeServer.url)
+          ? 'https://generativelanguage.googleapis.com'
+          : activeServer.url;
+      }
+      baseUrl = baseUrl.replace(/\/+$/, '');
       const cleanModelName = (selectedLog.model || 'gemini-2.5-pro').replace(/^models\//, '');
       const reqPath = selectedLog.path || selectedLog.reqPath || '/v1/messages';
       const isStream = Boolean(selectedLog.is_stream || selectedLog.isStream || selectedLog.client_req?.stream);

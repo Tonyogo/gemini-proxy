@@ -410,8 +410,6 @@ export const zh: Translations = {
     tabSecurityShort: "安全",
     generalGroup: "通用运行时与日志记录策略",
     upstreamGroup: "上游 Gemini 网关与超时参数",
-    geminiBaseUrlTitle: "GEMINI_BASE_URL",
-    geminiBaseUrlDesc: "Gemini 官方 API 地址或反向代理网关。支持配置多个 server（以英文逗号分隔），各模型将按轮询算法均匀调度。",
     upstreamServersTitle: "上游代理服务器与流量分配",
     upstreamServersDesc: "",
     trafficSplitPreview: "实时流量分配预览",

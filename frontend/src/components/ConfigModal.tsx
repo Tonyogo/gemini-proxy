@@ -94,7 +94,6 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
   const [ignoredTools, setIgnoredTools] = useState<string[]>(DEFAULT_IGNORED_TOOLS);
   const [toolInputText, setToolInputText] = useState<string>('');
   const [customSystemInstruction, setCustomSystemInstruction] = useState<string>('');
-  const [geminiBaseUrl, setGeminiBaseUrl] = useState<string>('https://generativelanguage.googleapis.com');
   const [upstreamServers, setUpstreamServers] = useState<UpstreamServerConfig[]>([]);
   const [upstreamTimeoutMs, setUpstreamTimeoutMs] = useState<number>(180000);
   const [logLevel, setLogLevel] = useState<string>('info');
@@ -142,7 +141,6 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
       { url: 'https://generativelanguage.googleapis.com', weight: 1, enabled: true, name: 'Official Gemini API' }
     ];
     setUpstreamServers(official);
-    setGeminiBaseUrl('https://generativelanguage.googleapis.com');
   };
 
   const handleAddTool = () => {
@@ -191,7 +189,6 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
             setIgnoredTools(DEFAULT_IGNORED_TOOLS);
           }
           setCustomSystemInstruction(data.config.customSystemInstruction || '');
-          setGeminiBaseUrl(data.config.geminiBaseUrl || 'https://generativelanguage.googleapis.com');
           if (data.config.upstreamServers && Array.isArray(data.config.upstreamServers) && data.config.upstreamServers.length > 0) {
             setUpstreamServers(data.config.upstreamServers);
             const keyInputs: Record<number, string> = {};
@@ -206,9 +203,6 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
             });
             setServerKeyInputs(keyInputs);
             setServerModelInputs(modelInputs);
-          } else if (data.config.geminiBaseUrl) {
-            const parts = String(data.config.geminiBaseUrl).split(',').map((s: string) => s.trim()).filter(Boolean);
-            setUpstreamServers(parts.map((url: string) => ({ url, weight: 1, enabled: true, type: 'proxy' })));
           } else {
             setUpstreamServers([{ url: 'https://generativelanguage.googleapis.com', weight: 1, enabled: true, name: 'Official Gemini API', type: 'proxy' }]);
           }
@@ -449,7 +443,6 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
           stripSystemFingerprints,
           ignoredTools,
           customSystemInstruction,
-          geminiBaseUrl: geminiBaseUrl.split(',').map(s => s.trim().replace(/\/+$/, '')).filter(Boolean).join(','),
           upstreamServers: upstreamServers.map((s, idx) => {
             const rawKeys = serverKeyInputs[idx] !== undefined ? serverKeyInputs[idx] : (s.apiKeys || []).join('\n');
             const cleanKeys = Array.from(new Set(rawKeys.split('\n').map(k => k.trim()).filter(Boolean)));
@@ -793,7 +786,6 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                             }
                                             updated[idx] = { ...updated[idx], type: 'direct', url: nextUrl };
                                             setUpstreamServers(updated);
-                                            setGeminiBaseUrl(updated.map(s => s.url).filter(Boolean).join(','));
                                           }}
                                           className={`px-2 py-0.5 text-[10px] rounded font-medium transition-all ${
                                             server.type === 'direct'
@@ -816,7 +808,6 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                             const updated = [...upstreamServers];
                                             updated[idx] = { ...updated[idx], enabled: e.target.checked };
                                             setUpstreamServers(updated);
-                                            setGeminiBaseUrl(updated.map(s => s.url).filter(Boolean).join(','));
                                           }}
                                           className="sr-only"
                                         />
@@ -835,7 +826,6 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                           if (upstreamServers.length <= 1) return;
                                           const updated = upstreamServers.filter((_, i) => i !== idx);
                                           setUpstreamServers(updated);
-                                          setGeminiBaseUrl(updated.map(s => s.url).filter(Boolean).join(','));
                                         }}
                                         className={`p-1.5 sm:p-1 text-slate-400 hover:text-red-400 transition-colors ${
                                           upstreamServers.length <= 1 ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'
@@ -874,7 +864,6 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                         }
                                         updated[idx] = { ...updated[idx], type: 'direct', url: nextUrl };
                                         setUpstreamServers(updated);
-                                        setGeminiBaseUrl(updated.map(s => s.url).filter(Boolean).join(','));
                                       }}
                                       className={`py-1.5 px-2 text-xs rounded-md font-medium text-center transition-all ${
                                         server.type === 'direct'
@@ -963,7 +952,6 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                               const updated = [...upstreamServers];
                                               updated[idx] = { ...updated[idx], url: e.target.value };
                                               setUpstreamServers(updated);
-                                              setGeminiBaseUrl(updated.map(s => s.url).filter(Boolean).join(','));
                                             }}
                                             onBlur={() => {
                                               const updated = [...upstreamServers];
@@ -971,7 +959,6 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                               if (clean && !/^https?:\/\//i.test(clean)) clean = `https://${clean}`;
                                               updated[idx] = { ...updated[idx], url: clean };
                                               setUpstreamServers(updated);
-                                              setGeminiBaseUrl(updated.map(s => s.url).filter(Boolean).join(','));
                                             }}
                                             placeholder="https://api.example.com"
                                             className="w-full ui-input p-2 text-xs font-mono"
@@ -1179,17 +1166,6 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                             <Plus className="w-3.5 h-3.5" />
                             <span>{t('config.addUpstreamServer', '添加代理节点')}</span>
                           </button>
-                        </div>
-
-                        {/* Hidden compatibility input */}
-                        <div className="hidden">
-                          <input
-                            type="text"
-                            value={geminiBaseUrl}
-                            onChange={(e) => setGeminiBaseUrl(e.target.value)}
-                            onBlur={() => setGeminiBaseUrl(prev => prev.split(',').map(s => s.trim().replace(/\/+$/, '')).filter(Boolean).join(','))}
-                            placeholder="https://generativelanguage.googleapis.com,https://s2.example.com"
-                          />
                         </div>
                       </div>
 

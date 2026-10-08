@@ -42,7 +42,7 @@ export class UpstreamManager {
     if (config.upstreamServers && Array.isArray(config.upstreamServers) && config.upstreamServers.length > 0) {
       return config.upstreamServers;
     }
-    return parseUpstreamServers(config.geminiBaseUrl);
+    return parseUpstreamServers(process.env.GEMINI_BASE_URL);
   }
 
   /**
