@@ -6,7 +6,6 @@ import claudeTranslator from '../services/claudeTranslator';
 import payloadLogger from '../services/payloadLogger';
 import accountUsageService from '../../admin/services/accountUsageService';
 import logger from '../../utils/logger';
-import agentProxyService from '../services/agentProxyService';
 import { StreamLifecycleManager } from '../../utils/streamLifecycleManager';
 import upstreamManager from '../../utils/upstreamManager';
 import { parseModelThinkingSuffix, applyThinkingConfigHigh } from '../../utils/modelThinkingHelper';
@@ -100,12 +99,9 @@ class ClaudeController {
           ? selectedApiKey
           : apiKey;
         const upstreamHeaders = buildUpstreamHeaders(effectiveApiKey, customUpstreamHeaders);
-        const executeFetch = (serverSelection.agentId)
-          ? (u: string, o: any) => agentProxyService.agentFetch(serverSelection.agentId!, u, o)
-          : (fetch as any);
 
         try {
-          const response = await executeFetch(targetUrl, {
+          const response = await fetch(targetUrl, {
             method: 'POST',
             headers: upstreamHeaders,
             body: JSON.stringify(gemReq),
@@ -322,12 +318,9 @@ class ClaudeController {
         ? selectedApiKey
         : apiKey;
       const upstreamHeaders = buildUpstreamHeaders(effectiveApiKey, customUpstreamHeaders);
-      const executeFetch = (serverSelection.agentId)
-        ? (u: string, o: any) => agentProxyService.agentFetch(serverSelection.agentId!, u, o)
-        : (fetch as any);
 
       try {
-        const response = await executeFetch(targetUrl, {
+        const response = await fetch(targetUrl, {
           method: 'POST',
           headers: upstreamHeaders,
           body: JSON.stringify(gemReq),

@@ -3,7 +3,6 @@ import path from 'path';
 
 describe('Clean Headers Unification & Redundant Title Elimination', () => {
   const playgroundPath = path.resolve(__dirname, '../frontend/src/components/PlaygroundView.tsx');
-  const webTerminalPath = path.resolve(__dirname, '../frontend/src/components/WebTerminalView.tsx');
   const terminalLogsPath = path.resolve(__dirname, '../frontend/src/components/TerminalLogsView.tsx');
 
   describe('PlaygroundView Header Cleanliness', () => {
@@ -38,19 +37,6 @@ describe('Clean Headers Unification & Redundant Title Elimination', () => {
     });
   });
 
-  describe('WebTerminalView Header Cleanliness', () => {
-    const content = fs.readFileSync(webTerminalPath, 'utf-8');
-
-    test('removes duplicate static title text webTerminal.title from top window bar', () => {
-      expect(content).not.toContain("{t('webTerminal.title')}");
-    });
-
-    test('preserves TerminalHostSelector and window action buttons', () => {
-      expect(content).toContain('<TerminalHostSelector');
-      expect(content).toContain('handleFullscreenToggle');
-      expect(content).toContain('handleResetSession');
-    });
-  });
 
   describe('TerminalLogsView Header Cleanliness', () => {
     const content = fs.readFileSync(terminalLogsPath, 'utf-8');

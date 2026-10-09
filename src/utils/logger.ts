@@ -1,5 +1,4 @@
 import config from '../../config/default';
-import terminalLogService from '../terminal/services/terminalLogService';
 
 const levels: Record<string, number> = { error: 0, warn: 1, info: 2, debug: 3 };
 
@@ -39,11 +38,16 @@ const log = (level: string, message: string, ...meta: any[]) => {
     : '';
   const fullMsg = `${message}${formattedMeta}`;
 
-  terminalLogService.addLog(level, `[${timestamp}] [${level.toUpperCase()}] ${fullMsg}`);
-
   // Suppress all console logs during testing
   if (process.env.NODE_ENV === 'test') {
     return;
+  }
+
+  try {
+    const systemLogService = require('../admin/services/systemLogService').default;
+    systemLogService.addLog(level, fullMsg);
+  } catch {
+    // Ignore during bootstrap if not ready
   }
 
   console.log(`[${timestamp}] [${level.toUpperCase()}] ${fullMsg}`);

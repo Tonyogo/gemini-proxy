@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
-import terminalLogService from '../services/terminalLogService';
+import systemLogService from '../services/systemLogService';
 
-class TerminalLogController {
-  public async getTerminalLogs(req: Request, res: Response): Promise<void> {
+class SystemLogController {
+  public async getLogs(req: Request, res: Response): Promise<void> {
     const isStream = req.query.stream === 'true' || req.headers.accept === 'text/event-stream';
 
     if (isStream) {
@@ -12,23 +12,23 @@ class TerminalLogController {
         'Connection': 'keep-alive',
       });
 
-      const logs = terminalLogService.getHistory();
+      const logs = systemLogService.getHistory();
       res.write('data: ' + JSON.stringify({ type: 'history', logs }) + '\n\n');
 
       const onLog = (log: any) => {
         res.write('data: ' + JSON.stringify({ type: 'log', log }) + '\n\n');
       };
 
-      terminalLogService.on('log', onLog);
+      systemLogService.on('log', onLog);
 
       req.on('close', () => {
-        terminalLogService.off('log', onLog);
+        systemLogService.off('log', onLog);
       });
     } else {
-      res.json({ logs: terminalLogService.getHistory() });
+      res.json({ logs: systemLogService.getHistory() });
     }
   }
 }
 
-export const terminalLogController = new TerminalLogController();
-export default terminalLogController;
+export const systemLogController = new SystemLogController();
+export default systemLogController;
