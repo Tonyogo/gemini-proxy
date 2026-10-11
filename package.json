@@ -18,7 +18,8 @@
   "dependencies": {
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "node-fetch": "^2.7.0"
+    "node-fetch": "^2.7.0",
+    "proxy-agent": "^6.5.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
