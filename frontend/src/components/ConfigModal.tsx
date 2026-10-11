@@ -31,6 +31,7 @@ export interface UpstreamServerConfig {
   type?: 'proxy' | 'direct';
   apiKeys?: string[];
   proxyUrl?: string;
+  useProxy?: boolean;
 }
 
 const SPLIT_COLORS = [
@@ -420,6 +421,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
               weight: Math.max(1, Math.min(1000, Number(s.weight) || 1)),
               enabled: s.enabled !== false,
               type: s.type || 'proxy',
+              useProxy: Boolean(s.useProxy),
               ...(s.name?.trim() ? { name: s.name.trim() } : {}),
               ...(Array.isArray(s.allowedModels) && s.allowedModels.length > 0 ? { allowedModels: s.allowedModels } : {}),
               ...(s.type === 'direct' && cleanKeys.length > 0 ? { apiKeys: cleanKeys } : {}),
@@ -937,16 +939,58 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                     )}
                                   </div>
 
-                                  {/* Direct Mode Minimalist Egress Endpoint Badge */}
+                                  {/* Direct Mode Egress Channel Switcher */}
                                   {server.type === 'direct' && (
-                                    <div className="col-span-12 p-2.5 rounded-lg bg-slate-900/60 border border-cyan-500/20 flex items-center justify-between">
+                                    <div className="col-span-12 p-2.5 rounded-lg bg-slate-900/60 border border-cyan-500/20 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2">
                                       <div className="flex items-center space-x-1.5">
                                         <ArrowRightLeft className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
                                         <span className="text-[11px] font-semibold text-cyan-400">{t('config.egressChannelTitle', '出口通道')}</span>
+                                        <div className="inline-flex rounded-md p-0.5 bg-slate-950 border border-slate-700/80 ml-1">
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const updated = [...upstreamServers];
+                                              updated[idx] = { ...updated[idx], useProxy: false };
+                                              setUpstreamServers(updated);
+                                            }}
+                                            className={`px-2 py-0.5 text-[10px] rounded font-medium transition-all ${
+                                              !server.useProxy ? 'bg-cyan-600 text-white shadow-xs font-semibold' : 'text-slate-400 hover:text-slate-200'
+                                            }`}
+                                          >
+                                            {t('config.egressLocalShort', '本机直连')}
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const updated = [...upstreamServers];
+                                              updated[idx] = { ...updated[idx], useProxy: true };
+                                              setUpstreamServers(updated);
+                                            }}
+                                            className={`px-2 py-0.5 text-[10px] rounded font-medium transition-all ${
+                                              Boolean(server.useProxy) ? 'bg-cyan-600 text-white shadow-xs font-semibold' : 'text-slate-400 hover:text-slate-200'
+                                            }`}
+                                          >
+                                            {t('config.egressProxyShort', '代理通道')}
+                                          </button>
+                                        </div>
                                       </div>
-                                      <span className="text-[10px] font-mono text-cyan-300 bg-slate-800/80 px-2 py-0.5 rounded border border-cyan-500/30">
-                                        {t('config.targetOfficialEndpoint', '目标: 官方 Gemini API (本机直连)')}
-                                      </span>
+                                      <div className="flex items-center space-x-1.5 shrink-0">
+                                        {server.useProxy ? (
+                                          proxyUrl.trim() ? (
+                                            <span className="text-[10px] font-mono text-cyan-300 bg-slate-800/80 px-2 py-0.5 rounded border border-cyan-500/30 truncate max-w-[200px]" title={proxyUrl.trim()}>
+                                              {t('config.viaGlobalProxyBadge', '全局代理: {proxy}').replace('{proxy}', proxyUrl.trim())}
+                                            </span>
+                                          ) : (
+                                            <span className="text-[10px] font-medium text-amber-300 bg-amber-950/60 px-2 py-0.5 rounded border border-amber-500/30">
+                                              {t('config.globalProxyNotConfigured', '需配置全局代理')}
+                                            </span>
+                                          )
+                                        ) : (
+                                          <span className="text-[10px] font-mono text-cyan-300 bg-slate-800/80 px-2 py-0.5 rounded border border-cyan-500/30">
+                                            {t('config.targetOfficialEndpoint', '目标: 官方 Gemini API (本机直连)')}
+                                          </span>
+                                        )}
+                                      </div>
                                     </div>
                                   )}
 
@@ -993,21 +1037,56 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                     </div>
                                   </div>
 
-                                  {/* Per-Node Egress Proxy */}
-                                  <div className="col-span-12 space-y-1">
-                                    <label className="text-[11px] text-slate-400 block">{t('config.nodeProxyTitle', '专属出站代理 (可选)')}</label>
-                                    <input
-                                      type="text"
-                                      value={server.proxyUrl || ''}
-                                      onChange={(e) => {
-                                        const updated = [...upstreamServers];
-                                        updated[idx] = { ...updated[idx], proxyUrl: e.target.value };
-                                        setUpstreamServers(updated);
-                                      }}
-                                      placeholder={t('config.nodeProxyPlaceholder', '留空继承全局代理')}
-                                      className="w-full ui-input p-2 text-xs font-mono"
-                                    />
-                                  </div>
+                                  {/* Proxy Mode Egress Channel Switcher */}
+                                  {server.type !== 'direct' && (
+                                    <div className="col-span-12 p-2.5 rounded-lg bg-slate-900/60 border border-slate-700/60 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2">
+                                      <div className="flex items-center space-x-1.5">
+                                        <ArrowRightLeft className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                                        <span className="text-[11px] font-semibold text-slate-300">{t('config.egressChannelTitle', '出口通道')}</span>
+                                        <div className="inline-flex rounded-md p-0.5 bg-slate-950 border border-slate-700/80 ml-1">
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const updated = [...upstreamServers];
+                                              updated[idx] = { ...updated[idx], useProxy: false };
+                                              setUpstreamServers(updated);
+                                            }}
+                                            className={`px-2 py-0.5 text-[10px] rounded font-medium transition-all ${
+                                              !server.useProxy ? 'bg-indigo-600 text-white shadow-xs font-semibold' : 'text-slate-400 hover:text-slate-200'
+                                            }`}
+                                          >
+                                            {t('config.egressLocalShort', '本机直连')}
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              const updated = [...upstreamServers];
+                                              updated[idx] = { ...updated[idx], useProxy: true };
+                                              setUpstreamServers(updated);
+                                            }}
+                                            className={`px-2 py-0.5 text-[10px] rounded font-medium transition-all ${
+                                              Boolean(server.useProxy) ? 'bg-indigo-600 text-white shadow-xs font-semibold' : 'text-slate-400 hover:text-slate-200'
+                                            }`}
+                                          >
+                                            {t('config.egressProxyShort', '代理通道')}
+                                          </button>
+                                        </div>
+                                      </div>
+                                      <div className="flex items-center space-x-1.5 shrink-0">
+                                        {server.useProxy ? (
+                                          proxyUrl.trim() ? (
+                                            <span className="text-[10px] font-mono text-indigo-300 bg-slate-800/80 px-2 py-0.5 rounded border border-indigo-500/30 truncate max-w-[200px]" title={proxyUrl.trim()}>
+                                              {t('config.viaGlobalProxyBadge', '全局代理: {proxy}').replace('{proxy}', proxyUrl.trim())}
+                                            </span>
+                                          ) : (
+                                            <span className="text-[10px] font-medium text-amber-300 bg-amber-950/60 px-2 py-0.5 rounded border border-amber-500/30">
+                                              {t('config.globalProxyNotConfigured', '需配置全局代理')}
+                                            </span>
+                                          )
+                                        ) : null}
+                                      </div>
+                                    </div>
+                                  )}
 
                                   {/* Direct Mode API Keys (Multi-line) */}
                                   {server.type === 'direct' && (

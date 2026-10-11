@@ -19,7 +19,17 @@ describe('ConfigModal Proxy UI Integration', () => {
     expect(content).toContain("t('config.globalProxyPlaceholder'");
   });
 
-  test('ConfigModal should render per-node proxy input in upstream server cards', () => {
-    expect(content).toContain("t('config.nodeProxyTitle'");
+  test('ConfigModal should render egress channel segmented switcher for upstream nodes', () => {
+    expect(content).toContain("t('config.egressChannelTitle'");
+    expect(content).toContain("t('config.egressLocalShort'");
+    expect(content).toContain("t('config.egressProxyShort'");
+  });
+
+  test('ConfigModal should remove per-node proxy input textboxes', () => {
+    expect(content).not.toContain("t('config.nodeProxyTitle'");
+  });
+
+  test('ConfigModal should save useProxy boolean in upstreamServers', () => {
+    expect(content).toContain('useProxy: Boolean(s.useProxy)');
   });
 });
