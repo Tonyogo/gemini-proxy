@@ -494,7 +494,7 @@ export const zh: Translations = {
     egressAgentDesc: "通过反向 WebSocket 隧道将请求借道已连接的海外节点发出",
     egressLocalShort: "本机出站",
     egressAgentShort: "Agent 节点",
-    targetOfficialEndpoint: "目标: 官方 Gemini API",
+    targetOfficialEndpoint: "目标: 官方 Gemini API (本机直连)",
     keyPoolCountBadge: "Key × {count}",
     selectAgent: "选择出站 Agent 节点...",
     noAgentsAvailable: "暂无在线可用的 Agent 节点",

@@ -24,5 +24,7 @@ describe('i18n locales for Minimalist Agent Egress', () => {
     expect((en.config as any).egressLocalShort).toBe('Local Direct');
     expect((zh.config as any).egressAgentShort).toBe('Agent 节点');
     expect((en.config as any).egressAgentShort).toBe('Remote Agent');
+    expect((zh.config as any).targetOfficialEndpoint).toBe('目标: 官方 Gemini API (本机直连)');
+    expect((en.config as any).targetOfficialEndpoint).toBe('Target: Official Gemini API (Local Direct)');
   });
 });

@@ -492,7 +492,7 @@ export const en = {
     egressAgentDesc: "Tunnel outbound requests through a connected remote agent node via reverse WebSocket",
     egressLocalShort: "Local Direct",
     egressAgentShort: "Remote Agent",
-    targetOfficialEndpoint: "Target: Official Gemini API",
+    targetOfficialEndpoint: "Target: Official Gemini API (Local Direct)",
     keyPoolCountBadge: "Key × {count}",
     selectAgent: "Select Egress Agent Node...",
     noAgentsAvailable: "No available online agent nodes connected",
