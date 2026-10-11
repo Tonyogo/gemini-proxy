@@ -13,7 +13,7 @@
 - **轻量且无状态**：无任何数据库、浏览器实例（Playwright/Puppeteer）或账户轮询队列，所有请求完全在内存中高效处理。
 - **纯透传定位 (无配置密钥泄露风险)**：服务器本身**不保存任何官方 API 密钥**。客户端请求必须在 Header 中携带 `x-api-key`、`Authorization: Bearer <key>` 或 `x-goog-api-key` 作为官方 Gemini 密钥。代理端在翻译完参数后直接透传并访问下游 Google 接口，完全零运营与配额消耗。
 - **自定义 Base URL 支持 (`GEMINI_BASE_URL`)**：支持通过环境变量自定义 Google Gemini 接口的请求地址，完美适配自建反代、国内网络中转（如 Cloudflare Workers、Nginx 等），并内建智能斜杠合并与纠错机制。
-- **数据与逻辑完美解耦 (`models.json`)**：将所有 Claude 的模型详细信息以及其到 Gemini 的映射关系高度整合在 `config/models.json` 配置文件中。未来增加新模型映射、添加别名，均只需在此单文件里增改一行，**无需改动并重新编译任何逻辑代码**。
+- **模型别名与调度解耦 (`MODEL_MAPPINGS`)**：支持通过环境变量 `MODEL_MAPPINGS` 或 Web Admin 控制台动态配置模型别名重定向与负载均衡策略（如 `round-robin`、`least-used`、`weighted`）。无需改动或重新编译任何代码，即可实时热重载生效。
 - **全功能翻译转换**：
   - 系统提示词（System Prompt）映射与自定义控制：支持 `SYSTEM_ROLE_TO_INSTRUCTION` 开关控制将 `role: 'system'` 消息映射至 Gemini 的 `systemInstruction` 中，并自动按标题前缀进行增量去重（仅保留最新版系统指令）。
   - 可配置的运行时上下文标签：支持通过 `RUNTIME_CONTEXT_TAG` 环境变量（默认 `system-context`）自定义系统提示词的包裹标签。
@@ -24,9 +24,6 @@
 - **流式 SSE 实时传输与生命周期管理**：支持毫秒级、低延迟 Server-Sent Events 流式生成，并集成客户端中断检测与超时取消机制（`UPSTREAM_TIMEOUT_MS`）。
 - **Token 计数与模型查询**：完整实现 `/v1/messages/count_tokens` 与 `/v1/models`、`/v1/models/:model_id` 接口。
 - **现代可视化 Web 管理控制台 (`/ui`)**：开箱即用的现代化前端控制台，提供实时 QPS/耗时/错误率仪表盘、Chrome DevTools 级交易日志详情查看器（JSON 树形预览与 SSE 打字机流式汇编），以及集成 Monaco Editor 的 API 测试 Playground。
-- **全功能 Web 交互终端 (WebTerminal)**：免 SSH 密钥直接在浏览器中操作 Linux/macOS Shell 及实时追踪系统日志，会话常驻后台并自动回放 1MB 屏幕历史。
-- **移动端绝佳终端体验**：独创基于 Visual Viewport 动态计算的虚拟键盘平滑推顶补偿（零遮挡底部命令行、零白屏）、专属移动端辅助按键栏（Accessory Bar：Esc/Tab/Ctrl/Alt/Shift/方向键）、常用命令抽屉（Snippets Drawer）与全屏沉浸模式。
-- **多局域网主机内网集中管理 (Reverse Agent)**：无需内网主机拥有公网 IP 或放行防火墙端口，只需单命令启动轻量反向 Agent 脚本，即可在 Web 控制台统一秒级切换、纳管多台内网机器/虚拟机/树莓派/NAS 终端。
 
 ---
 
@@ -36,33 +33,27 @@
 gemini-proxy/
 ├── .github/
 │   └── workflows/
-│       └── deploy.yml         # GitHub Actions: 基于 Gemini Terminal (gt) 的自动化部署流水线
+│       └── deploy.yml         # GitHub Actions: 自动化部署流水线
 ├── config/
 │   ├── default.ts             # 配置文件读取、基础默认配置项与热重载
-│   └── models.json            # 核心配置文件：受支持的模型列表及到 Gemini 的映射规则
+│   └── runtime.json           # 运行时持久化用户配置 (Admin 控制台保存)
 ├── frontend/                  # React + Vite + Tailwind 前端 Admin Web 控制台
 │   └── src/
-│       ├── components/        # DashboardView, LogsView, PlaygroundView, WebTerminalView
-│       │   └── terminal/      # TerminalHostSelector, TerminalAccessoryBar, TerminalSnippetsDrawer
+│       ├── components/        # DashboardView, LogsView, PlaygroundView, ConfigModal
 │       ├── i18n/              # 中英文国际化语言包 (zh / en)
-│       └── utils/             # 移动端视口计算、按键编码器、终端过滤器等
+│       └── utils/             # 视图与图表辅助工具
 ├── scripts/
-│   ├── deploy.sh              # 统一步署脚本 (Git 拉取、依赖安装、前后端编译、PM2 平滑重载)
-│   └── gt.js                  # 统一 Docker 风格终端 CLI 与反向 Agent 引擎 (gt ps / exec / logs / kill / cp / login / agent)
+│   └── deploy.sh              # 统一步署脚本 (Git 拉取、依赖安装、前后端编译、PM2 平滑重载)
 ├── src/
 │   ├── admin/                 # 管理控制台后端逻辑 (状态、统计、日志审计、全局配置、账号)
 │   │   ├── controllers/       # AdminController, AccountController
 │   │   ├── middlewares/       # AdminAuth (管理员密钥鉴权)
-│   │   ├── routes/            # AdminRoutes (/api/admin/* 及向下兼容别名)
+│   │   ├── routes/            # AdminRoutes (/api/admin/*)
 │   │   └── services/          # MetricsService, LogService, AccountService
-│   ├── proxy/                 # 核心 API 代理��转译系统
+│   ├── proxy/                 # 核心 API 代理与转译系统
 │   │   ├── controllers/       # ClaudeController, GeminiController (协议转译与转发)
 │   │   ├── routes/            # ClaudeRoutes, GeminiRoutes (/v1/*, /v1beta/*)
-│   │   └── services/          # ClaudeTranslator (转译核心), PayloadLogger (报文审计)
-│   ├── terminal/              # 独立终端与运维子系统
-│   │   ├── controllers/       # TerminalHost, File, Exec, Log 控制器
-│   │   ├── routes/            # TerminalRoutes (/api/terminal/*), TerminalWs (双通道网关)
-│   │   └── services/          # TerminalHostManager, TerminalExec, File, Log 服务
+│   │   └── services/          # ClaudeTranslator (转译核心), PayloadLogger (报文审计), UpstreamManager (多上游路由)
 │   ├── types/
 │   │   └── index.ts           # 强类型定义声明 (Claude 与 Gemini API REST 协议载荷接口)
 │   ├── utils/
@@ -71,7 +62,7 @@ gemini-proxy/
 │   │   └── streamLifecycleManager.ts # 工具类：流式传输超时控制与客户端断开检测管理
 │   ├── app.ts                 # Express 应用注册、中间件绑定
 │   └── index.ts               # 服务监听主启动入口
-├── tests/                     # 包含 64 个测试套件、316+ 断言的高覆盖自动化测试集
+├── tests/                     # 包含 99 个测试套件、519+ 断言的高覆盖自动化测试集
 ├── dist/                      # (Git-ignored) 经构建输出的 CommonJS 生产代码与静态前端
 ├── ecosystem.config.js        # PM2 进程守护及平滑重载配置
 ├── .env                       # 本地环境变量配置（端口、中转基址、管理密钥等）
@@ -104,7 +95,7 @@ PORT=3000
 # 自定义 Gemini Upstream API 基础地址 (可选项。默认指向官方地址)
 GEMINI_BASE_URL=https://generativelanguage.googleapis.com
 
-# 管理控制台 (/ui) 与 Web 终端鉴权密钥 (强烈建议配置)
+# 管理控制台 (/ui) 鉴权密钥 (强烈建议配置)
 ADMIN_SECRET_KEY=your_secure_admin_key_here
 
 # 是否启用 Web 管理控制台前端托管 (默认 true，访问地址 /ui)
@@ -161,7 +152,7 @@ npm run dev:frontend
 
 ## 🚀 生产部署与 CI/CD 自动化流水线
 
-项目支持 **PM2 零停机平滑部署** 与 **GitHub Actions (基于 Gemini Terminal `gt` 命令) 自动化流水线**。
+项目支持 **PM2 零停机平滑部署** 与 **GitHub Actions 自动化流水线**。
 
 ### 1. 服务器端一键部署 (PM2)
 
@@ -182,7 +173,7 @@ pm2 logs gemini-proxy            # 查看实时运行日志
 
 ### 2. GitHub Actions 自动部署流水线
 
-项目内置了 [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)，支持在代码推送到 `main` 分支或手动点击 `workflow_dispatch` 时，通过项目内置的 **Gemini Terminal (`gt exec`)** 自动化远程触发服务器部署，完全无需配置 SSH 密钥或 Cloudflare SSH 隧道。
+项目内置了 [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)，支持在代码推送到 `main` 分支或手动点击 `workflow_dispatch` 时，通过远程执行代理自动化触发服务器部署，完全无需配置 SSH 密钥或 Cloudflare SSH 隧道。
 
 流水线内置并发队列控制（`concurrency`），同一时间仅允许一个流水线执行部署，并自带 PM2 reload 期间的断线自动重连容错（容忍最多 30 次轮询重试）。
 
@@ -192,10 +183,10 @@ pm2 logs gemini-proxy            # 查看实时运行日志
 
 | Secret 变量名 | 必填 | 说明与示例 |
 | :--- | :--- | :--- |
-| `TERMINAL_SERVER` | **是** | Gemini Proxy Hub 服务访问地址（如 `https://proxy.yourdomain.com`） |
+| `TERMINAL_SERVER` | **是** | 远程执行 Hub 服务访问地址（如 `https://hub.yourdomain.com`） |
 | `ADMIN_SECRET_KEY` | **是** | 管理员密钥（与服务器端 `.env` 中配置的 `ADMIN_SECRET_KEY` 相同） |
 | `DEPLOY_PATH` | 否 | 目标服务器上的部署绝对路径（选填，默认 `~/gemini-proxy`，支持自动探测与波浪号展开） |
-| `GT_HOST` | 否 | 目标 Agent 主机标识/名称（选填，默认为 `gemini-proxy`） |
+| `GT_HOST` | 否 | 目标主机标识/名称（选填，默认为 `gemini-proxy`） |
 
 配置完成后，推送代码到 `main` 分支即可全自动触发构建、平滑热重载并在 GitHub Actions 中实时回显部署流式日志。
 
@@ -222,240 +213,26 @@ pm2 logs gemini-proxy            # 查看实时运行日志
 
 ---
 
-## 💻 WebTerminal 终端与多局域网主机集中管理 (全新)
+## 🧩 架构解耦说明 (WebTerminal & gt CLI)
 
-为方便日常运维与无 SSH 密钥环境下的服务器维护，Gemini-Proxy 采用**纯反向 Agent 统一架构**（Pure Reverse Agent Architecture），彻底解耦 Proxy 网关进程与系统 PTY，所有节点（宿主机与远程内网节点）均通过轻量 Agent 统一反向接入。
-
-### 1. 架构原理
-
-```text
-┌──────────────────────────────────────────────────────────────┐
-│                    Web Browser (PC / 移动端)                  │
-│   WebTerminal 交互终端 + 文件管理 + 主机切换器 (HostSelector)  │
-└──────────────────────────────▲───────────────────────────────┘
-                               │  /api/admin/terminal/ws?hostId=...
-                               ▼
-┌──────────────────────────────────────────────────────────────┐
-│                       Gemini-Proxy Hub                       │
-│  - TerminalHostManager: 纯动态 Agent 会话与节点注册管理中心   │
-│  - /api/admin/terminal/agent-ws: 统一反向 Agent WebSocket 通道│
-│  - TerminalFileService: 全面 RPC 化远程文件管理与分块流传输   │
-│  - GET /api/admin/terminal/hosts: 动态节点状态与心跳查询接口 │
-└───────────────▲──────────────────────────────▲───────────────┘
-                │ 反向 WebSocket 隧道           │ 反向 WebSocket 隧道
-                │ (双向 stdio + 文件 RPC)       │ (双向 stdio + 文件 RPC)
-┌───────────────┴──────────────┐ ┌─────────────┴───────────────┐
-│ 局域网/远程主机 A (Agent)    │ │   宿主机节点 (gt agent)     │
-│ Ubuntu / Debian / 树莓派 / NAS│ │  当前服务器所在系统独立运行   │
-└──────────────────────────────┘ └─────────────────────────────┘
-```
-
-### 2. 核心特性
-
-- **纯反向 Agent 统一网关**：
-  - Proxy 网关本身零内置宿主机 PTY 生成与本地 `fs` 降级，避免后端臃肿与本地特权风险；
-  - 宿主机与所有远程内网服务器平权，均通过执行 `gt agent`（`scripts/gt.js agent` 或 Rust 原生二进制）反向建立长连接。
-- **后台常驻与断线无损重放**：
-  - 终端 PTY 进程由 Agent 维护，关闭网页或网络波动不会中断后台任务；
-  - 服务端维护 200KB 环形历史回放缓冲区，重新进入时秒级恢复最近屏幕输出。
-- **纯 RPC 远程文件管理**：
-  - 支持多主机目录实时浏览、文件查看与编辑（集成 Monaco Editor）、文件夹新建、重命名、批量上传与下载。
-- **独立异步命令执行引擎 (AI 与自动化部署对接)**：
-  - **进程级绝对隔离**：基于独立子进程（`child_process.spawn`）执行，不占用或干扰交互式 PTY 终端会话；
-  - **非阻塞异步生命周期**：触发执行即刻返回全局唯一 `taskId`，支持按字节偏移（`offset`）增量拉取输出、超时守卫（SIGTERM/SIGKILL 强杀）与任务自动垃圾回收。
-- **优雅空态与自动切换**：
-  - 当暂无在线主机时，自动展示毛玻璃空态引导卡片，提供当前服务地址的一键启动命令；
-  - 当主机上线时平滑自动连接并装载 xterm 终端，多节点自动自愈切换。
-- **移动端深度交互优化**：
-  - **软键盘平滑推顶**：基于 Visual Viewport 动态跟踪与双向缓动补偿算法，键盘弹起时光标与输入行平滑上推，杜绝键盘遮挡与页面白屏；
-  - **移动端辅助按键栏 (Accessory Bar)**：在手机端提供快捷键条，一键输入 `Esc`、`Tab`、`Ctrl`、`Alt`、`Shift`、方向键及常用字符（`|`, `/`, `-`, `~`, `$` 等），支持长按连续触发；
-  - **运维命令抽屉 (Snippets Drawer)**：内置一键查看系统负载 (`top`)、磁盘空间 (`df -h`)、内存使用 (`free -m`)、网络连接等常用运维指令；
-  - **自由框选与复制**：专为触屏设计的选择模式，便于在移动端复制日志和终端文本。
-
-### 3. 主机节点反向 Agent 接入
-
-无需为服务器配置公网 IP 或配置 NAT 端口映射，宿主机或目标机器只需执行轻量级 Agent 脚本即可反向注册至控制台。
-
-#### A. 一键接入命令
-在宿主机或局域网内任意 Linux、macOS 或 Windows 主机上执行：
-
-```bash
-# 1. 登录并持久化连接凭据 (像 docker login 一样，保存在 ~/.gt/config.json)
-gt login http://<proxy-ip>:3000 <ADMIN_SECRET_KEY>
-
-# 2. 启动 Agent 节点 (Docker 风格多实例运行，-d 代表后台守护进程)
-gt run -d Ubuntu-GPU-Server
-
-# 3. 常用生命周期操作 (兼容 gt agent <cmd> 别名)
-gt ps -l                                  # 查看本机运行的 Agent 实例状态 (加 -a 查看所有含 Stopped)
-gt logs -f Ubuntu-GPU-Server              # 实时跟踪 Agent 运行日志
-gt stop Ubuntu-GPU-Server                 # 停止 Agent (加 --all 停止全部)
-gt restart Ubuntu-GPU-Server              # 重启 Agent
-gt prune -l                               # 一键清理所有已停止的本地 Agent 记录与日志
-gt rm Ubuntu-GPU-Server                   # 清理指定的已停止 Agent 记录
-```
-
-#### B. Agent 守护进程命令与参数说明
-| 命令 / 选项 | 说明 | 示例 |
-| :--- | :--- | :--- |
-| `gt run [-d] [NAME]` | 运行 Agent (前台控制台输出，或 `-d` / `--detach` 后台常驻；默认使用系统 hostname；兼容 `gt agent run`) | `gt run -d` / `gt run -d worker-1` |
-| `gt ps [-l\|--local] [-a\|--all]` | 列出已连接主机（默认列出远端；加 `-l` 列出本地 Agent 实例，`-a` 列出全部含 Stopped；兼容 `gt agent ps`) | `gt ps` / `gt ps -l` / `gt ps -l -a` |
-| `gt logs [-f] [-n 50] [NAME]` | 查看或实时跟踪 (`-f`) 本地 Agent 运行日志（兼容 `gt agent logs`） | `gt logs -f worker-1` |
-| `gt stop [NAME] [--all]` | 优雅终止 Agent 进程 (支持 `--all` 停止全部；兼容 `gt agent stop`) | `gt stop worker-1` |
-| `gt restart [NAME]` | 重启指定的 Agent 守护进程（兼容 `gt agent restart`） | `gt restart worker-1` |
-| `gt prune [-l\|--local] [-a\|--all]` | 清理离线远端节点或本地已停止 Agent 记录（兼容 `gt agent prune`） | `gt prune -l` / `gt prune -a` |
-| `gt rm [NAME] [--all]` | 删除已停止的 Agent 状态文件及日志记录 (支持 `--all`；兼容 `gt agent rm`) | `gt rm worker-1` |
-| `--name=<name>` | 显式指定 Agent 名称 (优先级高于位置参数 `NAME`) | `--name="my-box"` |
-| `--id=<id>` | 主机唯一标识 | 默认为固化在本地的稳定 Machine ID (12位十六进制) |
-| `--shell=<path>` | 指定调起的 Shell 程序路径 | 自动检测 (bash/zsh/PowerShell) |
-
-#### C. 特性保障
-- **自动检测内网 IP**：Agent 自动探测并上报主机的真实局域网 IPv4 地址与操作系统平台；
-- **自愈重连机制**：遇网络波动或代理重启，Agent 会自动采用指数退避算法（2s, 4s, 8s...）无限重连保活；
-- **零额外编译开销**：基于纯 Node.js 运行时，直接复用标准 `ws` 和 `node-pty`。
-
-#### D. 自动化命令执行 API (对接 AI / 部署脚本 / CI/CD)
-
-通过反向隧道连接的每个 Agent 节点，均支持通过标准 HTTP REST API 异步执行 Shell 命令，与人工交互的 WebTerminal 会话完全隔离。
-
-##### 1. 提交执行任务
-- **接口：** `POST /api/admin/terminal/exec/:hostId`
-- **说明：** 立即在目标节点派发独立子进程（`child_process.spawn`），返回 202 Accepted 与 `taskId`，避���长连接 HTTP 超时。
-- **请求示例 (cURL)：**
-```bash
-curl -X POST "http://localhost:3000/api/admin/terminal/exec/Ubuntu-GPU-Server" \
-     -H "Content-Type: application/json" \
-     -H "x-admin-key: YOUR_ADMIN_SECRET_KEY" \
-     -d '{
-       "command": "git pull origin main && npm run build",
-       "cwd": "/opt/apps/gemini-proxy",
-       "timeoutMs": 300000,
-       "env": { "NODE_ENV": "production" }
-     }'
-```
-- **响应示例：**
-```json
-{
-  "success": true,
-  "taskId": "task-1726671234000-a9b2c3",
-  "hostId": "Ubuntu-GPU-Server",
-  "status": "running",
-  "command": "git pull origin main && npm run build",
-  "cwd": "/opt/apps/gemini-proxy",
-  "startTime": 1726671234000
-}
-```
-
-##### 2. 轮询任务状态与增量输出
-- **接口：** `GET /api/admin/terminal/exec/:hostId/:taskId?offset=0`
-- **说明：** 支持按字节偏移量 `offset` 获取未读增量输出，AI Agent 或自动化脚本可根据返回的 `offset` 持续轮询直至任务结束（`status` 变为 `completed` / `failed` / `timeout` / `killed`）。
-- **请求示例 (cURL)：**
-```bash
-curl "http://localhost:3000/api/admin/terminal/exec/Ubuntu-GPU-Server/task-1726671234000-a9b2c3?offset=0" \
-     -H "x-admin-key: YOUR_ADMIN_SECRET_KEY"
-```
-- **响应示例：**
-```json
-{
-  "success": true,
-  "taskId": "task-1726671234000-a9b2c3",
-  "hostId": "Ubuntu-GPU-Server",
-  "status": "completed",
-  "exitCode": 0,
-  "stdout": "Updating a981fb7..81b8f5b\nFast-forward\nBuild success.\n",
-  "stderr": "",
-  "output": "Updating a981fb7..81b8f5b\nFast-forward\nBuild success.\n",
-  "offset": 58,
-  "totalBytes": 58,
-  "durationMs": 4200,
-  "startTime": 1726671234000,
-  "endTime": 1726671238200
-}
-```
-
-##### 3. 中断 / 强杀运行中的任务
-- **接口：** `POST /api/admin/terminal/exec/:hostId/:taskId/kill`
-- **说明：** 向指定任务进程发送 `SIGTERM`（可选 `SIGKILL`）中断信号。
-- **请求示例 (cURL)：**
-```bash
-curl -X POST "http://localhost:3000/api/admin/terminal/exec/Ubuntu-GPU-Server/task-1726671234000-a9b2c3/kill" \
-     -H "Content-Type: application/json" \
-     -H "x-admin-key: YOUR_ADMIN_SECRET_KEY" \
-     -d '{"signal": "SIGTERM"}'
-```
-
-##### 4. 获取节点最近历史任务列表
-- **接口：** `GET /api/admin/terminal/exec/:hostId?limit=20`
-- **请求示例 (cURL)：**
-```bash
-curl "http://localhost:3000/api/admin/terminal/exec/Ubuntu-GPU-Server?limit=20" \
-     -H "x-admin-key: YOUR_ADMIN_SECRET_KEY"
-```
-
-#### E. `gt` 命令行工具 (Docker 风格统一客户端)
-
-除了 HTTP REST API，本项目提供了类似 Docker 的标准终端管理工具 `gt`。
-
-##### 一键全局安装：
-任何安装了 Node.js (v18+) 的机器，只需执行以下命令之一即可一键安装 `gt`：
-
-```bash
-# 方式 1: 从 GitHub 官方仓库一键安装
-curl -fsSL https://raw.githubusercontent.com/Tonyogo/gemini-proxy/main/scripts/install-gt.sh | bash
-
-# 方式 2: 从您已部署的 Gemini-Proxy 服务节点一键安装
-curl -fsSL http://<your-proxy-server>:3000/install.sh | bash
-```
-
-##### 核心指令与示例：
-```bash
-# 1. 认证与远程节点管理 (类似 docker login / docker ps)
-gt login [server] [key]     # 校验凭据并保存至 ~/.gt/config.json
-gt logout                   # 清理本地凭据缓存
-gt ps                       # 查看当前在线的远程节点 (类似 docker ps，加 -a 显示全部)
-gt ps -a --format "table {{.ID}}\t{{.Name}}\t{{.IP}}\t{{.Status}}" # 自定义表格格式
-gt prune                    # 清理离线的节点记录 (类似 docker container prune)
-
-# 2. 远程命令执行 (纯净流式输出，支持短 ID 解析与 Stdin 管道)
-gt exec my-host uptime
-gt exec -w /var/www my-host ls -la
-gt exec --verbose my-host echo "hello"        # 详细模式 (显示开始与耗时 Banner)
-cat deploy.sh | gt exec -i my-host bash          # 标准输入流管道支持
-gt exec -d my-host "sleep 60 && echo done"       # 后台异步执行并返回 Task ID
-
-# 3. 任务与日志追踪 (支持缺省 taskId 自动推断最近任务)
-gt logs -f my-host                            # 实时跟踪节点最近任务的日志流 (智能推断)
-gt logs my-host task-1726671234000            # 指定任务 ID 查看日志
-gt kill my-host task-1726671234000            # 中断或强杀节点上的任务 (支持 --signal SIGKILL)
-gt task ls my-host                            # 查看节点上的所有任务历史
-
-# 4. 双向文件拷贝 (类似 docker cp)
-gt cp my-host:/var/log/app.log ./local.log       # 远程文件下载到本地
-gt cp ./config.json my-host:/app/config.json     # 本地文件上传到远程
-
-# 5. 本地 Agent 守护进程管理 (统一一级命令，亦兼容 gt agent 命名空间)
-gt run -d worker-1                            # 启动后台常驻 Agent 守护进程 (亦可写为 gt agent run)
-gt ps -l                                      # 查看本地所有 Agent 实例状态 (Running / Stopped)
-gt logs -f worker-1                           # 实时查看/跟踪 Agent 运行日志
-gt stop worker-1                              # 停止指定的 Agent (支持 --all 停止全部)
-gt restart worker-1                           # 重启指定的 Agent
-gt prune -l                                   # 一键清理所有已停止的本地 Agent 记录与日志
-gt rm worker-1                                # 清理已停止的 Agent 记录与日志 (支持 --all)
-```
+WebTerminal 交互终端与多主机反向 Agent（`gt` CLI）功能已正式从本项目解耦，并迁移至独立的 **[`gt-hub`](https://github.com/Tonyogo/gt-hub)** 项目。
+本项目专注于高性能无状态 Claude-to-Gemini API 代理网关与 Web 控制台，代码结构更加轻量纯粹。
 
 ---
 
-## 🧭 模型配置与映射关系 (`config/models.json`)
+## 🧭 模型配置与动态映射 (`MODEL_MAPPINGS`)
 
-系统受支持的模型列表在 **`config/models.json`** 中动态生成和读取。所有支持内容生成的 Google 原生模型都可以通过其原生 `id`（去除 `models/` 前缀后）被直接调用：
+所有支持内容生成的 Google 原生模型均可通过其原生 `id`（去除 `models/` 前缀后）被直接调用。若需为特定 Claude 或 Gemini 模型配置别名重定向与负载均衡，可通过环境变量 `MODEL_MAPPINGS` 或在 Web Admin 控制台中的“模型映射”标签页进行动态配置：
 
-| 客户端请求传入的模型 (ID) | 描述 / 说明 |
-| :--- | :--- |
-| **`gemini-3.5-flash`** | 直接映射并调度最新的 Gemini 3.5 Flash 模型 |
-| **`gemini-2.5-pro`** | 映射至 Google 强大的 2.5 Pro 模型 |
-| **`gemini-2.5-flash`** | 映射至高速 2.5 Flash 推理 |
-| `gemini-flash-latest` | 动态映射至最新可用 Flash |
-| 其它 Gemini 模型名 | 只要是在 models.json 中定义的模型名均支持纯透传调度 |
+```json
+{
+  "claude-3-7-sonnet": "gemini-2.5-pro",
+  "claude-3-5-haiku": "gemini-2.5-flash",
+  "gemini-flash-latest": ["gemini-2.5-flash", "gemini-2.0-flash"]
+}
+```
+
+支持单模型重定向、数组负载均衡，以及指定调度策略对象 `{ "target": "gemini-2.5-pro", "strategy": "round-robin" }`。
 
 您只需传入目标 Gemini 模型名称，即可实现完全等价的无缝代理转换。
 
@@ -567,14 +344,11 @@ curl "http://localhost:3000/v1beta/models" \
 
 ## 🧪 测试验证
 
-本项目包含一套基于 `ts-jest` 驱动的严苛自动化测试集，涵盖翻译协议、流式生命周期、鉴权中间件、Web 控制台组件、多主机终端网关及移动端视口算法：
+本项目包含一套基于 `ts-jest` 驱动的严苛自动化测试集，涵盖翻译协议、流式生命周期、鉴权中间件、Web 控制台组件及多上游网关调度算法：
 
 ```bash
 # 运行全量单元测试
 npm test
-
-# 运行终端与多主机管理专属测试
-npx jest tests/terminal*.test.ts
 
 # 单线程模式运行 (规避并发端口占用)
 npx jest --runInBand
@@ -582,26 +356,8 @@ npx jest --runInBand
 
 测试执行结果：
 ```text
-PASS tests/terminalWs.test.ts
-PASS tests/terminalHostsApi.test.ts
-PASS tests/terminalHostManager.test.ts
-PASS tests/terminalHostSelector.test.ts
-PASS tests/terminalAgent.test.ts
-PASS tests/terminalMobileSmoothPush.test.ts
-PASS tests/terminalAccessoryBar.test.ts
-PASS tests/terminalPersistence.test.ts
-PASS tests/claudeTranslator.test.ts
-PASS tests/claudeController.test.ts
-PASS tests/claudeControllerStreamLifecycle.test.ts
-PASS tests/claudeStreaming.test.ts
-PASS tests/payloadLogger.test.ts
-PASS tests/adminController.test.ts
-PASS tests/metricsService.test.ts
-...
-
-Test Suites: 64 passed, 64 total
-Tests:       1 skipped, 316 passed, 317 total
+Test Suites: 99 passed, 99 total
+Tests:       1 skipped, 519 passed, 520 total
 Snapshots:   0 total
-Time:        3.808 s
 Ran all test suites.
 ```
