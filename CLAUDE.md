@@ -28,6 +28,7 @@ This is a **stateless API proxy** that translates Anthropic Claude Messages API 
   - **Claude Translation Proxy (`claudeRoutes.ts`, `claudeController.ts`, `claudeTranslator.ts`):** Routes incoming `/v1/messages`, `/v1/messages/count_tokens`, `/v1/models`, and `/v1/models/:model_id` requests to `claudeController.ts`. Core translation engine (`claudeTranslator.ts`) converts tool schemas, system instructions, images, PDF documents, and thinking modes. Returns structured Claude JSON event arrays during stream translation, which are written as standard SSE events to client sockets while recorded natively as JSON arrays in transaction logs.
   - **Native Gemini API Proxy (`geminiRoutes.ts`, `geminiController.ts`):** Handles native Google Gemini protocol requests under `/v1beta/*` and `/v1/models/*:*` without translation. Integrates model alias mapping (`MODEL_MAPPINGS`), client-abort streaming lifecycle (`StreamLifecycleManager`), and full transaction audit logging (`payloadLogger`).
   - **Multi-Server Upstream Manager (`upstreamManager.ts`):** Manages multiple upstream endpoints with weighted round-robin scheduling, direct Gemini official API mode with API key pools, per-model routing filters, and circuit breaking.
+  - **Outbound Proxy Agent Manager (`src/utils/proxyAgentManager.ts`):** Centralized HTTP/HTTPS/SOCKS4/SOCKS5 egress proxy agent manager powered by `proxy-agent`. Resolves outbound proxy URLs with clear precedence: Node-level `proxyUrl` > Global `proxyUrl` / `GLOBAL_PROXY_URL` > System ENV (`HTTPS_PROXY`/`HTTP_PROXY`/`ALL_PROXY`). Reuses cached `http.Agent` instances, degrades gracefully on invalid URLs, and falls back to zero-overhead native network sockets when no proxy is configured.
 
 - **Out-of-Band Admin & Web Console (`src/admin/`, `frontend/`):**
   - **Admin Controller & Routes (`src/admin/controllers/`, `src/admin/routes/`):** Exposes `/api/admin/status`, `/api/admin/stats`, `/api/admin/models`, `/api/admin/logs`, and `/api/admin/config`.
@@ -58,6 +59,7 @@ This is a **stateless API proxy** that translates Anthropic Claude Messages API 
   - `RUNTIME_CONTEXT_TAG`: Configurable wrapper tag name (default `system-context`).
   - `UPSTREAM_TIMEOUT_MS`: Timeout for upstream Gemini requests in milliseconds (default `180000`).
   - `CUSTOM_SYSTEM_INSTRUCTION`: Optional custom system instructions injected into upstream calls.
+  - `GLOBAL_PROXY_URL` / `PROXY_URL`: Global egress proxy URL supporting HTTP, HTTPS, and SOCKS5 (e.g. `http://127.0.0.1:7890` or `socks5://127.0.0.1:10808`). Can be overridden on a per-node basis in `upstreamServers` or dynamically via the Web Admin Console.
   - `MODEL_MAPPINGS`: Optional JSON mapping dictionary to alias or redirect model requests (supports string target or `{ target, strategy }` with `least-used`, `round-robin`, `weighted` sent via `x-scheduling-strategy` header).
 
 ## Code Style & Guidelines
