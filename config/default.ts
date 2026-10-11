@@ -142,10 +142,12 @@ export function parseUpstreamServers(raw?: any): UpstreamServerConfig[] {
       const name = item.name ? String(item.name).trim() : undefined;
       const allowedModels = sanitizeModelList(item.allowedModels);
       const apiKeys = sanitizeApiKeys(item.apiKeys || item.keys);
+      const proxyUrl = item.proxyUrl && typeof item.proxyUrl === 'string' && item.proxyUrl.trim() ? item.proxyUrl.trim() : undefined;
       const res: UpstreamServerConfig = { url, weight, enabled, type };
       if (name) res.name = name;
       if (allowedModels) res.allowedModels = allowedModels;
       if (apiKeys) res.apiKeys = apiKeys;
+      if (proxyUrl) res.proxyUrl = proxyUrl;
       return res;
     }).filter(Boolean) as UpstreamServerConfig[];
 
@@ -183,6 +185,7 @@ export function parseUpstreamServers(raw?: any): UpstreamServerConfig[] {
       let allowedModels: string[] | undefined = undefined;
       let type: UpstreamServerType = 'proxy';
       let apiKeys: string[] | undefined = undefined;
+      let proxyUrl: string | undefined = undefined;
 
       if (paramPart) {
         const params = new URLSearchParams(paramPart);
@@ -215,6 +218,11 @@ export function parseUpstreamServers(raw?: any): UpstreamServerConfig[] {
         if (keysParam !== null) {
           apiKeys = sanitizeApiKeys(keysParam);
         }
+
+        const proxyParam = params.get('proxyUrl') || params.get('proxy');
+        if (proxyParam) {
+          proxyUrl = decodeURIComponent(proxyParam);
+        }
       }
 
       if (type === 'direct' && !basePart) {
@@ -227,6 +235,7 @@ export function parseUpstreamServers(raw?: any): UpstreamServerConfig[] {
       if (name) res.name = name;
       if (allowedModels) res.allowedModels = allowedModels;
       if (apiKeys) res.apiKeys = apiKeys;
+      if (proxyUrl) res.proxyUrl = proxyUrl;
       return res;
     }).filter(Boolean) as UpstreamServerConfig[];
 
@@ -265,6 +274,7 @@ const getEnvConfig = () => {
     customWebApps: parsedCustomWebApps as CustomWebAppItem[],
     stripSystemFingerprints: process.env.STRIP_SYSTEM_FINGERPRINTS !== 'false',
     ignoredTools: (runtimeOverrides.ignoredTools !== undefined ? runtimeOverrides.ignoredTools : parsedIgnoredTools) as string[],
+    proxyUrl: (process.env.GLOBAL_PROXY_URL || process.env.PROXY_URL || '') as string,
   };
 };
 
@@ -324,6 +334,23 @@ export const config = {
     if (runtimeOverrides.ignoredTools !== undefined) {
       runtimeOverrides.ignoredTools = val;
     }
+  },
+
+  get proxyUrl(): string {
+    if ((this as any)._proxyUrl !== undefined) {
+      return (this as any)._proxyUrl;
+    }
+    if (runtimeOverrides.proxyUrl !== undefined) {
+      return runtimeOverrides.proxyUrl;
+    }
+    return (process.env.GLOBAL_PROXY_URL || process.env.PROXY_URL || '') as string;
+  },
+
+  set proxyUrl(val: string) {
+    (this as any)._proxyUrl = val;
+    if (runtimeOverrides.proxyUrl !== undefined) {
+      runtimeOverrides.proxyUrl = val;
+    }
   }
 };
 
@@ -336,6 +363,7 @@ export async function updateConfig(
     delete (config as any)._geminiBaseUrl;
     delete (config as any)._upstreamServers;
     delete (config as any)._ignoredTools;
+    delete (config as any)._proxyUrl;
     const envDefaults = getEnvConfig();
     Object.assign(config, envDefaults);
 
@@ -371,6 +399,10 @@ export async function updateConfig(
   if (partialConfig.stripSystemFingerprints !== undefined) {
     const rawVal = partialConfig.stripSystemFingerprints as unknown;
     partialConfig.stripSystemFingerprints = rawVal === true || rawVal === 'true';
+  }
+
+  if (partialConfig.proxyUrl !== undefined) {
+    partialConfig.proxyUrl = typeof partialConfig.proxyUrl === 'string' ? partialConfig.proxyUrl.trim() : '';
   }
 
   // Record only explicit keys, ensuring geminiBaseUrl is never saved in runtimeOverrides

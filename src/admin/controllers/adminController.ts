@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import config, { updateConfig } from '../../../config/default';
 import logService from '../services/logService';
 import upstreamManager from '../../utils/upstreamManager';
+import proxyAgentManager from '../../utils/proxyAgentManager';
 
 class AdminController {
   public async getStatus(req: Request, res: Response): Promise<void> {
@@ -11,6 +12,7 @@ class AdminController {
       memoryUsage: process.memoryUsage(),
       config: {
         logLevel: config.logLevel,
+        proxyUrl: config.proxyUrl,
         geminiBaseUrl: config.geminiBaseUrl,
         geminiBaseUrls: upstreamManager.getBaseUrls(),
         upstreamServers: config.upstreamServers,
@@ -103,13 +105,18 @@ class AdminController {
         }
         newConfig.ignoredTools = Array.from(new Set(tools));
       }
+      if (newConfig.proxyUrl !== undefined) {
+        newConfig.proxyUrl = typeof newConfig.proxyUrl === 'string' ? newConfig.proxyUrl.trim() : '';
+      }
       await updateConfig(newConfig, { resetToEnv: Boolean(req.body.resetToEnv) });
       upstreamManager.reset();
+      proxyAgentManager.clearCache();
       res.json({
         status: 'ok',
         message: 'Configuration updated successfully',
         config: {
           logLevel: config.logLevel,
+          proxyUrl: config.proxyUrl,
           geminiBaseUrl: config.geminiBaseUrl,
           geminiBaseUrls: upstreamManager.getBaseUrls(),
           upstreamServers: config.upstreamServers,
