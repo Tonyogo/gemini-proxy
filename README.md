@@ -13,7 +13,7 @@
 - **轻量且无状态**：无任何数据库、浏览器实例（Playwright/Puppeteer）或账户轮询队列，所有请求完全在内存中高效处理。
 - **纯透传定位 (无配置密钥泄露风险)**：服务器本身**不保存任何官方 API 密钥**。客户端请求必须在 Header 中携带 `x-api-key`、`Authorization: Bearer <key>` 或 `x-goog-api-key` 作为官方 Gemini 密钥。代理端在翻译完参数后直接透传并访问下游 Google 接口，完全零运营与配额消耗。
 - **自定义 Base URL 支持 (`GEMINI_BASE_URL`)**：支持通过环境变量自定义 Google Gemini 接口的请求地址，完美适配自建反代、国内网络中转（如 Cloudflare Workers、Nginx 等），并内建智能斜杠合并与纠错机制。
-- **正向出站代理支持 (HTTP / HTTPS / SOCKS5)**：原生支持 HTTP/HTTPS/SOCKS4/SOCKS5 出站代理。支持通过全局环境变量（`GLOBAL_PROXY_URL` 或 `PROXY_URL`）、系统环境变量（`HTTPS_PROXY`）或 Web 控制台为单个上游节点绑定独立专属代理，让受限网络环境下的服务器无缝直连访问 Google 官方接口。未配置代理时直接走原生网络协议栈，零性能损耗。
+- **正向出站代理支持 (HTTP / HTTPS / SOCKS5)**：原生支持 HTTP/HTTPS/SOCKS4/SOCKS5 出站代理。支持在全局一次配置代理地址（通过环境变量 `GLOBAL_PROXY_URL` / `PROXY_URL`、系统环境变量 `HTTPS_PROXY` 或 Web 控制台设置），并在各服务器节点通过直观的胶囊按钮一键切换“本机直连”或“代理通道”，消除在每个节点重复输入代理 URL 的冗余。未开启代理通道或未配置代理时直接走原生网络协议栈，零性能损耗。
 - **模型别名与调度解耦 (`MODEL_MAPPINGS`)**：支持通过环境变量 `MODEL_MAPPINGS` 或 Web Admin 控制台动态配置模型别名重定向与负载均衡策略（如 `round-robin`、`least-used`、`weighted`）。无需改动或重新编译任何代码，即可实时热重载生效。
 - **全功能翻译转换**：
   - 系统提示词（System Prompt）映射与自定义控制：支持 `SYSTEM_ROLE_TO_INSTRUCTION` 开关控制将 `role: 'system'` 消息映射至 Gemini 的 `systemInstruction` 中，并自动按标题前缀进行增量去重（仅保留最新版系统指令）。
@@ -97,7 +97,7 @@ PORT=3000
 # 自定义 Gemini Upstream API 基础地址 (可选项。默认指向官方地址)
 GEMINI_BASE_URL=https://generativelanguage.googleapis.com
 
-# 全局出站正向代理地址 (可选项。支持 HTTP, HTTPS, SOCKS4, SOCKS5)
+# 全局出站正向代理地址 (可选项。支持 HTTP, HTTPS, SOCKS4, SOCKS5。各节点可通过胶囊开关选择走代理通道或本机直连)
 # GLOBAL_PROXY_URL=http://127.0.0.1:7890
 
 # 管理控制台 (/ui) 鉴权密钥 (强烈建议配置)
