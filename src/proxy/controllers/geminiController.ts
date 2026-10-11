@@ -123,7 +123,7 @@ class GeminiController {
       }
     }
 
-    const agent = proxyAgentManager.getAgent(serverSelection.proxyUrl);
+    const agent = proxyAgentManager.getAgent(serverSelection);
 
     if (isStream) {
       const streamManager = new StreamLifecycleManager({ req, res, transactionId, timeoutMs });

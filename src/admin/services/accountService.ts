@@ -40,7 +40,7 @@ export class AccountService {
     }
 
     try {
-      const agent = proxyAgentManager.getAgent(serverSelection.proxyUrl);
+      const agent = proxyAgentManager.getAgent(serverSelection);
       const options: any = {
         method: method.toUpperCase(),
         headers: this.getHeaders(),
@@ -137,7 +137,7 @@ export class AccountService {
     const actualIndex = serverSelection.serverIndex;
     const url = `${serverSelection.serverUrl}/api/files/${encodeURIComponent(filename)}`;
     try {
-      const agent = proxyAgentManager.getAgent(serverSelection.proxyUrl);
+      const agent = proxyAgentManager.getAgent(serverSelection);
       const res = await fetch(url, {
         method: 'GET',
         headers: this.getHeaders(),
@@ -185,7 +185,7 @@ export class AccountService {
     const actualIndex = serverSelection.serverIndex;
     const url = `${serverSelection.serverUrl}/api/accounts/batch/download`;
     try {
-      const agent = proxyAgentManager.getAgent(serverSelection.proxyUrl);
+      const agent = proxyAgentManager.getAgent(serverSelection);
       const res = await fetch(url, {
         method: 'POST',
         headers: this.getHeaders(),

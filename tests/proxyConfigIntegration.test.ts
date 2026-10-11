@@ -8,6 +8,15 @@ describe('Proxy Config Integration', () => {
     expect(servers[0].proxyUrl).toBe('http://127.0.0.1:7890');
   });
 
+  test('parseUpstreamServers correctly parses useProxy boolean and URL param', () => {
+    const servers = parseUpstreamServers([
+      { url: 'https://generativelanguage.googleapis.com', useProxy: true },
+      { url: 'https://api.example.com#useProxy=false' }
+    ]);
+    expect(servers[0].useProxy).toBe(true);
+    expect(servers[1].useProxy).toBe(false);
+  });
+
   test('updateConfig persists and reloads proxyUrl', async () => {
     await updateConfig({ proxyUrl: 'socks5://127.0.0.1:1080' });
     expect((config as any).proxyUrl).toBe('socks5://127.0.0.1:1080');

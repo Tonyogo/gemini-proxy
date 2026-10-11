@@ -129,7 +129,14 @@ export function parseUpstreamServers(raw?: any): UpstreamServerConfig[] {
     const list = raw.map(item => {
       if (!item || typeof item !== 'object') return null;
       const type: UpstreamServerType = item.type === 'direct' ? 'direct' : 'proxy';
-      let url = String(item.url || '').trim().replace(/\/+$/, '');
+      let url = String(item.url || '').trim();
+      let paramPart = '';
+      const hashIdx = url.indexOf('#');
+      if (hashIdx !== -1) {
+        paramPart = url.slice(hashIdx + 1).trim();
+        url = url.slice(0, hashIdx).trim();
+      }
+      url = url.replace(/\/+$/, '');
       if (type === 'direct' && !url) {
         url = 'https://generativelanguage.googleapis.com';
       }
@@ -142,12 +149,33 @@ export function parseUpstreamServers(raw?: any): UpstreamServerConfig[] {
       const name = item.name ? String(item.name).trim() : undefined;
       const allowedModels = sanitizeModelList(item.allowedModels);
       const apiKeys = sanitizeApiKeys(item.apiKeys || item.keys);
-      const proxyUrl = item.proxyUrl && typeof item.proxyUrl === 'string' && item.proxyUrl.trim() ? item.proxyUrl.trim() : undefined;
+      let proxyUrl = item.proxyUrl && typeof item.proxyUrl === 'string' && item.proxyUrl.trim() ? item.proxyUrl.trim() : undefined;
+      let useProxy = item.useProxy !== undefined
+        ? Boolean(item.useProxy)
+        : (item.proxyUrl ? true : undefined);
+
+      if (paramPart) {
+        const params = new URLSearchParams(paramPart);
+        if (useProxy === undefined && params.has('useProxy')) {
+          useProxy = params.get('useProxy') === 'true';
+        }
+        if (!proxyUrl) {
+          const proxyParam = params.get('proxyUrl') || params.get('proxy');
+          if (proxyParam) {
+            proxyUrl = decodeURIComponent(proxyParam);
+            if (useProxy === undefined) {
+              useProxy = true;
+            }
+          }
+        }
+      }
+
       const res: UpstreamServerConfig = { url, weight, enabled, type };
       if (name) res.name = name;
       if (allowedModels) res.allowedModels = allowedModels;
       if (apiKeys) res.apiKeys = apiKeys;
       if (proxyUrl) res.proxyUrl = proxyUrl;
+      if (useProxy !== undefined) res.useProxy = useProxy;
       return res;
     }).filter(Boolean) as UpstreamServerConfig[];
 
@@ -186,6 +214,7 @@ export function parseUpstreamServers(raw?: any): UpstreamServerConfig[] {
       let type: UpstreamServerType = 'proxy';
       let apiKeys: string[] | undefined = undefined;
       let proxyUrl: string | undefined = undefined;
+      let useProxy: boolean | undefined = undefined;
 
       if (paramPart) {
         const params = new URLSearchParams(paramPart);
@@ -223,6 +252,12 @@ export function parseUpstreamServers(raw?: any): UpstreamServerConfig[] {
         if (proxyParam) {
           proxyUrl = decodeURIComponent(proxyParam);
         }
+
+        if (params.has('useProxy')) {
+          useProxy = params.get('useProxy') === 'true';
+        } else if (proxyUrl) {
+          useProxy = true;
+        }
       }
 
       if (type === 'direct' && !basePart) {
@@ -236,6 +271,7 @@ export function parseUpstreamServers(raw?: any): UpstreamServerConfig[] {
       if (allowedModels) res.allowedModels = allowedModels;
       if (apiKeys) res.apiKeys = apiKeys;
       if (proxyUrl) res.proxyUrl = proxyUrl;
+      if (useProxy !== undefined) res.useProxy = useProxy;
       return res;
     }).filter(Boolean) as UpstreamServerConfig[];
 

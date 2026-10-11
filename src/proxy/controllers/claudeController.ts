@@ -100,7 +100,7 @@ class ClaudeController {
           ? selectedApiKey
           : apiKey;
         const upstreamHeaders = buildUpstreamHeaders(effectiveApiKey, customUpstreamHeaders);
-        const agent = proxyAgentManager.getAgent(serverSelection.proxyUrl);
+        const agent = proxyAgentManager.getAgent(serverSelection);
 
         try {
           const response = await fetch(targetUrl, {
@@ -321,7 +321,7 @@ class ClaudeController {
         ? selectedApiKey
         : apiKey;
       const upstreamHeaders = buildUpstreamHeaders(effectiveApiKey, customUpstreamHeaders);
-      const agent = proxyAgentManager.getAgent(serverSelection.proxyUrl);
+      const agent = proxyAgentManager.getAgent(serverSelection);
 
       try {
         const response = await fetch(targetUrl, {
@@ -494,7 +494,7 @@ class ClaudeController {
       const effectiveApiKey = (serverType === 'direct' && selectedApiKey)
         ? selectedApiKey
         : apiKey;
-      const agent = proxyAgentManager.getAgent(serverSelection.proxyUrl);
+      const agent = proxyAgentManager.getAgent(serverSelection);
 
       let response;
       try {
@@ -583,7 +583,7 @@ class ClaudeController {
       const effectiveApiKey = (serverType === 'direct' && selectedApiKey)
         ? selectedApiKey
         : apiKey;
-      const agent = proxyAgentManager.getAgent(serverSelection.proxyUrl);
+      const agent = proxyAgentManager.getAgent(serverSelection);
 
       let response;
       try {
@@ -701,7 +701,7 @@ class ClaudeController {
       const { targetUrl, serverUrl, serverIndex } = serverSelection;
       logger.info(`[Request] [Transaction: ${transactionId}] Proxying model metadata to Gemini [server ${serverIndex + 1}: ${serverUrl}]: GET ${targetPath}`);
       gemReq = { endpoint: targetPath };
-      const agent = proxyAgentManager.getAgent(serverSelection.proxyUrl);
+      const agent = proxyAgentManager.getAgent(serverSelection);
 
       let response;
       try {

@@ -21,7 +21,7 @@ describe('Proxy Egress Execution', () => {
         messages: [{ role: 'user', content: 'hello' }]
       });
 
-    expect(getAgentSpy).toHaveBeenCalledWith(undefined);
+    expect(getAgentSpy).toHaveBeenCalledWith(expect.objectContaining({ serverUrl: 'https://generativelanguage.googleapis.com' }));
     getAgentSpy.mockRestore();
   });
 
@@ -47,7 +47,7 @@ describe('Proxy Egress Execution', () => {
         messages: [{ role: 'user', content: 'hello' }]
       });
 
-    expect(getAgentSpy).toHaveBeenCalledWith('socks5://127.0.0.1:10808');
+    expect(getAgentSpy).toHaveBeenCalledWith(expect.objectContaining({ proxyUrl: 'socks5://127.0.0.1:10808' }));
     getAgentSpy.mockRestore();
   });
 
@@ -64,5 +64,22 @@ describe('Proxy Egress Execution', () => {
 
     expect(getAgentSpy).toHaveBeenCalled();
     getAgentSpy.mockRestore();
+  });
+
+  test('does not use proxy agent when selected node has useProxy: false even with global proxy set', async () => {
+    const getAgentSpy = jest.spyOn(proxyAgentManager, 'getAgent');
+    await updateConfig({
+      proxyUrl: 'http://127.0.0.1:9999',
+      upstreamServers: [{ url: 'https://generativelanguage.googleapis.com', weight: 1, enabled: true, useProxy: false }]
+    });
+
+    await request(app)
+      .post('/v1/messages')
+      .set('x-api-key', 'dummy-key')
+      .send({ model: 'gemini-2.5-flash', messages: [{ role: 'user', content: 'test' }] });
+
+    expect(getAgentSpy).toHaveBeenCalledWith(expect.objectContaining({ useProxy: false }));
+    getAgentSpy.mockRestore();
+    await updateConfig({ proxyUrl: '' });
   });
 });

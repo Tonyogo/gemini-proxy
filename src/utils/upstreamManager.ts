@@ -277,7 +277,8 @@ export class UpstreamManager {
         weight: target.weight || 1,
         serverType,
         selectedApiKey,
-        proxyUrl: target.proxyUrl
+        proxyUrl: target.proxyUrl,
+        useProxy: target.useProxy
       };
     }
 
@@ -339,7 +340,8 @@ export class UpstreamManager {
         weight: chosen.weight || 1,
         serverType,
         selectedApiKey,
-        proxyUrl: chosen.proxyUrl
+        proxyUrl: chosen.proxyUrl,
+        useProxy: chosen.useProxy
       };
     }
 
@@ -396,7 +398,8 @@ export class UpstreamManager {
       weight: chosenServer.weight || 1,
       serverType,
       selectedApiKey,
-      proxyUrl: chosenServer.proxyUrl
+      proxyUrl: chosenServer.proxyUrl,
+      useProxy: chosenServer.useProxy
     };
   }
 
