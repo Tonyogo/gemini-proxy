@@ -108,6 +108,7 @@ export interface UpstreamServerConfig {
   type?: UpstreamServerType;
   apiKeys?: string[];
   proxyUrl?: string;
+  useProxy?: boolean;
 }
 
 export interface UpstreamServerStatus extends UpstreamServerConfig {
@@ -127,6 +128,7 @@ export interface UpstreamServerSelection {
   serverType: UpstreamServerType;
   selectedApiKey?: string;
   proxyUrl?: string;
+  useProxy?: boolean;
 }
 
 export * from './accountUsage';

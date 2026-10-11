@@ -60,4 +60,22 @@ describe('ProxyAgentManager', () => {
     // Either returns agent or undefined gracefully
     expect(true).toBe(true);
   });
+
+  test('returns undefined when node explicitly sets useProxy: false even if global proxy is configured', () => {
+    (config as any).proxyUrl = 'http://127.0.0.1:7890';
+    expect(proxyAgentManager.getAgent({ useProxy: false })).toBeUndefined();
+  });
+
+  test('returns global proxy agent when node sets useProxy: true without custom proxyUrl', () => {
+    (config as any).proxyUrl = 'http://127.0.0.1:7890';
+    const agent = proxyAgentManager.getAgent({ useProxy: true });
+    expect(agent).toBeDefined();
+  });
+
+  test('returns undefined when node sets useProxy: true but no global or node proxy is configured', () => {
+    (config as any).proxyUrl = undefined;
+    delete process.env.HTTPS_PROXY;
+    delete process.env.HTTP_PROXY;
+    expect(proxyAgentManager.getAgent({ useProxy: true })).toBeUndefined();
+  });
 });

@@ -20,8 +20,15 @@ export class ProxyAgentManager {
     return undefined;
   }
 
-  public getAgent(nodeProxyUrl?: string): http.Agent | undefined {
-    const proxyUrl = this.resolveProxyUrl(nodeProxyUrl);
+  public getAgent(target?: string | { useProxy?: boolean; proxyUrl?: string }): http.Agent | undefined {
+    if (typeof target === 'object' && target !== null) {
+      if (target.useProxy === false) {
+        return undefined; // 显式选择本机直连，不走代理
+      }
+      return this.getAgent(target.proxyUrl);
+    }
+
+    const proxyUrl = this.resolveProxyUrl(target);
     if (!proxyUrl) {
       return undefined;
     }
