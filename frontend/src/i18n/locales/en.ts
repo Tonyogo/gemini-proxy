@@ -496,6 +496,11 @@ export const en = {
     keyPoolCountBadge: "Key × {count}",
     selectAgent: "Select Egress Agent Node...",
     noAgentsAvailable: "No available online agent nodes connected",
+    globalProxyTitle: "Global Egress Proxy",
+    globalProxyDesc: "Supports HTTP / HTTPS / SOCKS5 proxy when server cannot reach Google",
+    globalProxyPlaceholder: "http://127.0.0.1:7890 or socks5://... (empty for direct)",
+    nodeProxyTitle: "Node Egress Proxy (Optional)",
+    nodeProxyPlaceholder: "Leave blank to inherit global proxy",
   },
   concurrentTest: {
     title: "Concurrency Load Test",

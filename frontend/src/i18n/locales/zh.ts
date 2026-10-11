@@ -498,6 +498,11 @@ export const zh: Translations = {
     keyPoolCountBadge: "Key × {count}",
     selectAgent: "选择出站 Agent 节点...",
     noAgentsAvailable: "暂无在线可用的 Agent 节点",
+    globalProxyTitle: "全局出站代理",
+    globalProxyDesc: "支持 HTTP / HTTPS / SOCKS5 代理。服务器无法直连 Google 时配置",
+    globalProxyPlaceholder: "http://127.0.0.1:7890 或 socks5://127.0.0.1:10808 (留空直连)",
+    nodeProxyTitle: "专属出站代理 (可选)",
+    nodeProxyPlaceholder: "留空继承全局代理",
   },
   concurrentTest: {
     title: "并发压力测试",

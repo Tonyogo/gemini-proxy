@@ -30,6 +30,7 @@ export interface UpstreamServerConfig {
   allowedModels?: string[];
   type?: 'proxy' | 'direct';
   apiKeys?: string[];
+  proxyUrl?: string;
 }
 
 const SPLIT_COLORS = [
@@ -90,6 +91,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
   const [logLevel, setLogLevel] = useState<string>('info');
   const [logRetentionDays, setLogRetentionDays] = useState<number>(3);
   const [countTokensModel, setCountTokensModel] = useState<string>('');
+  const [proxyUrl, setProxyUrl] = useState<string>('');
   const [ephemeralUserMessagesText, setEphemeralUserMessagesText] = useState<string>('');
   const [ephemeralSystemMessagesText, setEphemeralSystemMessagesText] = useState<string>('');
   const [serverModelInputs, setServerModelInputs] = useState<Record<number, string>>({});
@@ -181,6 +183,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
           setLogLevel(data.config.logLevel || 'info');
           setLogRetentionDays(data.config.logRetentionDays || 3);
           setCountTokensModel(data.config.countTokensModel || '');
+          setProxyUrl(data.config.proxyUrl || '');
           const userMsgs = Array.isArray(data.config.ephemeralUserMessages)
             ? data.config.ephemeralUserMessages.join('\n')
             : '';
@@ -408,6 +411,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
           stripSystemFingerprints,
           ignoredTools,
           customSystemInstruction,
+          proxyUrl: proxyUrl.trim(),
           upstreamServers: upstreamServers.map((s, idx) => {
             const rawKeys = serverKeyInputs[idx] !== undefined ? serverKeyInputs[idx] : (s.apiKeys || []).join('\n');
             const cleanKeys = Array.from(new Set(rawKeys.split('\n').map(k => k.trim()).filter(Boolean)));
@@ -418,7 +422,8 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
               type: s.type || 'proxy',
               ...(s.name?.trim() ? { name: s.name.trim() } : {}),
               ...(Array.isArray(s.allowedModels) && s.allowedModels.length > 0 ? { allowedModels: s.allowedModels } : {}),
-              ...(s.type === 'direct' && cleanKeys.length > 0 ? { apiKeys: cleanKeys } : {})
+              ...(s.type === 'direct' && cleanKeys.length > 0 ? { apiKeys: cleanKeys } : {}),
+              ...(s.proxyUrl?.trim() ? { proxyUrl: s.proxyUrl.trim() } : {})
             };
           }),
           upstreamTimeoutMs,
@@ -988,6 +993,22 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                     </div>
                                   </div>
 
+                                  {/* Per-Node Egress Proxy */}
+                                  <div className="col-span-12 space-y-1">
+                                    <label className="text-[11px] text-slate-400 block">{t('config.nodeProxyTitle', '专属出站代理 (可选)')}</label>
+                                    <input
+                                      type="text"
+                                      value={server.proxyUrl || ''}
+                                      onChange={(e) => {
+                                        const updated = [...upstreamServers];
+                                        updated[idx] = { ...updated[idx], proxyUrl: e.target.value };
+                                        setUpstreamServers(updated);
+                                      }}
+                                      placeholder={t('config.nodeProxyPlaceholder', '留空继承全局代理')}
+                                      className="w-full ui-input p-2 text-xs font-mono"
+                                    />
+                                  </div>
+
                                   {/* Direct Mode API Keys (Multi-line) */}
                                   {server.type === 'direct' && (
                                     <div className="col-span-12 space-y-1 mt-1 p-2.5 rounded bg-slate-900/60 border border-cyan-500/20">
@@ -1074,6 +1095,18 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                           className="w-full ui-input p-2.5 text-xs"
                         />
                         <p className="hidden sm:block text-[10px] text-slate-400">{t('config.countTokensDesc')}</p>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-semibold text-slate-200 block">{t('config.globalProxyTitle', '全局出站代理')}</label>
+                        <input
+                          type="text"
+                          value={proxyUrl}
+                          onChange={(e) => setProxyUrl(e.target.value)}
+                          placeholder={t('config.globalProxyPlaceholder', 'http://127.0.0.1:7890 或 socks5://127.0.0.1:10808 (留空直连)')}
+                          className="w-full ui-input p-2.5 text-xs font-mono"
+                        />
+                        <p className="hidden sm:block text-[10px] text-slate-400">{t('config.globalProxyDesc', '支持 HTTP / HTTPS / SOCKS5 代理。服务器无法直连 Google 时配置')}</p>
                       </div>
                     </div>
                   </div>
