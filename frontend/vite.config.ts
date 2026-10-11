@@ -13,22 +13,15 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom')) {
-              return 'vendor-react';
-            }
-            if (id.includes('@xterm')) {
-              return 'vendor-xterm';
-            }
-            if (id.includes('@monaco-editor')) {
+            if (id.includes('monaco-editor') || id.includes('@monaco-editor')) {
               return 'vendor-monaco';
-            }
-            if (id.includes('react-markdown') || id.includes('remark-gfm')) {
-              return 'vendor-markdown';
             }
             if (id.includes('lucide-react')) {
               return 'vendor-lucide';
             }
-            return 'vendor-others';
+            if (id.includes('react-markdown') || id.includes('remark-gfm')) {
+              return 'vendor-markdown';
+            }
           }
         }
       }
