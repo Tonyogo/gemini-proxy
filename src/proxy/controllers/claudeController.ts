@@ -8,6 +8,7 @@ import accountUsageService from '../../admin/services/accountUsageService';
 import logger from '../../utils/logger';
 import { StreamLifecycleManager } from '../../utils/streamLifecycleManager';
 import upstreamManager from '../../utils/upstreamManager';
+import proxyAgentManager from '../../utils/proxyAgentManager';
 import { parseModelThinkingSuffix, applyThinkingConfigHigh } from '../../utils/modelThinkingHelper';
 import {
   extractClientKey,
@@ -99,13 +100,15 @@ class ClaudeController {
           ? selectedApiKey
           : apiKey;
         const upstreamHeaders = buildUpstreamHeaders(effectiveApiKey, customUpstreamHeaders);
+        const agent = proxyAgentManager.getAgent(serverSelection.proxyUrl);
 
         try {
           const response = await fetch(targetUrl, {
             method: 'POST',
             headers: upstreamHeaders,
             body: JSON.stringify(gemReq),
-            signal: streamManager.signal
+            signal: streamManager.signal,
+            agent
           });
 
           let accountName = response.headers?.get ? (response.headers.get('x-account-name') || null) : null;
@@ -318,13 +321,15 @@ class ClaudeController {
         ? selectedApiKey
         : apiKey;
       const upstreamHeaders = buildUpstreamHeaders(effectiveApiKey, customUpstreamHeaders);
+      const agent = proxyAgentManager.getAgent(serverSelection.proxyUrl);
 
       try {
         const response = await fetch(targetUrl, {
           method: 'POST',
           headers: upstreamHeaders,
           body: JSON.stringify(gemReq),
-          signal: streamManager.signal
+          signal: streamManager.signal,
+          agent
         });
 
         streamManager.markFinished();
@@ -489,13 +494,15 @@ class ClaudeController {
       const effectiveApiKey = (serverType === 'direct' && selectedApiKey)
         ? selectedApiKey
         : apiKey;
+      const agent = proxyAgentManager.getAgent(serverSelection.proxyUrl);
 
       let response;
       try {
         response = await fetch(targetUrl, {
           method: 'POST',
           headers: buildUpstreamHeaders(effectiveApiKey),
-          body: JSON.stringify(countTokensPayload)
+          body: JSON.stringify(countTokensPayload),
+          agent
         });
       } catch (fetchErr: any) {
         upstreamManager.recordRequestResult(serverIndex, false, fetchErr.message || 'Fetch error');
@@ -576,12 +583,14 @@ class ClaudeController {
       const effectiveApiKey = (serverType === 'direct' && selectedApiKey)
         ? selectedApiKey
         : apiKey;
+      const agent = proxyAgentManager.getAgent(serverSelection.proxyUrl);
 
       let response;
       try {
         response = await fetch(targetUrl, {
           method: 'GET',
-          headers: buildUpstreamHeaders(effectiveApiKey)
+          headers: buildUpstreamHeaders(effectiveApiKey),
+          agent
         });
       } catch (fetchErr: any) {
         upstreamManager.recordRequestResult(serverIndex, false, fetchErr.message || 'Fetch error');
@@ -688,15 +697,18 @@ class ClaudeController {
       }
 
       const targetPath = `/v1beta/models/${resolvedModelId}`;
-      const { targetUrl, serverUrl, serverIndex } = upstreamManager.getUpstreamUrl(targetPath, { model: resolvedModelId, originalModel: cleanModelId, resolvedModel: resolvedModelId });
+      const serverSelection = upstreamManager.getUpstreamUrl(targetPath, { model: resolvedModelId, originalModel: cleanModelId, resolvedModel: resolvedModelId });
+      const { targetUrl, serverUrl, serverIndex } = serverSelection;
       logger.info(`[Request] [Transaction: ${transactionId}] Proxying model metadata to Gemini [server ${serverIndex + 1}: ${serverUrl}]: GET ${targetPath}`);
       gemReq = { endpoint: targetPath };
+      const agent = proxyAgentManager.getAgent(serverSelection.proxyUrl);
 
       let response;
       try {
         response = await fetch(targetUrl, {
           method: 'GET',
-          headers: buildUpstreamHeaders(apiKey)
+          headers: buildUpstreamHeaders(apiKey),
+          agent
         });
       } catch (fetchErr: any) {
         upstreamManager.recordRequestResult(serverIndex, false, fetchErr.message || 'Fetch error');

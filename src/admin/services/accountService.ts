@@ -1,6 +1,7 @@
 import fetch, { Response } from 'node-fetch';
 import config from '../../../config/default';
 import upstreamManager from '../../utils/upstreamManager';
+import proxyAgentManager from '../../utils/proxyAgentManager';
 
 export class AccountService {
   private getBaseUrl(serverIndex?: number): string {
@@ -39,10 +40,12 @@ export class AccountService {
     }
 
     try {
+      const agent = proxyAgentManager.getAgent(serverSelection.proxyUrl);
       const options: any = {
         method: method.toUpperCase(),
         headers: this.getHeaders(),
-        timeout: config.upstreamTimeoutMs || 30000
+        timeout: config.upstreamTimeoutMs || 30000,
+        agent
       };
 
       if (data !== undefined && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method)) {
@@ -134,10 +137,12 @@ export class AccountService {
     const actualIndex = serverSelection.serverIndex;
     const url = `${serverSelection.serverUrl}/api/files/${encodeURIComponent(filename)}`;
     try {
+      const agent = proxyAgentManager.getAgent(serverSelection.proxyUrl);
       const res = await fetch(url, {
         method: 'GET',
         headers: this.getHeaders(),
-        timeout: config.upstreamTimeoutMs || 30000
+        timeout: config.upstreamTimeoutMs || 30000,
+        agent
       });
 
       if (res.status >= 500 && res.status < 600) {
@@ -180,11 +185,13 @@ export class AccountService {
     const actualIndex = serverSelection.serverIndex;
     const url = `${serverSelection.serverUrl}/api/accounts/batch/download`;
     try {
+      const agent = proxyAgentManager.getAgent(serverSelection.proxyUrl);
       const res = await fetch(url, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({ indices }),
-        timeout: config.upstreamTimeoutMs || 30000
+        timeout: config.upstreamTimeoutMs || 30000,
+        agent
       });
 
       if (res.status >= 500 && res.status < 600) {

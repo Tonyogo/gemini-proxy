@@ -7,6 +7,7 @@ import accountUsageService from '../../admin/services/accountUsageService';
 import logger from '../../utils/logger';
 import { StreamLifecycleManager } from '../../utils/streamLifecycleManager';
 import upstreamManager from '../../utils/upstreamManager';
+import proxyAgentManager from '../../utils/proxyAgentManager';
 import { parseModelThinkingSuffix, applyThinkingConfigHigh } from '../../utils/modelThinkingHelper';
 import {
   extractClientKey,
@@ -122,6 +123,8 @@ class GeminiController {
       }
     }
 
+    const agent = proxyAgentManager.getAgent(serverSelection.proxyUrl);
+
     if (isStream) {
       const streamManager = new StreamLifecycleManager({ req, res, transactionId, timeoutMs });
       logger.info(`[GeminiProxy] [Transaction: ${transactionId}] Proxying stream to [server ${serverIndex + 1}: ${serverUrl}]: ${req.method} ${targetUrl}`);
@@ -131,7 +134,8 @@ class GeminiController {
           method: req.method,
           headers: upstreamHeaders,
           body: req.method !== 'GET' && req.method !== 'HEAD' && clientReq ? JSON.stringify(clientReq) : undefined,
-          signal: streamManager.signal
+          signal: streamManager.signal,
+          agent
         });
 
         let accountName = response.headers?.get ? (response.headers.get('x-account-name') || null) : null;
@@ -232,7 +236,8 @@ class GeminiController {
       const response = await fetch(targetUrl, {
         method: req.method,
         headers: upstreamHeaders,
-        body: req.method !== 'GET' && req.method !== 'HEAD' && clientReq ? JSON.stringify(clientReq) : undefined
+        body: req.method !== 'GET' && req.method !== 'HEAD' && clientReq ? JSON.stringify(clientReq) : undefined,
+        agent
       });
 
       let accountName = response.headers?.get ? (response.headers.get('x-account-name') || null) : null;

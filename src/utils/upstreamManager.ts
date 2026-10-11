@@ -109,6 +109,7 @@ export class UpstreamManager {
         allowedModels: server.allowedModels,
         type: server.type || 'proxy',
         apiKeys: server.apiKeys,
+        proxyUrl: server.proxyUrl,
         keyCount: server.apiKeys ? server.apiKeys.length : 0,
         effectivePercent,
         consecutiveFailures,
@@ -275,7 +276,8 @@ export class UpstreamManager {
         serverIndex: idx,
         weight: target.weight || 1,
         serverType,
-        selectedApiKey
+        selectedApiKey,
+        proxyUrl: target.proxyUrl
       };
     }
 
@@ -336,7 +338,8 @@ export class UpstreamManager {
         serverIndex: chosen.serverIndex,
         weight: chosen.weight || 1,
         serverType,
-        selectedApiKey
+        selectedApiKey,
+        proxyUrl: chosen.proxyUrl
       };
     }
 
@@ -392,7 +395,8 @@ export class UpstreamManager {
       serverIndex: chosenServer.serverIndex,
       weight: chosenServer.weight || 1,
       serverType,
-      selectedApiKey
+      selectedApiKey,
+      proxyUrl: chosenServer.proxyUrl
     };
   }
 
