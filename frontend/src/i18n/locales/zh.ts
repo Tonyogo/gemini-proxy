@@ -671,7 +671,20 @@ export const zh: Translations = {
     fullscreen: "全屏沉浸",
     exitFullscreen: "退出全屏",
     loadingApp: "正在加载应用...",
-    mixedContentWarn: "如果无法内嵌显示，请尝试在新窗口打开或启用网关代理。"
+    mixedContentWarn: "如果无法内嵌显示，请尝试在新窗口打开或启用网关代理。",
+    managePage: "页面配置",
+    manageTitle: "发现页管理",
+    manageDesc: "自定义卡片排序与显示隐藏",
+    moveUp: "上移",
+    moveDown: "下移",
+    show: "显示",
+    hide: "隐藏",
+    builtinType: "内置功能",
+    customType: "外部应用",
+    resetDefault: "恢复默认",
+    resetConfirm: "确定恢复默认应用布局吗？",
+    allHiddenPrompt: "当前所有应用均已隐藏",
+    openSettings: "打开配置"
   },
   files: {
     title: "文件管理",

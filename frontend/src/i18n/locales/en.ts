@@ -669,7 +669,20 @@ export const en = {
     fullscreen: "Fullscreen",
     exitFullscreen: "Exit Fullscreen",
     loadingApp: "Loading application...",
-    mixedContentWarn: "If content fails to load in iframe, try opening externally or enable Gateway Proxy."
+    mixedContentWarn: "If content fails to load in iframe, try opening externally or enable Gateway Proxy.",
+    managePage: "Manage Page",
+    manageTitle: "Discover Hub Settings",
+    manageDesc: "Customize app cards ordering and visibility",
+    moveUp: "Move Up",
+    moveDown: "Move Down",
+    show: "Show",
+    hide: "Hide",
+    builtinType: "Built-in",
+    customType: "Web App",
+    resetDefault: "Reset Default",
+    resetConfirm: "Reset to default layout?",
+    allHiddenPrompt: "All apps are currently hidden",
+    openSettings: "Open Settings"
   },
   files: {
     title: "File Manager",
