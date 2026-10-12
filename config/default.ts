@@ -1,9 +1,66 @@
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 import { existsSync, readFileSync, promises as fs } from 'fs';
-import { ModelMappingsConfig, CustomWebAppItem, UpstreamServerConfig, UpstreamServerType } from '../src/types';
+import { ModelMappingsConfig, CustomWebAppItem, DiscoverAppItem, UpstreamServerConfig, UpstreamServerType } from '../src/types';
 
 dotenv.config();
+
+export const DEFAULT_BUILTIN_DISCOVER_APPS: DiscoverAppItem[] = [
+  {
+    id: 'systemLogs',
+    type: 'builtin',
+    name: '系统日志',
+    description: '实时查看服务端运行日志与请求事件',
+    icon: 'FileText',
+    color: 'from-blue-500 to-cyan-600',
+    badge: 'SSE STREAM',
+    enabled: true,
+    order: 0,
+  },
+  {
+    id: 'playground',
+    type: 'builtin',
+    name: '接口演练',
+    description: '在线测试 Gemini API 对话与流式调用',
+    icon: 'Play',
+    color: 'from-orange-500 to-amber-600',
+    badge: 'REST & STREAM',
+    enabled: true,
+    order: 1,
+  },
+  {
+    id: 'translate',
+    type: 'builtin',
+    name: '双语对照',
+    description: '双栏对照沉浸式翻译与提示词调优',
+    icon: 'Languages',
+    color: 'from-indigo-500 to-purple-600',
+    badge: 'BILINGUAL',
+    enabled: true,
+    order: 2,
+  },
+];
+
+export function buildDefaultDiscoverApps(customApps: CustomWebAppItem[] = []): DiscoverAppItem[] {
+  const builtin = DEFAULT_BUILTIN_DISCOVER_APPS.map((item, index) => ({
+    ...item,
+    order: index,
+  }));
+  const customItems: DiscoverAppItem[] = (customApps || []).map((item, index) => ({
+    id: item.id,
+    type: 'custom',
+    name: item.name,
+    icon: item.icon || 'Globe',
+    color: item.color || 'from-orange-500 to-amber-600',
+    badge: item.useGateway ? 'GW PROXY' : undefined,
+    enabled: true,
+    order: builtin.length + index,
+    url: item.url,
+    useGateway: item.useGateway,
+    createdAt: item.createdAt,
+  }));
+  return [...builtin, ...customItems];
+}
 
 export const PRESET_CUSTOM_WEB_APPS: CustomWebAppItem[] = [
   {
@@ -22,6 +79,18 @@ if (process.env.CUSTOM_WEB_APPS) {
     const parsed = JSON.parse(process.env.CUSTOM_WEB_APPS);
     if (Array.isArray(parsed)) {
       parsedCustomWebApps = parsed;
+    }
+  } catch (err) {
+    // Falls back to defaults
+  }
+}
+
+let parsedDiscoverApps: DiscoverAppItem[] | undefined;
+if (process.env.DISCOVER_APPS) {
+  try {
+    const parsed = JSON.parse(process.env.DISCOVER_APPS);
+    if (Array.isArray(parsed)) {
+      parsedDiscoverApps = parsed;
     }
   } catch (err) {
     // Falls back to defaults
@@ -308,6 +377,7 @@ const getEnvConfig = () => {
     logRetentionDays: parseInt(process.env.LOG_RETENTION_DAYS || '3', 10) as number,
     countTokensModel: (process.env.COUNT_TOKENS_MODEL || '') as string,
     customWebApps: parsedCustomWebApps as CustomWebAppItem[],
+    discoverApps: (parsedDiscoverApps || buildDefaultDiscoverApps(parsedCustomWebApps)) as DiscoverAppItem[],
     stripSystemFingerprints: process.env.STRIP_SYSTEM_FINGERPRINTS !== 'false',
     ignoredTools: (runtimeOverrides.ignoredTools !== undefined ? runtimeOverrides.ignoredTools : parsedIgnoredTools) as string[],
     proxyUrl: (process.env.GLOBAL_PROXY_URL || process.env.PROXY_URL || '') as string,
@@ -387,6 +457,31 @@ export const config = {
     if (runtimeOverrides.proxyUrl !== undefined) {
       runtimeOverrides.proxyUrl = val;
     }
+  },
+
+  get discoverApps(): DiscoverAppItem[] {
+    if ((this as any)._discoverApps !== undefined) {
+      return (this as any)._discoverApps;
+    }
+    if (runtimeOverrides.discoverApps !== undefined && Array.isArray(runtimeOverrides.discoverApps)) {
+      return runtimeOverrides.discoverApps;
+    }
+    if (process.env.DISCOVER_APPS) {
+      try {
+        const parsed = JSON.parse(process.env.DISCOVER_APPS);
+        if (Array.isArray(parsed)) return parsed;
+      } catch {
+        // ignore
+      }
+    }
+    return buildDefaultDiscoverApps(this.customWebApps);
+  },
+
+  set discoverApps(val: DiscoverAppItem[]) {
+    (this as any)._discoverApps = val;
+    if (runtimeOverrides.discoverApps !== undefined) {
+      runtimeOverrides.discoverApps = val;
+    }
   }
 };
 
@@ -400,6 +495,7 @@ export async function updateConfig(
     delete (config as any)._upstreamServers;
     delete (config as any)._ignoredTools;
     delete (config as any)._proxyUrl;
+    delete (config as any)._discoverApps;
     const envDefaults = getEnvConfig();
     Object.assign(config, envDefaults);
 
@@ -439,6 +535,52 @@ export async function updateConfig(
 
   if (partialConfig.proxyUrl !== undefined) {
     partialConfig.proxyUrl = typeof partialConfig.proxyUrl === 'string' ? partialConfig.proxyUrl.trim() : '';
+  }
+
+  if (partialConfig.discoverApps !== undefined) {
+    if (Array.isArray(partialConfig.discoverApps)) {
+      const normalized = partialConfig.discoverApps.map((item, idx) => ({
+        ...item,
+        order: idx,
+      }));
+      partialConfig.discoverApps = normalized;
+      const customApps = normalized
+        .filter(a => a.type === 'custom')
+        .map(a => ({
+          id: a.id,
+          name: a.name,
+          url: a.url || '',
+          icon: a.icon || 'Globe',
+          color: a.color || 'from-orange-500 to-amber-600',
+          useGateway: !!a.useGateway,
+          createdAt: a.createdAt || Date.now(),
+        }));
+      partialConfig.customWebApps = customApps;
+    }
+  } else if (partialConfig.customWebApps !== undefined) {
+    delete (config as any)._discoverApps;
+    if (runtimeOverrides.discoverApps && Array.isArray(runtimeOverrides.discoverApps)) {
+      const builtinApps = runtimeOverrides.discoverApps.filter((a: DiscoverAppItem) => a.type === 'builtin');
+      const customItems: DiscoverAppItem[] = partialConfig.customWebApps.map((item, index) => {
+        const existing = runtimeOverrides.discoverApps.find((a: DiscoverAppItem) => a.id === item.id);
+        return {
+          id: item.id,
+          type: 'custom',
+          name: item.name,
+          icon: item.icon || 'Globe',
+          color: item.color || 'from-orange-500 to-amber-600',
+          badge: item.useGateway ? 'GW PROXY' : undefined,
+          enabled: existing ? existing.enabled : true,
+          order: existing ? existing.order : builtinApps.length + index,
+          url: item.url,
+          useGateway: item.useGateway,
+          createdAt: item.createdAt,
+        };
+      });
+      partialConfig.discoverApps = [...builtinApps, ...customItems]
+        .sort((a, b) => a.order - b.order)
+        .map((a, idx) => ({ ...a, order: idx }));
+    }
   }
 
   // Record only explicit keys, ensuring geminiBaseUrl is never saved in runtimeOverrides
