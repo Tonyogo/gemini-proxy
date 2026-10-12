@@ -1,115 +1,100 @@
 import {
-  loadDiscoverApps,
-  saveDiscoverApps,
-  resetDiscoverAppsToDefault,
-  moveDiscoverApp,
-  toggleDiscoverAppVisibility,
-  saveOrUpdateCustomApp,
-  deleteCustomApp,
-  DISCOVER_APPS_STORAGE_KEY,
+  DEFAULT_DISCOVER_APPS,
+  reindexApps,
+  moveAppInList,
+  toggleAppVisibilityInList,
+  upsertCustomAppInList,
+  deleteCustomAppInList,
+  fetchRemoteDiscoverApps,
+  saveRemoteDiscoverApps,
 } from '../frontend/src/utils/discoverAppsStorage';
 import { DiscoverAppItem } from '../frontend/src/types/discoverApps';
 
-// Polyfill localStorage for Node.js test environment if not present
-if (typeof (global as any).localStorage === 'undefined') {
-  let store: Record<string, string> = {};
-  (global as any).localStorage = {
-    getItem: (key: string) => store[key] ?? null,
-    setItem: (key: string, val: string) => {
-      store[key] = String(val);
-    },
-    removeItem: (key: string) => {
-      delete store[key];
-    },
-    clear: () => {
-      store = {};
-    },
-  };
-}
-
-describe('discoverAppsStorage', () => {
-  beforeEach(() => {
-    localStorage.clear();
+describe('discoverAppsStorage (In-Memory & Remote Only)', () => {
+  it('provides default in-memory apps', () => {
+    expect(DEFAULT_DISCOVER_APPS.length).toBeGreaterThanOrEqual(4);
+    expect(DEFAULT_DISCOVER_APPS[0].id).toBe('systemLogs');
   });
 
-  it('loads default builtin apps when storage is empty', () => {
-    const apps = loadDiscoverApps();
-    expect(apps.length).toBeGreaterThanOrEqual(3);
-    expect(apps.some(a => a.id === 'systemLogs' && a.type === 'builtin')).toBe(true);
-    expect(apps.some(a => a.id === 'playground' && a.type === 'builtin')).toBe(true);
-    expect(apps.some(a => a.id === 'translate' && a.type === 'builtin')).toBe(true);
+  it('moves apps up and down correctly in-memory', () => {
+    const list = [...DEFAULT_DISCOVER_APPS];
+    const topId = list[0].id;
+    const secondId = list[1].id;
+
+    // Moving top item up is no-op
+    let moved = moveAppInList(list, topId, 'up');
+    expect(moved[0].id).toBe(topId);
+
+    // Moving second item up swaps position
+    moved = moveAppInList(list, secondId, 'up');
+    expect(moved[0].id).toBe(secondId);
+    expect(moved[1].id).toBe(topId);
+    expect(moved[0].order).toBe(0);
+    expect(moved[1].order).toBe(1);
   });
 
-  it('migrates legacy custom_discover_apps cleanly', () => {
-    const legacy = [
-      {
-        id: 'legacy_app_1',
-        name: 'My Service',
-        url: 'https://example.com',
-        color: 'from-orange-500 to-amber-600',
-        createdAt: 1000,
-      },
+  it('toggles visibility in-memory', () => {
+    const list = [...DEFAULT_DISCOVER_APPS];
+    const toggled = toggleAppVisibilityInList(list, 'systemLogs');
+    expect(toggled.find((a: DiscoverAppItem) => a.id === 'systemLogs')?.enabled).toBe(false);
+  });
+
+  it('upserts and deletes custom app in-memory', () => {
+    let list = [...DEFAULT_DISCOVER_APPS];
+    list = upsertCustomAppInList(list, {
+      name: 'Cloud Note',
+      url: 'https://notes.local',
+    });
+    const item = list.find((a: DiscoverAppItem) => a.name === 'Cloud Note');
+    expect(item).toBeDefined();
+    expect(item?.type).toBe('custom');
+
+    list = deleteCustomAppInList(list, item!.id);
+    expect(list.find((a: DiscoverAppItem) => a.name === 'Cloud Note')).toBeUndefined();
+  });
+
+  it('fetches remote discover apps using fetch API', async () => {
+    const mockApps = [
+      { id: 'app1', type: 'custom', name: 'App 1', icon: 'Globe', color: 'blue', enabled: true, order: 0 }
     ];
-    localStorage.setItem('custom_discover_apps', JSON.stringify(legacy));
-
-    const apps = loadDiscoverApps();
-    expect(apps.some(a => a.id === 'legacy_app_1' && a.type === 'custom')).toBe(true);
-    expect(apps.find(a => a.id === 'legacy_app_1')?.name).toBe('My Service');
-  });
-
-  it('moves apps up and down correctly', () => {
-    let apps = resetDiscoverAppsToDefault();
-    const firstId = apps[0].id;
-    const secondId = apps[1].id;
-
-    // Moving first item up should be a no-op
-    apps = moveDiscoverApp(firstId, 'up');
-    expect(apps[0].id).toBe(firstId);
-
-    // Moving last item down should be a no-op
-    const lastId = apps[apps.length - 1].id;
-    apps = moveDiscoverApp(lastId, 'down');
-    expect(apps[apps.length - 1].id).toBe(lastId);
-
-    // Moving second item up swaps 0 and 1
-    apps = moveDiscoverApp(secondId, 'up');
-    expect(apps[0].id).toBe(secondId);
-    expect(apps[1].id).toBe(firstId);
-  });
-
-  it('toggles visibility of an app', () => {
-    let apps = resetDiscoverAppsToDefault();
-    const target = apps[0];
-    expect(target.enabled).toBe(true);
-
-    apps = toggleDiscoverAppVisibility(target.id);
-    expect(apps.find(a => a.id === target.id)?.enabled).toBe(false);
-
-    apps = toggleDiscoverAppVisibility(target.id);
-    expect(apps.find(a => a.id === target.id)?.enabled).toBe(true);
-  });
-
-  it('adds, edits and deletes custom app', () => {
-    let apps = saveOrUpdateCustomApp({
-      name: 'Test App',
-      url: 'https://test.local',
-      color: 'from-blue-500 to-cyan-600',
+    const originalFetch = global.fetch;
+    (global as any).fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ config: { discoverApps: mockApps } }),
     });
-    const created = apps.find(a => a.name === 'Test App');
-    expect(created).toBeDefined();
-    expect(created?.type).toBe('custom');
-    expect(created?.url).toBe('https://test.local');
 
-    // Edit
-    apps = saveOrUpdateCustomApp({
-      id: created!.id,
-      name: 'Updated App',
-      url: 'https://test.local/v2',
+    const result = await fetchRemoteDiscoverApps('test-key');
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe('app1');
+    expect((global.fetch as jest.Mock)).toHaveBeenCalledWith('/api/admin/status', {
+      headers: { 'x-admin-key': 'test-key' },
     });
-    expect(apps.find(a => a.id === created!.id)?.name).toBe('Updated App');
 
-    // Delete
-    apps = deleteCustomApp(created!.id);
-    expect(apps.find(a => a.id === created!.id)).toBeUndefined();
+    global.fetch = originalFetch;
+  });
+
+  it('saves remote discover apps using fetch POST', async () => {
+    const mockApps = [
+      { id: 'app1', type: 'custom', name: 'App 1', icon: 'Globe', color: 'blue', enabled: true, order: 0 }
+    ];
+    const originalFetch = global.fetch;
+    (global as any).fetch = jest.fn().mockResolvedValue({
+      ok: true,
+    });
+
+    const success = await saveRemoteDiscoverApps(mockApps as any, 'test-key');
+    expect(success).toBe(true);
+    expect((global.fetch as jest.Mock)).toHaveBeenCalledWith(
+      '/api/admin/config',
+      expect.objectContaining({
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-key': 'test-key',
+        },
+      })
+    );
+
+    global.fetch = originalFetch;
   });
 });
