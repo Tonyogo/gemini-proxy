@@ -29,6 +29,7 @@ import {
   Edit3
 } from 'lucide-react';
 import type { DiscoverToolId } from './components/DiscoverHubView';
+import type { DiscoverAppItem } from './types/discoverApps';
 import type { CustomWebAppItem } from './types/customWebApps';
 import { syncCustomWebAppsFromRemote } from './utils/customWebAppsStorage';
 import { useTranslation } from './i18n/LanguageContext';
@@ -95,6 +96,7 @@ export default function App() {
   const [authError, setAuthError] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [cloudDiscoverApps, setCloudDiscoverApps] = useState<DiscoverAppItem[] | undefined>(undefined);
 
   useEffect(() => {
     const handlePopState = () => {
@@ -190,8 +192,18 @@ export default function App() {
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
     setRefreshTrigger(prev => prev + 1);
+    if (adminKey) {
+      fetch('/api/admin/status', { headers: { 'x-admin-key': adminKey } })
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data?.config?.discoverApps && Array.isArray(data.config.discoverApps)) {
+            setCloudDiscoverApps(data.config.discoverApps);
+          }
+        })
+        .catch(() => {});
+    }
     setTimeout(() => setIsRefreshing(false), 600);
-  }, []);
+  }, [adminKey]);
 
   const verifyAuth = async (keyToTest: string) => {
     setLoading(true);
@@ -204,6 +216,9 @@ export default function App() {
         const data = await res.json().catch(() => ({}));
         if (data?.config?.customWebApps) {
           syncCustomWebAppsFromRemote(data.config.customWebApps);
+        }
+        if (data?.config?.discoverApps && Array.isArray(data.config.discoverApps)) {
+          setCloudDiscoverApps(data.config.discoverApps);
         }
         setIsAuthenticated(true);
         setAdminKey(keyToTest);
@@ -833,6 +848,7 @@ export default function App() {
                 {discoverSubView === 'hub' && (
                   <DiscoverHubView
                     adminKey={adminKey}
+                    initialApps={cloudDiscoverApps}
                     onSelectTool={handleSelectDiscoverTool}
                     onSelectCustomApp={handleSelectCustomApp}
                   />

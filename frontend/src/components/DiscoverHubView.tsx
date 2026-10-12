@@ -15,9 +15,12 @@ import { DiscoverAppItem } from '../types/discoverApps';
 import { CustomWebAppItem } from '../types/customWebApps';
 import { loadCustomWebApps } from '../utils/customWebAppsStorage';
 import {
+  DEFAULT_DISCOVER_APPS,
   loadDiscoverApps,
-  saveOrUpdateCustomApp,
-  deleteCustomApp,
+  fetchRemoteDiscoverApps,
+  saveRemoteDiscoverApps,
+  upsertCustomAppInList,
+  deleteCustomAppInList,
 } from '../utils/discoverAppsStorage';
 import DiscoverConfigModal from './DiscoverConfigModal';
 import CustomWebAppModal from './CustomWebAppModal';
@@ -33,23 +36,46 @@ export type DiscoverToolId = 'systemLogs' | 'playground' | 'translate';
 
 export interface DiscoverHubViewProps {
   adminKey: string;
+  initialApps?: DiscoverAppItem[];
   onSelectTool: (tool: DiscoverToolId) => void;
   onSelectCustomApp?: (app: CustomWebAppItem) => void;
 }
 
 export const DiscoverHubView: React.FC<DiscoverHubViewProps> = ({
   adminKey,
+  initialApps,
   onSelectTool,
   onSelectCustomApp,
 }) => {
   const { t } = useTranslation();
-  const [apps, setApps] = useState<DiscoverAppItem[]>(() => loadDiscoverApps());
+  const [apps, setApps] = useState<DiscoverAppItem[]>(() => (initialApps && initialApps.length > 0 ? initialApps : loadDiscoverApps()));
   const [isConfigModalOpen, setIsConfigModalOpen] = useState(false);
   const [isCustomAppModalOpen, setIsCustomAppModalOpen] = useState(false);
   const [customAppToEdit, setCustomAppToEdit] = useState<CustomWebAppItem | null>(null);
 
+  useEffect(() => {
+    if (initialApps && initialApps.length > 0) {
+      setApps(initialApps);
+      return;
+    }
+    fetchRemoteDiscoverApps(adminKey).then((remoteApps) => {
+      if (remoteApps && remoteApps.length > 0) {
+        setApps(remoteApps);
+      }
+    });
+  }, [adminKey, initialApps]);
+
   const refreshApps = () => {
-    setApps(loadDiscoverApps());
+    fetchRemoteDiscoverApps(adminKey).then((remoteApps) => {
+      if (remoteApps && remoteApps.length > 0) {
+        setApps(remoteApps);
+      }
+    });
+  };
+
+  const handleSaveApps = async (newApps: DiscoverAppItem[]) => {
+    setApps(newApps);
+    await saveRemoteDiscoverApps(newApps, adminKey);
   };
 
   const visibleApps = apps.filter((app) => app.enabled).sort((a, b) => a.order - b.order);
@@ -92,28 +118,27 @@ export const DiscoverHubView: React.FC<DiscoverHubViewProps> = ({
     setIsCustomAppModalOpen(true);
   };
 
-  const handleSaveCustomApp = (savedApp: CustomWebAppItem) => {
-    saveOrUpdateCustomApp(
-      {
-        id: savedApp.id,
-        type: 'custom',
-        name: savedApp.name,
-        url: savedApp.url,
-        icon: savedApp.icon || 'Globe',
-        color: savedApp.color || 'from-orange-500 to-amber-600',
-        badge: savedApp.useGateway ? 'GW PROXY' : undefined,
-        enabled: true,
-        useGateway: savedApp.useGateway,
-        createdAt: savedApp.createdAt,
-      },
-      adminKey
-    );
-    refreshApps();
+  const handleSaveCustomApp = async (savedApp: CustomWebAppItem) => {
+    const updated = upsertCustomAppInList(apps, {
+      id: savedApp.id,
+      type: 'custom',
+      name: savedApp.name,
+      url: savedApp.url,
+      icon: savedApp.icon || 'Globe',
+      color: savedApp.color || 'from-orange-500 to-amber-600',
+      badge: savedApp.useGateway ? 'GW PROXY' : undefined,
+      enabled: true,
+      useGateway: savedApp.useGateway,
+      createdAt: savedApp.createdAt,
+    });
+    setApps(updated);
+    await saveRemoteDiscoverApps(updated, adminKey);
   };
 
-  const handleDeleteCustomApp = (appId: string) => {
-    deleteCustomApp(appId, adminKey);
-    refreshApps();
+  const handleDeleteCustomApp = async (appId: string) => {
+    const updated = deleteCustomAppInList(apps, appId);
+    setApps(updated);
+    await saveRemoteDiscoverApps(updated, adminKey);
   };
 
   const getHostname = (rawUrl?: string) => {
@@ -320,9 +345,11 @@ export const DiscoverHubView: React.FC<DiscoverHubViewProps> = ({
       {/* Discover Hub Config Modal */}
       <DiscoverConfigModal
         isOpen={isConfigModalOpen}
+        apps={apps}
         adminKey={adminKey}
         onClose={() => setIsConfigModalOpen(false)}
         onAppsUpdated={refreshApps}
+        onSaveApps={handleSaveApps}
         onOpenAddCustomApp={handleOpenAddCustomApp}
         onOpenEditCustomApp={handleOpenEditCustomApp}
       />

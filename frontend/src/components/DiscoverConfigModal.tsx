@@ -19,41 +19,57 @@ import {
 import { useTranslation } from '../i18n/LanguageContext';
 import { DiscoverAppItem } from '../types/discoverApps';
 import {
+  DEFAULT_DISCOVER_APPS,
+  moveAppInList,
+  toggleAppVisibilityInList,
+  deleteCustomAppInList,
+  saveRemoteDiscoverApps,
+  fetchRemoteDiscoverApps,
   loadDiscoverApps,
   moveDiscoverApp,
   toggleDiscoverAppVisibility,
-  deleteCustomApp,
   resetDiscoverAppsToDefault,
 } from '../utils/discoverAppsStorage';
 
 export interface DiscoverConfigModalProps {
   isOpen: boolean;
+  apps?: DiscoverAppItem[];
   adminKey?: string;
   onClose: () => void;
   onAppsUpdated: () => void;
+  onSaveApps?: (newApps: DiscoverAppItem[]) => Promise<void> | void;
   onOpenAddCustomApp: () => void;
   onOpenEditCustomApp: (app: DiscoverAppItem) => void;
 }
 
 export const DiscoverConfigModal: React.FC<DiscoverConfigModalProps> = ({
   isOpen,
+  apps: initialApps,
   adminKey,
   onClose,
   onAppsUpdated,
   onOpenAddCustomApp,
   onOpenEditCustomApp,
+  onSaveApps,
 }) => {
   const { t } = useTranslation();
-  const [apps, setApps] = useState<DiscoverAppItem[]>([]);
+  const [apps, setApps] = useState<DiscoverAppItem[]>(() => initialApps || DEFAULT_DISCOVER_APPS);
 
-  const refreshList = () => {
-    const list = loadDiscoverApps();
-    setApps(list);
-  };
+  useEffect(() => {
+    if (initialApps && initialApps.length > 0) {
+      setApps(initialApps);
+    }
+  }, [initialApps]);
 
   useEffect(() => {
     if (isOpen) {
-      refreshList();
+      if (!initialApps || initialApps.length === 0) {
+        fetchRemoteDiscoverApps(adminKey).then((remote) => {
+          if (remote && remote.length > 0) {
+            setApps(remote);
+          }
+        });
+      }
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -62,42 +78,62 @@ export const DiscoverConfigModal: React.FC<DiscoverConfigModalProps> = ({
     return () => {
       document.body.style.overflow = '';
     };
-  }, [isOpen]);
+  }, [isOpen, initialApps, adminKey]);
 
   if (!isOpen) return null;
 
-  const handleMove = (id: string, direction: 'up' | 'down') => {
-    const updated = moveDiscoverApp(id, direction, adminKey);
+  const handleMove = async (id: string, direction: 'up' | 'down') => {
+    const updated = moveAppInList(apps, id, direction);
     setApps(updated);
+    if (onSaveApps) {
+      await onSaveApps(updated);
+    } else {
+      await saveRemoteDiscoverApps(updated, adminKey);
+    }
     onAppsUpdated();
   };
 
-  const handleToggle = (id: string) => {
-    const updated = toggleDiscoverAppVisibility(id, adminKey);
+  const handleToggle = async (id: string) => {
+    const updated = toggleAppVisibilityInList(apps, id);
     setApps(updated);
+    if (onSaveApps) {
+      await onSaveApps(updated);
+    } else {
+      await saveRemoteDiscoverApps(updated, adminKey);
+    }
     onAppsUpdated();
   };
 
-  const handleDelete = (app: DiscoverAppItem) => {
+  const handleDelete = async (app: DiscoverAppItem) => {
     const confirmed =
       typeof window !== 'undefined' && window.confirm
         ? window.confirm(t('discover.confirmDeleteApp', '确定要删除该应用吗？'))
         : true;
     if (confirmed) {
-      const updated = deleteCustomApp(app.id, adminKey);
+      const updated = deleteCustomAppInList(apps, app.id);
       setApps(updated);
+      if (onSaveApps) {
+        await onSaveApps(updated);
+      } else {
+        await saveRemoteDiscoverApps(updated, adminKey);
+      }
       onAppsUpdated();
     }
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
     const confirmed =
       typeof window !== 'undefined' && window.confirm
         ? window.confirm(t('discover.resetConfirm', '确定恢复默认应用布局吗？'))
         : true;
     if (confirmed) {
-      const updated = resetDiscoverAppsToDefault(adminKey);
+      const updated = [...DEFAULT_DISCOVER_APPS];
       setApps(updated);
+      if (onSaveApps) {
+        await onSaveApps(updated);
+      } else {
+        await saveRemoteDiscoverApps(updated, adminKey);
+      }
       onAppsUpdated();
     }
   };
