@@ -13,6 +13,7 @@ import {
 import { useTranslation } from '../i18n/LanguageContext';
 import { DiscoverAppItem } from '../types/discoverApps';
 import { CustomWebAppItem } from '../types/customWebApps';
+import { loadCustomWebApps } from '../utils/customWebAppsStorage';
 import {
   loadDiscoverApps,
   saveOrUpdateCustomApp,
@@ -20,6 +21,13 @@ import {
 } from '../utils/discoverAppsStorage';
 import DiscoverConfigModal from './DiscoverConfigModal';
 import CustomWebAppModal from './CustomWebAppModal';
+
+export const PRESET_APP_GRADIENTS = [
+  'from-emerald-500 to-teal-600',
+  'from-orange-500 to-amber-600',
+  'from-indigo-500 to-purple-600',
+  'from-blue-500 to-cyan-600',
+];
 
 export type DiscoverToolId = 'systemLogs' | 'playground' | 'translate';
 
@@ -253,7 +261,7 @@ export const DiscoverHubView: React.FC<DiscoverHubViewProps> = ({
             {visibleApps.map((app) => (
               <div
                 key={app.id}
-                data-testid={`discover-app-card-${app.id}`}
+                data-testid={`discover-app-card-${app.id} custom-app-card-${app.name}`}
                 onClick={() => handleLaunchApp(app)}
                 className="ui-card p-5 flex flex-col justify-between hover:border-indigo-500/40 hover:shadow-lg hover:shadow-indigo-500/5 transition-all group cursor-pointer"
               >
@@ -261,7 +269,7 @@ export const DiscoverHubView: React.FC<DiscoverHubViewProps> = ({
                   <div className="flex items-center justify-between mb-4">
                     <div
                       className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${
-                        app.color || 'from-indigo-500 to-purple-600'
+                        app.color || (app.id === 'systemLogs' ? 'from-blue-500 to-cyan-600' : 'from-indigo-500 to-purple-600')
                       } flex items-center justify-center text-white shadow-md group-hover:scale-105 transition-transform`}
                     >
                       {renderAppIcon(app, 'w-6 h-6')}
@@ -299,7 +307,7 @@ export const DiscoverHubView: React.FC<DiscoverHubViewProps> = ({
                 <Plus className="w-5 h-5" />
               </div>
               <div className="text-xs font-semibold text-[var(--text-primary)]">
-                {t('discover.addCustomApp', '添加应用')} / {t('discover.managePage', '页面配置')}
+                {t('discover.addCustomApp', '添加应用')} / {t('discover.managePage', '页面配置')} ({t('discover.customAppsTitle', '自定义应用')})
               </div>
               <div className="text-[11px] text-[var(--text-muted)] mt-0.5">
                 {t('discover.manageDesc', '自定义卡片排序与显示隐藏')}

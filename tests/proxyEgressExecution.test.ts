@@ -4,6 +4,10 @@ import proxyAgentManager from '../src/utils/proxyAgentManager';
 import config, { updateConfig } from '../config/default';
 
 describe('Proxy Egress Execution', () => {
+  beforeEach(async () => {
+    await updateConfig({ proxyUrl: '', upstreamServers: undefined });
+  });
+
   afterEach(async () => {
     await updateConfig({ proxyUrl: '', upstreamServers: undefined });
   });

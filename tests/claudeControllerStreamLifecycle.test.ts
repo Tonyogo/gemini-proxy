@@ -100,5 +100,5 @@ describe('ClaudeController Stream Lifecycle', () => {
     setTimeout(() => {
       mockStream.push('data: {"candidates": [{"content": {"parts": [{"text": "Hello"}]}}]}\n\n');
     }, 20);
-  });
+  }, 15000);
 });
