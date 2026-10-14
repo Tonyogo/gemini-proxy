@@ -42,6 +42,7 @@ const LogsView = lazy(() => import('./components/LogsView'));
 const PlaygroundView = lazy(() => import('./components/PlaygroundView'));
 const TerminalLogsView = lazy(() => import('./components/TerminalLogsView'));
 const TranslateView = lazy(() => import('./components/TranslateView'));
+const TasksView = lazy(() => import('./components/TasksView'));
 const DiscoverHubView = lazy(() => import('./components/DiscoverHubView'));
 const EmbeddedWebView = lazy(() => import('./components/EmbeddedWebView'));
 const CustomWebAppModal = lazy(() => import('./components/CustomWebAppModal'));
@@ -54,7 +55,7 @@ const ViewLoadingFallback: React.FC = () => (
 );
 
 type TabType = 'dashboard' | 'accounts' | 'logs' | 'discover';
-export type DiscoverSubView = 'hub' | 'systemLogs' | 'playground' | 'translate' | 'embeddedWeb';
+export type DiscoverSubView = 'hub' | 'systemLogs' | 'playground' | 'translate' | 'tasks' | 'embeddedWeb';
 
 interface NavItem {
   id: TabType;
@@ -77,7 +78,7 @@ export default function App() {
   const { t, lang, setLang } = useTranslation();
   const [activeTab, setActiveTab] = useState<TabType>(() => {
     const rawSaved = localStorage.getItem('admin_active_tab');
-    if (rawSaved === 'systemLogs' || rawSaved === 'playground' || rawSaved === 'translate') {
+    if (rawSaved === 'systemLogs' || rawSaved === 'playground' || rawSaved === 'translate' || rawSaved === 'tasks') {
       return 'discover';
     }
     const saved = rawSaved as TabType;
@@ -85,7 +86,7 @@ export default function App() {
   });
   const [discoverSubView, setDiscoverSubView] = useState<DiscoverSubView>(() => {
     const rawSaved = localStorage.getItem('admin_active_tab');
-    if (rawSaved === 'systemLogs' || rawSaved === 'playground' || rawSaved === 'translate') {
+    if (rawSaved === 'systemLogs' || rawSaved === 'playground' || rawSaved === 'translate' || rawSaved === 'tasks') {
       return rawSaved as DiscoverSubView;
     }
     return 'hub';
@@ -680,6 +681,7 @@ export default function App() {
                       {discoverSubView === 'systemLogs' && t('discover.systemLogsTitle')}
                       {discoverSubView === 'playground' && t('discover.playgroundTitle')}
                       {discoverSubView === 'translate' && t('discover.translateTitle')}
+                      {discoverSubView === 'tasks' && t('tasks.title', '在线事项')}
                       {discoverSubView === 'embeddedWeb' && (activeEmbeddedApp?.name || t('discover.customAppsTitle'))}
                     </span>
                   </>
@@ -869,6 +871,13 @@ export default function App() {
                   <TranslateView
                     key={refreshTrigger}
                     adminKey={adminKey}
+                  />
+                )}
+                {discoverSubView === 'tasks' && (
+                  <TasksView
+                    key={refreshTrigger}
+                    adminKey={adminKey}
+                    onBack={() => setDiscoverSubView('hub')}
                   />
                 )}
                 {discoverSubView === 'embeddedWeb' && activeEmbeddedApp && (

@@ -3,6 +3,7 @@ import {
   FileText,
   Play,
   Languages,
+  CheckSquare,
   ChevronRight,
   Sparkles,
   ArrowUpRight,
@@ -32,7 +33,7 @@ export const PRESET_APP_GRADIENTS = [
   'from-blue-500 to-cyan-600',
 ];
 
-export type DiscoverToolId = 'systemLogs' | 'playground' | 'translate';
+export type DiscoverToolId = 'systemLogs' | 'playground' | 'translate' | 'tasks';
 
 export interface DiscoverHubViewProps {
   adminKey: string;
@@ -160,6 +161,9 @@ export const DiscoverHubView: React.FC<DiscoverHubViewProps> = ({
     if (app.id === 'translate' || app.icon === 'Languages') {
       return <Languages className={sizeClass} />;
     }
+    if (app.id === 'tasks' || app.icon === 'CheckSquare') {
+      return <CheckSquare className={sizeClass} />;
+    }
     return <Globe className={sizeClass} />;
   };
 
@@ -167,6 +171,7 @@ export const DiscoverHubView: React.FC<DiscoverHubViewProps> = ({
     if (app.id === 'systemLogs') return t('discover.systemLogsTitle');
     if (app.id === 'playground') return t('discover.playgroundTitle');
     if (app.id === 'translate') return t('discover.translateTitle');
+    if (app.id === 'tasks') return t('tasks.title', '在线事项');
     return app.name;
   };
 
@@ -174,6 +179,7 @@ export const DiscoverHubView: React.FC<DiscoverHubViewProps> = ({
     if (app.id === 'systemLogs') return t('discover.systemLogsDesc');
     if (app.id === 'playground') return t('discover.playgroundDesc');
     if (app.id === 'translate') return t('discover.translateDesc');
+    if (app.id === 'tasks') return t('tasks.subtitle', '轻量高效的待办清单与状态看板，云端实时同步');
     if (app.type === 'custom' && app.url) return getHostname(app.url);
     return app.description || '';
   };

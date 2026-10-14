@@ -13,6 +13,7 @@ import {
   FileText,
   Play,
   Languages,
+  CheckSquare,
   Globe,
   Settings2,
 } from 'lucide-react';
@@ -148,6 +149,9 @@ export const DiscoverConfigModal: React.FC<DiscoverConfigModalProps> = ({
     }
     if (app.id === 'translate' || app.icon === 'Languages') {
       return <Languages className={iconClass} />;
+    }
+    if (app.id === 'tasks' || app.icon === 'CheckSquare') {
+      return <CheckSquare className={iconClass} />;
     }
     return <Globe className={iconClass} />;
   };
