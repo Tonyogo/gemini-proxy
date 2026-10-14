@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import adminController from '../controllers/adminController';
 import accountController from '../controllers/accountController';
+import taskController from '../controllers/taskController';
 import adminAuthMiddleware from '../middlewares/adminAuth';
 
 const router = Router();
@@ -15,6 +16,12 @@ router.get('/logs/:date/:hour/:filename', (req, res) => adminController.getLogDe
 router.get('/stats', (req, res) => adminController.getStats(req, res));
 router.post('/config', (req, res) => adminController.updateConfig(req, res));
 router.put('/config', (req, res) => adminController.updateConfig(req, res));
+
+// Tasks Management Routes
+router.get('/tasks', (req, res) => taskController.getTasks(req, res));
+router.put('/tasks', (req, res) => taskController.saveTasks(req, res));
+router.post('/tasks', (req, res) => taskController.addTask(req, res));
+router.delete('/tasks/:id', (req, res) => taskController.deleteTask(req, res));
 
 // Account Management Routes
 router.get('/accounts/servers', (req, res) => accountController.getServers(req, res));
