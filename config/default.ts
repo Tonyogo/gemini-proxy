@@ -39,6 +39,17 @@ export const DEFAULT_BUILTIN_DISCOVER_APPS: DiscoverAppItem[] = [
     enabled: true,
     order: 2,
   },
+  {
+    id: 'tasks',
+    type: 'builtin',
+    name: '在线事项',
+    description: '轻量高效的待办清单与状态看板，云端实时同步',
+    icon: 'CheckSquare',
+    color: 'from-emerald-500 to-teal-600',
+    badge: 'KANBAN & LIST',
+    enabled: true,
+    order: 3,
+  },
 ];
 
 export function buildDefaultDiscoverApps(customApps: CustomWebAppItem[] = []): DiscoverAppItem[] {

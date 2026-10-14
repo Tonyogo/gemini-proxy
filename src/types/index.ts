@@ -88,7 +88,7 @@ export type ModelMappingValue = string | string[] | ModelMappingTargetConfig;
 export type ModelMappingsConfig = Record<string, ModelMappingValue>;
 
 export type DiscoverAppType = 'builtin' | 'custom';
-export type BuiltinToolId = 'systemLogs' | 'playground' | 'translate';
+export type BuiltinToolId = 'systemLogs' | 'playground' | 'translate' | 'tasks';
 
 export interface DiscoverAppItem {
   id: string;
