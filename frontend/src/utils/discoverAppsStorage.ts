@@ -98,6 +98,28 @@ export function reindexApps(apps: DiscoverAppItem[]): DiscoverAppItem[] {
   }));
 }
 
+export function mergeBuiltinDiscoverApps(existingApps: DiscoverAppItem[]): DiscoverAppItem[] {
+  if (!Array.isArray(existingApps) || existingApps.length === 0) {
+    return existingApps;
+  }
+  const result = [...existingApps];
+  for (const builtin of DEFAULT_BUILTIN_APPS) {
+    const found = result.some(a => a.id === builtin.id);
+    if (!found) {
+      const lastBuiltinIdx = result
+        .map((a, i) => (a.type === 'builtin' ? i : -1))
+        .filter(i => i >= 0)
+        .pop();
+      if (lastBuiltinIdx !== undefined && lastBuiltinIdx >= 0) {
+        result.splice(lastBuiltinIdx + 1, 0, { ...builtin });
+      } else {
+        result.unshift({ ...builtin });
+      }
+    }
+  }
+  return reindexApps(result);
+}
+
 export function moveAppInList(
   apps: DiscoverAppItem[],
   id: string,
@@ -191,7 +213,7 @@ export async function fetchRemoteDiscoverApps(
         Array.isArray(data.config.discoverApps) &&
         data.config.discoverApps.length > 0
       ) {
-        return reindexApps(data.config.discoverApps);
+        return mergeBuiltinDiscoverApps(data.config.discoverApps);
       }
     }
   } catch {

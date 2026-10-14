@@ -32,6 +32,7 @@ import type { DiscoverToolId } from './components/DiscoverHubView';
 import type { DiscoverAppItem } from './types/discoverApps';
 import type { CustomWebAppItem } from './types/customWebApps';
 import { syncCustomWebAppsFromRemote } from './utils/customWebAppsStorage';
+import { mergeBuiltinDiscoverApps } from './utils/discoverAppsStorage';
 import { useTranslation } from './i18n/LanguageContext';
 import { ThemeSwitcher } from './components/ThemeSwitcher';
 import { isMobileScreenOrDevice } from './utils/mobileViewportHelper';
@@ -198,7 +199,7 @@ export default function App() {
         .then(res => res.ok ? res.json() : null)
         .then(data => {
           if (data?.config?.discoverApps && Array.isArray(data.config.discoverApps)) {
-            setCloudDiscoverApps(data.config.discoverApps);
+            setCloudDiscoverApps(mergeBuiltinDiscoverApps(data.config.discoverApps));
           }
         })
         .catch(() => {});
@@ -219,7 +220,7 @@ export default function App() {
           syncCustomWebAppsFromRemote(data.config.customWebApps);
         }
         if (data?.config?.discoverApps && Array.isArray(data.config.discoverApps)) {
-          setCloudDiscoverApps(data.config.discoverApps);
+          setCloudDiscoverApps(mergeBuiltinDiscoverApps(data.config.discoverApps));
         }
         setIsAuthenticated(true);
         setAdminKey(keyToTest);

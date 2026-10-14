@@ -52,6 +52,28 @@ export const DEFAULT_BUILTIN_DISCOVER_APPS: DiscoverAppItem[] = [
   },
 ];
 
+export function mergeBuiltinDiscoverApps(existingApps: DiscoverAppItem[]): DiscoverAppItem[] {
+  if (!Array.isArray(existingApps) || existingApps.length === 0) {
+    return existingApps;
+  }
+  const result = [...existingApps];
+  for (const builtin of DEFAULT_BUILTIN_DISCOVER_APPS) {
+    const found = result.some(a => a.id === builtin.id);
+    if (!found) {
+      const lastBuiltinIdx = result
+        .map((a, i) => (a.type === 'builtin' ? i : -1))
+        .filter(i => i >= 0)
+        .pop();
+      if (lastBuiltinIdx !== undefined && lastBuiltinIdx >= 0) {
+        result.splice(lastBuiltinIdx + 1, 0, { ...builtin });
+      } else {
+        result.unshift({ ...builtin });
+      }
+    }
+  }
+  return result.map((a, idx) => ({ ...a, order: idx }));
+}
+
 export function buildDefaultDiscoverApps(customApps: CustomWebAppItem[] = []): DiscoverAppItem[] {
   const builtin = DEFAULT_BUILTIN_DISCOVER_APPS.map((item, index) => ({
     ...item,
@@ -475,12 +497,12 @@ export const config = {
       return (this as any)._discoverApps;
     }
     if (runtimeOverrides.discoverApps !== undefined && Array.isArray(runtimeOverrides.discoverApps)) {
-      return runtimeOverrides.discoverApps;
+      return mergeBuiltinDiscoverApps(runtimeOverrides.discoverApps);
     }
     if (process.env.DISCOVER_APPS) {
       try {
         const parsed = JSON.parse(process.env.DISCOVER_APPS);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed)) return mergeBuiltinDiscoverApps(parsed);
       } catch {
         // ignore
       }

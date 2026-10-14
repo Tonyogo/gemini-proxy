@@ -53,7 +53,7 @@ describe('discoverAppsStorage (In-Memory & Remote Only)', () => {
     expect(list.find((a: DiscoverAppItem) => a.name === 'Cloud Note')).toBeUndefined();
   });
 
-  it('fetches remote discover apps using fetch API', async () => {
+  it('fetches remote discover apps and automatically merges missing builtin apps', async () => {
     const mockApps = [
       { id: 'app1', type: 'custom', name: 'App 1', icon: 'Globe', color: 'blue', enabled: true, order: 0 }
     ];
@@ -64,8 +64,9 @@ describe('discoverAppsStorage (In-Memory & Remote Only)', () => {
     });
 
     const result = await fetchRemoteDiscoverApps('test-key');
-    expect(result).toHaveLength(1);
-    expect(result[0].id).toBe('app1');
+    expect(result.some(a => a.id === 'app1')).toBe(true);
+    expect(result.some(a => a.id === 'tasks')).toBe(true);
+    expect(result.some(a => a.id === 'systemLogs')).toBe(true);
     expect((global.fetch as jest.Mock)).toHaveBeenCalledWith('/api/admin/status', {
       headers: { 'x-admin-key': 'test-key' },
     });
