@@ -48,7 +48,7 @@
   - `taskService.addTask(task: Partial<TaskItem>): Promise<TaskItem>`
   - `taskService.deleteTask(id: string): Promise<boolean>`
 
-- [ ] **Step 1: 编写 TaskService 的单元测试（包含原子写入与损坏自愈）**
+- [x] **Step 1: 编写 TaskService 的单元测试（包含原子写入与损坏自愈）**
 
 创建 `tests/taskService.test.ts`：
 ```typescript
@@ -140,12 +140,12 @@ describe('TaskService Storage & Resilience', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试验证失败**
+- [x] **Step 2: 运行测试验证失败**
 
 运行：`npm test tests/taskService.test.ts`
 预期：FAIL（找不到模块 `src/types/tasks` 和 `src/admin/services/taskService`）
 
-- [ ] **Step 3: 编写数据类型与 TaskService 实现**
+- [x] **Step 3: 编写数据类型与 TaskService 实现**
 
 创建 `src/types/tasks.ts`：
 ```typescript
@@ -279,12 +279,12 @@ export class TaskService {
 export default new TaskService();
 ```
 
-- [ ] **Step 4: 运行测试验证通过**
+- [x] **Step 4: 运行测试验证通过**
 
 运行：`npx jest tests/taskService.test.ts`
 预期：PASS
 
-- [ ] **Step 5: 提交任务代码**
+- [x] **Step 5: 提交任务代码**
 
 ```bash
 git add src/types/tasks.ts src/types/index.ts src/admin/services/taskService.ts tests/taskService.test.ts
@@ -308,7 +308,7 @@ git commit -m "feat(tasks): implement TaskService with atomic write and self-hea
   - `POST /api/admin/tasks`
   - `DELETE /api/admin/tasks/:id`
 
-- [ ] **Step 1: 编写 API 路由测试（鉴权、验证、CRUD）**
+- [x] **Step 1: 编写 API 路由测试（鉴权、验证、CRUD）**
 
 创建 `tests/taskRoutes.test.ts`：
 ```typescript
@@ -422,12 +422,12 @@ describe('Admin Tasks API Endpoints', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试验证失败**
+- [x] **Step 2: 运行测试验证失败**
 
 运行：`npx jest tests/taskRoutes.test.ts`
 预期：FAIL（接口尚未定义，返回 404）
 
-- [ ] **Step 3: 实现 TaskController 并注册到 AdminRoutes**
+- [x] **Step 3: 实现 TaskController 并注册到 AdminRoutes**
 
 创建 `src/admin/controllers/taskController.ts`：
 ```typescript
@@ -529,12 +529,12 @@ router.post('/tasks', (req, res) => taskController.addTask(req, res));
 router.delete('/tasks/:id', (req, res) => taskController.deleteTask(req, res));
 ```
 
-- [ ] **Step 4: 运行测试验证通过**
+- [x] **Step 4: 运行测试验证通过**
 
 运行：`npx jest tests/taskRoutes.test.ts`
 预期：PASS
 
-- [ ] **Step 5: 提交任务代码**
+- [x] **Step 5: 提交任务代码**
 
 ```bash
 git add src/admin/controllers/taskController.ts src/admin/routes/adminRoutes.ts tests/taskRoutes.test.ts
@@ -558,7 +558,7 @@ git commit -m "feat(tasks): add taskController and register tasks endpoints unde
 - Consumes: `BuiltinToolId`
 - Produces: `DEFAULT_BUILTIN_APPS` 包含 `tasks` 内置应用条目，i18n 包含中英文对应的 `tasks` 文案。
 
-- [ ] **Step 1: 编写发现页注册与 i18n 单元测试**
+- [x] **Step 1: 编写发现页注册与 i18n 单元测试**
 
 创建 `tests/discoverTasksRegistration.test.ts`：
 ```typescript
@@ -596,12 +596,12 @@ describe('Discover Tasks App Registration & i18n', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试验证失败**
+- [x] **Step 2: 运行测试验证失败**
 
 运行：`npx jest tests/discoverTasksRegistration.test.ts`
 预期：FAIL
 
-- [ ] **Step 3: 更新类型、默认配置与中英 i18n**
+- [x] **Step 3: 更新类型、默认配置与中英 i18n**
 
 1. 修改 `src/types/index.ts` 与 `frontend/src/types/discoverApps.ts`：
 ```typescript
@@ -660,12 +660,12 @@ export type BuiltinToolId = 'systemLogs' | 'playground' | 'translate' | 'tasks';
   }
 ```
 
-- [ ] **Step 4: 运行测试验证通过**
+- [x] **Step 4: 运行测试验证通过**
 
 运行：`npx jest tests/discoverTasksRegistration.test.ts`
 预期：PASS
 
-- [ ] **Step 5: 提交任务代码**
+- [x] **Step 5: 提交任务代码**
 
 ```bash
 git add src/types/index.ts config/default.ts frontend/src/types/discoverApps.ts frontend/src/utils/discoverAppsStorage.ts frontend/src/i18n/locales/zh.ts frontend/src/i18n/locales/en.ts tests/discoverTasksRegistration.test.ts
@@ -688,7 +688,7 @@ git commit -m "feat(discover): register tasks builtin app and add bilingual i18n
   - `<TasksView adminKey={adminKey} onBack={onBack} />`
   - `<TaskEditModal isOpen={isOpen} task={task} onSave={onSave} onClose={onClose} />`
 
-- [ ] **Step 1: 编写 TasksView 组件静态语法与结构验证测试**
+- [x] **Step 1: 编写 TasksView 组件静态语法与结构验证测试**
 
 创建 `tests/tasksViewComponent.test.ts`：
 ```typescript
@@ -725,12 +725,12 @@ describe('TasksView & TaskEditModal Component Architecture', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试验证失败**
+- [x] **Step 2: 运行测试验证失败**
 
 运行：`npx jest tests/tasksViewComponent.test.ts`
 预期：FAIL
 
-- [ ] **Step 3: 创建前端类型与编辑弹窗组件 `TaskEditModal.tsx`**
+- [x] **Step 3: 创建前端类型与编辑弹窗组件 `TaskEditModal.tsx`**
 
 创建 `frontend/src/types/tasks.ts`：
 ```typescript
@@ -754,7 +754,7 @@ export interface TaskItem {
 
 创建 `frontend/src/components/TaskEditModal.tsx`：实现包含标题、优先级胶囊单选、状态切换、多行描述、截止日期的平滑浮层。
 
-- [ ] **Step 4: 创建 `TasksView.tsx` 组件**
+- [x] **Step 4: 创建 `TasksView.tsx` 组件**
 
 包含：
 1. 看板视图（3 列布局：待办/进行中/已完成，支持 HTML5 原生拖拽 `draggable`, `onDragOver`, `onDrop`）；
@@ -763,12 +763,12 @@ export interface TaskItem {
 4. 乐观更新（状态本地即时改变）结合 500ms 防抖自动提交 `PUT /api/admin/tasks`；
 5. 云端同步指示微标与错误重试机制。
 
-- [ ] **Step 5: 运行测试验证通过**
+- [x] **Step 5: 运行测试验证通过**
 
 运行：`npx jest tests/tasksViewComponent.test.ts`
 预期：PASS
 
-- [ ] **Step 6: 提交任务代码**
+- [x] **Step 6: 提交任务代码**
 
 ```bash
 git add frontend/src/types/tasks.ts frontend/src/components/TaskEditModal.tsx frontend/src/components/TasksView.tsx tests/tasksViewComponent.test.ts
@@ -791,7 +791,7 @@ git commit -m "feat(tasks): create TasksView and TaskEditModal with Kanban and L
   - 点击“发现”页“在线事项”卡片无缝拉起
   - 顶栏展示“返回发现”与面包屑导航
 
-- [ ] **Step 1: 编写端到端集成测试**
+- [x] **Step 1: 编写端到端集成测试**
 
 创建 `tests/discoverTasksIntegration.test.ts`：
 ```typescript
@@ -816,12 +816,12 @@ describe('Tasks View Discover Hub Integration', () => {
 });
 ```
 
-- [ ] **Step 2: 运行测试验证失败**
+- [x] **Step 2: 运行测试验证失败**
 
 运行：`npx jest tests/discoverTasksIntegration.test.ts`
 预期：FAIL
 
-- [ ] **Step 3: 修改 `frontend/src/App.tsx` 和 `DiscoverHubView.tsx`**
+- [x] **Step 3: 修改 `frontend/src/App.tsx` 和 `DiscoverHubView.tsx`**
 
 1. 在 `frontend/src/App.tsx` 中：
    - 扩充 `DiscoverSubView = 'hub' | 'systemLogs' | 'playground' | 'translate' | 'tasks' | 'embeddedWeb'`;
@@ -833,12 +833,12 @@ describe('Tasks View Discover Hub Integration', () => {
    - 更新 `DiscoverToolId = 'systemLogs' | 'playground' | 'translate' | 'tasks'`;
    - 确保 `handleLaunchApp` 命中 `tasks` 时正常调用 `onSelectTool('tasks')`。
 
-- [ ] **Step 4: 运行测试验证通过**
+- [x] **Step 4: 运行测试验证通过**
 
 运行：`npx jest tests/discoverTasksIntegration.test.ts`
 预期：PASS
 
-- [ ] **Step 5: 提交任务代码**
+- [x] **Step 5: 提交任务代码**
 
 ```bash
 git add frontend/src/App.tsx frontend/src/components/DiscoverHubView.tsx tests/discoverTasksIntegration.test.ts
@@ -853,19 +853,19 @@ git commit -m "feat(discover): integrate TasksView into App.tsx and DiscoverHubV
 - Test: All Jest tests
 - Build: `npm run build`
 
-- [ ] **Step 1: 运行全量单元与集成测试套件**
+- [x] **Step 1: 运行全量单元与集成测试套件**
 
 运行：`npm test`
 预期：全量测试套件 PASS，零回归错误。
 
-- [ ] **Step 2: 执行全量打包编译（前端 + 后端）**
+- [x] **Step 2: 执行全量打包编译（前端 + 后端）**
 
 运行：`npm run build`
 预期：
 - `npm run build:frontend` (Vite) 成功输出至 `dist/frontend`，TypeScript 检查 0 报错；
 - `npm run build:backend` (`tsc`) 成功输出至 `dist/src`，0 类型错误。
 
-- [ ] **Step 3: 最终成果提交**
+- [x] **Step 3: 最终成果提交**
 
 ```bash
 git add .
