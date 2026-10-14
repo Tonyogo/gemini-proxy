@@ -130,15 +130,17 @@ describe('Backend DiscoverApps Cloud Config', () => {
     expect(res.status).toBe(200);
     const apps = res.body.config.discoverApps;
     expect(apps).toBeDefined();
-    // Builtin apps come first (0, 1, 2)
+    // Builtin apps come first (0, 1, 2, 3)
     expect(apps[0].id).toBe('systemLogs');
     expect(apps[0].order).toBe(0);
     expect(apps[1].id).toBe('playground');
     expect(apps[1].order).toBe(1);
     expect(apps[2].id).toBe('translate');
     expect(apps[2].order).toBe(2);
-    // Legacy custom app comes after (3)
-    expect(apps[3].id).toBe('legacy_app');
+    expect(apps[3].id).toBe('tasks');
     expect(apps[3].order).toBe(3);
+    // Legacy custom app comes after (4)
+    expect(apps[4].id).toBe('legacy_app');
+    expect(apps[4].order).toBe(4);
   });
 });
