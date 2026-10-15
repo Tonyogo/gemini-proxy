@@ -268,16 +268,9 @@ export const DiscoverConfigModal: React.FC<DiscoverConfigModalProps> = ({
                           ? t('discover.builtinType', '内置功能')
                           : t('discover.customType', '外部应用')}
                       </span>
-                      {app.useGateway && (
-                        <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shrink-0">
-                          GW
-                        </span>
-                      )}
                     </div>
                     <p className="text-[11px] text-[var(--text-muted)] truncate mt-0.5">
-                      {app.type === 'custom' && app.url
-                        ? getHostname(app.url)
-                        : app.description || ''}
+                      {app.description || (app.type === 'custom' && app.url ? getHostname(app.url) : '')}
                     </p>
                   </div>
                 </div>

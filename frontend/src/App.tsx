@@ -612,11 +612,6 @@ export default function App() {
                     <span className="text-xs sm:text-sm font-semibold text-[var(--text-primary)] truncate">
                       {activeEmbeddedApp.name}
                     </span>
-                    {activeEmbeddedApp.useGateway && (
-                      <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shrink-0">
-                        GW
-                      </span>
-                    )}
                   </div>
                   <div className="flex items-center space-x-1 text-[10px] text-[var(--text-muted)] truncate">
                     {activeEmbeddedApp.url.startsWith('https://') ? (

@@ -106,6 +106,7 @@ export function saveCustomWebApp(
         ...app,
         id: app.id,
         url: normalizedUrl,
+        description: app.description !== undefined ? (app.description.trim() || undefined) : existingList[index].description,
       };
       existingList[index] = updatedItem;
       targetItem = updatedItem;
@@ -114,9 +115,9 @@ export function saveCustomWebApp(
         id: app.id,
         name: app.name.trim(),
         url: normalizedUrl,
+        description: app.description?.trim() || undefined,
         icon: app.icon || 'Globe',
         color: app.color || 'from-orange-500 to-amber-600',
-        useGateway: !!app.useGateway,
         createdAt: app.createdAt || Date.now(),
       };
       existingList.push(targetItem);
@@ -126,9 +127,9 @@ export function saveCustomWebApp(
       id: `app_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       name: app.name.trim(),
       url: normalizedUrl,
+      description: app.description?.trim() || undefined,
       icon: app.icon || 'Globe',
       color: app.color || 'from-orange-500 to-amber-600',
-      useGateway: !!app.useGateway,
       createdAt: app.createdAt || Date.now(),
     };
     existingList.push(targetItem);

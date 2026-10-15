@@ -166,8 +166,9 @@ export function upsertCustomAppInList(
         ...app,
         type: 'custom',
         name: app.name ? app.name.trim() : list[index].name,
+        description: app.description !== undefined ? app.description.trim() : list[index].description,
         url: app.url ? normalizeWebAppUrl(app.url) : list[index].url,
-        badge: app.useGateway ? 'GW PROXY' : (app.badge || list[index].badge),
+        badge: app.badge !== undefined ? app.badge : list[index].badge,
       };
       return reindexApps(list);
     }
@@ -177,14 +178,13 @@ export function upsertCustomAppInList(
     id: app.id || `app_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
     type: 'custom',
     name: app.name ? app.name.trim() : 'Custom App',
-    description: app.description || '',
+    description: app.description ? app.description.trim() : '',
     icon: app.icon || 'Globe',
     color: app.color || 'from-orange-500 to-amber-600',
-    badge: app.useGateway ? 'GW PROXY' : app.badge,
+    badge: app.badge,
     enabled: app.enabled !== undefined ? app.enabled : true,
     order: list.length,
     url: app.url ? normalizeWebAppUrl(app.url) : '',
-    useGateway: !!app.useGateway,
     createdAt: app.createdAt || Date.now(),
   };
   list.push(newItem);

@@ -12,6 +12,7 @@ describe('CustomWebAppModal Component Structure & Logic', () => {
     const content = fs.readFileSync(compPath, 'utf-8');
     expect(content).toContain('data-testid="app-name-input"');
     expect(content).toContain('data-testid="app-url-input"');
+    expect(content).toContain('data-testid="app-desc-input"');
     expect(content).toContain('data-testid="app-submit-btn"');
     expect(content).toContain('data-testid="app-delete-btn"');
   });
@@ -31,9 +32,9 @@ describe('CustomWebAppModal Component Structure & Logic', () => {
     expect(content).toContain('onClose');
   });
 
-  it('supports theme color options and reverse gateway proxy flag', () => {
+  it('supports theme color options and application description field', () => {
     const content = fs.readFileSync(compPath, 'utf-8');
-    expect(content).toContain('useGateway');
+    expect(content).toContain('description');
     expect(content).toContain('color');
     expect(content).toContain('from-orange-500 to-amber-600');
   });

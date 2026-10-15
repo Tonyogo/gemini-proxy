@@ -122,5 +122,28 @@ describe('customWebAppsStorage', () => {
       expect(list).toHaveLength(1);
       expect(list[0].id).toBe(app2.id);
     });
+
+    it('should save and update app with description field', () => {
+      localStorage.setItem(CUSTOM_WEB_APPS_STORAGE_KEY, JSON.stringify([]));
+      const app = saveCustomWebApp({
+        name: 'Dashboard',
+        url: 'https://dash.example.com',
+        description: 'Internal routing dashboard',
+      });
+
+      expect(app.description).toBe('Internal routing dashboard');
+      let list = loadCustomWebApps();
+      expect(list[0].description).toBe('Internal routing dashboard');
+
+      const updated = saveCustomWebApp({
+        id: app.id,
+        name: 'Dashboard',
+        url: 'https://dash.example.com',
+        description: 'Updated dashboard desc',
+      });
+      expect(updated.description).toBe('Updated dashboard desc');
+      list = loadCustomWebApps();
+      expect(list[0].description).toBe('Updated dashboard desc');
+    });
   });
 });

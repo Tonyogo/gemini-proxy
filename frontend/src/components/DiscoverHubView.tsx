@@ -90,9 +90,9 @@ export const DiscoverHubView: React.FC<DiscoverHubViewProps> = ({
           id: app.id,
           name: app.name,
           url: app.url || '',
+          description: app.description,
           icon: app.icon,
           color: app.color,
-          useGateway: app.useGateway,
           createdAt: app.createdAt || Date.now(),
         });
       } else if (app.url) {
@@ -111,9 +111,9 @@ export const DiscoverHubView: React.FC<DiscoverHubViewProps> = ({
       id: app.id,
       name: app.name,
       url: app.url || '',
+      description: app.description,
       icon: app.icon,
       color: app.color,
-      useGateway: app.useGateway,
       createdAt: app.createdAt || Date.now(),
     });
     setIsCustomAppModalOpen(true);
@@ -124,12 +124,12 @@ export const DiscoverHubView: React.FC<DiscoverHubViewProps> = ({
       id: savedApp.id,
       type: 'custom',
       name: savedApp.name,
+      description: savedApp.description,
       url: savedApp.url,
       icon: savedApp.icon || 'Globe',
       color: savedApp.color || 'from-orange-500 to-amber-600',
-      badge: savedApp.useGateway ? 'GW PROXY' : undefined,
+      badge: undefined,
       enabled: true,
-      useGateway: savedApp.useGateway,
       createdAt: savedApp.createdAt,
     });
     setApps(updated);
@@ -180,13 +180,13 @@ export const DiscoverHubView: React.FC<DiscoverHubViewProps> = ({
     if (app.id === 'playground') return t('discover.playgroundDesc');
     if (app.id === 'translate') return t('discover.translateDesc');
     if (app.id === 'tasks') return t('tasks.subtitle', '轻量高效的待办清单与状态看板，云端实时同步');
+    if (app.description) return app.description;
     if (app.type === 'custom' && app.url) return getHostname(app.url);
-    return app.description || '';
+    return '';
   };
 
   const getAppBadge = (app: DiscoverAppItem) => {
     if (app.badge) return app.badge;
-    if (app.useGateway) return 'GW PROXY';
     if (app.id === 'systemLogs') return 'SSE STREAM';
     if (app.id === 'playground') return 'REST & STREAM';
     if (app.id === 'translate') return 'BILINGUAL';

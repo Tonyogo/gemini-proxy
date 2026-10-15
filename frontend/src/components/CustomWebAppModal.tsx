@@ -48,8 +48,8 @@ export const CustomWebAppModal: React.FC<CustomWebAppModalProps> = ({
 
   const [name, setName] = useState('');
   const [url, setUrl] = useState('');
+  const [description, setDescription] = useState('');
   const [color, setColor] = useState('from-orange-500 to-amber-600');
-  const [useGateway, setUseGateway] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -57,13 +57,13 @@ export const CustomWebAppModal: React.FC<CustomWebAppModalProps> = ({
       if (appToEdit) {
         setName(appToEdit.name);
         setUrl(appToEdit.url);
+        setDescription(appToEdit.description || '');
         setColor(appToEdit.color || 'from-orange-500 to-amber-600');
-        setUseGateway(!!appToEdit.useGateway);
       } else {
         setName('');
         setUrl('');
+        setDescription('');
         setColor('from-orange-500 to-amber-600');
-        setUseGateway(false);
       }
       setError(null);
       document.body.style.overflow = 'hidden';
@@ -102,9 +102,9 @@ export const CustomWebAppModal: React.FC<CustomWebAppModalProps> = ({
         id: appToEdit ? appToEdit.id : undefined,
         name: trimmedName,
         url: normalizedUrl,
+        description: description.trim() || undefined,
         icon: appToEdit?.icon || 'Globe',
         color,
-        useGateway,
         createdAt: appToEdit?.createdAt,
       }, effectiveKey);
 
@@ -202,6 +202,22 @@ export const CustomWebAppModal: React.FC<CustomWebAppModalProps> = ({
             />
           </div>
 
+          {/* App Description */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-[var(--text-primary)] flex items-center justify-between">
+              <span>{t('discover.appDesc', '应用说明')}</span>
+              <span className="text-[10px] text-[var(--text-muted)]">选填</span>
+            </label>
+            <input
+              type="text"
+              data-testid="app-desc-input"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder={t('discover.appDescPlaceholder', '简要介绍该应用，留空时卡片默认显示域名')}
+              className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-[var(--bg-canvas)] border border-[var(--border-subtle)] rounded-xl text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-indigo-500 transition-colors"
+            />
+          </div>
+
           {/* Theme Color Picker */}
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-[var(--text-primary)]">
@@ -225,23 +241,6 @@ export const CustomWebAppModal: React.FC<CustomWebAppModalProps> = ({
                 );
               })}
             </div>
-          </div>
-
-          {/* Use Gateway Reverse Proxy Toggle */}
-          <div className="pt-2">
-            <label className="flex items-center space-x-3 p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-canvas)] hover:border-indigo-500/30 transition-colors cursor-pointer">
-              <input
-                type="checkbox"
-                checked={useGateway}
-                onChange={(e) => setUseGateway(e.target.checked)}
-                className="w-4 h-4 text-indigo-600 rounded border-slate-400 focus:ring-indigo-500 cursor-pointer"
-              />
-              <div className="min-w-0 flex-1">
-                <div className="text-xs font-medium text-[var(--text-primary)]">
-                  {t('discover.useGatewayProxy', '启用网关反向代理 (处理跨域/防嵌入)')}
-                </div>
-              </div>
-            </label>
           </div>
 
           {/* Modal Actions */}
