@@ -164,7 +164,11 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
           }
           setCustomSystemInstruction(data.config.customSystemInstruction || '');
           if (data.config.upstreamServers && Array.isArray(data.config.upstreamServers) && data.config.upstreamServers.length > 0) {
-            setUpstreamServers(data.config.upstreamServers);
+            const normalized = data.config.upstreamServers.map((srv: any) => ({
+              ...srv,
+              enabled: srv.enabled !== false
+            }));
+            setUpstreamServers(normalized);
             const keyInputs: Record<number, string> = {};
             const modelInputs: Record<number, string> = {};
             data.config.upstreamServers.forEach((srv: any, idx: number) => {
@@ -495,8 +499,8 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
   ];
 
   return (
-    <div className="backdrop-blur-xl bg-black/60 fixed inset-0 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 animate-in fade-in duration-200 font-sans">
-      <div className="ui-card rounded-t-2xl sm:rounded-2xl w-full max-w-3xl overflow-hidden flex flex-col h-[92dvh] sm:h-auto sm:max-h-[90vh]">
+    <div className="backdrop-blur-xl bg-black/60 fixed inset-0 overflow-hidden overscroll-none flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 animate-in fade-in duration-200 font-sans">
+      <div className="relative ui-card rounded-t-2xl sm:rounded-2xl w-full max-w-3xl overflow-hidden flex flex-col h-[92dvh] sm:h-auto sm:max-h-[90vh]">
         {/* Mobile Drag Handle Pill */}
         <div className="w-10 h-1 bg-black/20 dark:bg-white/20 rounded-full mx-auto my-1.5 block sm:hidden shrink-0" />
 
@@ -579,7 +583,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
           </div>
         ) : (
           <form onSubmit={handleSave} className="flex flex-col flex-1 min-h-0 overflow-hidden">
-            <div className="p-3.5 sm:p-6 overflow-y-auto flex-1 space-y-4 sm:space-y-5">
+            <div className="p-3.5 sm:p-6 overflow-y-auto overscroll-contain flex-1 space-y-4 sm:space-y-5">
               {toast && (
                 <div className="p-3 bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 rounded-xl text-xs text-center font-bold flex items-center justify-center space-x-2">
                   <Check className="w-4 h-4 text-emerald-400" />
@@ -706,7 +710,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                             return (
                               <div
                                 key={idx}
-                                className={`p-3 rounded-lg border transition-all ${
+                                className={`relative p-3 rounded-lg border transition-all ${
                                   server.enabled
                                     ? 'bg-slate-800/40 border-slate-700/70 hover:border-slate-600'
                                     : 'bg-slate-900/30 border-slate-800/60 opacity-60'
@@ -771,24 +775,27 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
 
                                     {/* Right Controls: Enable Toggle & Delete Button */}
                                     <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
-                                      <label className="flex items-center cursor-pointer space-x-1.5">
-                                        <input
-                                          type="checkbox"
-                                          checked={server.enabled}
-                                          onChange={(e) => {
-                                            const updated = [...upstreamServers];
-                                            updated[idx] = { ...updated[idx], enabled: e.target.checked };
-                                            setUpstreamServers(updated);
-                                          }}
-                                          className="sr-only"
-                                        />
+                                      <button
+                                        type="button"
+                                        role="switch"
+                                        aria-checked={server.enabled}
+                                        aria-label={server.enabled ? t('config.nodeEnabled', '已启用') : t('config.nodeDisabled', '已禁用')}
+                                        onClick={() => {
+                                          const updated = [...upstreamServers];
+                                          const isEnabled = server.enabled !== false;
+                                          updated[idx] = { ...updated[idx], enabled: !isEnabled };
+                                          setUpstreamServers(updated);
+                                        }}
+                                        className="flex items-center space-x-1.5 cursor-pointer group focus:outline-none p-1 -m-1 sm:p-0 sm:m-0"
+                                        title={server.enabled ? t('config.nodeEnabled', '已启用') : t('config.nodeDisabled', '已禁用')}
+                                      >
                                         <div className={`w-7 h-4 rounded-full transition-colors relative ${server.enabled ? 'bg-blue-600' : 'bg-slate-700'}`}>
                                           <div className={`w-3 h-3 rounded-full bg-white absolute top-0.5 transition-transform ${server.enabled ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
                                         </div>
                                         <span className="hidden sm:inline text-[11px] text-slate-400">
                                           {server.enabled ? t('config.nodeEnabled', '已启用') : t('config.nodeDisabled', '已禁用')}
                                         </span>
-                                      </label>
+                                      </button>
 
                                       <button
                                         type="button"

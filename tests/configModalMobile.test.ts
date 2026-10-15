@@ -61,4 +61,27 @@ describe('ConfigModal Mobile Enhancements & Minimalist Upstream Layout', () => {
   test('removes noisy upstreamServersDesc paragraph', () => {
     expect(content).not.toContain("{t('config.upstreamServersDesc'");
   });
+
+  test('uses button switch for node enable toggle instead of sr-only checkbox to prevent focus jump and blank space', () => {
+    expect(content).toContain('role="switch"');
+    expect(content).toContain('aria-checked={server.enabled}');
+    expect(content).not.toContain('className="sr-only"');
+    expect(content).toContain('const isEnabled = server.enabled !== false');
+    expect(content).toContain('enabled: !isEnabled');
+    expect(content).toContain('aria-label=');
+  });
+
+  test('modal backdrop overlay and content prevent scrolling escape and overscroll bounce', () => {
+    expect(content).toContain('fixed inset-0 overflow-hidden overscroll-none');
+    expect(content).toContain('overscroll-contain flex-1');
+  });
+
+  test('modal card and node card have relative positioning to scope absolute elements', () => {
+    expect(content).toContain('relative ui-card');
+    expect(content).toContain('relative p-3 rounded-lg border');
+  });
+
+  test('normalizes upstream servers enabled state to boolean on fetch', () => {
+    expect(content).toContain('enabled: srv.enabled !== false');
+  });
 });
