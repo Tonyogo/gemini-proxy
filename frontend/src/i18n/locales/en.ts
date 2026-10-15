@@ -669,7 +669,6 @@ export const en = {
     fullscreen: "Fullscreen",
     exitFullscreen: "Exit Fullscreen",
     loadingApp: "Loading application...",
-    mixedContentWarn: "If content fails to load in iframe, try opening externally or enable Gateway Proxy.",
     managePage: "Manage Page",
     manageTitle: "Discover Hub Settings",
     manageDesc: "Customize app cards ordering and visibility",

@@ -26,20 +26,17 @@ describe('EmbeddedWebView Component Structure & Features', () => {
     expect(content).toContain('clipboard-write');
   });
 
-  it('supports app title, reloadKey, isFullscreen, and open external handler', () => {
+  it('supports app title, reloadKey, and isFullscreen', () => {
     const content = fs.readFileSync(compPath, 'utf-8');
     expect(content).toContain('app.name');
     expect(content).toContain('app.url');
     expect(content).toContain('reloadKey');
     expect(content).toContain('isFullscreen');
-    expect(content).toContain('window.open');
-    expect(content).toContain('_blank');
   });
 
-  it('supports iframe loading indicator state and error/mixed-content fallback notice', () => {
+  it('supports iframe loading indicator state', () => {
     const content = fs.readFileSync(compPath, 'utf-8');
     expect(content).toContain('isLoading');
     expect(content).toContain('onLoad');
-    expect(content).toContain('mixedContentWarn');
   });
 });

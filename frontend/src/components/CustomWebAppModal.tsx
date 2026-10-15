@@ -229,20 +229,17 @@ export const CustomWebAppModal: React.FC<CustomWebAppModalProps> = ({
 
           {/* Use Gateway Reverse Proxy Toggle */}
           <div className="pt-2">
-            <label className="flex items-start space-x-3 p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-canvas)] hover:border-indigo-500/30 transition-colors cursor-pointer">
+            <label className="flex items-center space-x-3 p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-canvas)] hover:border-indigo-500/30 transition-colors cursor-pointer">
               <input
                 type="checkbox"
                 checked={useGateway}
                 onChange={(e) => setUseGateway(e.target.checked)}
-                className="mt-0.5 w-4 h-4 text-indigo-600 rounded border-slate-400 focus:ring-indigo-500 cursor-pointer"
+                className="w-4 h-4 text-indigo-600 rounded border-slate-400 focus:ring-indigo-500 cursor-pointer"
               />
               <div className="min-w-0 flex-1">
                 <div className="text-xs font-medium text-[var(--text-primary)]">
                   {t('discover.useGatewayProxy', '启用网关反向代理 (处理跨域/防嵌入)')}
                 </div>
-                <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
-                  {t('discover.mixedContentWarn', '如果无法内嵌显示，请尝试在新窗口打开或启用网关代理。')}
-                </p>
               </div>
             </label>
           </div>

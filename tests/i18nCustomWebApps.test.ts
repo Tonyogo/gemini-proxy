@@ -22,7 +22,6 @@ describe('i18n Custom Web Apps Keys', () => {
     'fullscreen',
     'exitFullscreen',
     'loadingApp',
-    'mixedContentWarn',
   ];
 
   it('should have all required keys in zh.ts discover namespace', () => {

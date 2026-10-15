@@ -671,7 +671,6 @@ export const zh: Translations = {
     fullscreen: "全屏沉浸",
     exitFullscreen: "退出全屏",
     loadingApp: "正在加载应用...",
-    mixedContentWarn: "如果无法内嵌显示，请尝试在新窗口打开或启用网关代理。",
     managePage: "页面配置",
     manageTitle: "发现页管理",
     manageDesc: "自定义卡片排序与显示隐藏",
