@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-describe('AccountsView Node Model Usage Overview Banner Tiled Layout', () => {
+describe('AccountsView Node Model Usage Minimalist Tiled Layout', () => {
   const accountsViewPath = path.resolve(__dirname, '../frontend/src/components/AccountsView.tsx');
   let content: string;
 
@@ -14,8 +14,12 @@ describe('AccountsView Node Model Usage Overview Banner Tiled Layout', () => {
     expect(content).not.toContain('{!isStatsCollapsed && (');
   });
 
-  test('header row displays title and node request metrics cleanly', () => {
-    expect(content).toContain("t('accounts.serverModelStatsTitle', '节点模型调用概览')");
+  test('traffic share line and redundant banner title should be removed for a clean layout', () => {
+    expect(content).not.toContain("t('accounts.serverModelStatsTitle'");
+    expect(content).not.toContain("t('accounts.modelTrafficShare')");
+  });
+
+  test('displays minimalist node request metrics cleanly', () => {
     expect(content).toContain('serverModelStats.totalRequests.toLocaleString()');
     expect(content).toContain('serverModelStats.successRate');
   });
@@ -29,4 +33,5 @@ describe('AccountsView Node Model Usage Overview Banner Tiled Layout', () => {
     expect(content).toContain("{t('accounts.modelSuccessFailed', { success: item.success.toLocaleString(), error: item.error.toLocaleString() })} ({item.successRate}%)");
   });
 });
+
 

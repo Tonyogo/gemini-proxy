@@ -17,7 +17,6 @@ import {
   Zap,
   ZapOff,
   ChevronDown,
-  BarChart2,
   Activity,
   Copy,
   Check,
@@ -1076,91 +1075,59 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
           </div>
         </div>
       ) : (
-        <div className="ui-card p-3 sm:p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] space-y-3" title={t('accounts.modernSub')}>
-          {/* Node Model Usage Overview Banner */}
-          {/* Header row */}
-          <div className="flex items-center justify-between select-none">
-            <div className="flex items-center space-x-2">
-              <BarChart2 className="w-4 h-4 text-indigo-500 shrink-0" />
-              <span className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200">
-                {t('accounts.serverModelStatsTitle', '节点模型调用概览')}
-              </span>
-              <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
-                (Server {activeServerIndex + 1})
-              </span>
-            </div>
-
-            <div className="flex items-center space-x-2.5">
-              <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-500/10 text-slate-600 dark:text-slate-300 font-mono">
-                {t('accounts.nodeTotalRequests')}: <strong className="text-indigo-600 dark:text-indigo-400">{serverModelStats.totalRequests.toLocaleString()}</strong>
-              </span>
-              <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono">
-                {t('accounts.nodeSuccessRate')}: <strong>{serverModelStats.successRate}%</strong>
-              </span>
-            </div>
-          </div>
-
-          {/* Model Breakdown Content - Tiled out directly */}
-          <div className="space-y-3 pt-1">
-            {serverModelStats.models.length > 0 ? (
-              <>
-                {/* Multi-color Model Traffic Share Bar */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                    <span>{t('accounts.modelTrafficShare')}</span>
-                    <span>{serverModelStats.models.length} 个模型处理中</span>
-                  </div>
-                  <div className="h-2.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden flex shadow-inner">
-                    {serverModelStats.models.map((item, idx) => {
-                      const colors = ['bg-indigo-500', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-purple-500', 'bg-rose-500'];
-                      const color = colors[idx % colors.length];
-                      return (
-                        <div
-                          key={item.model}
-                          style={{ width: `${item.sharePercent}%` }}
-                          className={`${color} h-full transition-all duration-300`}
-                          title={`${item.model}: ${item.requests}次 (${item.sharePercent}%)`}
-                        />
-                      );
-                    })}
-                  </div>
+        <div className="ui-card p-2.5 sm:p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] space-y-2" title={t('accounts.modernSub')}>
+          {serverModelStats.models.length > 0 ? (
+            <>
+              {/* Minimalist Top Summary Header */}
+              <div className="flex items-center justify-between text-[11px] font-mono text-slate-500 dark:text-slate-400 px-0.5 select-none">
+                <span className="font-medium text-slate-700 dark:text-slate-300">
+                  {serverModelStats.models.length} {t('accounts.activeModels', '个模型处理中')}
+                </span>
+                <div className="flex items-center space-x-2">
+                  <span>
+                    {t('accounts.nodeTotalRequests')}: <strong className="text-indigo-600 dark:text-indigo-400">{serverModelStats.totalRequests.toLocaleString()}</strong>
+                  </span>
+                  <span>·</span>
+                  <span>
+                    {t('accounts.nodeSuccessRate')}: <strong className="text-emerald-600 dark:text-emerald-400">{serverModelStats.successRate}%</strong>
+                  </span>
                 </div>
+              </div>
 
-                {/* Model Breakdown Grid - up to 5 models per row */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
-                  {serverModelStats.models.map((item, idx) => {
-                    const colors = ['bg-indigo-500', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-purple-500', 'bg-rose-500'];
-                    const dotColor = colors[idx % colors.length];
-                    return (
-                      <div
-                        key={item.model}
-                        className="p-2 rounded-lg bg-black/[0.02] dark:bg-white/[0.03] border border-[var(--border-subtle)] flex items-center justify-between gap-2 text-xs min-w-0"
-                      >
-                        <div className="flex items-center space-x-1.5 min-w-0 flex-1">
-                          <span className={`w-2 h-2 rounded-full ${dotColor} shrink-0`} />
-                          <span className="font-mono font-medium truncate text-slate-800 dark:text-slate-200" title={item.model}>
-                            {item.model}
-                          </span>
+              {/* Model Breakdown Grid - up to 5 models per row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
+                {serverModelStats.models.map((item, idx) => {
+                  const colors = ['bg-indigo-500', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-purple-500', 'bg-rose-500'];
+                  const dotColor = colors[idx % colors.length];
+                  return (
+                    <div
+                      key={item.model}
+                      className="p-2 rounded-lg bg-black/[0.02] dark:bg-white/[0.03] border border-[var(--border-subtle)] flex items-center justify-between gap-2 text-xs min-w-0"
+                    >
+                      <div className="flex items-center space-x-1.5 min-w-0 flex-1">
+                        <span className={`w-2 h-2 rounded-full ${dotColor} shrink-0`} />
+                        <span className="font-mono font-medium truncate text-slate-800 dark:text-slate-200" title={item.model}>
+                          {item.model}
+                        </span>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="font-mono font-semibold text-slate-700 dark:text-slate-300">
+                          {item.requests.toLocaleString()} <span className="text-[10px] text-slate-400">({item.sharePercent}%)</span>
                         </div>
-                        <div className="text-right shrink-0">
-                          <div className="font-mono font-semibold text-slate-700 dark:text-slate-300">
-                            {item.requests.toLocaleString()} <span className="text-[10px] text-slate-400">({item.sharePercent}%)</span>
-                          </div>
-                          <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">
-                            {t('accounts.modelSuccessFailed', { success: item.success.toLocaleString(), error: item.error.toLocaleString() })} ({item.successRate}%)
-                          </div>
+                        <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">
+                          {t('accounts.modelSuccessFailed', { success: item.success.toLocaleString(), error: item.error.toLocaleString() })} ({item.successRate}%)
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
-              </>
-            ) : (
-              <div className="text-center py-2 text-xs text-slate-400 dark:text-slate-500 font-mono">
-                {t('accounts.noModelUsageYet')}
+                    </div>
+                  );
+                })}
               </div>
-            )}
-          </div>
+            </>
+          ) : (
+            <div className="text-center py-2 text-xs text-slate-400 dark:text-slate-500 font-mono">
+              {t('accounts.noModelUsageYet')}
+            </div>
+          )}
         </div>
       )}
 

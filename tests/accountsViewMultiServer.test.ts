@@ -39,7 +39,7 @@ describe('AccountsView & ConfigModal Multi-Server UI Integration', () => {
   it('AccountsView should integrate server model stats calculation and banner', () => {
     expect(accountsCode).toContain('calculateServerModelStats');
     expect(accountsCode).toContain('serverModelStats');
-    expect(accountsCode).toContain('serverModelStatsTitle');
+    expect(accountsCode).toContain('nodeTotalRequests');
   });
 
   it('AccountsView should integrate inline top models in account rows', () => {
