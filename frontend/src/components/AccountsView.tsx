@@ -1102,21 +1102,29 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                   return (
                     <div
                       key={item.model}
-                      className="p-2 rounded-lg bg-black/[0.02] dark:bg-white/[0.03] border border-[var(--border-subtle)] flex items-center justify-between gap-2 text-xs min-w-0"
+                      className="p-2 sm:p-2.5 rounded-lg bg-black/[0.02] dark:bg-white/[0.03] border border-[var(--border-subtle)] flex flex-col justify-between gap-1.5 text-xs min-w-0"
                     >
-                      <div className="flex items-center space-x-1.5 min-w-0 flex-1">
-                        <span className={`w-2 h-2 rounded-full ${dotColor} shrink-0`} />
-                        <span className="font-mono font-medium truncate text-slate-800 dark:text-slate-200" title={item.model}>
-                          {item.model}
+                      {/* Top Row: Model Name & Request Count Badge */}
+                      <div className="flex items-center justify-between gap-2 min-w-0">
+                        <div className="flex items-center space-x-1.5 min-w-0 flex-1">
+                          <span className={`w-2 h-2 rounded-full ${dotColor} shrink-0`} />
+                          <span className="font-mono font-medium truncate text-slate-800 dark:text-slate-200" title={item.model}>
+                            {item.model}
+                          </span>
+                        </div>
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-slate-500/10 text-slate-700 dark:text-slate-300 shrink-0">
+                          {item.requests.toLocaleString()} <span className="text-[9px] text-slate-400">({item.sharePercent}%)</span>
                         </span>
                       </div>
-                      <div className="text-right shrink-0">
-                        <div className="font-mono font-semibold text-slate-700 dark:text-slate-300">
-                          {item.requests.toLocaleString()} <span className="text-[10px] text-slate-400">({item.sharePercent}%)</span>
-                        </div>
-                        <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">
-                          {t('accounts.modelSuccessFailed', { success: item.success.toLocaleString(), error: item.error.toLocaleString() })} ({item.successRate}%)
-                        </div>
+
+                      {/* Bottom Row: Success/Error & Success Rate */}
+                      <div className="flex items-center justify-between gap-1 pt-1 border-t border-[var(--border-subtle)]/60 text-[10px] font-mono text-slate-500 dark:text-slate-400">
+                        <span className="truncate">
+                          {t('accounts.modelSuccessFailed', { success: item.success.toLocaleString(), error: item.error.toLocaleString() })}
+                        </span>
+                        <span className="text-emerald-600 dark:text-emerald-400 font-semibold shrink-0">
+                          ({item.successRate}%)
+                        </span>
                       </div>
                     </div>
                   );

@@ -29,8 +29,9 @@ describe('AccountsView Node Model Usage Minimalist Tiled Layout', () => {
   });
 
   test('model card should display model name, count, share percent, success/error metrics and success rate', () => {
-    expect(content).toContain('{item.requests.toLocaleString()} <span className="text-[10px] text-slate-400">({item.sharePercent}%)</span>');
-    expect(content).toContain("{t('accounts.modelSuccessFailed', { success: item.success.toLocaleString(), error: item.error.toLocaleString() })} ({item.successRate}%)");
+    expect(content).toContain('{item.requests.toLocaleString()} <span className="text-[9px] text-slate-400">({item.sharePercent}%)</span>');
+    expect(content).toContain("{t('accounts.modelSuccessFailed', { success: item.success.toLocaleString(), error: item.error.toLocaleString() })}");
+    expect(content).toContain('({item.successRate}%)');
   });
 });
 
