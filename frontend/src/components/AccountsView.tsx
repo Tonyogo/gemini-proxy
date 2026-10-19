@@ -10,14 +10,11 @@ import {
   Download,
   Trash2,
   Power,
-  CheckCircle2,
   AlertCircle,
   Clock,
-  Sparkles,
   Zap,
   ZapOff,
   ChevronDown,
-  Activity,
   Copy,
   Check,
   Radio,
@@ -124,16 +121,6 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     return calculateServerModelStats(accounts);
   }, [accounts]);
 
-  const directTotalReqs = useMemo(() => {
-    return accounts.reduce((sum, a) => sum + (a.usage?.totalRequests || a.usage?.total || 0), 0);
-  }, [accounts]);
-  const directTotalSuccess = useMemo(() => {
-    return accounts.reduce((sum, a) => sum + (a.usage?.totalSuccess ?? a.usage?.totalRequests ?? 0), 0);
-  }, [accounts]);
-  const directTotalFailed = useMemo(() => {
-    return accounts.reduce((sum, a) => sum + (a.usage?.totalError || 0), 0);
-  }, [accounts]);
-  const directSuccessRate = directTotalReqs > 0 ? ((directTotalSuccess / directTotalReqs) * 100).toFixed(1) : '100.0';
 
   const currentAuthIndex = currentData?.status?.currentAuthIndex;
   const isSystemBusy = Boolean(currentData?.status?.isSystemBusy);
@@ -1007,140 +994,69 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
         </div>
       )}
 
-      {/* Direct Mode Top Banner & Stats Cards vs Proxy Model Usage Overview */}
-      {isCurrentDirect ? (
-        <div className="space-y-3">
-          <div className="ui-card p-3 sm:p-4 rounded-xl border border-cyan-500/30 bg-cyan-500/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center space-x-3">
-              <div className="p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-500">
-                <Key className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="flex items-center space-x-2">
-                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">
-                    {t('accounts.directModeTitle', 'Gemini 直连密钥用量监控')}
-                  </h3>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border border-cyan-500/25">
-                    {t('accounts.directModeBadge', '直连')}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  {t('accounts.directModeDesc', '当前节点直接连接官方端点，请求将在下列已配置的 API Key 之间均匀负载均衡')}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4">
-            <div className="ui-card p-3 sm:p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
-              <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs">
-                <span className="font-medium">{t('config.serverApiKeys', 'Gemini API Keys')}</span>
-                <Key className="w-4 h-4 text-cyan-500" />
-              </div>
-              <div className="mt-1.5 flex items-baseline space-x-1.5">
-                <span className="text-xl sm:text-2xl font-bold font-mono text-cyan-600 dark:text-cyan-400">{accounts.length}</span>
-                <span className="text-xs text-slate-400">keys</span>
-              </div>
-            </div>
-
-            <div className="ui-card p-3 sm:p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
-              <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs">
-                <span className="font-medium">{t('accounts.keyTotalRequests', '总调用量')}</span>
-                <Activity className="w-4 h-4 text-indigo-500" />
-              </div>
-              <div className="mt-1.5 flex items-baseline space-x-1.5">
-                <span className="text-xl sm:text-2xl font-bold font-mono text-indigo-600 dark:text-indigo-400">{directTotalReqs.toLocaleString()}</span>
-                <span className="text-xs text-slate-400">reqs</span>
-              </div>
-            </div>
-
-            <div className="ui-card p-3 sm:p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
-              <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs">
-                <span className="font-medium">{t('accounts.keySuccess', '成功')}</span>
-                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-              </div>
-              <div className="mt-1.5 flex items-baseline space-x-1.5">
-                <span className="text-xl sm:text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400">{directTotalSuccess.toLocaleString()}</span>
-                <span className="text-xs font-mono text-emerald-500">({directSuccessRate}%)</span>
-              </div>
-            </div>
-
-            <div className="ui-card p-3 sm:p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)]">
-              <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs">
-                <span className="font-medium">{t('accounts.keyFailure', '失败')}</span>
-                <AlertCircle className="w-4 h-4 text-rose-500" />
-              </div>
-              <div className="mt-1.5 flex items-baseline space-x-1.5">
-                <span className="text-xl sm:text-2xl font-bold font-mono text-rose-600 dark:text-rose-400">{directTotalFailed.toLocaleString()}</span>
-                <span className="text-xs text-slate-400">errs</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="ui-card p-2.5 sm:p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] space-y-2" title={t('accounts.modernSub')}>
-          {serverModelStats.models.length > 0 ? (
-            <>
-              {/* Minimalist Top Summary Header */}
-              <div className="flex items-center justify-between text-[11px] font-mono text-slate-500 dark:text-slate-400 px-0.5 select-none">
-                <span className="font-medium text-slate-700 dark:text-slate-300">
-                  {serverModelStats.models.length} {t('accounts.activeModels', '个模型处理中')}
+      {/* Node Model Usage Overview (Unified for both Direct & Proxy nodes) */}
+      <div className="ui-card p-2.5 sm:p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] space-y-2" title={t('accounts.modernSub')}>
+        {serverModelStats.models.length > 0 ? (
+          <>
+            {/* Minimalist Top Summary Header */}
+            <div className="flex items-center justify-between text-[11px] font-mono text-slate-500 dark:text-slate-400 px-0.5 select-none">
+              <span className="font-medium text-slate-700 dark:text-slate-300">
+                {serverModelStats.models.length} {t('accounts.activeModels', '个模型处理中')}
+              </span>
+              <div className="flex items-center space-x-2">
+                <span>
+                  {t('accounts.nodeTotalRequests')}: <strong className="text-indigo-600 dark:text-indigo-400">{serverModelStats.totalRequests.toLocaleString()}</strong>
                 </span>
-                <div className="flex items-center space-x-2">
-                  <span>
-                    {t('accounts.nodeTotalRequests')}: <strong className="text-indigo-600 dark:text-indigo-400">{serverModelStats.totalRequests.toLocaleString()}</strong>
-                  </span>
-                  <span>·</span>
-                  <span>
-                    {t('accounts.nodeSuccessRate')}: <strong className="text-emerald-600 dark:text-emerald-400">{serverModelStats.successRate}%</strong>
-                  </span>
-                </div>
+                <span>·</span>
+                <span>
+                  {t('accounts.nodeSuccessRate')}: <strong className="text-emerald-600 dark:text-emerald-400">{serverModelStats.successRate}%</strong>
+                </span>
               </div>
-
-              {/* Model Breakdown Grid - up to 5 models per row */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
-                {serverModelStats.models.map((item, idx) => {
-                  const colors = ['bg-indigo-500', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-purple-500', 'bg-rose-500'];
-                  const dotColor = colors[idx % colors.length];
-                  return (
-                    <div
-                      key={item.model}
-                      className="p-2 sm:p-2.5 rounded-lg bg-black/[0.02] dark:bg-white/[0.03] border border-[var(--border-subtle)] flex flex-col justify-between gap-1.5 text-xs min-w-0"
-                    >
-                      {/* Top Row: Model Name & Request Count Badge */}
-                      <div className="flex items-center justify-between gap-2 min-w-0">
-                        <div className="flex items-center space-x-1.5 min-w-0 flex-1">
-                          <span className={`w-2 h-2 rounded-full ${dotColor} shrink-0`} />
-                          <span className="font-mono font-medium truncate text-slate-800 dark:text-slate-200" title={item.model}>
-                            {item.model}
-                          </span>
-                        </div>
-                        <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-slate-500/10 text-slate-700 dark:text-slate-300 shrink-0">
-                          {item.requests.toLocaleString()} <span className="text-[9px] text-slate-400">({item.sharePercent}%)</span>
-                        </span>
-                      </div>
-
-                      {/* Bottom Row: Success/Error & Success Rate */}
-                      <div className="flex items-center justify-between gap-1 pt-1 border-t border-[var(--border-subtle)]/60 text-[10px] font-mono text-slate-500 dark:text-slate-400">
-                        <span className="truncate">
-                          {t('accounts.modelSuccessFailed', { success: item.success.toLocaleString(), error: item.error.toLocaleString() })}
-                        </span>
-                        <span className="text-emerald-600 dark:text-emerald-400 font-semibold shrink-0">
-                          ({item.successRate}%)
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </>
-          ) : (
-            <div className="text-center py-2 text-xs text-slate-400 dark:text-slate-500 font-mono">
-              {t('accounts.noModelUsageYet')}
             </div>
-          )}
-        </div>
-      )}
+
+            {/* Model Breakdown Grid - up to 5 models per row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
+              {serverModelStats.models.map((item, idx) => {
+                const colors = ['bg-indigo-500', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-purple-500', 'bg-rose-500'];
+                const dotColor = colors[idx % colors.length];
+                return (
+                  <div
+                    key={item.model}
+                    className="p-2 sm:p-2.5 rounded-lg bg-black/[0.02] dark:bg-white/[0.03] border border-[var(--border-subtle)] flex flex-col justify-between gap-1.5 text-xs min-w-0"
+                  >
+                    {/* Top Row: Model Name & Request Count Badge */}
+                    <div className="flex items-center justify-between gap-2 min-w-0">
+                      <div className="flex items-center space-x-1.5 min-w-0 flex-1">
+                        <span className={`w-2 h-2 rounded-full ${dotColor} shrink-0`} />
+                        <span className="font-mono font-medium truncate text-slate-800 dark:text-slate-200" title={item.model}>
+                          {item.model}
+                        </span>
+                      </div>
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-slate-500/10 text-slate-700 dark:text-slate-300 shrink-0">
+                        {item.requests.toLocaleString()} <span className="text-[9px] text-slate-400">({item.sharePercent}%)</span>
+                      </span>
+                    </div>
+
+                    {/* Bottom Row: Success/Error & Success Rate */}
+                    <div className="flex items-center justify-between gap-1 pt-1 border-t border-[var(--border-subtle)]/60 text-[10px] font-mono text-slate-500 dark:text-slate-400">
+                      <span className="truncate">
+                        {t('accounts.modelSuccessFailed', { success: item.success.toLocaleString(), error: item.error.toLocaleString() })}
+                      </span>
+                      <span className="text-emerald-600 dark:text-emerald-400 font-semibold shrink-0">
+                        ({item.successRate}%)
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        ) : (
+          <div className="text-center py-2 text-xs text-slate-400 dark:text-slate-500 font-mono">
+            {t('accounts.noModelUsageYet')}
+          </div>
+        )}
+      </div>
 
       {/* Action Toolbar */}
       <div className="ui-card p-2 sm:p-3.5 shrink-0">
@@ -1391,7 +1307,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                 <Key className="w-6 h-6" />
               </div>
               <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1">
-                {t('accounts.directModeTitle', 'Gemini 直连密钥用量监控')}
+                {t('config.serverApiKeys', 'Gemini API Keys')}
               </h4>
               <p className="text-slate-400 text-xs max-w-md mx-auto">
                 {searchQuery ? t('accounts.noFilteredAccounts', '未找到符合当前搜索关键词的密钥。') : t('accounts.noKeysConfigured', '当前直连节点尚未配置 API Key，请前往系统设置添加')}
