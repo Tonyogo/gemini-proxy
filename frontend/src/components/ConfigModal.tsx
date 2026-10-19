@@ -103,6 +103,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
   };
 
   const initialConfigRef = useRef<ConfigSnapshot | null>(null);
+  const [snapshotRevision, setSnapshotRevision] = useState<number>(0);
   const [expandedServers, setExpandedServers] = useState<Record<number, boolean>>({ 0: true });
   const [mappingSearchQuery, setMappingSearchQuery] = useState<string>('');
 
@@ -285,6 +286,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
             ephemeralSystemMessagesText: sysMsgs,
             modelMappingsRaw: rawMappings
           };
+          setSnapshotRevision(prev => prev + 1);
           setExpandedServers({ 0: true });
         }
       })
@@ -510,6 +512,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
           ephemeralSystemMessagesText,
           modelMappingsRaw
         };
+        setSnapshotRevision(prev => prev + 1);
         if (onSaved) onSaved();
         setTimeout(() => {
           setToast('');
@@ -695,7 +698,8 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
     customSystemInstruction,
     ephemeralUserMessagesText,
     ephemeralSystemMessagesText,
-    modelMappingsRaw
+    modelMappingsRaw,
+    snapshotRevision
   ]);
 
   const toggleServerExpand = (idx: number) => {
