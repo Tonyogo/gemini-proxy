@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import {
   Settings,
   Sliders,
@@ -18,7 +18,9 @@ import {
   List,
   Sparkles,
   Info,
-  Github
+  Github,
+  ChevronDown,
+  Search
 } from 'lucide-react';
 import { useTranslation } from '../i18n/LanguageContext';
 
@@ -66,6 +68,24 @@ interface MappingEntry {
   strategy?: string;
 }
 
+interface ConfigSnapshot {
+  systemRoleToInstruction: boolean;
+  stripSystemFingerprints: boolean;
+  ignoredTools: string[];
+  customSystemInstruction: string;
+  proxyUrl: string;
+  upstreamServers: UpstreamServerConfig[];
+  serverKeyInputs: Record<number, string>;
+  serverModelInputs: Record<number, string>;
+  upstreamTimeoutMs: number;
+  logLevel: string;
+  logRetentionDays: number;
+  countTokensModel: string;
+  ephemeralUserMessagesText: string;
+  ephemeralSystemMessagesText: string;
+  modelMappingsRaw: string;
+}
+
 type TabType = 'general' | 'upstream' | 'instructions' | 'mappings' | 'security';
 
 const VALID_CONFIG_TABS: TabType[] = ['general', 'upstream', 'instructions', 'mappings', 'security'];
@@ -81,6 +101,10 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
     setActiveTab(tabId);
     localStorage.setItem('admin_config_tab', tabId);
   };
+
+  const initialConfigRef = useRef<ConfigSnapshot | null>(null);
+  const [expandedServers, setExpandedServers] = useState<Record<number, boolean>>({ 0: true });
+  const [mappingSearchQuery, setMappingSearchQuery] = useState<string>('');
 
   const [systemRoleToInstruction, setSystemRoleToInstruction] = useState<boolean>(false);
   const [stripSystemFingerprints, setStripSystemFingerprints] = useState<boolean>(true);
@@ -163,14 +187,17 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
             setIgnoredTools(DEFAULT_IGNORED_TOOLS);
           }
           setCustomSystemInstruction(data.config.customSystemInstruction || '');
+          let normalizedServers: UpstreamServerConfig[] = [];
+          const keyInputs: Record<number, string> = {};
+          const modelInputs: Record<number, string> = {};
+
           if (data.config.upstreamServers && Array.isArray(data.config.upstreamServers) && data.config.upstreamServers.length > 0) {
             const normalized = data.config.upstreamServers.map((srv: any) => ({
               ...srv,
               enabled: srv.enabled !== false
             }));
+            normalizedServers = normalized;
             setUpstreamServers(normalized);
-            const keyInputs: Record<number, string> = {};
-            const modelInputs: Record<number, string> = {};
             data.config.upstreamServers.forEach((srv: any, idx: number) => {
               if (Array.isArray(srv.apiKeys)) {
                 keyInputs[idx] = srv.apiKeys.join('\n');
@@ -182,7 +209,8 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
             setServerKeyInputs(keyInputs);
             setServerModelInputs(modelInputs);
           } else {
-            setUpstreamServers([{ url: 'https://generativelanguage.googleapis.com', weight: 1, enabled: true, name: 'Official Gemini API', type: 'proxy' }]);
+            normalizedServers = [{ url: 'https://generativelanguage.googleapis.com', weight: 1, enabled: true, name: 'Official Gemini API', type: 'proxy' }];
+            setUpstreamServers(normalizedServers);
           }
           setUpstreamTimeoutMs(data.config.upstreamTimeoutMs || 180000);
           setLogLevel(data.config.logLevel || 'info');
@@ -199,7 +227,8 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
           setEphemeralSystemMessagesText(sysMsgs);
 
           const mappings = data.config.modelMappings || {};
-          setModelMappingsRaw(JSON.stringify(mappings, null, 2));
+          const rawMappings = JSON.stringify(mappings, null, 2);
+          setModelMappingsRaw(rawMappings);
           const entries: MappingEntry[] = Object.entries(mappings).map(([source, val]) => {
             if (Array.isArray(val)) {
               return {
@@ -237,6 +266,26 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
             };
           });
           setMappingEntries(entries);
+
+          // Capture initial pristine snapshot for dirty checking
+          initialConfigRef.current = {
+            systemRoleToInstruction: Boolean(data.config.systemRoleToInstruction),
+            stripSystemFingerprints: data.config.stripSystemFingerprints !== false,
+            ignoredTools: Array.isArray(data.config.ignoredTools) ? [...data.config.ignoredTools] : [...DEFAULT_IGNORED_TOOLS],
+            customSystemInstruction: data.config.customSystemInstruction || '',
+            proxyUrl: (data.config.proxyUrl || '').trim(),
+            upstreamServers: JSON.parse(JSON.stringify(normalizedServers)),
+            serverKeyInputs: { ...keyInputs },
+            serverModelInputs: { ...modelInputs },
+            upstreamTimeoutMs: data.config.upstreamTimeoutMs || 180000,
+            logLevel: data.config.logLevel || 'info',
+            logRetentionDays: data.config.logRetentionDays || 3,
+            countTokensModel: data.config.countTokensModel || '',
+            ephemeralUserMessagesText: userMsgs,
+            ephemeralSystemMessagesText: sysMsgs,
+            modelMappingsRaw: rawMappings
+          };
+          setExpandedServers({ 0: true });
         }
       })
       .catch(() => {})
@@ -444,6 +493,23 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
 
       if (res.ok) {
         setToast(t('config.toastSaved'));
+        initialConfigRef.current = {
+          systemRoleToInstruction,
+          stripSystemFingerprints,
+          ignoredTools: [...ignoredTools],
+          customSystemInstruction,
+          proxyUrl: proxyUrl.trim(),
+          upstreamServers: JSON.parse(JSON.stringify(upstreamServers)),
+          serverKeyInputs: { ...serverKeyInputs },
+          serverModelInputs: { ...serverModelInputs },
+          upstreamTimeoutMs,
+          logLevel,
+          logRetentionDays,
+          countTokensModel,
+          ephemeralUserMessagesText,
+          ephemeralSystemMessagesText,
+          modelMappingsRaw
+        };
         if (onSaved) onSaved();
         setTimeout(() => {
           setToast('');
@@ -490,22 +556,250 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
     }
   };
 
+  const handleRevertChanges = () => {
+    const snap = initialConfigRef.current;
+    if (!snap) return;
+    if (window.confirm(t('config.confirmRevert'))) {
+      setSystemRoleToInstruction(snap.systemRoleToInstruction);
+      setStripSystemFingerprints(snap.stripSystemFingerprints);
+      setIgnoredTools([...snap.ignoredTools]);
+      setCustomSystemInstruction(snap.customSystemInstruction);
+      setProxyUrl(snap.proxyUrl);
+      setUpstreamServers(JSON.parse(JSON.stringify(snap.upstreamServers)));
+      setServerKeyInputs({ ...snap.serverKeyInputs });
+      setServerModelInputs({ ...snap.serverModelInputs });
+      setUpstreamTimeoutMs(snap.upstreamTimeoutMs);
+      setLogLevel(snap.logLevel);
+      setLogRetentionDays(snap.logRetentionDays);
+      setCountTokensModel(snap.countTokensModel);
+      setEphemeralUserMessagesText(snap.ephemeralUserMessagesText);
+      setEphemeralSystemMessagesText(snap.ephemeralSystemMessagesText);
+      setModelMappingsRaw(snap.modelMappingsRaw);
+      try {
+        const parsed = JSON.parse(snap.modelMappingsRaw);
+        if (typeof parsed === 'object' && parsed !== null) {
+          const entries: MappingEntry[] = Object.entries(parsed).map(([source, val]) => {
+            if (Array.isArray(val)) {
+              return {
+                id: Math.random().toString(36).substring(2, 9),
+                source,
+                target: val.join(', '),
+                strategy: ''
+              };
+            }
+            if (val && typeof val === 'object') {
+              if ('targets' in val && Array.isArray((val as any).targets)) {
+                const targetObj = val as { targets: string[]; strategy?: string };
+                return {
+                  id: Math.random().toString(36).substring(2, 9),
+                  source,
+                  target: targetObj.targets.join(', '),
+                  strategy: targetObj.strategy || ''
+                };
+              }
+              if ('target' in val) {
+                const targetObj = val as { target: string; strategy?: string };
+                return {
+                  id: Math.random().toString(36).substring(2, 9),
+                  source,
+                  target: String(targetObj.target || ''),
+                  strategy: targetObj.strategy || ''
+                };
+              }
+            }
+            return {
+              id: Math.random().toString(36).substring(2, 9),
+              source,
+              target: String(val || ''),
+              strategy: ''
+            };
+          });
+          setMappingEntries(entries);
+        }
+      } catch {
+        // ignore
+      }
+    }
+  };
+
+  const { isDirty, dirtyCount, tabDirtyMap } = useMemo(() => {
+    const snap = initialConfigRef.current;
+    if (!snap) {
+      return {
+        isDirty: false,
+        dirtyCount: 0,
+        tabDirtyMap: { general: false, upstream: false, instructions: false, mappings: false, security: false }
+      };
+    }
+
+    let count = 0;
+    const dirtyTabs = {
+      general: false,
+      upstream: false,
+      instructions: false,
+      mappings: false,
+      security: false
+    };
+
+    let generalDirty = false;
+    if (systemRoleToInstruction !== snap.systemRoleToInstruction) { count++; generalDirty = true; }
+    if (logLevel !== snap.logLevel) { count++; generalDirty = true; }
+    if (logRetentionDays !== snap.logRetentionDays) { count++; generalDirty = true; }
+    if (countTokensModel !== snap.countTokensModel) { count++; generalDirty = true; }
+    if (proxyUrl.trim() !== snap.proxyUrl.trim()) { count++; generalDirty = true; }
+    if (upstreamTimeoutMs !== snap.upstreamTimeoutMs) { count++; generalDirty = true; }
+    dirtyTabs.general = generalDirty;
+
+    let upstreamDirty = false;
+    const serversChanged = JSON.stringify(upstreamServers) !== JSON.stringify(snap.upstreamServers) ||
+      JSON.stringify(serverKeyInputs) !== JSON.stringify(snap.serverKeyInputs) ||
+      JSON.stringify(serverModelInputs) !== JSON.stringify(snap.serverModelInputs);
+    if (serversChanged) {
+      count++;
+      upstreamDirty = true;
+    }
+    dirtyTabs.upstream = upstreamDirty;
+
+    let instructionsDirty = false;
+    if (stripSystemFingerprints !== snap.stripSystemFingerprints) { count++; instructionsDirty = true; }
+    if (JSON.stringify(ignoredTools) !== JSON.stringify(snap.ignoredTools)) { count++; instructionsDirty = true; }
+    if (customSystemInstruction !== snap.customSystemInstruction) { count++; instructionsDirty = true; }
+    if (ephemeralUserMessagesText !== snap.ephemeralUserMessagesText) { count++; instructionsDirty = true; }
+    if (ephemeralSystemMessagesText !== snap.ephemeralSystemMessagesText) { count++; instructionsDirty = true; }
+    dirtyTabs.instructions = instructionsDirty;
+
+    let mappingsDirty = false;
+    if (modelMappingsRaw.trim() !== snap.modelMappingsRaw.trim()) {
+      count++;
+      mappingsDirty = true;
+    }
+    dirtyTabs.mappings = mappingsDirty;
+
+    return {
+      isDirty: count > 0,
+      dirtyCount: count,
+      tabDirtyMap: dirtyTabs
+    };
+  }, [
+    systemRoleToInstruction,
+    logLevel,
+    logRetentionDays,
+    countTokensModel,
+    proxyUrl,
+    upstreamTimeoutMs,
+    upstreamServers,
+    serverKeyInputs,
+    serverModelInputs,
+    stripSystemFingerprints,
+    ignoredTools,
+    customSystemInstruction,
+    ephemeralUserMessagesText,
+    ephemeralSystemMessagesText,
+    modelMappingsRaw
+  ]);
+
+  const toggleServerExpand = (idx: number) => {
+    setExpandedServers(prev => ({
+      ...prev,
+      [idx]: !prev[idx]
+    }));
+  };
+
+  const handleExpandAllServers = () => {
+    const all: Record<number, boolean> = {};
+    upstreamServers.forEach((_, idx) => {
+      all[idx] = true;
+    });
+    setExpandedServers(all);
+  };
+
+  const handleCollapseAllServers = () => {
+    setExpandedServers({});
+  };
+
+  const filteredMappingEntries = useMemo(() => {
+    const q = mappingSearchQuery.trim().toLowerCase();
+    if (!q) return mappingEntries;
+    return mappingEntries.filter(
+      e => e.source.toLowerCase().includes(q) || e.target.toLowerCase().includes(q)
+    );
+  }, [mappingEntries, mappingSearchQuery]);
+
+  const handleCloseModal = useCallback(() => {
+    if (isDirty) {
+      if (!window.confirm(t('config.confirmRevert'))) {
+        return;
+      }
+    }
+    onClose();
+  }, [isDirty, onClose, t]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' || e.key === 'Esc') {
+        e.preventDefault();
+        handleCloseModal();
+      } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        handleSave();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, handleCloseModal, handleSave]);
+
   const TABS = [
-    { id: 'general', label: t('config.tabGeneral'), shortLabel: t('config.tabGeneralShort', '通用'), icon: Sliders },
-    { id: 'upstream', label: t('config.tabUpstream'), shortLabel: t('config.tabUpstreamShort', '上游'), icon: Globe },
-    { id: 'instructions', label: t('config.tabInstructions'), shortLabel: t('config.tabInstructionsShort', '指令'), icon: FileCode },
-    { id: 'mappings', label: t('config.tabMappings'), shortLabel: t('config.tabMappingsShort', '映射'), icon: ArrowRightLeft },
-    { id: 'security', label: t('config.tabSecurity'), shortLabel: t('config.tabSecurityShort', '安全'), icon: ShieldCheck }
+    {
+      id: 'general',
+      label: t('config.tabGeneral'),
+      shortLabel: t('config.tabGeneralShort', '通用'),
+      desc: t('config.tabGeneralDesc', '日志级别与超时策略'),
+      icon: Sliders
+    },
+    {
+      id: 'upstream',
+      label: t('config.tabUpstream'),
+      shortLabel: t('config.tabUpstreamShort', '上游'),
+      desc: t('config.tabUpstreamDesc', '网关调度与直连密钥池'),
+      icon: Globe
+    },
+    {
+      id: 'instructions',
+      label: t('config.tabInstructions'),
+      shortLabel: t('config.tabInstructionsShort', '指令'),
+      desc: t('config.tabInstructionsDesc', '系统提示词与指纹清理'),
+      icon: FileCode
+    },
+    {
+      id: 'mappings',
+      label: t('config.tabMappings'),
+      shortLabel: t('config.tabMappingsShort', '映射'),
+      desc: t('config.tabMappingsDesc', '模型路由与调度策略'),
+      icon: ArrowRightLeft
+    },
+    {
+      id: 'security',
+      label: t('config.tabSecurity'),
+      shortLabel: t('config.tabSecurityShort', '安全'),
+      desc: t('config.tabSecurityDesc', '管理凭证与出厂重置'),
+      icon: ShieldCheck
+    }
   ];
+
+  const currentTabObj = TABS.find(t => t.id === activeTab) || TABS[0];
+  const CurrentTabIcon = currentTabObj.icon;
 
   return (
     <div className="backdrop-blur-xl bg-black/60 fixed inset-0 overflow-hidden overscroll-none flex items-end sm:items-center justify-center z-50 p-0 sm:p-4 animate-in fade-in duration-200 font-sans">
-      <div className="relative ui-card rounded-t-2xl sm:rounded-2xl w-full max-w-3xl overflow-hidden flex flex-col h-[92dvh] sm:h-auto sm:max-h-[90vh]">
+      <div className="relative ui-card rounded-t-2xl sm:rounded-2xl w-full max-w-5xl overflow-hidden flex flex-col h-[92dvh] sm:h-[86vh] sm:max-h-[880px]">
         {/* Mobile Drag Handle Pill */}
         <div className="w-10 h-1 bg-black/20 dark:bg-white/20 rounded-full mx-auto my-1.5 block sm:hidden shrink-0" />
 
         {/* Header */}
-        <div className="flex items-center justify-between px-3.5 sm:px-6 py-3 sm:py-4 border-b border-[var(--border-subtle)] bg-[var(--bg-surface-sub)] shrink-0">
+        <div className="flex items-center justify-between px-3.5 sm:px-6 py-3 sm:py-3.5 border-b border-[var(--border-subtle)] bg-[var(--bg-surface-sub)] shrink-0">
           <div className="flex items-center space-x-3 min-w-0">
             <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-tr from-indigo-600/30 to-purple-600/30 border border-indigo-500/30 flex items-center justify-center text-indigo-400 font-bold shadow-inner shrink-0">
               <Settings className="w-4 h-4 text-indigo-400" />
@@ -543,53 +837,153 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
               <Github className="w-4 h-4" />
             </a>
             <button
-              onClick={onClose}
+              onClick={handleCloseModal}
               className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-1.5 rounded-xl hover:bg-[var(--bg-surface-hover)] transition-colors shrink-0"
+              title="ESC"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        {/* Linear Styled Tab Pills */}
-        <div className="flex items-center space-x-1 px-2 sm:px-6 py-1.5 sm:py-2 border-b border-[var(--border-subtle)] bg-[var(--bg-surface-sub)]/80 overflow-x-auto scrollbar-none shrink-0 w-full">
+        {/* Mobile Linear Styled Tab Pills */}
+        <div className="flex sm:hidden items-center space-x-1 px-2 py-1.5 border-b border-[var(--border-subtle)] bg-[var(--bg-surface-sub)]/80 overflow-x-auto scrollbar-none shrink-0 w-full">
           {TABS.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
+            const hasTabDirty = tabDirtyMap[tab.id as TabType];
             return (
               <button
                 key={tab.id}
                 type="button"
                 onClick={() => handleTabChange(tab.id as TabType)}
-                className={`ui-tab-pill flex-1 sm:flex-none justify-center px-1.5 sm:px-3 py-1 sm:py-1.5 flex items-center space-x-1 sm:space-x-2 whitespace-nowrap text-center ${
+                className={`ui-tab-pill flex-1 justify-center px-1.5 py-1 flex items-center space-x-1 whitespace-nowrap text-center relative ${
                   isActive
                     ? 'ui-tab-pill-active font-semibold'
                     : ''
                 }`}
               >
                 <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                <span className="sm:hidden text-xs">{tab.shortLabel}</span>
-                <span className="hidden sm:inline text-xs">{tab.label}</span>
+                <span className="text-xs">{tab.shortLabel}</span>
+                {hasTabDirty && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                )}
               </button>
             );
           })}
         </div>
 
-        {/* Modal Body Form */}
+        {/* Modal Body / Dual Column Workbench Layout */}
         {loading ? (
           <div className="p-16 text-center text-slate-400 text-xs flex flex-col items-center justify-center space-y-3 flex-1">
             <RefreshCw className="w-6 h-6 animate-spin text-indigo-400" />
             <span>{t('config.loading')}</span>
           </div>
         ) : (
-          <form onSubmit={handleSave} className="flex flex-col flex-1 min-h-0 overflow-hidden">
-            <div className="p-3.5 sm:p-6 overflow-y-auto overscroll-contain flex-1 space-y-4 sm:space-y-5">
-              {toast && (
-                <div className="p-3 bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 rounded-xl text-xs text-center font-bold flex items-center justify-center space-x-2">
-                  <Check className="w-4 h-4 text-emerald-400" />
-                  <span>{toast}</span>
+          <div className="flex-1 min-h-0 flex flex-col sm:flex-row overflow-hidden">
+            {/* Desktop Vertical Sidebar Navigation */}
+            <aside className="hidden sm:flex flex-col w-60 border-r border-[var(--border-subtle)] bg-[var(--bg-surface-sub)]/50 shrink-0 select-none p-3 justify-between">
+              <div className="space-y-1">
+                {TABS.map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = activeTab === tab.id;
+                  const hasTabDirty = tabDirtyMap[tab.id as TabType];
+                  const badgeText = tab.id === 'upstream'
+                    ? t('config.nodesBadge', '{count} 节点').replace('{count}', String(upstreamServers.length))
+                    : tab.id === 'mappings'
+                    ? t('config.rulesBadge', '{count} 规则').replace('{count}', String(mappingEntries.length))
+                    : null;
+
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => handleTabChange(tab.id as TabType)}
+                      className={`w-full text-left px-3 py-2.5 rounded-xl transition-all flex items-start space-x-2.5 group relative ${
+                        isActive
+                          ? 'bg-indigo-600/10 border border-indigo-500/30 text-indigo-400 dark:text-indigo-300 font-semibold shadow-xs'
+                          : 'border border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface-hover)]'
+                      }`}
+                    >
+                      <div className={`mt-0.5 p-1.5 rounded-lg shrink-0 transition-colors ${
+                        isActive ? 'bg-indigo-600 text-white shadow-xs' : 'bg-[var(--bg-surface-sub)] text-slate-400 group-hover:text-[var(--text-primary)]'
+                      }`}>
+                        <Icon className="w-3.5 h-3.5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-xs truncate">{tab.label}</span>
+                          <div className="flex items-center space-x-1 shrink-0">
+                            {hasTabDirty && (
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0 animate-pulse" title="Unsaved changes" />
+                            )}
+                            {badgeText && (
+                              <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-md ${
+                                isActive
+                                  ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
+                                  : 'bg-[var(--bg-surface)] text-slate-400 border border-[var(--border-subtle)]'
+                              }`}>
+                                {badgeText}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-[var(--text-secondary)] opacity-70 truncate mt-0.5">
+                          {tab.desc}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Sidebar Footer Info */}
+              <div className="pt-3 border-t border-[var(--border-subtle)] px-1">
+                <div className="flex items-center justify-between text-[11px] text-[var(--text-secondary)]">
+                  <span className="font-mono text-[10px]">Gemini Proxy</span>
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    Runtime
+                  </span>
                 </div>
-              )}
+              </div>
+            </aside>
+
+            {/* Main Config Form Area */}
+            <form onSubmit={handleSave} className="flex flex-col flex-1 min-w-0 overflow-hidden">
+              <div className="p-3.5 sm:p-6 overflow-y-auto overscroll-contain flex-1 space-y-4 sm:space-y-5">
+                {toast && (
+                  <div className="p-3 bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 rounded-xl text-xs text-center font-bold flex items-center justify-center space-x-2 animate-in fade-in">
+                    <Check className="w-4 h-4 text-emerald-400" />
+                    <span>{toast}</span>
+                  </div>
+                )}
+
+                {/* Desktop Tab Header Banner */}
+                <div className="hidden sm:flex items-center justify-between pb-3.5 mb-1 border-b border-[var(--border-subtle)]">
+                  <div className="flex items-center space-x-2.5">
+                    <div className="p-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+                      <CurrentTabIcon className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-[var(--text-primary)]">
+                        {currentTabObj.label}
+                      </h3>
+                      <p className="text-[11px] text-[var(--text-secondary)]">
+                        {currentTabObj.desc}
+                      </p>
+                    </div>
+                  </div>
+                  {activeTab === 'upstream' && (
+                    <span className="text-[11px] font-mono text-slate-400 bg-[var(--bg-surface-sub)] px-2 py-0.5 rounded border border-[var(--border-subtle)]">
+                      {t('config.nodesBadge', '{count} 节点').replace('{count}', String(upstreamServers.length))}
+                    </span>
+                  )}
+                  {activeTab === 'mappings' && (
+                    <span className="text-[11px] font-mono text-slate-400 bg-[var(--bg-surface-sub)] px-2 py-0.5 rounded border border-[var(--border-subtle)]">
+                      {t('config.rulesBadge', '{count} 规则').replace('{count}', String(mappingEntries.length))}
+                    </span>
+                  )}
+                </div>
 
               {/* TAB 1: General & Logs */}
               {activeTab === 'general' && (
@@ -649,14 +1043,32 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                               {t('config.upstreamServersTitle', '上游代理服务器与流量分配')}
                             </label>
                           </div>
-                          <button
-                            type="button"
-                            onClick={handleOfficialDefault}
-                            className="text-[10px] font-mono text-blue-400 hover:text-blue-300 transition-colors flex items-center space-x-1 flex-shrink-0"
-                          >
-                            <Zap className="w-2.5 h-2.5" />
-                            <span>{t('config.useOfficialDefault', '填入官方默认')}</span>
-                          </button>
+                          <div className="flex items-center space-x-2">
+                            <button
+                              type="button"
+                              onClick={handleExpandAllServers}
+                              className="text-[10px] font-mono text-indigo-400 hover:text-indigo-300 transition-colors flex items-center space-x-1"
+                            >
+                              <span>{t('config.expandAll', '全部展开')}</span>
+                            </button>
+                            <span className="text-slate-600">|</span>
+                            <button
+                              type="button"
+                              onClick={handleCollapseAllServers}
+                              className="text-[10px] font-mono text-slate-400 hover:text-slate-300 transition-colors flex items-center space-x-1"
+                            >
+                              <span>{t('config.collapseAll', '全部折叠')}</span>
+                            </button>
+                            <span className="text-slate-600">|</span>
+                            <button
+                              type="button"
+                              onClick={handleOfficialDefault}
+                              className="text-[10px] font-mono text-blue-400 hover:text-blue-300 transition-colors flex items-center space-x-1 flex-shrink-0"
+                            >
+                              <Zap className="w-2.5 h-2.5" />
+                              <span>{t('config.useOfficialDefault', '填入官方默认')}</span>
+                            </button>
+                          </div>
                         </div>
 
                         {/* Traffic Split Preview Bar */}
@@ -707,6 +1119,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                           {upstreamServers.map((server, idx) => {
                             const pct = getEffectivePercent(server);
                             const color = SPLIT_COLORS[idx % SPLIT_COLORS.length];
+                            const isExpanded = expandedServers[idx] !== false;
                             return (
                               <div
                                 key={idx}
@@ -716,7 +1129,10 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                     : 'bg-slate-900/30 border-slate-800/60 opacity-60'
                                 }`}
                               >
-                                <div className="pb-2.5 mb-2.5 border-b border-slate-700/40">
+                                <div
+                                  onClick={() => toggleServerExpand(idx)}
+                                  className={`cursor-pointer select-none ${isExpanded ? 'pb-2.5 mb-2.5 border-b border-slate-700/40' : ''}`}
+                                >
                                   {/* First Row: Status, Node Name, Percentage, Controls */}
                                   <div className="flex items-center justify-between gap-2">
                                     <div className="flex items-center space-x-2 min-w-0 flex-1">
@@ -735,10 +1151,14 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                       </span>
 
                                       {/* Desktop-only Server Type Switcher */}
-                                      <div className="hidden sm:inline-flex rounded p-0.5 bg-slate-900 border border-slate-700/80 ml-1.5 shrink-0">
+                                      <div
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="hidden sm:inline-flex rounded p-0.5 bg-slate-900 border border-slate-700/80 ml-1.5 shrink-0"
+                                      >
                                         <button
                                           type="button"
-                                          onClick={() => {
+                                          onClick={(e) => {
+                                            e.stopPropagation();
                                             const updated = [...upstreamServers];
                                             updated[idx] = { ...updated[idx], type: 'proxy' };
                                             setUpstreamServers(updated);
@@ -753,7 +1173,8 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                         </button>
                                         <button
                                           type="button"
-                                          onClick={() => {
+                                          onClick={(e) => {
+                                            e.stopPropagation();
                                             const updated = [...upstreamServers];
                                             let nextUrl = updated[idx].url;
                                             if (!nextUrl || nextUrl.includes('proxy') || nextUrl === '') {
@@ -773,14 +1194,15 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                       </div>
                                     </div>
 
-                                    {/* Right Controls: Enable Toggle & Delete Button */}
-                                    <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
+                                    {/* Right Controls: Enable Toggle & Delete Button & Chevron */}
+                                    <div className="flex items-center space-x-2 sm:space-x-3 shrink-0" onClick={(e) => e.stopPropagation()}>
                                       <button
                                         type="button"
                                         role="switch"
                                         aria-checked={server.enabled}
                                         aria-label={server.enabled ? t('config.nodeEnabled', '已启用') : t('config.nodeDisabled', '已禁用')}
-                                        onClick={() => {
+                                        onClick={(e) => {
+                                          e.stopPropagation();
                                           const updated = [...upstreamServers];
                                           const isEnabled = server.enabled !== false;
                                           updated[idx] = { ...updated[idx], enabled: !isEnabled };
@@ -800,7 +1222,8 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                       <button
                                         type="button"
                                         disabled={upstreamServers.length <= 1}
-                                        onClick={() => {
+                                        onClick={(e) => {
+                                          e.stopPropagation();
                                           if (upstreamServers.length <= 1) return;
                                           const updated = upstreamServers.filter((_, i) => i !== idx);
                                           setUpstreamServers(updated);
@@ -812,14 +1235,30 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                       >
                                         <Trash2 className="w-3.5 h-3.5" />
                                       </button>
+
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          toggleServerExpand(idx);
+                                        }}
+                                        className="p-1 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+                                        title={isExpanded ? t('config.collapseAll', '折叠') : t('config.expandAll', '展开')}
+                                      >
+                                        <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
+                                      </button>
                                     </div>
                                   </div>
 
                                   {/* Mobile-only Full-Width Segmented Mode Switcher */}
-                                  <div className="grid grid-cols-2 p-0.5 bg-slate-900 border border-slate-700/80 rounded-lg mt-2 sm:hidden gap-1">
+                                  <div
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="grid grid-cols-2 p-0.5 bg-slate-900 border border-slate-700/80 rounded-lg mt-2 sm:hidden gap-1"
+                                  >
                                     <button
                                       type="button"
-                                      onClick={() => {
+                                      onClick={(e) => {
+                                        e.stopPropagation();
                                         const updated = [...upstreamServers];
                                         updated[idx] = { ...updated[idx], type: 'proxy' };
                                         setUpstreamServers(updated);
@@ -834,7 +1273,8 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                     </button>
                                     <button
                                       type="button"
-                                      onClick={() => {
+                                      onClick={(e) => {
+                                        e.stopPropagation();
                                         const updated = [...upstreamServers];
                                         let nextUrl = updated[idx].url;
                                         if (!nextUrl || nextUrl.includes('proxy') || nextUrl === '') {
@@ -854,7 +1294,8 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                   </div>
                                 </div>
 
-                                <div className="grid grid-cols-12 gap-2 sm:gap-2.5 text-xs">
+                                {isExpanded && (
+                                  <div className="grid grid-cols-12 gap-2 sm:gap-2.5 text-xs animate-in fade-in duration-150">
                                   <div className="col-span-12 grid grid-cols-12 gap-2 sm:gap-2.5">
                                     {server.type === 'direct' ? (
                                       <>
@@ -1136,18 +1577,21 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                     </div>
                                   )}
                                 </div>
-                              </div>
-                            );
-                          })}
+                              )}
+                            </div>
+                          );
+                        })}
 
                           <button
                             type="button"
                             onClick={() => {
+                              const newIndex = upstreamServers.length;
                               const updated: UpstreamServerConfig[] = [
                                 ...upstreamServers,
                                 { url: '', weight: 1, enabled: true, name: '', type: 'proxy' }
                               ];
                               setUpstreamServers(updated);
+                              setExpandedServers(prev => ({ ...prev, [newIndex]: true }));
                             }}
                             className="w-full py-2.5 px-3 border border-dashed border-slate-700 hover:border-blue-500/50 rounded-lg text-xs font-medium text-slate-400 hover:text-blue-400 transition-colors flex items-center justify-center space-x-1.5 bg-slate-850 hover:bg-blue-500/5"
                           >
@@ -1403,6 +1847,19 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                       </button>
                     </div>
 
+                    {!showAdvancedJson && (
+                      <div className="relative">
+                        <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <input
+                          type="text"
+                          value={mappingSearchQuery}
+                          onChange={(e) => setMappingSearchQuery(e.target.value)}
+                          placeholder={t('config.filterMappingsPlaceholder', '过滤模型规则...')}
+                          className="w-full ui-input pl-8 pr-3 py-1.5 text-xs"
+                        />
+                      </div>
+                    )}
+
                     {showAdvancedJson ? (
                       <div className="space-y-1.5">
                         <textarea
@@ -1419,9 +1876,13 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                           <div className="p-6 text-center border border-dashed border-white/[0.08] rounded-xl text-xs text-slate-500">
                             {t('config.emptyMappings')}
                           </div>
+                        ) : filteredMappingEntries.length === 0 ? (
+                          <div className="p-6 text-center border border-dashed border-white/[0.08] rounded-xl text-xs text-slate-500">
+                            未找到匹配的模型映射规则
+                          </div>
                         ) : (
                           <div className="space-y-2.5 sm:space-y-2">
-                            {mappingEntries.map((entry, index) => {
+                            {filteredMappingEntries.map((entry, index) => {
                               const targets = entry.target.split(',').map(s => s.trim()).filter(Boolean);
                               const isMultiTarget = targets.length > 1;
 
@@ -1586,23 +2047,64 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
             </div>
 
             {/* Modal Sticky Footer */}
-            <div className="sticky bottom-0 bg-[var(--bg-surface-sub)]/95 backdrop-blur-xl border-t border-[var(--border-subtle)] p-3 sm:p-4 pb-[max(0.875rem,env(safe-area-inset-bottom))] flex items-center justify-between gap-3 shrink-0">
-              <span className="hidden sm:inline text-[11px] text-slate-500 font-mono text-left">
-                {t('config.footerNote')}
-              </span>
+            <div className={`sticky bottom-0 bg-[var(--bg-surface-sub)]/95 backdrop-blur-xl border-t transition-colors p-3 sm:p-4 pb-[max(0.875rem,env(safe-area-inset-bottom))] flex items-center justify-between gap-3 shrink-0 ${
+              isDirty ? 'border-amber-500/40 bg-amber-950/10' : 'border-[var(--border-subtle)]'
+            }`}>
+              {/* Left Status Area */}
+              <div className="flex items-center space-x-2.5 min-w-0">
+                {isDirty ? (
+                  <div className="flex items-center space-x-2 text-xs">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0 animate-pulse" />
+                    <span className="text-amber-400 font-medium truncate">
+                      {t('config.unsavedChanges').replace('{count}', String(dirtyCount))}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleRevertChanges}
+                      className="hidden sm:inline-flex items-center space-x-1 px-2 py-0.5 rounded text-[11px] text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors ml-1 border border-slate-700/60"
+                      title={t('config.confirmRevert')}
+                    >
+                      <RotateCcw className="w-3 h-3" />
+                      <span>{t('config.revertChanges')}</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-2 text-xs text-slate-400">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+                    <span className="font-medium text-emerald-400/90">{t('config.configSynced')}</span>
+                    <span className="hidden sm:inline text-[11px] text-slate-500 font-mono ml-2">
+                      {t('config.shortcutSave')}
+                    </span>
+                  </div>
+                )}
+              </div>
 
-              <div className="flex items-center space-x-2.5 sm:space-x-3 w-full sm:w-auto">
+              {/* Right Action Buttons */}
+              <div className="flex items-center space-x-2.5 sm:space-x-3 shrink-0">
+                {isDirty && (
+                  <button
+                    type="button"
+                    onClick={handleRevertChanges}
+                    className="sm:hidden px-2.5 py-1.5 text-xs text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors border border-slate-700/60 flex items-center space-x-1"
+                    title={t('config.confirmRevert')}
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    <span className="text-[11px]">{t('config.revertChanges')}</span>
+                  </button>
+                )}
                 <button
                   type="button"
-                  onClick={onClose}
-                  className="flex-1 sm:flex-none px-4 py-2 ui-btn-secondary text-center"
+                  onClick={handleCloseModal}
+                  className="px-3.5 sm:px-4 py-2 ui-btn-secondary text-center text-xs"
                 >
                   {t('config.cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 sm:flex-none px-5 py-2 ui-btn-primary flex items-center justify-center space-x-1.5 disabled:opacity-50"
+                  className={`px-4 sm:px-5 py-2 ui-btn-primary flex items-center justify-center space-x-1.5 disabled:opacity-50 text-xs ${
+                    isDirty ? 'ring-1 ring-indigo-400/50 shadow-md shadow-indigo-500/20 font-semibold' : ''
+                  }`}
                 >
                   {saving ? (
                     <>
@@ -1619,8 +2121,9 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
               </div>
             </div>
           </form>
-        )}
-      </div>
+        </div>
+      )}
     </div>
-  );
+  </div>
+);
 }
