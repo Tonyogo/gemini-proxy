@@ -276,8 +276,9 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
           }
         }
         // Gemini Stream parts
-        if (chunk.candidates && chunk.candidates[0]?.content?.parts) {
+        if (chunk.candidates && chunk.candidates[0]?.content?.parts && Array.isArray(chunk.candidates[0].content.parts)) {
           for (const part of chunk.candidates[0].content.parts) {
+            if (!part) continue;
             if (part.thought === true && part.text) {
               thinking += part.text;
             } else if (typeof part.thought === 'string') {
@@ -295,6 +296,7 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
       // Claude Non-Stream format
       if (Array.isArray(responseJson.content)) {
         for (const block of responseJson.content) {
+          if (!block) continue;
           if (block.type === 'text') {
             text += block.text || '';
           } else if (block.type === 'thinking') {
@@ -305,8 +307,9 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
         }
       }
       // Gemini Non-Stream format
-      if (responseJson.candidates && responseJson.candidates[0]?.content?.parts) {
+      if (responseJson.candidates && responseJson.candidates[0]?.content?.parts && Array.isArray(responseJson.candidates[0].content.parts)) {
         for (const part of responseJson.candidates[0].content.parts) {
+          if (!part) continue;
           if (part.thought === true && part.text) {
             thinking += part.text;
           } else if (typeof part.thought === 'string') {

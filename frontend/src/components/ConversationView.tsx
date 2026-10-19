@@ -314,8 +314,9 @@ function parseAssistantResponseToBlocks(resData: any): ParsedBlock[] {
       const toolCalls: any[] = [];
 
       resData.forEach((chunk: any) => {
-        if (chunk.candidates && chunk.candidates[0]?.content?.parts) {
+        if (chunk.candidates && chunk.candidates[0]?.content?.parts && Array.isArray(chunk.candidates[0].content.parts)) {
           for (const part of chunk.candidates[0].content.parts) {
+            if (!part) continue;
             if (part.thought) {
               accumulatedThinking += part.thought;
             } else if (part.text) {

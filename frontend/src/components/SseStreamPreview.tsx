@@ -69,8 +69,9 @@ export default function SseStreamPreview({ streamData }: { streamData: any }) {
     }
 
     // Gemini Stream format
-    if (chunk.candidates && chunk.candidates[0]?.content?.parts) {
+    if (chunk.candidates && chunk.candidates[0]?.content?.parts && Array.isArray(chunk.candidates[0].content.parts)) {
       for (const part of chunk.candidates[0].content.parts) {
+        if (!part) continue;
         if (part.thought === true && part.text) {
           fullThinking += part.text;
         } else if (typeof part.thought === 'string') {
@@ -164,38 +165,53 @@ export default function SseStreamPreview({ streamData }: { streamData: any }) {
     }
 
     // Gemini format classification
-    if (chunk.candidates && chunk.candidates[0]?.content?.parts) {
-      const part = chunk.candidates[0].content.parts[0];
-      if (part.thought === true && part.text) {
-        return {
-          type: 'thinking_chunk',
-          badgeColor: 'bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/30',
-          summary: part.text.length > 60 ? `"${part.text.substring(0, 60)}..."` : `"${part.text}"`,
-          tokenDelta: '+thought'
-        };
+    if (chunk.candidates && Array.isArray(chunk.candidates) && chunk.candidates[0]) {
+      const candidate = chunk.candidates[0];
+      const parts = candidate.content?.parts;
+      const part = Array.isArray(parts) && parts.length > 0 ? parts[0] : null;
+
+      if (part) {
+        if (part.thought === true && part.text) {
+          return {
+            type: 'thinking_chunk',
+            badgeColor: 'bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/30',
+            summary: part.text.length > 60 ? `"${part.text.substring(0, 60)}..."` : `"${part.text}"`,
+            tokenDelta: '+thought'
+          };
+        }
+        if (typeof part.thought === 'string') {
+          return {
+            type: 'thinking_chunk',
+            badgeColor: 'bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/30',
+            summary: part.thought.length > 60 ? `"${part.thought.substring(0, 60)}..."` : `"${part.thought}"`,
+            tokenDelta: '+thought'
+          };
+        }
+        if (part.text) {
+          return {
+            type: 'text_chunk',
+            badgeColor: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
+            summary: part.text.length > 60 ? `"${part.text.substring(0, 60)}..."` : `"${part.text}"`,
+            tokenDelta: `+${Math.max(1, Math.round(part.text.length / 3))}t`
+          };
+        }
+        if (part.functionCall) {
+          return {
+            type: 'function_call',
+            badgeColor: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
+            summary: `Call: ${part.functionCall.name}`,
+            tokenDelta: 'tool'
+          };
+        }
       }
-      if (typeof part.thought === 'string') {
+
+      // Handle finish reason or usage only chunk
+      if (candidate.finishReason) {
         return {
-          type: 'thinking_chunk',
-          badgeColor: 'bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/30',
-          summary: part.thought.length > 60 ? `"${part.thought.substring(0, 60)}..."` : `"${part.thought}"`,
-          tokenDelta: '+thought'
-        };
-      }
-      if (part.text) {
-        return {
-          type: 'text_chunk',
-          badgeColor: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
-          summary: part.text.length > 60 ? `"${part.text.substring(0, 60)}..."` : `"${part.text}"`,
-          tokenDelta: `+${Math.max(1, Math.round(part.text.length / 3))}t`
-        };
-      }
-      if (part.functionCall) {
-        return {
-          type: 'function_call',
-          badgeColor: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
-          summary: `Call: ${part.functionCall.name}`,
-          tokenDelta: 'tool'
+          type: 'finish_chunk',
+          badgeColor: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
+          summary: `Finish Reason: ${candidate.finishReason}`,
+          tokenDelta: chunk.usageMetadata?.candidatesTokenCount ? `${chunk.usageMetadata.candidatesTokenCount} total` : 'done'
         };
       }
     }
@@ -234,9 +250,9 @@ export default function SseStreamPreview({ streamData }: { streamData: any }) {
       for (const chunk of chunks) {
         if (chunk.type === 'content_block_delta' && chunk.delta?.type === 'text_delta') {
           textPieces.push(chunk.delta.text || '');
-        } else if (chunk.candidates && chunk.candidates[0]?.content?.parts) {
+        } else if (chunk.candidates && chunk.candidates[0]?.content?.parts && Array.isArray(chunk.candidates[0].content.parts)) {
           for (const part of chunk.candidates[0].content.parts) {
-            if (part.text) textPieces.push(part.text);
+            if (part?.text) textPieces.push(part.text);
           }
         }
       }
