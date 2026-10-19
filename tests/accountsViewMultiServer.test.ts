@@ -13,7 +13,8 @@ describe('AccountsView & ConfigModal Multi-Server UI Integration', () => {
 
   it('AccountsView should render server tabs when servers.length > 1 with Server N (host) format', () => {
     expect(accountsCode).toContain('servers.length > 1');
-    expect(accountsCode).toContain('Server {idx + 1} ({host})');
+    expect(accountsCode).toContain('Server {idx + 1}');
+    expect(accountsCode).toContain('({host})');
     expect(accountsCode).toContain('handleSwitchServer');
   });
 

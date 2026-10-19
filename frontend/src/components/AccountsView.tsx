@@ -911,7 +911,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
       {/* Multi-Server Selection Tabs */}
       {servers.length > 1 && (
         <div className="flex items-center space-x-2 overflow-x-auto pb-1 scrollbar-thin">
-          <div className="flex items-center p-1 rounded-xl bg-black/[0.02] dark:bg-white/[0.03] border border-[var(--border-subtle)] gap-2 min-w-max">
+          <div className="flex items-center p-1 rounded-xl bg-black/[0.03] dark:bg-white/[0.04] border border-[var(--border-subtle)] gap-1.5 min-w-max shadow-inner">
             {servers.map((serverUrl, idx) => {
               const host = getServerHost(serverUrl);
               const isActive = activeServerIndex === idx;
@@ -925,42 +925,45 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                   key={idx}
                   type="button"
                   onClick={() => handleSwitchServer(idx)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all flex items-center space-x-2 border ${
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all flex items-center space-x-2 border min-w-0 ${
                     isActive
-                      ? 'bg-indigo-600 text-white border-indigo-500/40 shadow-sm shadow-indigo-500/25 font-semibold ring-1 ring-indigo-500/30'
-                      : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'
+                      ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-slate-200/90 dark:border-slate-700/80 shadow-sm shadow-slate-900/5 dark:shadow-[0_1px_3px_rgba(0,0,0,0.3)] ring-1 ring-slate-900/5 dark:ring-white/5 font-semibold'
+                      : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-black/[0.03] dark:hover:bg-white/[0.04]'
                   }`}
                   title={serverUrl}
                 >
-                  <span className="flex items-center space-x-1.5">
+                  <span className="flex items-center space-x-1.5 min-w-0">
                     {isLoading ? (
-                      <RefreshCw className="w-3 h-3 animate-spin text-indigo-300 shrink-0" />
+                      <RefreshCw className="w-2.5 h-2.5 animate-spin text-indigo-500 shrink-0" />
                     ) : isOffline ? (
-                      <span className="w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-rose-500/30 shrink-0" />
+                      <span className="w-2 h-2 rounded-full bg-rose-500 ring-2 ring-rose-500/25 shrink-0" />
                     ) : (
-                      <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${isActive ? 'bg-emerald-300 ring-2 ring-emerald-300/40' : 'bg-emerald-500'}`} />
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${isActive ? 'bg-emerald-500 ring-2 ring-emerald-500/30' : 'bg-emerald-500/80'}`} />
                     )}
-                    <span className="hidden sm:inline">Server {idx + 1} ({host})</span>
+                    <span className="hidden sm:inline-flex items-center gap-1 min-w-0">
+                      <span className="font-semibold shrink-0">Server {idx + 1}</span>
+                      <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500 truncate max-w-[85px] sm:max-w-[120px] font-normal" title={host}>({host})</span>
+                    </span>
                     <span className="inline sm:hidden font-mono font-bold">{t('accounts.mobileTabShort', { index: idx + 1 })}</span>
                   </span>
 
                   {serversMeta[idx]?.type === 'direct' ? (
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border border-cyan-500/25 shrink-0">
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 shrink-0">
                       {t('accounts.directModeBadge', '直连')}
                     </span>
                   ) : (
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-500/15 text-purple-600 dark:text-purple-400 border border-purple-500/25 shrink-0">
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20 shrink-0">
                       {t('accounts.proxyModeBadge', '代理')}
                     </span>
                   )}
 
                   {isOffline ? (
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/20 shrink-0">
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 shrink-0">
                       {t('accounts.nodeOffline')}
                     </span>
                   ) : count !== undefined ? (
-                    <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded-full shrink-0 ${
-                      isActive ? 'bg-white/20 text-white font-semibold' : 'bg-black/5 dark:bg-white/10 text-slate-500 dark:text-slate-300'
+                    <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded shrink-0 ${
+                      isActive ? 'bg-slate-100 dark:bg-slate-700/60 text-slate-700 dark:text-slate-200 font-semibold' : 'bg-black/5 dark:bg-white/5 text-slate-500 dark:text-slate-400'
                     }`}>
                       {count} {serversMeta[idx]?.type === 'direct' ? 'Keys' : t('accounts.accountUnit')}
                     </span>
