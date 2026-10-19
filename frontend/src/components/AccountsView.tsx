@@ -183,10 +183,24 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
   const terminalLogsEndRef = useRef<HTMLDivElement>(null);
 
   const showToast = (text: string, type: 'success' | 'error' = 'success') => {
-    setToastMessage({ text, type });
+    setToastMessage({ text: typeof text === 'string' ? text : JSON.stringify(text), type });
     setTimeout(() => {
       setToastMessage(null);
     }, 4000);
+  };
+
+  const extractErrorMessage = (err: any, fallback: string = 'Unknown error'): string => {
+    if (!err) return fallback;
+    if (typeof err === 'string') return err;
+    if (typeof err.error === 'string') return err.error;
+    if (err.error && typeof err.error === 'object') {
+      if (typeof err.error.message === 'string') {
+        return err.error.code ? `[${err.error.code}] ${err.error.message}` : err.error.message;
+      }
+      return JSON.stringify(err.error);
+    }
+    if (typeof err.message === 'string') return err.message;
+    return fallback;
   };
 
   const getHeaders = (extra: Record<string, string> = {}) => {
@@ -256,11 +270,11 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
               setServerHealthMap(prev => ({ ...prev, [idx]: true }));
             } else {
               const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-              setServerErrorMap(prev => ({ ...prev, [idx]: err.error || `HTTP ${res.status}` }));
+              setServerErrorMap(prev => ({ ...prev, [idx]: extractErrorMessage(err, `HTTP ${res.status}`) }));
               setServerHealthMap(prev => ({ ...prev, [idx]: false }));
             }
           } catch (e: any) {
-            setServerErrorMap(prev => ({ ...prev, [idx]: e.message }));
+            setServerErrorMap(prev => ({ ...prev, [idx]: extractErrorMessage(e) }));
             setServerHealthMap(prev => ({ ...prev, [idx]: false }));
           } finally {
             setServerLoadingMap(prev => ({ ...prev, [idx]: false }));
@@ -296,18 +310,20 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
         setServerHealthMap(prev => ({ ...prev, [targetServerIdx]: true }));
       } else {
         const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-        setServerErrorMap(prev => ({ ...prev, [targetServerIdx]: err.error || err.message }));
+        const errMsg = extractErrorMessage(err, `HTTP ${res.status}`);
+        setServerErrorMap(prev => ({ ...prev, [targetServerIdx]: errMsg }));
         setServerHealthMap(prev => ({ ...prev, [targetServerIdx]: false }));
         if (!silent) {
-          showToast(t('accounts.actionFailed', { error: err.error || err.message }), 'error');
+          showToast(t('accounts.actionFailed', { error: errMsg }), 'error');
         }
       }
     } catch (e: any) {
       if (reqId === latestRequestIdRef.current) {
-        setServerErrorMap(prev => ({ ...prev, [targetServerIdx]: e.message }));
+        const errMsg = extractErrorMessage(e);
+        setServerErrorMap(prev => ({ ...prev, [targetServerIdx]: errMsg }));
         setServerHealthMap(prev => ({ ...prev, [targetServerIdx]: false }));
         if (!silent) {
-          showToast(t('accounts.actionFailed', { error: e.message }), 'error');
+          showToast(t('accounts.actionFailed', { error: errMsg }), 'error');
         }
       }
     } finally {
@@ -485,10 +501,10 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
         fetchStatus(false, targetServerIdx);
       } else {
         const err = await res.json().catch(() => ({ error: 'Error' }));
-        showToast(t('accounts.actionFailed', { error: err.error || err.message }), 'error');
+        showToast(t('accounts.actionFailed', { error: extractErrorMessage(err, `HTTP ${res.status}`) }), 'error');
       }
     } catch (err: any) {
-      showToast(t('accounts.actionFailed', { error: err.message }), 'error');
+      showToast(t('accounts.actionFailed', { error: extractErrorMessage(err) }), 'error');
     } finally {
       setActionLoading(false);
     }
@@ -508,10 +524,10 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
         fetchStatus(false, targetServerIdx);
       } else {
         const err = await res.json().catch(() => ({ error: 'Error' }));
-        showToast(t('accounts.actionFailed', { error: err.error || err.message }), 'error');
+        showToast(t('accounts.actionFailed', { error: extractErrorMessage(err, `HTTP ${res.status}`) }), 'error');
       }
     } catch (err: any) {
-      showToast(t('accounts.actionFailed', { error: err.message }), 'error');
+      showToast(t('accounts.actionFailed', { error: extractErrorMessage(err) }), 'error');
     } finally {
       setActionLoading(false);
     }
@@ -534,7 +550,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
       showToast(t('accounts.actionSuccess'));
       fetchStatus(false, targetServerIdx);
     } catch (err: any) {
-      showToast(t('accounts.actionFailed', { error: err.message }), 'error');
+      showToast(t('accounts.actionFailed', { error: extractErrorMessage(err) }), 'error');
     } finally {
       setActionLoading(false);
     }
@@ -554,10 +570,10 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
         fetchStatus(false, targetServerIdx);
       } else {
         const err = await res.json().catch(() => ({ error: 'Error' }));
-        showToast(t('accounts.actionFailed', { error: err.error || err.message }), 'error');
+        showToast(t('accounts.actionFailed', { error: extractErrorMessage(err, `HTTP ${res.status}`) }), 'error');
       }
     } catch (err: any) {
-      showToast(t('accounts.actionFailed', { error: err.message }), 'error');
+      showToast(t('accounts.actionFailed', { error: extractErrorMessage(err) }), 'error');
     } finally {
       setActionLoading(false);
     }
@@ -587,10 +603,10 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
         setDeleteConfirm({ index, email: acc?.name || '', isCurrent: true });
       } else {
         const err = await res.json().catch(() => ({ error: 'Error' }));
-        showToast(t('accounts.actionFailed', { error: err.error || err.message }), 'error');
+        showToast(t('accounts.actionFailed', { error: extractErrorMessage(err, `HTTP ${res.status}`) }), 'error');
       }
     } catch (err: any) {
-      showToast(t('accounts.actionFailed', { error: err.message }), 'error');
+      showToast(t('accounts.actionFailed', { error: extractErrorMessage(err) }), 'error');
     } finally {
       setActionLoading(false);
     }
@@ -613,10 +629,10 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
         fetchStatus(false, targetServerIdx);
       } else {
         const err = await res.json().catch(() => ({ error: 'Error' }));
-        showToast(t('accounts.actionFailed', { error: err.error || err.message }), 'error');
+        showToast(t('accounts.actionFailed', { error: extractErrorMessage(err, `HTTP ${res.status}`) }), 'error');
       }
     } catch (err: any) {
-      showToast(t('accounts.actionFailed', { error: err.message }), 'error');
+      showToast(t('accounts.actionFailed', { error: extractErrorMessage(err) }), 'error');
     } finally {
       setActionLoading(false);
     }
@@ -639,10 +655,10 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
         fetchStatus(false, targetServerIdx);
       } else {
         const err = await res.json().catch(() => ({ error: 'Error' }));
-        showToast(t('accounts.actionFailed', { error: err.error || err.message }), 'error');
+        showToast(t('accounts.actionFailed', { error: extractErrorMessage(err, `HTTP ${res.status}`) }), 'error');
       }
     } catch (err: any) {
-      showToast(t('accounts.actionFailed', { error: err.message }), 'error');
+      showToast(t('accounts.actionFailed', { error: extractErrorMessage(err) }), 'error');
     } finally {
       setActionLoading(false);
     }
@@ -671,10 +687,10 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
         showToast(t('accounts.actionSuccess'));
       } else {
         const err = await res.json().catch(() => ({ error: 'Error downloading zip' }));
-        showToast(t('accounts.actionFailed', { error: err.error || err.message }), 'error');
+        showToast(t('accounts.actionFailed', { error: extractErrorMessage(err, 'Error downloading zip') }), 'error');
       }
     } catch (err: any) {
-      showToast(t('accounts.actionFailed', { error: err.message }), 'error');
+      showToast(t('accounts.actionFailed', { error: extractErrorMessage(err) }), 'error');
     } finally {
       setActionLoading(false);
     }
@@ -719,10 +735,10 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
         fetchStatus(false, targetServerIdx);
       } else {
         const err = await res.json().catch(() => ({ error: 'Upload failed' }));
-        showToast(t('accounts.uploadFailed', { error: err.error || err.message }), 'error');
+        showToast(t('accounts.uploadFailed', { error: extractErrorMessage(err, 'Upload failed') }), 'error');
       }
     } catch (err: any) {
-      showToast(t('accounts.uploadFailed', { error: err.message }), 'error');
+      showToast(t('accounts.uploadFailed', { error: extractErrorMessage(err) }), 'error');
     } finally {
       setActionLoading(false);
       if (fileInputRef.current) {
