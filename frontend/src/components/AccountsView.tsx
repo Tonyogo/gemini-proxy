@@ -1335,17 +1335,16 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                     <th className="px-4 py-3 w-16 text-left">{t('accounts.tableIndex', '序号')}</th>
                     <th className="px-4 py-3 min-w-[240px] text-left">{t('config.serverApiKeys', 'Gemini API Key')}</th>
                     <th className="px-4 py-3 min-w-[120px] text-left">{t('accounts.tableStatus', '状态')}</th>
-                    <th className="px-4 py-3 min-w-[200px] text-left">{t('accounts.keyTotalRequests', '调用统计')}</th>
-                    <th className="px-4 py-3 min-w-[260px] text-left">{t('accounts.activeModels', '活跃模型明细')}</th>
+                    <th className="px-4 py-3 min-w-[200px] text-left">{t('accounts.tableQuota', '配额与今日用量')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--border-subtle)] text-xs">
                   {filteredAccounts.map((acc) => {
                     const totalUsage = getTotalUsage(acc.usage);
                     const succ = acc.usage?.totalSuccess ?? totalUsage;
-                    const err = acc.usage?.totalError ?? 0;
-                    const rate = totalUsage > 0 ? ((succ / totalUsage) * 100).toFixed(1) : '100.0';
+                    const successRate = totalUsage > 0 ? parseFloat(((succ / totalUsage) * 100).toFixed(1)) : 100.0;
                     const breakdowns = getModelBreakdowns(acc.usage);
+                    const topModels = getAccountTopModels(acc.usage, 2);
 
                     return (
                       <tr key={acc.index} className="hover:bg-[var(--bg-surface-hover)] transition-colors">
@@ -1379,49 +1378,35 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                           </span>
                         </td>
                         <td className="px-4 py-3">
-                          <div className="space-y-1 max-w-[180px]">
-                            <div className="flex items-center justify-between text-xs font-mono">
-                              <span className="font-bold text-slate-800 dark:text-slate-200">
-                                {totalUsage.toLocaleString()} <span className="text-[10px] font-normal text-slate-400">次</span>
+                          <div
+                            className="inline-flex flex-col items-start cursor-pointer group"
+                            onClick={(e) => handleTogglePopover(e, acc.index)}
+                            onMouseEnter={(e) => handleMouseEnterPopover(e, acc.index)}
+                          >
+                            <div className="flex items-center space-x-1.5 font-mono font-bold text-xs text-slate-800 dark:text-slate-200">
+                              <span>{totalUsage.toLocaleString()}</span>
+                              <span className="text-[10px] text-slate-400 font-normal">reqs</span>
+                              <span className="text-[10px] px-1.5 py-0.5 rounded font-normal bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                                {successRate}%
                               </span>
-                              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
-                                {rate}%
-                              </span>
+                              {breakdowns.length > 0 && (
+                                <Info className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-500 transition-colors" />
+                              )}
                             </div>
-                            <div className="flex items-center text-[10px] text-slate-400 space-x-2 font-mono">
-                              <span className="text-emerald-500">{succ} ok</span>
-                              <span>/</span>
-                              <span className="text-rose-500">{err} err</span>
-                            </div>
-                            <div className="w-full bg-black/[0.04] dark:bg-white/[0.04] rounded-full h-1.5 overflow-hidden">
-                              <div
-                                className="h-full rounded-full bg-emerald-500 transition-all duration-300"
-                                style={{ width: `${rate}%` }}
-                              />
-                            </div>
+                            {/* Inline Top Models Badges */}
+                            {topModels.length > 0 && (
+                              <div className="flex items-center space-x-1 mt-0.5">
+                                {topModels.map(m => (
+                                  <span
+                                    key={m.model}
+                                    className="text-[9px] font-mono px-1 py-0.5 rounded bg-black/[0.04] dark:bg-white/[0.06] text-slate-500 dark:text-slate-400"
+                                  >
+                                    {m.model.replace('gemini-', '')}: {m.count}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                           </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          {breakdowns.length > 0 ? (
-                            <div className="flex flex-wrap gap-1.5">
-                              {breakdowns.map((m) => (
-                                <span
-                                  key={m.model}
-                                  className="px-2 py-0.5 rounded-md text-[10px] font-mono bg-black/[0.03] dark:bg-white/[0.05] border border-[var(--border-subtle)] text-slate-700 dark:text-slate-300 flex items-center space-x-1"
-                                >
-                                  <span className="font-medium">{m.model.replace('gemini-', '')}:</span>
-                                  <span className="text-indigo-600 dark:text-indigo-400 font-bold">{m.count}次</span>
-                                  {m.error !== undefined && m.error > 0 && (
-                                    <span className="text-rose-500 font-normal">({m.error} err)</span>
-                                  )}
-                                </span>
-                              ))}
-                            </div>
-                          ) : (
-                            <span className="text-xs text-slate-400 font-mono italic">
-                              {t('accounts.noModelUsageYet', '暂无模型调用数据')}
-                            </span>
-                          )}
                         </td>
                       </tr>
                     );
@@ -1435,9 +1420,10 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
               {filteredAccounts.map((acc) => {
                 const totalUsage = getTotalUsage(acc.usage);
                 const succ = acc.usage?.totalSuccess ?? totalUsage;
-                const err = acc.usage?.totalError ?? 0;
-                const rate = totalUsage > 0 ? ((succ / totalUsage) * 100).toFixed(1) : '100.0';
+                const successRate = totalUsage > 0 ? parseFloat(((succ / totalUsage) * 100).toFixed(1)) : 100.0;
                 const breakdowns = getModelBreakdowns(acc.usage);
+                const topModels = getAccountTopModels(acc.usage, 2);
+                const isUsageExpanded = Boolean(expandedMobileUsage[acc.index]);
 
                 return (
                   <div key={acc.index} className="p-3 space-y-2">
@@ -1462,37 +1448,81 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                         )}
                       </div>
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/25 shrink-0">
-                        {t('accounts.statusActive', '活跃')}
+                        {t('accounts.statusActive', '轮询活跃')}
                       </span>
                     </div>
 
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between text-xs font-mono">
-                        <span className="text-slate-600 dark:text-slate-300">
-                          {t('accounts.keyTotalRequests')}: <strong>{totalUsage}</strong>
+                    {/* Usage Button & Top Models */}
+                    <div className="flex items-center space-x-1.5 flex-wrap pt-0.5">
+                      <button
+                        type="button"
+                        onClick={() => toggleMobileUsage(acc.index)}
+                        className="px-2 py-0.5 rounded-lg text-xs font-mono ui-card-sub hover:bg-[var(--bg-surface-hover)] text-[var(--text-secondary)] border border-[var(--border-subtle)] flex items-center space-x-1.5 transition-colors"
+                      >
+                        <Clock className="w-3 h-3 text-indigo-500 dark:text-indigo-400 shrink-0" />
+                        <span className="font-bold text-slate-800 dark:text-slate-200">{totalUsage}</span>
+                        <span className="text-[10px] text-slate-500 font-mono">reqs</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded font-normal bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                          {successRate}%
                         </span>
-                        <span className="text-slate-400 text-[10px]">
-                          {succ} ok / {err} err ({rate}%)
-                        </span>
-                      </div>
-                      <div className="w-full bg-black/[0.04] dark:bg-white/[0.04] rounded-full h-1.5 overflow-hidden">
-                        <div
-                          className="h-full rounded-full bg-emerald-500 transition-all duration-300"
-                          style={{ width: `${rate}%` }}
-                        />
-                      </div>
+                        {breakdowns.length > 0 && (
+                          <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform duration-200 ${isUsageExpanded ? 'rotate-180 text-indigo-400' : ''}`} />
+                        )}
+                      </button>
+                      {topModels.length > 0 && (
+                        <div className="flex items-center space-x-1">
+                          {topModels.map(m => (
+                            <span
+                              key={m.model}
+                              className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-black/[0.04] dark:bg-white/[0.06] text-slate-500 dark:text-slate-400 border border-[var(--border-subtle)]"
+                            >
+                              {m.model.replace('gemini-', '')}: {m.count}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
-                    {breakdowns.length > 0 && (
-                      <div className="flex flex-wrap gap-1 pt-1">
-                        {breakdowns.map((m) => (
-                          <span
-                            key={m.model}
-                            className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-black/[0.04] dark:bg-white/[0.06] text-slate-600 dark:text-slate-300 border border-[var(--border-subtle)]"
-                          >
-                            {m.model.replace('gemini-', '')}: {m.count}
-                          </span>
-                        ))}
+                    {/* Expandable Model Usage Breakdown when clicked */}
+                    {isUsageExpanded && (
+                      <div className="p-2.5 ui-card-sub rounded-xl space-y-2 animate-in fade-in duration-150 text-xs">
+                        {breakdowns.length === 0 ? (
+                          <div className="text-[11px] text-slate-500 italic text-center py-1">
+                            {totalUsage === 0 ? 'No model requests today' : `Total requests: ${totalUsage}`}
+                          </div>
+                        ) : (
+                          breakdowns.map((item, idx) => {
+                            const ratio = item.limit ? Math.min(100, Math.round((item.count / item.limit) * 100)) : null;
+                            return (
+                              <div key={idx} className="space-y-1">
+                                <div className="flex items-center justify-between text-xs font-mono">
+                                  <span className="text-slate-700 dark:text-slate-300 truncate max-w-[180px]" title={item.model}>
+                                    {item.model}
+                                  </span>
+                                  <span className="text-slate-500 dark:text-slate-400 font-semibold">
+                                    <strong className="text-slate-800 dark:text-slate-200">{item.count}</strong>
+                                    {item.limit !== undefined && <span className="text-slate-500 text-[10px]"> / {item.limit}</span>}
+                                    {item.error !== undefined && item.error > 0 && (
+                                      <span className="text-rose-500 dark:text-rose-400 text-[10px] ml-1 font-normal">
+                                        ({item.success ?? 0} ok / {item.error} err)
+                                      </span>
+                                    )}
+                                  </span>
+                                </div>
+                                {ratio !== null && (
+                                  <div className="w-full bg-black/[0.04] dark:bg-white/[0.04] rounded-full h-1.5 overflow-hidden">
+                                    <div
+                                      className={`h-full rounded-full transition-all ${
+                                        ratio >= 90 ? 'bg-rose-500' : ratio >= 70 ? 'bg-amber-500' : 'bg-indigo-500'
+                                      }`}
+                                      style={{ width: `${ratio}%` }}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })
+                        )}
                       </div>
                     )}
                   </div>
