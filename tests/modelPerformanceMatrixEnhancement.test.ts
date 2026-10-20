@@ -28,24 +28,24 @@ describe('ModelPerformanceMatrix Visual & Metrics Enhancement', () => {
     expect(enContent).toContain('insightsTotalThroughput');
   });
 
-  test('ModelPerformanceMatrix should render spec distribution ratio bar', () => {
+  test('ModelPerformanceMatrix should render spec distribution capsules', () => {
     expect(matrixContent).toContain('specDistribution');
     expect(matrixContent).toMatch(/standardRequests|highRequests/);
+    expect(matrixContent).toContain('rounded-full');
   });
 
-  test('ModelPerformanceMatrix should render amplified dual-color spec badges and ratio bar', () => {
-    // Should use h-2.5 for the amplified ratio bar
-    expect(matrixContent).toContain('h-2.5');
-    // Should use fuchsia and sky badge colors
+  test('ModelPerformanceMatrix should render dual-color spec capsules without bottom horizontal bar', () => {
+    // Should use fuchsia and sky badge colors for capsules
     expect(matrixContent).toMatch(/fuchsia-500|fuchsia-400/);
     expect(matrixContent).toMatch(/sky-500|sky-400/);
     // Should have ghost capsule styling for zero high requests
     expect(matrixContent).toContain('High 0 · 0%');
     // Should have min-w-[210px] for desktop spec column
     expect(matrixContent).toContain('min-w-[210px]');
-    // Should have gradient bar styling
-    expect(matrixContent).toContain('from-sky-500 to-blue-500');
-    expect(matrixContent).toContain('from-fuchsia-500 to-purple-600');
+    // Bottom bar removed as requested
+    expect(matrixContent).not.toMatch(/h-2\.5\s+rounded-full\s+overflow-hidden/);
+    expect(matrixContent).not.toContain('from-sky-500 to-blue-500');
+    expect(matrixContent).not.toContain('from-fuchsia-500 to-purple-600');
   });
 
   test('ModelPerformanceMatrix should render latency relative scale indicator', () => {

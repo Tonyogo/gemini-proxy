@@ -405,64 +405,36 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
                         </div>
                       </td>
 
-                      {/* Spec Distribution: Dual-spec stacked bar + badges */}
+                      {/* Spec Distribution: Dual-spec capsules */}
                       <td className="py-3 px-3">
-                        <div className="flex flex-col space-y-1.5">
-                          <div className="flex items-center justify-between gap-1.5">
-                            {/* Standard Pill */}
+                        <div className="flex items-center justify-center gap-1.5">
+                          {/* Standard Capsule */}
+                          <span
+                            className="border border-sky-500/30 bg-sky-500/10 text-sky-400 font-mono text-[10px] px-2 py-0.5 rounded-full flex items-center space-x-1 font-medium whitespace-nowrap shadow-sm"
+                            title={`${t('dashboard.standardReqs', '标准请求')}: ${stdCount.toLocaleString()} (${Math.round(stdPercent)}%)`}
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full bg-sky-400 shrink-0 shadow-[0_0_4px_rgba(56,189,248,0.6)]" />
+                            <span className="tabular-nums">Std {stdCount.toLocaleString()} · {Math.round(stdPercent)}%</span>
+                          </span>
+
+                          {/* High Capsule */}
+                          {highCount > 0 ? (
                             <span
-                              className="border border-sky-500/30 bg-sky-500/10 text-sky-400 font-mono text-[10px] px-1.5 py-0.5 rounded flex items-center space-x-1 font-medium whitespace-nowrap"
-                              title={`${t('dashboard.standardReqs', '标准请求')}: ${stdCount.toLocaleString()} (${Math.round(stdPercent)}%)`}
+                              className="border border-fuchsia-500/30 bg-fuchsia-500/10 text-fuchsia-400 font-mono text-[10px] px-2 py-0.5 rounded-full flex items-center space-x-1 font-medium whitespace-nowrap shadow-sm"
+                              title={`${t('dashboard.highReqs', 'High 规格')}: ${highCount.toLocaleString()} (${Math.round(highPercent)}%)`}
                             >
-                              <span className="w-1.5 h-1.5 rounded-full bg-sky-400 shrink-0" />
-                              <span className="tabular-nums">Std {stdCount.toLocaleString()} · {Math.round(stdPercent)}%</span>
+                              <Zap className="w-2.5 h-2.5 text-fuchsia-400 shrink-0" />
+                              <span className="tabular-nums">High {highCount.toLocaleString()} · {Math.round(highPercent)}%</span>
                             </span>
-
-                            {/* High Pill */}
-                            {highCount > 0 ? (
-                              <span
-                                className="border border-fuchsia-500/30 bg-fuchsia-500/10 text-fuchsia-400 font-mono text-[10px] px-1.5 py-0.5 rounded flex items-center space-x-1 font-medium whitespace-nowrap"
-                                title={`${t('dashboard.highReqs', 'High 规格')}: ${highCount.toLocaleString()} (${Math.round(highPercent)}%)`}
-                              >
-                                <Zap className="w-2.5 h-2.5 text-fuchsia-400 shrink-0" />
-                                <span className="tabular-nums">High {highCount.toLocaleString()} · {Math.round(highPercent)}%</span>
-                              </span>
-                            ) : (
-                              <span
-                                className="border border-[var(--border-subtle)] bg-black/5 dark:bg-white/5 text-[var(--text-secondary)] opacity-40 font-mono text-[10px] px-1.5 py-0.5 rounded flex items-center space-x-1 whitespace-nowrap"
-                                title={`${t('dashboard.highReqs', 'High 规格')}: 0 (0%)`}
-                              >
-                                <Zap className="w-2.5 h-2.5 shrink-0 opacity-60" />
-                                <span>High 0 · 0%</span>
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Amplified Gradient Ratio Bar */}
-                          <div className="w-full bg-black/5 dark:bg-white/5 h-2.5 rounded-full overflow-hidden p-0.5 flex border border-black/5 dark:border-white/5">
-                            {totalSpec > 0 ? (
-                              <>
-                                {stdPercent > 0 && (
-                                  <div
-                                    className={`bg-gradient-to-r from-sky-500 to-blue-500 h-full transition-all duration-300 ${
-                                      highPercent > 0 ? 'rounded-l-full' : 'rounded-full'
-                                    }`}
-                                    style={{ width: `${stdPercent}%` }}
-                                  />
-                                )}
-                                {highPercent > 0 && (
-                                  <div
-                                    className={`bg-gradient-to-r from-fuchsia-500 to-purple-600 h-full transition-all duration-300 ${
-                                      stdPercent > 0 ? 'rounded-r-full border-l border-white/20 dark:border-black/20' : 'rounded-full'
-                                    }`}
-                                    style={{ width: `${highPercent}%` }}
-                                  />
-                                )}
-                              </>
-                            ) : (
-                              <div className="w-full h-full bg-black/5 dark:bg-white/5 rounded-full" />
-                            )}
-                          </div>
+                          ) : (
+                            <span
+                              className="border border-[var(--border-subtle)] bg-black/5 dark:bg-white/5 text-[var(--text-secondary)] opacity-40 font-mono text-[10px] px-2 py-0.5 rounded-full flex items-center space-x-1 whitespace-nowrap"
+                              title={`${t('dashboard.highReqs', 'High 规格')}: 0 (0%)`}
+                            >
+                              <Zap className="w-2.5 h-2.5 shrink-0 opacity-60" />
+                              <span>High 0 · 0%</span>
+                            </span>
+                          )}
                         </div>
                       </td>
 
@@ -597,21 +569,21 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
                       </span>
                     </div>
 
-                    {/* Dual Badges */}
-                    <div className="flex items-center justify-between gap-1.5">
-                      {/* Standard Pill */}
+                    {/* Dual Capsules */}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {/* Standard Capsule */}
                       <span
-                        className="border border-sky-500/30 bg-sky-500/10 text-sky-400 font-mono text-[10px] px-1.5 py-0.5 rounded flex items-center space-x-1 font-medium whitespace-nowrap"
+                        className="border border-sky-500/30 bg-sky-500/10 text-sky-400 font-mono text-[10px] px-2 py-0.5 rounded-full flex items-center space-x-1 font-medium whitespace-nowrap shadow-sm"
                         title={`${t('dashboard.standardReqs', '标准请求')}: ${stdCount.toLocaleString()} (${Math.round(stdPct)}%)`}
                       >
                         <span className="w-1.5 h-1.5 rounded-full bg-sky-400 shrink-0" />
                         <span className="tabular-nums">Std {stdCount.toLocaleString()} · {Math.round(stdPct)}%</span>
                       </span>
 
-                      {/* High Pill */}
+                      {/* High Capsule */}
                       {highCount > 0 ? (
                         <span
-                          className="border border-fuchsia-500/30 bg-fuchsia-500/10 text-fuchsia-400 font-mono text-[10px] px-1.5 py-0.5 rounded flex items-center space-x-1 font-medium whitespace-nowrap"
+                          className="border border-fuchsia-500/30 bg-fuchsia-500/10 text-fuchsia-400 font-mono text-[10px] px-2 py-0.5 rounded-full flex items-center space-x-1 font-medium whitespace-nowrap shadow-sm"
                           title={`${t('dashboard.highReqs', 'High 规格')}: ${highCount.toLocaleString()} (${Math.round(highPct)}%)`}
                         >
                           <Zap className="w-2.5 h-2.5 text-fuchsia-400 shrink-0" />
@@ -619,38 +591,12 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
                         </span>
                       ) : (
                         <span
-                          className="border border-[var(--border-subtle)] bg-black/5 dark:bg-white/5 text-[var(--text-secondary)] opacity-40 font-mono text-[10px] px-1.5 py-0.5 rounded flex items-center space-x-1 whitespace-nowrap"
+                          className="border border-[var(--border-subtle)] bg-black/5 dark:bg-white/5 text-[var(--text-secondary)] opacity-40 font-mono text-[10px] px-2 py-0.5 rounded-full flex items-center space-x-1 whitespace-nowrap"
                           title={`${t('dashboard.highReqs', 'High 规格')}: 0 (0%)`}
                         >
                           <Zap className="w-2.5 h-2.5 shrink-0 opacity-60" />
                           <span>High 0 · 0%</span>
                         </span>
-                      )}
-                    </div>
-
-                    {/* Dual Spec Gradient Ratio Bar */}
-                    <div className="w-full bg-black/5 dark:bg-white/5 h-2.5 rounded-full overflow-hidden p-0.5 flex border border-black/5 dark:border-white/5">
-                      {totalSpec > 0 ? (
-                        <>
-                          {stdPct > 0 && (
-                            <div
-                              className={`bg-gradient-to-r from-sky-500 to-blue-500 h-full transition-all duration-300 ${
-                                highPct > 0 ? 'rounded-l-full' : 'rounded-full'
-                              }`}
-                              style={{ width: `${stdPct}%` }}
-                            />
-                          )}
-                          {highPct > 0 && (
-                            <div
-                              className={`bg-gradient-to-r from-fuchsia-500 to-purple-600 h-full transition-all duration-300 ${
-                                stdPct > 0 ? 'rounded-r-full border-l border-white/20 dark:border-black/20' : 'rounded-full'
-                              }`}
-                              style={{ width: `${highPct}%` }}
-                            />
-                          )}
-                        </>
-                      ) : (
-                        <div className="w-full h-full bg-black/5 dark:bg-white/5 rounded-full" />
                       )}
                     </div>
                   </div>
