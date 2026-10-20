@@ -131,7 +131,7 @@ describe('geminiController Direct Mode Thinking Suffix', () => {
     expect(capturedBody.generateContentRequest.model).toBe('models/gemini-2.5-flash');
   });
 
-  it('preserves -high in proxy mode without injecting thinkingLevel', async () => {
+  it('strips -high from path and injects thinkingLevel: HIGH in proxy mode', async () => {
     jest.spyOn(upstreamManager, 'getUpstreamUrl').mockReturnValue({
       targetUrl: 'https://custom-proxy.com/v1beta/models/gemini-2.5-flash-high:generateContent',
       serverUrl: 'https://custom-proxy.com',
@@ -148,7 +148,10 @@ describe('geminiController Direct Mode Thinking Suffix', () => {
       });
 
     expect(res.status).toBe(200);
-    expect(capturedUpstreamUrl).toBe('https://custom-proxy.com/v1beta/models/gemini-2.5-flash-high:generateContent');
-    expect(capturedBody?.generationConfig?.thinkingConfig).toBeUndefined();
+    expect(capturedUpstreamUrl).toBe('https://custom-proxy.com/v1beta/models/gemini-2.5-flash:generateContent');
+    expect(capturedBody?.generationConfig?.thinkingConfig).toEqual({
+      thinkingLevel: 'HIGH'
+    });
+    expect(capturedBody?.generationConfig?.thinkingConfig?.includeThoughts).toBeUndefined();
   });
 });

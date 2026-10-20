@@ -99,8 +99,8 @@ class GeminiController {
 
     const clientReq = req.body && Object.keys(req.body).length > 0 ? JSON.parse(JSON.stringify(req.body)) : null;
 
-    // Direct mode: strip -high from URL, strip from body models, and inject thinkingConfig for generate endpoints
-    if (serverType === 'direct' && targetModelName) {
+    // Strip -high from URL, strip from body models, and inject thinkingConfig for generate endpoints across all upstreams
+    if (targetModelName) {
       const thinkingInfo = parseModelThinkingSuffix(targetModelName);
       if (thinkingInfo.isHigh) {
         targetUrl = targetUrl.replace(`models/${targetModelName}`, `models/${thinkingInfo.baseModel}`);
