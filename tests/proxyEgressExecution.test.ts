@@ -80,6 +80,7 @@ describe('Proxy Egress Execution', () => {
     await request(app)
       .post('/v1/messages')
       .set('x-api-key', 'dummy-key')
+      .set('x-timeout-ms', '100')
       .send({ model: 'gemini-2.5-flash', messages: [{ role: 'user', content: 'test' }] });
 
     expect(getAgentSpy).toHaveBeenCalledWith(expect.objectContaining({ useProxy: false }));

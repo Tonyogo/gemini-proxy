@@ -6,7 +6,8 @@ import {
   GeminiContent,
   GeminiPart,
   GeminiModelsResponse,
-  SchedulingStrategy
+  SchedulingStrategy,
+  NormalizedErrorResponse
 } from '../../types';
 
 const BYPASS_SIGNATURE = 'context_engineering_is_the_way_to_go';
@@ -939,16 +940,91 @@ class ClaudeTranslator {
     return events;
   }
 
-  public normalizeError(error: any) {
-    logger.error(`API Error: ${error.message || error}`);
-    let status = error.status || 500;
+  public normalizeError(error: any): NormalizedErrorResponse {
+    let status = error?.status || 500;
     let type = 'api_error';
+    const rawMessage = error?.message || (typeof error === 'string' ? error : 'Internal Server Error');
+    let message = rawMessage;
+
+    // Detect HTML responses (e.g. Cloudflare error pages)
+    const isHtml = typeof rawMessage === 'string' && /<html|<!doctype|<title/i.test(rawMessage);
+    const logErr = isHtml ? `HTML error page (status: ${status})` : (rawMessage.length > 500 ? rawMessage.slice(0, 500) + '...' : rawMessage);
+    logger.error(`API Error: ${logErr}`);
+
+    // Intercept 524 (Cloudflare origin timeout) or explicit 524 in error status/message
+    const is524 = status === 524 ||
+      (typeof rawMessage === 'string' && (
+        /\b524\b/i.test(rawMessage) ||
+        /error\s*code\s*524/i.test(rawMessage) ||
+        /<title>\s*524\b/i.test(rawMessage) ||
+        (isHtml && /a timeout occurred/i.test(rawMessage))
+      ));
+
+    if (is524) {
+      status = 529;
+      type = 'overloaded_error';
+      message = 'Upstream gateway timed out (524). Service is temporarily overloaded, please retry.';
+      return {
+        status,
+        headers: {
+          'x-should-retry': 'true',
+          'retry-after': '3'
+        },
+        payload: {
+          type: 'error',
+          error: {
+            type,
+            message
+          }
+        }
+      };
+    }
+
+    if (isHtml) {
+      const titleMatch = rawMessage.match(/<title>([^<]+)<\/title>/i);
+      const title = titleMatch ? titleMatch[1].trim() : `HTTP ${status} Error`;
+      message = `Upstream returned HTML error page: ${title}`;
+    }
+
     if (status === 400 || status === 404) type = 'invalid_request_error';
     if (status === 401 || status === 403) {
       status = 502;
       type = 'api_error';
     }
-    if (status === 429) type = 'rate_limit_error';
+    if (status === 429) {
+      type = 'rate_limit_error';
+      return {
+        status,
+        headers: {
+          'x-should-retry': 'true',
+          'retry-after': '5'
+        },
+        payload: {
+          type: 'error',
+          error: {
+            type,
+            message
+          }
+        }
+      };
+    }
+    if (status === 529) {
+      type = 'overloaded_error';
+      return {
+        status,
+        headers: {
+          'x-should-retry': 'true',
+          'retry-after': '3'
+        },
+        payload: {
+          type: 'error',
+          error: {
+            type,
+            message
+          }
+        }
+      };
+    }
 
     return {
       status,
@@ -956,7 +1032,7 @@ class ClaudeTranslator {
         type: 'error',
         error: {
           type,
-          message: error.message || 'Internal Server Error'
+          message
         }
       }
     };

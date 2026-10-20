@@ -1248,6 +1248,57 @@ describe('ClaudeTranslator - normalizeError Status Code Mapping', () => {
     expect(err500.status).toEqual(500);
     expect(err500.payload.error.type).toEqual('api_error');
   });
+
+  it('remaps 524 upstream errors to 529 with overloaded_error type and retry headers', () => {
+    const err524 = translator.normalizeError({ status: 524, message: 'A timeout occurred' });
+    expect(err524.status).toEqual(529);
+    expect(err524.payload.error.type).toEqual('overloaded_error');
+    expect(err524.payload.error.message).toContain('Upstream gateway timed out (524)');
+    expect(err524.headers).toEqual({
+      'x-should-retry': 'true',
+      'retry-after': '3'
+    });
+  });
+
+  it('sanitizes Cloudflare 524 HTML error pages into clean 529 overloaded_error with retry headers', () => {
+    const cloudflareHtml = '<!DOCTYPE html><html><head><title>524: A timeout occurred</title></head><body><h1>Error 524</h1><p>The origin web server timed out responding to this request.</p></body></html>';
+    const errHtml = translator.normalizeError({ status: 524, message: cloudflareHtml });
+    expect(errHtml.status).toEqual(529);
+    expect(errHtml.payload.error.type).toEqual('overloaded_error');
+    expect(errHtml.payload.error.message).toBe('Upstream gateway timed out (524). Service is temporarily overloaded, please retry.');
+    expect(errHtml.headers).toEqual({
+      'x-should-retry': 'true',
+      'retry-after': '3'
+    });
+  });
+
+  it('detects 524 timeout in message even if status is not 524', () => {
+    const errDetected = translator.normalizeError({ status: 500, message: 'Cloudflare error code 524: A timeout occurred' });
+    expect(errDetected.status).toEqual(529);
+    expect(errDetected.payload.error.type).toEqual('overloaded_error');
+    expect(errDetected.headers?.['x-should-retry']).toBe('true');
+  });
+
+  it('sanitizes generic HTML error pages and extracts title', () => {
+    const genericHtml = '<html><head><title>502 Bad Gateway</title></head><body><h1>Bad Gateway</h1></body></html>';
+    const errGeneric = translator.normalizeError({ status: 502, message: genericHtml });
+    expect(errGeneric.status).toEqual(502);
+    expect(errGeneric.payload.error.type).toEqual('api_error');
+    expect(errGeneric.payload.error.message).toBe('Upstream returned HTML error page: 502 Bad Gateway');
+  });
+
+  it('provides retry headers for rate_limit_error (429) and overloaded_error (529)', () => {
+    const err429 = translator.normalizeError({ status: 429, message: 'Resource exhausted' });
+    expect(err429.status).toEqual(429);
+    expect(err429.headers?.['x-should-retry']).toBe('true');
+    expect(err429.headers?.['retry-after']).toBe('5');
+
+    const err529 = translator.normalizeError({ status: 529, message: 'Overloaded' });
+    expect(err529.status).toEqual(529);
+    expect(err529.payload.error.type).toEqual('overloaded_error');
+    expect(err529.headers?.['x-should-retry']).toBe('true');
+    expect(err529.headers?.['retry-after']).toBe('3');
+  });
 });
 
 describe('Claude Translator System Fingerprint Configuration', () => {

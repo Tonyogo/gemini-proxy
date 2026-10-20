@@ -133,8 +133,13 @@ class ClaudeController {
             accountUsageService.record(accountName, cleanModelName, false);
 
             const duration = Date.now() - startTime;
-            logger.error(`[Error] [Transaction: ${transactionId}] Stream request failed with status ${errStatus}: ${errMessage} (duration: ${(duration / 1000).toFixed(2)}s)`);
+            const isHtml = typeof errMessage === 'string' && /<html|<!doctype/i.test(errMessage);
+            const logErrMessage = isHtml ? `HTML error page (${errStatus})` : (errMessage.length > 500 ? errMessage.slice(0, 500) + '...' : errMessage);
+            logger.error(`[Error] [Transaction: ${transactionId}] Stream request failed with status ${errStatus}: ${logErrMessage} (duration: ${(duration / 1000).toFixed(2)}s)`);
             payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: errMessage }, normalized.payload, duration, requestPath, normalized.status, true, ...(accountName ? [accountName] : []));
+            if (normalized.headers && !res.headersSent) {
+              res.set(normalized.headers);
+            }
             return res.status(normalized.status).json(normalized.payload);
           }
 
@@ -366,8 +371,13 @@ class ClaudeController {
           accountUsageService.record(accountName, cleanModelName, false);
 
           const duration = Date.now() - startTime;
-          logger.error(`[Error] [Transaction: ${transactionId}] Non-stream request failed with status ${errStatus}: ${errMessage} (duration: ${(duration / 1000).toFixed(2)}s)`);
+          const isHtml = typeof errMessage === 'string' && /<html|<!doctype/i.test(errMessage);
+          const logErrMessage = isHtml ? `HTML error page (${errStatus})` : (errMessage.length > 500 ? errMessage.slice(0, 500) + '...' : errMessage);
+          logger.error(`[Error] [Transaction: ${transactionId}] Non-stream request failed with status ${errStatus}: ${logErrMessage} (duration: ${(duration / 1000).toFixed(2)}s)`);
           payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: errMessage }, normalized.payload, duration, requestPath, normalized.status, false, ...(accountName ? [accountName] : []));
+          if (normalized.headers && !res.headersSent) {
+            res.set(normalized.headers);
+          }
           return res.status(normalized.status).json(normalized.payload);
         }
 
@@ -418,6 +428,9 @@ class ClaudeController {
       logger.error(`[Error] [Transaction: ${transactionId}] Unhandled error: ${err.message} (duration: ${(duration / 1000).toFixed(2)}s)`);
       const normalized = claudeTranslator.normalizeError(err);
       payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: err.message }, normalized.payload, duration, requestPath, normalized.status, Boolean(clientReq && clientReq.stream));
+      if (normalized.headers && !res.headersSent) {
+        res.set(normalized.headers);
+      }
       return res.status(normalized.status).json(normalized.payload);
     }
   }
@@ -533,6 +546,9 @@ class ClaudeController {
         const duration = Date.now() - startTime;
         logger.error(`[Error] [Transaction: ${transactionId}] Token count failed with status ${errStatus}: ${errMessage} (duration: ${(duration / 1000).toFixed(2)}s)`);
         payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: errMessage }, normalized.payload, duration, requestPath, normalized.status, false);
+        if (normalized.headers && !res.headersSent) {
+          res.set(normalized.headers);
+        }
         return res.status(normalized.status).json(normalized.payload);
       }
 
@@ -552,6 +568,9 @@ class ClaudeController {
       const normalized = claudeTranslator.normalizeError(err);
       const requestPath = req.originalUrl || req.path;
       payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: err.message }, normalized.payload, duration, requestPath, normalized.status, false);
+      if (normalized.headers && !res.headersSent) {
+        res.set(normalized.headers);
+      }
       return res.status(normalized.status).json(normalized.payload);
     }
   }
@@ -621,6 +640,9 @@ class ClaudeController {
         const duration = Date.now() - startTime;
         logger.error(`[Error] [Transaction: ${transactionId}] Models list request failed with status ${errStatus}: ${errMessage}`);
         payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: errMessage }, normalized.payload, duration, requestPath, normalized.status, false);
+        if (normalized.headers && !res.headersSent) {
+          res.set(normalized.headers);
+        }
         return res.status(normalized.status).json(normalized.payload);
       }
 
@@ -655,6 +677,9 @@ class ClaudeController {
       logger.error(`[Error] [Transaction: ${transactionId}] Unhandled list models error: ${err.message}`);
       const normalized = claudeTranslator.normalizeError(err);
       payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: err.message }, normalized.payload, duration, requestPath, normalized.status, false);
+      if (normalized.headers && !res.headersSent) {
+        res.set(normalized.headers);
+      }
       return res.status(normalized.status).json(normalized.payload);
     }
   }
@@ -769,6 +794,9 @@ class ClaudeController {
       logger.error(`[Error] [Transaction: ${transactionId}] Unhandled retrieve model error: ${err.message}`);
       const normalized = claudeTranslator.normalizeError(err);
       payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: err.message }, normalized.payload, duration, requestPath, normalized.status, false);
+      if (normalized.headers && !res.headersSent) {
+        res.set(normalized.headers);
+      }
       return res.status(normalized.status).json(normalized.payload);
     }
   }

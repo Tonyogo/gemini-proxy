@@ -150,6 +150,20 @@ export interface UpstreamServerSelection {
   useProxy?: boolean;
 }
 
+export interface NormalizedErrorPayload {
+  type: 'error';
+  error: {
+    type: string;
+    message: string;
+  };
+}
+
+export interface NormalizedErrorResponse {
+  status: number;
+  headers?: Record<string, string>;
+  payload: NormalizedErrorPayload;
+}
+
 export * from './accountUsage';
 export * from './tasks';
 
