@@ -217,7 +217,11 @@ export const zh: Translations = {
     insightsSummary: "矩阵速览",
     insightsPrimaryModel: "主力模型",
     insightsFastest: "最快响应",
-    insightsTotalThroughput: "全站总吞吐"
+    insightsTotalThroughput: "全站总吞吐",
+    filterModelsPlaceholder: "搜索模型...",
+    copyModelName: "复制模型名称",
+    modelCopied: "已复制",
+    sortBy: "点击排序"
   },
   logs: {
     title: "请求日志列表",

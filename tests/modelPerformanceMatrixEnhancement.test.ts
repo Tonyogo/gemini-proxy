@@ -56,4 +56,29 @@ describe('ModelPerformanceMatrix Visual & Metrics Enhancement', () => {
     expect(matrixContent).toContain('insightsPrimaryModel');
     expect(matrixContent).toContain('insightsFastest');
   });
+
+  test('ModelPerformanceMatrix should support interactive column sorting with sort icons', () => {
+    expect(matrixContent).toContain('handleSort');
+    expect(matrixContent).toContain('sortField');
+    expect(matrixContent).toContain('sortDirection');
+    expect(matrixContent).toMatch(/ArrowUpDown|ArrowUp|ArrowDown/);
+  });
+
+  test('ModelPerformanceMatrix should support real-time model search and quick filtering', () => {
+    expect(matrixContent).toContain('searchQuery');
+    expect(matrixContent).toContain('filterModelsPlaceholder');
+    expect(zhContent).toContain('filterModelsPlaceholder');
+    expect(enContent).toContain('filterModelsPlaceholder');
+  });
+
+  test('ModelPerformanceMatrix should support model family tags and one-click copy', () => {
+    expect(matrixContent).toContain('detectModelFamily');
+    expect(matrixContent).toContain('handleCopy');
+    expect(matrixContent).toContain('copiedModel');
+    expect(matrixContent).toMatch(/Gemini|Claude|OpenAI|DeepSeek/);
+  });
+
+  test('ModelPerformanceMatrix should use tabular-nums font styling for numerical data', () => {
+    expect(matrixContent).toContain('tabular-nums');
+  });
 });

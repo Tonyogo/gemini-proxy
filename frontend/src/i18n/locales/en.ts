@@ -215,7 +215,11 @@ export const en = {
     insightsSummary: "Insights",
     insightsPrimaryModel: "Top Model",
     insightsFastest: "Fastest",
-    insightsTotalThroughput: "Total Throughput"
+    insightsTotalThroughput: "Total Throughput",
+    filterModelsPlaceholder: "Filter models...",
+    copyModelName: "Copy model name",
+    modelCopied: "Copied",
+    sortBy: "Click to sort"
   },
   logs: {
     title: "Request Logs",
