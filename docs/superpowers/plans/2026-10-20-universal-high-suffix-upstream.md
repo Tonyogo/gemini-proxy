@@ -27,7 +27,7 @@
 - Consumes: `parseModelThinkingSuffix(model?: string): ModelThinkingInfo`, `applyThinkingConfigHigh(generationConfig: any): any` from `src/utils/modelThinkingHelper.ts`
 - Produces: Universal `-high` stripping and `thinkingLevel: 'HIGH'` injection in `ClaudeController.handleMessages`, `ClaudeController.handleCountTokens`, and `ClaudeController.handleRetrieveModel` across both `direct` and `proxy` upstream servers.
 
-- [ ] **Step 1: Update and add failing tests in `tests/claudeControllerThinkingDirect.test.ts`**
+- [x] **Step 1: Update and add failing tests in `tests/claudeControllerThinkingDirect.test.ts`**
 
 Update the `proxy` mode test and add `/v1/messages/count_tokens` (proxy mode) and `/v1/models/:model_id` tests in `tests/claudeControllerThinkingDirect.test.ts`:
 
@@ -201,12 +201,12 @@ describe('claudeController Universal Thinking Suffix (-high)', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/claudeControllerThinkingDirect.test.ts`
 Expected: FAIL on `strips -high and injects thinkingLevel: HIGH in proxy mode for /v1/messages`, `strips -high for /v1/messages/count_tokens in both direct and proxy modes`, and `strips -high when retrieving model metadata via GET /v1/models/:model_id in proxy mode`.
 
-- [ ] **Step 3: Update `src/proxy/controllers/claudeController.ts` to apply `-high` handling across all upstreams**
+- [x] **Step 3: Update `src/proxy/controllers/claudeController.ts` to apply `-high` handling across all upstreams**
 
 In `src/proxy/controllers/claudeController.ts`:
 1. In `handleMessages` (streaming branch around line 89):
@@ -248,12 +248,12 @@ In `src/proxy/controllers/claudeController.ts`:
       }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/claudeControllerThinkingDirect.test.ts`
 Expected: PASS (all 5 tests pass)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/proxy/controllers/claudeController.ts tests/claudeControllerThinkingDirect.test.ts
@@ -272,7 +272,7 @@ git commit -m "feat(claude): apply -high suffix stripping and thinkingLevel HIGH
 - Consumes: `parseModelThinkingSuffix(model?: string): ModelThinkingInfo`, `applyThinkingConfigHigh(generationConfig: any): any` from `src/utils/modelThinkingHelper.ts`
 - Produces: Universal `-high` stripping and `thinkingLevel: 'HIGH'` injection in `GeminiController.handleProxy` across both `direct` and `proxy` upstream servers.
 
-- [ ] **Step 1: Update failing test in `tests/geminiControllerThinkingDirect.test.ts`**
+- [x] **Step 1: Update failing test in `tests/geminiControllerThinkingDirect.test.ts`**
 
 Update the proxy mode test in `tests/geminiControllerThinkingDirect.test.ts` so it asserts `-high` is stripped and `thinkingLevel: 'HIGH'` is injected in `proxy` mode as well:
 
@@ -302,12 +302,12 @@ Update the proxy mode test in `tests/geminiControllerThinkingDirect.test.ts` so 
   });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/geminiControllerThinkingDirect.test.ts`
 Expected: FAIL on `strips -high from path and injects thinkingLevel: HIGH in proxy mode`.
 
-- [ ] **Step 3: Update `src/proxy/controllers/geminiController.ts` to apply `-high` handling across all upstreams**
+- [x] **Step 3: Update `src/proxy/controllers/geminiController.ts` to apply `-high` handling across all upstreams**
 
 In `src/proxy/controllers/geminiController.ts` around line 102, remove `serverType === 'direct' &&`:
 
@@ -337,17 +337,17 @@ In `src/proxy/controllers/geminiController.ts` around line 102, remove `serverTy
     }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/geminiControllerThinkingDirect.test.ts`
 Expected: PASS (all 4 tests pass)
 
-- [ ] **Step 5: Run full test suite and backend build**
+- [x] **Step 5: Run full test suite and backend build**
 
 Run: `npm run build:backend && npx jest --runInBand`
 Expected: Clean TypeScript compilation and all test suites pass.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/proxy/controllers/geminiController.ts tests/geminiControllerThinkingDirect.test.ts
