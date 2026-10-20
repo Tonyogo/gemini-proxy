@@ -429,7 +429,7 @@ export const en = {
     effectiveTraffic: "Effective Traffic",
     addUpstreamServer: "Add Gateway Node",
     nodeName: "Node Alias",
-    nodeUrl: "Gateway URL",
+    nodeUrl: "Gateway / Endpoint URL",
     nodeWeight: "Weight",
     nodeEnabled: "Enabled",
     nodeDisabled: "Disabled",

@@ -343,9 +343,7 @@ export default function LogsView({
       const activeServer = (upstreamServers || []).find((s: any) => s.enabled) || upstreamServers?.[0];
       let baseUrl = 'https://generativelanguage.googleapis.com';
       if (activeServer) {
-        baseUrl = (activeServer.type === 'direct' || !activeServer.url)
-          ? 'https://generativelanguage.googleapis.com'
-          : activeServer.url;
+        baseUrl = activeServer.url || 'https://generativelanguage.googleapis.com';
       }
       baseUrl = baseUrl.replace(/\/+$/, '');
       const cleanModelName = (selectedLog.model || 'gemini-2.5-pro').replace(/^models\//, '');

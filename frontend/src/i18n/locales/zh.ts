@@ -431,7 +431,7 @@ export const zh: Translations = {
     effectiveTraffic: "实际流量占比",
     addUpstreamServer: "添加代理节点",
     nodeName: "节点备注名",
-    nodeUrl: "网关 URL",
+    nodeUrl: "网关 / 端点 URL",
     nodeWeight: "权重",
     nodeEnabled: "已启用",
     nodeDisabled: "已禁用",
