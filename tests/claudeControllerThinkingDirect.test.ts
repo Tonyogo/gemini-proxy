@@ -3,33 +3,38 @@ import express from 'express';
 import fetch from 'node-fetch';
 import claudeController from '../src/proxy/controllers/claudeController';
 import { upstreamManager } from '../src/utils/upstreamManager';
+import { updateConfig } from '../config/default';
 
 jest.mock('node-fetch');
 jest.mock('../src/proxy/services/payloadLogger', () => ({
   saveTransaction: jest.fn().mockResolvedValue(undefined)
 }));
 
-describe('claudeController Direct Mode Thinking Suffix', () => {
+describe('claudeController Universal Thinking Suffix (-high)', () => {
   let app: express.Express;
   let capturedUpstreamUrl = '';
   let capturedBody: any = null;
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    await updateConfig({ countTokensModel: '' });
     app = express();
     app.use(express.json());
     app.post('/v1/messages', (req, res) => claudeController.handleMessages(req, res));
     app.post('/v1/messages/count_tokens', (req, res) => claudeController.handleCountTokens(req, res));
+    app.get('/v1/models/:model_id', (req, res) => claudeController.handleRetrieveModel(req, res));
 
     capturedUpstreamUrl = '';
     capturedBody = null;
     (fetch as unknown as jest.Mock).mockImplementation(async (url: string, options: any) => {
       capturedUpstreamUrl = url;
-      capturedBody = options.body ? JSON.parse(options.body) : null;
+      capturedBody = options?.body ? JSON.parse(options.body) : null;
       return {
         ok: true,
         status: 200,
         headers: { get: () => 'application/json' },
         json: async () => ({
+          name: 'models/gemini-2.5-flash',
+          displayName: 'Gemini 2.5 Flash',
           candidates: [{ content: { parts: [{ text: 'Hello' }], role: 'model' } }],
           usageMetadata: { candidatesTokenCount: 5, promptTokenCount: 10 }
         }),
@@ -62,17 +67,14 @@ describe('claudeController Direct Mode Thinking Suffix', () => {
       });
 
     expect(res.status).toBe(200);
-    // Verified stripped URL
     expect(capturedUpstreamUrl).toBe('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent');
-    // Verified thinkingLevel injected
     expect(capturedBody.generationConfig?.thinkingConfig).toEqual({
       thinkingLevel: 'HIGH'
     });
-    // Ensure includeThoughts is NOT injected
     expect(capturedBody.generationConfig?.thinkingConfig?.includeThoughts).toBeUndefined();
   });
 
-  it('does NOT strip -high and does NOT inject thinkingLevel in proxy mode', async () => {
+  it('strips -high and injects thinkingLevel: HIGH in proxy mode for /v1/messages', async () => {
     jest.spyOn(upstreamManager, 'getUpstreamUrl').mockReturnValue({
       targetUrl: 'https://custom-proxy.com/v1beta/models/gemini-2.5-flash-high:generateContent',
       serverUrl: 'https://custom-proxy.com',
@@ -91,20 +93,20 @@ describe('claudeController Direct Mode Thinking Suffix', () => {
       });
 
     expect(res.status).toBe(200);
-    // Preserves -high in proxy mode
-    expect(capturedUpstreamUrl).toBe('https://custom-proxy.com/v1beta/models/gemini-2.5-flash-high:generateContent');
-    // No thinkingConfig injected
-    expect(capturedBody.generationConfig?.thinkingConfig).toBeUndefined();
+    expect(capturedUpstreamUrl).toBe('https://custom-proxy.com/v1beta/models/gemini-2.5-flash:generateContent');
+    expect(capturedBody.generationConfig?.thinkingConfig).toEqual({
+      thinkingLevel: 'HIGH'
+    });
+    expect(capturedBody.generationConfig?.thinkingConfig?.includeThoughts).toBeUndefined();
   });
 
-  it('strips -high for /v1/messages/count_tokens in direct mode', async () => {
+  it('strips -high for /v1/messages/count_tokens in both direct and proxy modes', async () => {
     jest.spyOn(upstreamManager, 'getUpstreamUrl').mockReturnValue({
-      targetUrl: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-high:countTokens',
-      serverUrl: 'https://generativelanguage.googleapis.com',
+      targetUrl: 'https://custom-proxy.com/v1beta/models/gemini-2.5-flash-high:countTokens',
+      serverUrl: 'https://custom-proxy.com',
       serverIndex: 0,
       weight: 1,
-      serverType: 'direct',
-      selectedApiKey: 'test-direct-key'
+      serverType: 'proxy'
     });
 
     const res = await request(app)
@@ -116,11 +118,28 @@ describe('claudeController Direct Mode Thinking Suffix', () => {
       });
 
     expect(res.status).toBe(200);
-    expect(capturedUpstreamUrl).toBe('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:countTokens');
+    expect(capturedUpstreamUrl).toBe('https://custom-proxy.com/v1beta/models/gemini-2.5-flash:countTokens');
     expect(capturedBody.generateContentRequest?.model).toBe('models/gemini-2.5-flash');
   });
 
-  it('strips includeThoughts and injects thinkingLevel: HIGH in direct mode when thinking is enabled', async () => {
+  it('strips -high when retrieving model metadata via GET /v1/models/:model_id in proxy mode', async () => {
+    jest.spyOn(upstreamManager, 'getUpstreamUrl').mockReturnValue({
+      targetUrl: 'https://custom-proxy.com/v1beta/models/gemini-2.5-flash-high',
+      serverUrl: 'https://custom-proxy.com',
+      serverIndex: 0,
+      weight: 1,
+      serverType: 'proxy'
+    });
+
+    const res = await request(app)
+      .get('/v1/models/gemini-2.5-flash-high')
+      .set('x-api-key', 'client-key');
+
+    expect(res.status).toBe(200);
+    expect(capturedUpstreamUrl).toBe('https://custom-proxy.com/v1beta/models/gemini-2.5-flash');
+  });
+
+  it('strips includeThoughts and injects thinkingLevel: HIGH when thinking is enabled', async () => {
     jest.spyOn(upstreamManager, 'getUpstreamUrl').mockReturnValue({
       targetUrl: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-high:generateContent',
       serverUrl: 'https://generativelanguage.googleapis.com',

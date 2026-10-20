@@ -86,14 +86,12 @@ class ClaudeController {
         let { targetUrl, serverUrl, serverIndex, serverType, selectedApiKey } = serverSelection;
         logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini [server ${serverIndex + 1}: ${serverUrl}]: POST ${targetPath}`);
 
-        // Direct mode: strip -high and inject thinkingConfig
-        if (serverType === 'direct') {
-          const thinkingInfo = parseModelThinkingSuffix(cleanModelName);
-          if (thinkingInfo.isHigh) {
-            targetUrl = targetUrl.replace(`models/${cleanModelName}:`, `models/${thinkingInfo.baseModel}:`);
-            gemReq.generationConfig = gemReq.generationConfig || {};
-            applyThinkingConfigHigh(gemReq.generationConfig);
-          }
+        // Strip -high and inject thinkingConfig for all upstream servers
+        const thinkingInfo = parseModelThinkingSuffix(cleanModelName);
+        if (thinkingInfo.isHigh) {
+          targetUrl = targetUrl.replace(`models/${cleanModelName}:`, `models/${thinkingInfo.baseModel}:`);
+          gemReq.generationConfig = gemReq.generationConfig || {};
+          applyThinkingConfigHigh(gemReq.generationConfig);
         }
 
         const effectiveApiKey = (serverType === 'direct' && selectedApiKey)
@@ -307,14 +305,12 @@ class ClaudeController {
       let { targetUrl, serverUrl, serverIndex, serverType, selectedApiKey } = serverSelection;
       logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini [server ${serverIndex + 1}: ${serverUrl}]: POST ${targetPath}`);
 
-      // Direct mode: strip -high and inject thinkingConfig
-      if (serverType === 'direct') {
-        const thinkingInfo = parseModelThinkingSuffix(cleanModelName);
-        if (thinkingInfo.isHigh) {
-          targetUrl = targetUrl.replace(`models/${cleanModelName}:`, `models/${thinkingInfo.baseModel}:`);
-          gemReq.generationConfig = gemReq.generationConfig || {};
-          applyThinkingConfigHigh(gemReq.generationConfig);
-        }
+      // Strip -high and inject thinkingConfig for all upstream servers
+      const thinkingInfo = parseModelThinkingSuffix(cleanModelName);
+      if (thinkingInfo.isHigh) {
+        targetUrl = targetUrl.replace(`models/${cleanModelName}:`, `models/${thinkingInfo.baseModel}:`);
+        gemReq.generationConfig = gemReq.generationConfig || {};
+        applyThinkingConfigHigh(gemReq.generationConfig);
       }
 
       const effectiveApiKey = (serverType === 'direct' && selectedApiKey)
@@ -482,12 +478,10 @@ class ClaudeController {
       const serverSelection = upstreamManager.getUpstreamUrl(targetPath, { model: cleanModelName, originalModel: requestedModel, resolvedModel: cleanModelName });
       let { targetUrl, serverUrl, serverIndex, serverType, selectedApiKey } = serverSelection;
 
-      if (serverType === 'direct') {
-        const thinkingInfo = parseModelThinkingSuffix(cleanModelName);
-        if (thinkingInfo.isHigh) {
-          targetUrl = targetUrl.replace(`models/${cleanModelName}:`, `models/${thinkingInfo.baseModel}:`);
-          countTokensPayload.generateContentRequest.model = `models/${thinkingInfo.baseModel}`;
-        }
+      const thinkingInfo = parseModelThinkingSuffix(cleanModelName);
+      if (thinkingInfo.isHigh) {
+        targetUrl = targetUrl.replace(`models/${cleanModelName}:`, `models/${thinkingInfo.baseModel}:`);
+        countTokensPayload.generateContentRequest.model = `models/${thinkingInfo.baseModel}`;
       }
       logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini [server ${serverIndex + 1}: ${serverUrl}]: POST ${targetPath}`);
 
@@ -698,16 +692,24 @@ class ClaudeController {
 
       const targetPath = `/v1beta/models/${resolvedModelId}`;
       const serverSelection = upstreamManager.getUpstreamUrl(targetPath, { model: resolvedModelId, originalModel: cleanModelId, resolvedModel: resolvedModelId });
-      const { targetUrl, serverUrl, serverIndex } = serverSelection;
+      let { targetUrl, serverUrl, serverIndex, serverType, selectedApiKey } = serverSelection;
+      const thinkingInfo = parseModelThinkingSuffix(resolvedModelId);
+      if (thinkingInfo.isHigh) {
+        targetUrl = targetUrl.replace(`models/${resolvedModelId}`, `models/${thinkingInfo.baseModel}`);
+      }
       logger.info(`[Request] [Transaction: ${transactionId}] Proxying model metadata to Gemini [server ${serverIndex + 1}: ${serverUrl}]: GET ${targetPath}`);
       gemReq = { endpoint: targetPath };
       const agent = proxyAgentManager.getAgent(serverSelection);
+
+      const effectiveApiKey = (serverType === 'direct' && selectedApiKey)
+        ? selectedApiKey
+        : apiKey;
 
       let response;
       try {
         response = await fetch(targetUrl, {
           method: 'GET',
-          headers: buildUpstreamHeaders(apiKey),
+          headers: buildUpstreamHeaders(effectiveApiKey),
           agent
         });
       } catch (fetchErr: any) {
