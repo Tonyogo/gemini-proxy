@@ -252,7 +252,7 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
       ) : (
         <>
           {/* 1. Desktop Multi-column DataTable (Hidden on mobile) */}
-          <div className="hidden md:block overflow-x-auto w-full no-scrollbar rounded-xl border border-[var(--border-subtle)]/70">
+          <div className="hidden md:block overflow-x-auto w-full no-scrollbar rounded-xl">
             <table className="w-full text-left text-xs font-mono border-collapse min-w-[720px]">
               <thead>
                 <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-surface-sub)]/80 text-[var(--text-secondary)] text-[11px] uppercase tracking-wider backdrop-blur-sm">
@@ -410,7 +410,7 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
                         <div className="flex items-center justify-center gap-1.5">
                           {/* Standard Capsule */}
                           <span
-                            className="border border-sky-500/30 bg-sky-500/10 text-sky-400 font-mono text-[10px] px-2 py-0.5 rounded-full flex items-center space-x-1 font-medium whitespace-nowrap shadow-sm"
+                            className="bg-sky-500/10 text-sky-400 font-mono text-[10px] px-2 py-0.5 rounded-full flex items-center space-x-1 font-medium whitespace-nowrap"
                             title={`${t('dashboard.standardReqs', '标准请求')}: ${stdCount.toLocaleString()} (${Math.round(stdPercent)}%)`}
                           >
                             <span className="w-1.5 h-1.5 rounded-full bg-sky-400 shrink-0 shadow-[0_0_4px_rgba(56,189,248,0.6)]" />
@@ -420,7 +420,7 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
                           {/* High Capsule */}
                           {highCount > 0 ? (
                             <span
-                              className="border border-fuchsia-500/30 bg-fuchsia-500/10 text-fuchsia-400 font-mono text-[10px] px-2 py-0.5 rounded-full flex items-center space-x-1 font-medium whitespace-nowrap shadow-sm"
+                              className="bg-fuchsia-500/10 text-fuchsia-400 font-mono text-[10px] px-2 py-0.5 rounded-full flex items-center space-x-1 font-medium whitespace-nowrap"
                               title={`${t('dashboard.highReqs', 'High 规格')}: ${highCount.toLocaleString()} (${Math.round(highPercent)}%)`}
                             >
                               <Zap className="w-2.5 h-2.5 text-fuchsia-400 shrink-0" />
@@ -428,7 +428,7 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
                             </span>
                           ) : (
                             <span
-                              className="border border-[var(--border-subtle)] bg-black/5 dark:bg-white/5 text-[var(--text-secondary)] opacity-40 font-mono text-[10px] px-2 py-0.5 rounded-full flex items-center space-x-1 whitespace-nowrap"
+                              className="bg-black/5 dark:bg-white/5 text-[var(--text-secondary)] opacity-40 font-mono text-[10px] px-2 py-0.5 rounded-full flex items-center space-x-1 whitespace-nowrap"
                               title={`${t('dashboard.highReqs', 'High 规格')}: 0 (0%)`}
                             >
                               <Zap className="w-2.5 h-2.5 shrink-0 opacity-60" />
@@ -573,7 +573,7 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {/* Standard Capsule */}
                       <span
-                        className="border border-sky-500/30 bg-sky-500/10 text-sky-400 font-mono text-[10px] px-2 py-0.5 rounded-full flex items-center space-x-1 font-medium whitespace-nowrap shadow-sm"
+                        className="bg-sky-500/10 text-sky-400 font-mono text-[10px] px-2 py-0.5 rounded-full flex items-center space-x-1 font-medium whitespace-nowrap"
                         title={`${t('dashboard.standardReqs', '标准请求')}: ${stdCount.toLocaleString()} (${Math.round(stdPct)}%)`}
                       >
                         <span className="w-1.5 h-1.5 rounded-full bg-sky-400 shrink-0" />
@@ -583,7 +583,7 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
                       {/* High Capsule */}
                       {highCount > 0 ? (
                         <span
-                          className="border border-fuchsia-500/30 bg-fuchsia-500/10 text-fuchsia-400 font-mono text-[10px] px-2 py-0.5 rounded-full flex items-center space-x-1 font-medium whitespace-nowrap shadow-sm"
+                          className="bg-fuchsia-500/10 text-fuchsia-400 font-mono text-[10px] px-2 py-0.5 rounded-full flex items-center space-x-1 font-medium whitespace-nowrap"
                           title={`${t('dashboard.highReqs', 'High 规格')}: ${highCount.toLocaleString()} (${Math.round(highPct)}%)`}
                         >
                           <Zap className="w-2.5 h-2.5 text-fuchsia-400 shrink-0" />
@@ -591,7 +591,7 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
                         </span>
                       ) : (
                         <span
-                          className="border border-[var(--border-subtle)] bg-black/5 dark:bg-white/5 text-[var(--text-secondary)] opacity-40 font-mono text-[10px] px-2 py-0.5 rounded-full flex items-center space-x-1 whitespace-nowrap"
+                          className="bg-black/5 dark:bg-white/5 text-[var(--text-secondary)] opacity-40 font-mono text-[10px] px-2 py-0.5 rounded-full flex items-center space-x-1 whitespace-nowrap"
                           title={`${t('dashboard.highReqs', 'High 规格')}: 0 (0%)`}
                         >
                           <Zap className="w-2.5 h-2.5 shrink-0 opacity-60" />
