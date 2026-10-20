@@ -873,6 +873,25 @@ describe('Gemini to Claude Stream Response Translation', () => {
     expect(events2!.length).toBeGreaterThan(0);
   });
 
+  it('silently ignores SSE comment/heartbeat lines (: ping) and non-data metadata lines without logging warnings', () => {
+    const logger = require('../src/utils/logger').default;
+    const warnSpy = jest.spyOn(logger, 'warn').mockImplementation(() => {});
+
+    try {
+      const streamState: any = {};
+      expect(translator.translateGoogleToClaudeStream(': ping', 'gemini-3.5-flash', streamState)).toBeNull();
+      expect(translator.translateGoogleToClaudeStream(': keep-alive', 'gemini-3.5-flash', streamState)).toBeNull();
+      expect(translator.translateGoogleToClaudeStream(':', 'gemini-3.5-flash', streamState)).toBeNull();
+      expect(translator.translateGoogleToClaudeStream('event: message', 'gemini-3.5-flash', streamState)).toBeNull();
+      expect(translator.translateGoogleToClaudeStream('id: 123', 'gemini-3.5-flash', streamState)).toBeNull();
+      expect(translator.translateGoogleToClaudeStream('retry: 3000', 'gemini-3.5-flash', streamState)).toBeNull();
+
+      expect(warnSpy).not.toHaveBeenCalled();
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+
   it('merges consecutive same-role blocks in contents (user, user)', () => {
     const claudePayload = {
       model: 'gemini-3.5-flash',

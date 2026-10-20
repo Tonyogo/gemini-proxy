@@ -797,9 +797,14 @@ class ClaudeTranslator {
   public translateGoogleToClaudeStream(googleChunk: string, modelName: string, streamState: any) {
     if (!googleChunk || googleChunk.trim() === '') return null;
 
+    const trimmed = googleChunk.trim();
+    // Ignore SSE comment/heartbeat lines (e.g. ": ping") and standard non-data SSE fields
+    if (trimmed.startsWith(':')) return null;
+    if (/^(event|id|retry):/i.test(trimmed)) return null;
+
     const tools = streamState.tools;
 
-    let jsonString = googleChunk;
+    let jsonString = trimmed;
     if (jsonString.startsWith('data:')) {
       jsonString = jsonString.substring(5).trim();
     }

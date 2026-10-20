@@ -367,6 +367,56 @@ describe('POST /v1/messages (Scheduling Strategy Header)', () => {
     const lastCallHeaders = fetchMock.mock.calls[0][1].headers;
     expect(lastCallHeaders['x-scheduling-strategy']).toBeUndefined();
   });
+
+  it('passes through SSE heartbeat comments (: ping) to client in streaming mode without warning or polluting transaction chunks', async () => {
+    const { Readable } = require('stream');
+    const logger = require('../src/utils/logger').default;
+    const payloadLogger = require('../src/proxy/services/payloadLogger');
+    const warnSpy = jest.spyOn(logger, 'warn').mockImplementation(() => {});
+
+    const upstreamStream = new Readable({
+      read() {
+        this.push(': ping\n\n');
+        this.push('data: {"candidates":[{"content":{"parts":[{"text":"Hello after ping"}],"role":"model"},"finishReason":"STOP"}],"usageMetadata":{"promptTokenCount":4,"candidatesTokenCount":3}}\n\n');
+        this.push(': keep-alive\n');
+        this.push(null);
+      }
+    });
+
+    fetchMock.mockImplementationOnce(() =>
+      Promise.resolve({
+        status: 200,
+        ok: true,
+        headers: { get: () => 'text/event-stream' },
+        body: upstreamStream
+      })
+    );
+
+    try {
+      const res = await request(app)
+        .post('/v1/messages')
+        .set('x-api-key', 'client-key')
+        .send({
+          model: 'gemini-2.5-flash',
+          stream: true,
+          messages: [{ role: 'user', content: 'Hello' }]
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.text).toContain(': ping\n\n');
+      expect(res.text).toContain(': keep-alive\n\n');
+      expect(res.text).toContain('Hello after ping');
+      expect(warnSpy).not.toHaveBeenCalled();
+
+      const lastSaveCall = payloadLogger.saveTransaction.mock.calls[payloadLogger.saveTransaction.mock.calls.length - 1];
+      const loggedGemChunks = lastSaveCall[3];
+      const loggedClaudeChunks = lastSaveCall[4];
+      expect(loggedGemChunks).toHaveLength(1);
+      expect(loggedClaudeChunks.some((ev: any) => ev.type === 'content_block_delta' && ev.delta?.text === 'Hello after ping')).toBe(true);
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
 });
 
 

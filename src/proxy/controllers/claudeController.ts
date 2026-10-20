@@ -160,6 +160,14 @@ class ClaudeController {
               const trimmed = line.trim();
               if (!trimmed) continue;
 
+              // Pass through SSE comment/heartbeat frames (e.g. ": ping") directly to downstream client
+              if (trimmed.startsWith(':')) {
+                if (!res.writableEnded) {
+                  res.write(`${trimmed}\n\n`);
+                }
+                continue;
+              }
+
               if (trimmed.startsWith('data:')) {
                 const jsonStr = trimmed.substring(5).trim();
                 if (jsonStr !== '[DONE]') {
@@ -186,21 +194,27 @@ class ClaudeController {
 
             if (streamBuffer.trim()) {
               const trimmed = streamBuffer.trim();
-              if (trimmed.startsWith('data:')) {
-                const jsonStr = trimmed.substring(5).trim();
-                if (jsonStr !== '[DONE]') {
-                  try {
-                    gemResChunks.push(JSON.parse(jsonStr));
-                  } catch (e) { /* ignore */ }
-                }
-              }
-
-              const events = claudeTranslator.translateGoogleToClaudeStream(trimmed, cleanModelName, streamState);
-              if (events && events.length > 0) {
-                claudeResChunks.push(...events);
+              if (trimmed.startsWith(':')) {
                 if (!res.writableEnded) {
-                  const sseText = events.map((ev: any) => `event: ${ev.type}\ndata: ${JSON.stringify(ev)}\n\n`).join('');
-                  res.write(sseText);
+                  res.write(`${trimmed}\n\n`);
+                }
+              } else {
+                if (trimmed.startsWith('data:')) {
+                  const jsonStr = trimmed.substring(5).trim();
+                  if (jsonStr !== '[DONE]') {
+                    try {
+                      gemResChunks.push(JSON.parse(jsonStr));
+                    } catch (e) { /* ignore */ }
+                  }
+                }
+
+                const events = claudeTranslator.translateGoogleToClaudeStream(trimmed, cleanModelName, streamState);
+                if (events && events.length > 0) {
+                  claudeResChunks.push(...events);
+                  if (!res.writableEnded) {
+                    const sseText = events.map((ev: any) => `event: ${ev.type}\ndata: ${JSON.stringify(ev)}\n\n`).join('');
+                    res.write(sseText);
+                  }
                 }
               }
             }
