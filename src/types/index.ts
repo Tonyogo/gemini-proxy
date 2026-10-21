@@ -19,6 +19,7 @@ export interface ClaudeRequest {
   temperature?: number;
   top_p?: number;
   top_k?: number;
+  stop_sequences?: string[];
   thinking?: {
     type: 'enabled';
     budget_tokens: number;

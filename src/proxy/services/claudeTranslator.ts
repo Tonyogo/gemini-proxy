@@ -633,6 +633,20 @@ class ClaudeTranslator {
     if (claudeBody.top_p !== undefined) {
       generationConfig.topP = claudeBody.top_p;
     }
+    if (claudeBody.top_k !== undefined) {
+      generationConfig.topK = claudeBody.top_k;
+    }
+    if (Array.isArray(claudeBody.stop_sequences) && claudeBody.stop_sequences.length > 0) {
+      const validStopSequences = Array.from(
+        new Set(
+          claudeBody.stop_sequences
+            .filter((s: any) => typeof s === 'string' && s.trim().length > 0)
+        )
+      );
+      if (validStopSequences.length > 0) {
+        generationConfig.stopSequences = validStopSequences;
+      }
+    }
     if (Object.keys(generationConfig).length > 0) {
       googleRequest.generationConfig = generationConfig;
     }

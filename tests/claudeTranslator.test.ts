@@ -24,6 +24,19 @@ describe('Claude to Gemini Request Translation', () => {
     expect(result.googleRequest.contents[0].parts[0].text).toEqual('Hello');
   });
 
+  it('translates stop_sequences and top_k to generationConfig', () => {
+    const claudePayload = {
+      model: 'gemini-3.5-flash',
+      messages: [{ role: 'user', content: 'Hello' }],
+      stop_sequences: ['\n\nHuman:', 'END', '', '  ', 'END'],
+      top_k: 40
+    } as any;
+    const result = translator.translateClaudeToGoogle(claudePayload);
+    expect(result.googleRequest.generationConfig).toBeDefined();
+    expect(result.googleRequest.generationConfig!.stopSequences).toEqual(['\n\nHuman:', 'END']);
+    expect(result.googleRequest.generationConfig!.topK).toEqual(40);
+  });
+
   it('translates system prompts', () => {
     const claudePayload = {
       model: 'gemini-3.5-flash',
