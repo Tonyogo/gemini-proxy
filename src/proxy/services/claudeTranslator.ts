@@ -543,9 +543,14 @@ class ClaudeTranslator {
               resultText = textCollector.join('\n');
             }
 
+            const isError = block.is_error === true;
+            const responseBody: any = isError
+              ? { error: resultText !== undefined && resultText !== null && resultText !== '' ? resultText : 'Tool execution failed' }
+              : { result: resultText !== undefined && resultText !== null ? resultText : '' };
+
             const functionResponseObj: any = {
               name: matchedName,
-              response: { result: resultText },
+              response: responseBody,
               id: geminiResponseId
             };
 

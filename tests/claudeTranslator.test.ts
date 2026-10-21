@@ -628,6 +628,81 @@ describe('Claude Tools Interaction Roundtrips (Complex and Multi-Turn)', () => {
     expect(funcResp.parts![0].inlineData!.data).toEqual('iVBORw0KGgoAAAANSUhEUgAA...');
   });
 
+  it('translates tool_result with is_error=true to response.error instead of response.result', () => {
+    const claudePayload = {
+      model: 'gemini-3.5-flash',
+      messages: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool_use',
+              id: 'toolu_fail_01',
+              name: 'read_file',
+              input: { path: '/missing.txt' }
+            }
+          ]
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'toolu_fail_01',
+              content: 'File not found: /missing.txt',
+              is_error: true
+            }
+          ]
+        }
+      ]
+    } as any;
+
+    const result = translator.translateClaudeToGoogle(claudePayload);
+    const userBubble = result.googleRequest.contents[1];
+    expect(userBubble.role).toEqual('user');
+
+    const funcResp = userBubble.parts[0].functionResponse!;
+    expect(funcResp.name).toEqual('read_file');
+    expect(funcResp.response.error).toEqual('File not found: /missing.txt');
+    expect(funcResp.response.result).toBeUndefined();
+  });
+
+  it('translates tool_result with is_error=true and empty content to fallback error message', () => {
+    const claudePayload = {
+      model: 'gemini-3.5-flash',
+      messages: [
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool_use',
+              id: 'toolu_fail_02',
+              name: 'execute_command',
+              input: { command: 'exit 1' }
+            }
+          ]
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'toolu_fail_02',
+              is_error: true
+            }
+          ]
+        }
+      ]
+    } as any;
+
+    const result = translator.translateClaudeToGoogle(claudePayload);
+    const userBubble = result.googleRequest.contents[1];
+    const funcResp = userBubble.parts[0].functionResponse!;
+    expect(funcResp.name).toEqual('execute_command');
+    expect(funcResp.response.error).toEqual('Tool execution failed');
+    expect(funcResp.response.result).toBeUndefined();
+  });
+
   it('supports custom runtimeContextTag configuration overriding', () => {
     const originalTag = config.runtimeContextTag;
     try {
