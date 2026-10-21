@@ -428,6 +428,7 @@ export const zh: Translations = {
     nodesBadge: "{count} 节点",
     rulesBadge: "{count} 规则",
     generalGroup: "通用运行时与日志记录策略",
+    globalNetworkGroup: "全局网络与超时策略",
     upstreamGroup: "上游 Gemini 网关与超时参数",
     upstreamServersTitle: "上游代理服务器与流量分配",
     upstreamServersDesc: "",

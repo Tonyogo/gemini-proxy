@@ -426,6 +426,7 @@ export const en = {
     nodesBadge: "{count} nodes",
     rulesBadge: "{count} rules",
     generalGroup: "General Runtime & Logging Policies",
+    globalNetworkGroup: "Global Network & Timeout Policies",
     upstreamGroup: "Upstream Gemini Gateway & Timeouts",
     upstreamServersTitle: "Upstream Gateways & Traffic Allocation",
     upstreamServersDesc: "",

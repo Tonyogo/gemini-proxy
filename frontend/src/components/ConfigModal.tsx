@@ -47,6 +47,30 @@ const SPLIT_COLORS = [
   'bg-teal-500'
 ];
 
+const SPLIT_BORDER_COLORS = [
+  'border-l-blue-500',
+  'border-l-emerald-500',
+  'border-l-purple-500',
+  'border-l-amber-500',
+  'border-l-cyan-500',
+  'border-l-rose-500',
+  'border-l-indigo-500',
+  'border-l-teal-500'
+];
+
+const getCompactHost = (rawUrl?: string, type?: 'proxy' | 'direct') => {
+  const fallback = type === 'direct' ? 'generativelanguage.googleapis.com' : '';
+  const target = (rawUrl || '').trim() || fallback;
+  if (!target) return '';
+  try {
+    const withProto = /^https?:\/\//i.test(target) ? target : `https://${target}`;
+    const u = new URL(withProto);
+    return u.host + (u.pathname && u.pathname !== '/' ? u.pathname : '');
+  } catch {
+    return target.replace(/^https?:\/\//i, '').replace(/\/+$/, '');
+  }
+};
+
 const DEFAULT_IGNORED_TOOLS = [
   'Artifact',
   'ArtifactCheck',
@@ -703,10 +727,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
   ]);
 
   const toggleServerExpand = (idx: number) => {
-    setExpandedServers(prev => ({
-      ...prev,
-      [idx]: !prev[idx]
-    }));
+    setExpandedServers(prev => ({ [idx]: !prev[idx] }));
   };
 
   const handleExpandAllServers = () => {
@@ -1123,14 +1144,25 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                           {upstreamServers.map((server, idx) => {
                             const pct = getEffectivePercent(server);
                             const color = SPLIT_COLORS[idx % SPLIT_COLORS.length];
+                            const borderColor = SPLIT_BORDER_COLORS[idx % SPLIT_BORDER_COLORS.length];
                             const isExpanded = expandedServers[idx] !== false;
+                            const compactHost = getCompactHost(server.url, server.type);
+                            const rawKeyCount = (serverKeyInputs[idx] !== undefined ? serverKeyInputs[idx] : (server.apiKeys || []).join('\n'))
+                              .split('\n')
+                              .map(k => k.trim())
+                              .filter(Boolean).length;
+                            const currentModelCount = (serverModelInputs[idx] !== undefined ? serverModelInputs[idx] : (server.allowedModels || []).join(', '))
+                              .split(',')
+                              .map(s => s.trim())
+                              .filter(Boolean).length;
+
                             return (
                               <div
                                 key={idx}
-                                className={`relative p-3 rounded-lg border transition-all ${
+                                className={`relative p-3 rounded-lg border border-l-4 transition-all ${
                                   server.enabled
-                                    ? 'bg-slate-800/40 border-slate-700/70 hover:border-slate-600'
-                                    : 'bg-slate-900/30 border-slate-800/60 opacity-60'
+                                    ? `bg-slate-800/40 border-slate-700/70 hover:border-slate-600 ${borderColor}`
+                                    : 'bg-slate-900/30 border-slate-800/60 opacity-60 border-l-slate-600'
                                 }`}
                               >
                                 <div
@@ -1140,6 +1172,9 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                   {/* First Row: Status, Node Name, Percentage, Controls */}
                                   <div className="flex items-center justify-between gap-2">
                                     <div className="flex items-center space-x-2 min-w-0 flex-1">
+                                      <span className="text-[10px] font-mono font-bold text-slate-400 bg-slate-900/80 px-1.5 py-0.5 rounded border border-slate-700/80 shrink-0">
+                                        #{idx + 1}
+                                      </span>
                                       <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${server.enabled ? color : 'bg-slate-600'}`} />
                                       <span className="text-xs font-semibold text-slate-200 truncate">
                                         {server.name || `Node ${idx + 1}`}
@@ -1253,6 +1288,33 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                       </button>
                                     </div>
                                   </div>
+
+                                  {/* Collapsed State Compact Summary Pills */}
+                                  {!isExpanded && (
+                                    <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
+                                      <span className="font-mono text-slate-300 truncate max-w-[280px]" title={server.url}>
+                                        {compactHost || (server.type === 'direct' ? 'generativelanguage.googleapis.com' : '未设置端点')}
+                                      </span>
+                                      <span className="text-slate-600">•</span>
+                                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                                        server.useProxy
+                                          ? 'bg-purple-500/15 text-purple-300 border border-purple-500/30'
+                                          : 'bg-slate-800 text-slate-300 border border-slate-700'
+                                      }`}>
+                                        {server.useProxy ? t('config.egressProxyShort', '代理通道') : t('config.egressLocalShort', '本机直连')}
+                                      </span>
+                                      {currentModelCount > 0 && (
+                                        <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-blue-500/15 text-blue-300 border border-blue-500/30">
+                                          模型 ×{currentModelCount}
+                                        </span>
+                                      )}
+                                      {server.type === 'direct' && (
+                                        <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                                          Key ×{rawKeyCount}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
 
                                   {/* Mobile-only Full-Width Segmented Mode Switcher */}
                                   <div
@@ -1558,7 +1620,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                 { url: '', weight: 1, enabled: true, name: '', type: 'proxy' }
                               ];
                               setUpstreamServers(updated);
-                              setExpandedServers(prev => ({ ...prev, [newIndex]: true }));
+                              setExpandedServers({ [newIndex]: true });
                             }}
                             className="w-full py-2.5 px-3 border border-dashed border-slate-700 hover:border-blue-500/50 rounded-lg text-xs font-medium text-slate-400 hover:text-blue-400 transition-colors flex items-center justify-center space-x-1.5 bg-slate-850 hover:bg-blue-500/5"
                           >
@@ -1568,42 +1630,52 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                         </div>
                       </div>
 
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-slate-200 block">UPSTREAM_TIMEOUT_MS</label>
-                        <div className="relative">
-                          <input
-                            type="number"
-                            value={upstreamTimeoutMs}
-                            onChange={(e) => setUpstreamTimeoutMs(parseInt(e.target.value, 10) || 0)}
-                            className="w-full ui-input p-2.5 text-xs"
-                          />
-                          <span className="absolute right-3 top-2.5 text-xs text-slate-500 font-mono">ms</span>
+                      {/* Global Network & Timeout Parameters */}
+                      <div className="pt-2 border-t border-slate-700/60 space-y-3">
+                        <div className="flex items-center space-x-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                          <Sliders className="w-3 h-3 text-slate-400" />
+                          <span>{t('config.globalNetworkGroup', '全局网络与超时策略')}</span>
                         </div>
-                        <p className="hidden sm:block text-[10px] text-slate-400">{t('config.upstreamTimeoutDesc')}</p>
-                      </div>
 
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-slate-200 block">COUNT_TOKENS_MODEL</label>
-                        <input
-                          type="text"
-                          value={countTokensModel}
-                          onChange={(e) => setCountTokensModel(e.target.value)}
-                          placeholder="e.g. gemini-2.5-flash (Leave blank to use request model)"
-                          className="w-full ui-input p-2.5 text-xs"
-                        />
-                        <p className="hidden sm:block text-[10px] text-slate-400">{t('config.countTokensDesc')}</p>
-                      </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-[11px] font-semibold text-slate-300 block">UPSTREAM_TIMEOUT_MS</label>
+                            <div className="relative">
+                              <input
+                                type="number"
+                                value={upstreamTimeoutMs}
+                                onChange={(e) => setUpstreamTimeoutMs(parseInt(e.target.value, 10) || 0)}
+                                className="w-full ui-input p-2 text-xs font-mono"
+                              />
+                              <span className="absolute right-2.5 top-2 text-[11px] text-slate-500 font-mono">ms</span>
+                            </div>
+                            <p className="hidden sm:block text-[10px] text-slate-400">{t('config.upstreamTimeoutDesc')}</p>
+                          </div>
 
-                      <div className="space-y-1.5">
-                        <label className="text-xs font-semibold text-slate-200 block">{t('config.globalProxyTitle', '全局出站代理')}</label>
-                        <input
-                          type="text"
-                          value={proxyUrl}
-                          onChange={(e) => setProxyUrl(e.target.value)}
-                          placeholder={t('config.globalProxyPlaceholder', 'http://127.0.0.1:7890 或 socks5://127.0.0.1:10808 (留空直连)')}
-                          className="w-full ui-input p-2.5 text-xs font-mono"
-                        />
-                        <p className="hidden sm:block text-[10px] text-slate-400">{t('config.globalProxyDesc', '支持 HTTP / HTTPS / SOCKS5 代理。服务器无法直连 Google 时配置')}</p>
+                          <div className="space-y-1">
+                            <label className="text-[11px] font-semibold text-slate-300 block">COUNT_TOKENS_MODEL</label>
+                            <input
+                              type="text"
+                              value={countTokensModel}
+                              onChange={(e) => setCountTokensModel(e.target.value)}
+                              placeholder="e.g. gemini-2.5-flash"
+                              className="w-full ui-input p-2 text-xs font-mono"
+                            />
+                            <p className="hidden sm:block text-[10px] text-slate-400">{t('config.countTokensDesc')}</p>
+                          </div>
+
+                          <div className="col-span-1 sm:col-span-2 space-y-1">
+                            <label className="text-[11px] font-semibold text-slate-300 block">{t('config.globalProxyTitle', '全局出站代理')}</label>
+                            <input
+                              type="text"
+                              value={proxyUrl}
+                              onChange={(e) => setProxyUrl(e.target.value)}
+                              placeholder={t('config.globalProxyPlaceholder', 'http://127.0.0.1:7890 或 socks5://127.0.0.1:10808 (留空直连)')}
+                              className="w-full ui-input p-2 text-xs font-mono"
+                            />
+                            <p className="hidden sm:block text-[10px] text-slate-400">{t('config.globalProxyDesc', '支持 HTTP / HTTPS / SOCKS5 代理。服务器无法直连 Google 时配置')}</p>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
