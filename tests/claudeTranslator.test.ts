@@ -1411,7 +1411,7 @@ describe('Claude System Prompt Fingerprint Sanitization', () => {
     expect(result.googleRequest.systemInstruction).toBeUndefined();
   });
 
-  it('neutralizes Claude identity and Git attribution in system prompts', () => {
+  it('preserves Claude identity and Git attribution without stripping when not starting with billing header', () => {
     const claudePayload = {
       model: 'gemini-2.5-flash',
       system: "You are Claude Code, Anthropic's official CLI for Claude.\nEnd git commit messages with:\n- Co-Authored-By: Claude Code <noreply@anthropic.com>",
@@ -1420,10 +1420,9 @@ describe('Claude System Prompt Fingerprint Sanitization', () => {
     const result = translator.translateClaudeToGoogle(claudePayload);
     expect(result.googleRequest.systemInstruction).toBeDefined();
     const systemText = result.googleRequest.systemInstruction!.parts[0].text;
-    expect(systemText).not.toContain('Claude Code');
-    expect(systemText).not.toContain('Anthropic');
-    expect(systemText).not.toContain('Co-Authored-By');
-    expect(systemText).toContain('AI');
+    expect(systemText).toContain('Claude Code');
+    expect(systemText).toContain('Anthropic');
+    expect(systemText).toContain('Co-Authored-By');
   });
 
   it('drops billing header blocks in array system prompts while retaining other blocks', () => {

@@ -371,30 +371,13 @@ class ClaudeTranslator {
     if (!rawText) return null;
     if (!config.stripSystemFingerprints) return rawText;
 
-    // Option A: Drop entire block if it starts with x-anthropic-billing-header
+    // Drop entire block if it starts with x-anthropic-billing-header
     if (/^\s*x-anthropic-billing-header/i.test(rawText)) {
       logger.info('[Translator] Dropping system content block starting with x-anthropic-billing-header');
       return null;
     }
 
-    let cleaned = rawText;
-
-    // 1. Identity Neutralization
-    cleaned = cleaned.replace(/You are Claude Code, Anthropic's official CLI for Claude\./gi, 'You are an AI code assistant.');
-    cleaned = cleaned.replace(/You are Claude,? (a large language model created by Anthropic|helpful and harmless)[^\.\n]*\./gi, 'You are an AI assistant.');
-
-    // 2. Git Attribution Removal
-    cleaned = cleaned.replace(/End git commit messages with:\s*\n- Co-Authored-By: Claude Code[^\n]*/gi, '');
-    cleaned = cleaned.replace(/- Co-Authored-By: Claude Code <noreply@anthropic\.com>/gi, '');
-    cleaned = cleaned.replace(/🤖 Generated with \[Claude Code\][^\n]*/gi, '');
-
-    // 3. Generic Brand Neutralization
-    cleaned = cleaned.replace(/Claude Code/g, 'AI Assistant');
-    cleaned = cleaned.replace(/Anthropic/g, 'AI');
-
-    // Compress redundant line breaks
-    cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
-    return cleaned || null;
+    return rawText;
   }
 
   public translateClaudeToGoogle(claudeBody: ClaudeRequest) {
