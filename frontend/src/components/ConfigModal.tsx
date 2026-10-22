@@ -1199,22 +1199,6 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             const updated = [...upstreamServers];
-                                            updated[idx] = { ...updated[idx], type: 'proxy' };
-                                            setUpstreamServers(updated);
-                                          }}
-                                          className={`px-2 py-0.5 text-[10px] rounded font-medium transition-all ${
-                                            (server.type || 'proxy') === 'proxy'
-                                              ? 'bg-purple-600 text-white shadow-xs'
-                                              : 'text-slate-400 hover:text-slate-200'
-                                          }`}
-                                        >
-                                          {t('config.serverTypeProxy', '代理模式 (Proxy)')}
-                                        </button>
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            const updated = [...upstreamServers];
                                             let nextUrl = (updated[idx].url || '').trim();
                                             if (!nextUrl) {
                                               nextUrl = 'https://generativelanguage.googleapis.com';
@@ -1229,6 +1213,22 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                           }`}
                                         >
                                           {t('config.serverTypeDirect', '直连模式 (Direct)')}
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            const updated = [...upstreamServers];
+                                            updated[idx] = { ...updated[idx], type: 'proxy' };
+                                            setUpstreamServers(updated);
+                                          }}
+                                          className={`px-2 py-0.5 text-[10px] rounded font-medium transition-all ${
+                                            (server.type || 'proxy') === 'proxy'
+                                              ? 'bg-purple-600 text-white shadow-xs'
+                                              : 'text-slate-400 hover:text-slate-200'
+                                          }`}
+                                        >
+                                          {t('config.serverTypeProxy', '代理模式 (Proxy)')}
                                         </button>
                                       </div>
                                     </div>
@@ -1336,22 +1336,6 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           const updated = [...upstreamServers];
-                                          updated[idx] = { ...updated[idx], type: 'proxy' };
-                                          setUpstreamServers(updated);
-                                        }}
-                                        className={`py-1.5 px-2 text-xs rounded-md font-medium text-center transition-all ${
-                                          (server.type || 'proxy') === 'proxy'
-                                            ? 'bg-purple-600 text-white shadow-sm'
-                                            : 'text-slate-400 hover:text-slate-200'
-                                        }`}
-                                      >
-                                        {t('config.serverTypeProxy', '代理模式 (Proxy)')}
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          const updated = [...upstreamServers];
                                           let nextUrl = (updated[idx].url || '').trim();
                                           if (!nextUrl) {
                                             nextUrl = 'https://generativelanguage.googleapis.com';
@@ -1366,6 +1350,22 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                         }`}
                                       >
                                         {t('config.serverTypeDirect', '直连模式 (Direct)')}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          const updated = [...upstreamServers];
+                                          updated[idx] = { ...updated[idx], type: 'proxy' };
+                                          setUpstreamServers(updated);
+                                        }}
+                                        className={`py-1.5 px-2 text-xs rounded-md font-medium text-center transition-all ${
+                                          (server.type || 'proxy') === 'proxy'
+                                            ? 'bg-purple-600 text-white shadow-sm'
+                                            : 'text-slate-400 hover:text-slate-200'
+                                        }`}
+                                      >
+                                        {t('config.serverTypeProxy', '代理模式 (Proxy)')}
                                       </button>
                                     </div>
                                   <div className="col-span-12 grid grid-cols-12 gap-2 sm:gap-2.5">
@@ -1586,7 +1586,14 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                               const newIndex = upstreamServers.length;
                               const updated: UpstreamServerConfig[] = [
                                 ...upstreamServers,
-                                { url: '', weight: 1, enabled: true, name: '', type: 'proxy' }
+                                {
+                                  url: 'https://generativelanguage.googleapis.com',
+                                  weight: 1,
+                                  enabled: true,
+                                  name: '',
+                                  type: 'direct',
+                                  apiKeys: []
+                                }
                               ];
                               setUpstreamServers(updated);
                               setExpandedServers({ [newIndex]: true });
@@ -1594,7 +1601,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                             className="w-full py-2.5 px-3 border border-dashed border-slate-700 hover:border-blue-500/50 rounded-lg text-xs font-medium text-slate-400 hover:text-blue-400 transition-colors flex items-center justify-center space-x-1.5 bg-slate-850 hover:bg-blue-500/5"
                           >
                             <Plus className="w-3.5 h-3.5" />
-                            <span>{t('config.addUpstreamServer', '添加代理节点')}</span>
+                            <span>{t('config.addUpstreamServer', '添加上游节点')}</span>
                           </button>
                         </div>
                       </div>

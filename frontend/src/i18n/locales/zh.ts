@@ -434,7 +434,7 @@ export const zh: Translations = {
     upstreamServersDesc: "",
     trafficSplitPreview: "实时流量分配预览",
     effectiveTraffic: "实际流量占比",
-    addUpstreamServer: "添加代理节点",
+    addUpstreamServer: "添加上游节点",
     nodeName: "节点备注名",
     nodeUrl: "网关 / 端点 URL",
     nodeWeight: "权重",
