@@ -38,4 +38,16 @@ describe('ConfigModal Upstream Compact High-Density Accordion Design', () => {
     expect(content).toContain('UPSTREAM_TIMEOUT_MS');
     expect(content).toContain('COUNT_TOKENS_MODEL');
   });
+
+  test('collapsed state renders compact mode badge and hides mobile mode switcher when collapsed', () => {
+    expect(content).toContain("t('config.modeDirectShort'");
+    expect(content).toContain("t('config.modeProxyShort'");
+    // Mobile segmented switcher should only render inside isExpanded block
+    const collapsedToExpandedSlice = content.slice(
+      content.indexOf('Collapsed State Compact Summary Pills'),
+      content.indexOf('{isExpanded && (')
+    );
+    expect(collapsedToExpandedSlice).not.toContain('grid-cols-2 p-0.5 bg-slate-900');
+  });
 });
+

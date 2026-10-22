@@ -1292,6 +1292,13 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                   {/* Collapsed State Compact Summary Pills */}
                                   {!isExpanded && (
                                     <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
+                                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                                        server.type === 'direct'
+                                          ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30'
+                                          : 'bg-purple-500/15 text-purple-300 border border-purple-500/30'
+                                      }`}>
+                                        {server.type === 'direct' ? t('config.modeDirectShort', '直连') : t('config.modeProxyShort', '代理')}
+                                      </span>
                                       <span className="font-mono text-slate-300 truncate max-w-[280px]" title={server.url}>
                                         {compactHost || (server.type === 'direct' ? 'generativelanguage.googleapis.com' : '未设置端点')}
                                       </span>
@@ -1315,53 +1322,52 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                       )}
                                     </div>
                                   )}
-
-                                  {/* Mobile-only Full-Width Segmented Mode Switcher */}
-                                  <div
-                                    onClick={(e) => e.stopPropagation()}
-                                    className="grid grid-cols-2 p-0.5 bg-slate-900 border border-slate-700/80 rounded-lg mt-2 sm:hidden gap-1"
-                                  >
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        const updated = [...upstreamServers];
-                                        updated[idx] = { ...updated[idx], type: 'proxy' };
-                                        setUpstreamServers(updated);
-                                      }}
-                                      className={`py-1.5 px-2 text-xs rounded-md font-medium text-center transition-all ${
-                                        (server.type || 'proxy') === 'proxy'
-                                          ? 'bg-purple-600 text-white shadow-sm'
-                                          : 'text-slate-400 hover:text-slate-200'
-                                      }`}
-                                    >
-                                      {t('config.serverTypeProxy', '代理模式 (Proxy)')}
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        const updated = [...upstreamServers];
-                                        let nextUrl = (updated[idx].url || '').trim();
-                                        if (!nextUrl) {
-                                          nextUrl = 'https://generativelanguage.googleapis.com';
-                                        }
-                                        updated[idx] = { ...updated[idx], type: 'direct', url: nextUrl };
-                                        setUpstreamServers(updated);
-                                      }}
-                                      className={`py-1.5 px-2 text-xs rounded-md font-medium text-center transition-all ${
-                                        server.type === 'direct'
-                                          ? 'bg-cyan-600 text-white shadow-sm'
-                                          : 'text-slate-400 hover:text-slate-200'
-                                      }`}
-                                    >
-                                      {t('config.serverTypeDirect', '直连模式 (Direct)')}
-                                    </button>
-                                  </div>
                                 </div>
 
                                 {isExpanded && (
                                   <div className="grid grid-cols-12 gap-2 sm:gap-2.5 text-xs animate-in fade-in duration-150">
+                                    {/* Mobile-only Full-Width Segmented Mode Switcher */}
+                                    <div
+                                      onClick={(e) => e.stopPropagation()}
+                                      className="col-span-12 grid grid-cols-2 p-0.5 bg-slate-900 border border-slate-700/80 rounded-lg mt-2 sm:hidden gap-1"
+                                    >
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          const updated = [...upstreamServers];
+                                          updated[idx] = { ...updated[idx], type: 'proxy' };
+                                          setUpstreamServers(updated);
+                                        }}
+                                        className={`py-1.5 px-2 text-xs rounded-md font-medium text-center transition-all ${
+                                          (server.type || 'proxy') === 'proxy'
+                                            ? 'bg-purple-600 text-white shadow-sm'
+                                            : 'text-slate-400 hover:text-slate-200'
+                                        }`}
+                                      >
+                                        {t('config.serverTypeProxy', '代理模式 (Proxy)')}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          const updated = [...upstreamServers];
+                                          let nextUrl = (updated[idx].url || '').trim();
+                                          if (!nextUrl) {
+                                            nextUrl = 'https://generativelanguage.googleapis.com';
+                                          }
+                                          updated[idx] = { ...updated[idx], type: 'direct', url: nextUrl };
+                                          setUpstreamServers(updated);
+                                        }}
+                                        className={`py-1.5 px-2 text-xs rounded-md font-medium text-center transition-all ${
+                                          server.type === 'direct'
+                                            ? 'bg-cyan-600 text-white shadow-sm'
+                                            : 'text-slate-400 hover:text-slate-200'
+                                        }`}
+                                      >
+                                        {t('config.serverTypeDirect', '直连模式 (Direct)')}
+                                      </button>
+                                    </div>
                                   <div className="col-span-12 grid grid-cols-12 gap-2 sm:gap-2.5">
                                     <div className="col-span-8 sm:col-span-4 space-y-1">
                                       <label className="text-[11px] text-slate-400 block">{t('config.nodeName', '节点备注名')}</label>

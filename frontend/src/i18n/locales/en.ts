@@ -502,6 +502,8 @@ export const en = {
     serverType: "Server Type",
     serverTypeProxy: "Proxy Mode",
     serverTypeDirect: "Direct Mode",
+    modeProxyShort: "Proxy",
+    modeDirectShort: "Direct",
     serverApiKeys: "Gemini API Keys (Direct Pool)",
     serverApiKeysPlaceholder: "One API Key per line. Requests will be load-balanced evenly across keys",
     serverApiKeysHelp: "{count} API keys configured",

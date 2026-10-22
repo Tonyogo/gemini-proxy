@@ -504,6 +504,8 @@ export const zh: Translations = {
     serverType: "服务器类型",
     serverTypeProxy: "代理模式 (Proxy)",
     serverTypeDirect: "直连模式 (Direct)",
+    modeProxyShort: "代理",
+    modeDirectShort: "直连",
     serverApiKeys: "Gemini API Keys (直连密钥池)",
     serverApiKeysPlaceholder: "每行一个 API Key，请求将在配置的 Key 之间均衡轮询负载",
     serverApiKeysHelp: "已配置 {count} 个密钥",
