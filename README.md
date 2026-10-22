@@ -92,7 +92,7 @@ npm install
 
 ```env
 # 代理服务器监听端口
-PORT=3000
+PORT=8001
 
 # 自定义 Gemini Upstream API 基础地址 (可选项。默认指向官方地址)
 GEMINI_BASE_URL=https://generativelanguage.googleapis.com
@@ -147,11 +147,11 @@ npm start
 # 后端：使用 ts-node-dev 动态监控更改并免编译热重载
 npm run dev
 
-# 前端：启动 Vite 独立调试热重载服务 (端口 5173，自动转发 /api, /v1 请求至后端 3000 端口)
+# 前端：启动 Vite 独立调试热重载服务 (端口 5173，自动转发 /api, /v1 请求至后端 8001 端口)
 npm run dev:frontend
 ```
 
-服务启动后，默认会在 `http://localhost:3000` 监听 API 请求，管理控制台可在浏览器直接访问 `http://localhost:3000/ui`。
+服务启动后，默认会在 `http://localhost:8001` 监听 API 请求，管理控制台可在浏览器直接访问 `http://localhost:8001/ui`。
 
 ---
 
@@ -199,7 +199,7 @@ pm2 logs gemini-proxy            # 查看实时运行日志
 
 ## 🖥️ Web 管理控制台与 API 调试器 (/ui)
 
-项目内置了现代化的单页 Web 控制台，在浏览器中访问 `http://localhost:3000/ui`（或您部署的域名后加 `/ui`）即可进入。
+项目内置了现代化的单页 Web 控制台，在浏览器中访问 `http://localhost:8001/ui`（或您部署的域名后加 `/ui`）即可进入。
 
 - **安全鉴权**：在 `.env` 中配置 `ADMIN_SECRET_KEY`，前端通过 Header `x-admin-key` 鉴权，支持记住登录状态与多语言无缝切换（简体中文 / English）。
 - **实时监控仪表盘 (Dashboard)**：
@@ -254,7 +254,7 @@ WebTerminal 交互终端与多主机反向 Agent（`gt` CLI）功能已正式从
 
 **请求示例 (cURL)：**
 ```bash
-curl http://localhost:3000/v1/models \
+curl http://localhost:8001/v1/models \
      -H "x-api-key: YOUR_GEMINI_API_KEY"
 ```
 
@@ -266,7 +266,7 @@ curl http://localhost:3000/v1/models \
 
 **请求示例 (cURL)：**
 ```bash
-curl -X POST http://localhost:3000/v1/messages \
+curl -X POST http://localhost:8001/v1/messages \
      -H "Content-Type: application/json" \
      -H "x-api-key: YOUR_GEMINI_API_KEY" \
      -d '{
@@ -288,7 +288,7 @@ curl -X POST http://localhost:3000/v1/messages \
 
 **请求示例 (cURL)：**
 ```bash
-curl -X POST http://localhost:3000/v1/messages \
+curl -X POST http://localhost:8001/v1/messages \
      -H "Content-Type: application/json" \
      -H "Authorization: Bearer YOUR_GEMINI_API_KEY" \
      -d '{
@@ -311,7 +311,7 @@ curl -X POST http://localhost:3000/v1/messages \
 **接口：** `POST /v1beta/models/:model:generateContent`
 
 ```bash
-curl -X POST "http://localhost:3000/v1beta/models/gemini-2.0-flash:generateContent" \
+curl -X POST "http://localhost:8001/v1beta/models/gemini-2.0-flash:generateContent" \
      -H "Content-Type: application/json" \
      -H "x-goog-api-key: YOUR_GEMINI_API_KEY" \
      -d '{
@@ -323,7 +323,7 @@ curl -X POST "http://localhost:3000/v1beta/models/gemini-2.0-flash:generateConte
 **接口：** `POST /v1beta/models/:model:streamGenerateContent?alt=sse`
 
 ```bash
-curl -N -X POST "http://localhost:3000/v1beta/models/gemini-2.0-flash:streamGenerateContent?alt=sse" \
+curl -N -X POST "http://localhost:8001/v1beta/models/gemini-2.0-flash:streamGenerateContent?alt=sse" \
      -H "Content-Type: application/json" \
      -H "x-goog-api-key: YOUR_GEMINI_API_KEY" \
      -d '{
@@ -335,7 +335,7 @@ curl -N -X POST "http://localhost:3000/v1beta/models/gemini-2.0-flash:streamGene
 **接口：** `GET /v1beta/models`
 
 ```bash
-curl "http://localhost:3000/v1beta/models" \
+curl "http://localhost:8001/v1beta/models" \
      -H "x-goog-api-key: YOUR_GEMINI_API_KEY"
 ```
 

@@ -12,7 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **PM2 Process Management**: `pm2 start ecosystem.config.js` / `pm2 reload ecosystem.config.js` / `pm2 stop gemini-proxy` / `pm2 logs gemini-proxy`
 - **Start Production**: `npm start` (automatically builds before running `dist/src/index.js`)
 - **Dev Mode Backend**: `npm run dev` (starts hot-reloading development server via `ts-node-dev`)
-- **Dev Mode Frontend**: `npm run dev:frontend` (starts Vite dev server on port 5173 proxying API requests to `:3000`)
+- **Dev Mode Frontend**: `npm run dev:frontend` (starts Vite dev server on port 5173 proxying API requests to `:8001`)
 - **Run All Tests**: `npm test` (runs complete Jest test suite; use `npx jest --runInBand` if experiencing SIGSEGV clustering issues)
 - **Run Single Test**: `npx jest tests/<test-name>.test.ts` (e.g., `npx jest tests/claudeTranslator.test.ts`)
 
@@ -47,7 +47,7 @@ This is a **stateless API proxy** that translates Anthropic Claude Messages API 
 ### Configuration & Environment Variables
 
 - `config/default.ts`: Source of truth for standard Express app configuration, with dynamic in-memory hot-reload (`updateConfig`) and explicit user overrides stored in `config/runtime.json` (or `config/runtime.test.json` during test runs):
-  - `PORT`: Proxy server port (default `3000`).
+  - `PORT`: Proxy server port (default `8001`).
   - `GEMINI_BASE_URL`: Base upstream URL or comma-separated list of upstreams (default `https://generativelanguage.googleapis.com`).
   - `LOG_LEVEL`: Console logging verbosity (`error`, `warn`, `info`, `debug`). Dynamically evaluated on every log statement without caching.
   - `TRANSACTION_LOGS_DIR`: Partitioned log directory path (default `logs`).

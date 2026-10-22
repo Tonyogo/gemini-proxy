@@ -418,7 +418,7 @@ const getEnvConfig = () => {
 };
 
 export const config = {
-  port: process.env.PORT || 3000,
+  port: process.env.PORT || 8001,
   transactionLogsDir: process.env.TRANSACTION_LOGS_DIR || 'logs',
   adminSecretKey: process.env.ADMIN_SECRET_KEY || '',
   enableUi: process.env.ENABLE_UI !== 'false',

@@ -30,8 +30,8 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api/admin': 'http://localhost:3000',
-      '/v1': 'http://localhost:3000'
+      '/api/admin': 'http://localhost:8001',
+      '/v1': 'http://localhost:8001'
     }
   }
 });
