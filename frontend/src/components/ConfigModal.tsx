@@ -1369,7 +1369,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                       </button>
                                     </div>
                                   <div className="col-span-12 grid grid-cols-12 gap-2 sm:gap-2.5">
-                                    <div className="col-span-8 sm:col-span-4 space-y-1">
+                                    <div className="col-span-8 sm:col-span-3 space-y-1">
                                       <label className="text-[11px] text-slate-400 block">{t('config.nodeName', '节点备注名')}</label>
                                       <input
                                         type="text"
@@ -1380,10 +1380,10 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                           setUpstreamServers(updated);
                                         }}
                                         placeholder={server.type === 'direct' ? 'e.g. Gemini-Official' : 'e.g. HK-Gateway'}
-                                        className="w-full ui-input p-2 text-xs"
+                                        className="w-full ui-input py-1.5 px-2 text-xs"
                                       />
                                     </div>
-                                    <div className="col-span-4 sm:col-span-3 space-y-1 sm:order-last">
+                                    <div className="col-span-4 sm:col-span-2 space-y-1 sm:order-last">
                                       <label className="text-[11px] text-slate-400 block">{t('config.nodeWeight', '权重')}</label>
                                       <input
                                         type="number"
@@ -1396,10 +1396,10 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                           updated[idx] = { ...updated[idx], weight: isNaN(val) ? 1 : Math.max(1, Math.min(1000, val)) };
                                           setUpstreamServers(updated);
                                         }}
-                                        className="w-full ui-input p-2 text-xs font-mono"
+                                        className="w-full ui-input py-1.5 px-2 text-xs font-mono"
                                       />
                                     </div>
-                                    <div className="col-span-12 sm:col-span-5 space-y-1">
+                                    <div className="col-span-12 sm:col-span-7 space-y-1">
                                       <label className="text-[11px] text-slate-400 block">{t('config.nodeUrl', '网关 / 端点 URL')}</label>
                                       <input
                                         type="text"
@@ -1417,163 +1417,126 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                           setUpstreamServers(updated);
                                         }}
                                         placeholder={server.type === 'direct' ? 'https://generativelanguage.googleapis.com' : 'https://api.example.com'}
-                                        className="w-full ui-input p-2 text-xs font-mono"
+                                        className="w-full ui-input py-1.5 px-2 text-xs font-mono"
                                       />
                                     </div>
                                   </div>
 
-                                  {/* Direct Mode Egress Channel Switcher */}
-                                  {server.type === 'direct' && (
-                                    <div className="col-span-12 p-2.5 rounded-lg bg-slate-900/60 border border-cyan-500/20 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2">
-                                      <div className="flex items-center space-x-1.5">
-                                        <ArrowRightLeft className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-                                        <span className="text-[11px] font-semibold text-cyan-400">{t('config.egressChannelTitle', '出口通道')}</span>
-                                        <div className="inline-flex rounded-md p-0.5 bg-slate-950 border border-slate-700/80 ml-1">
-                                          <button
-                                            type="button"
-                                            onClick={() => {
-                                              const updated = [...upstreamServers];
-                                              updated[idx] = { ...updated[idx], useProxy: false };
-                                              setUpstreamServers(updated);
-                                            }}
-                                            className={`px-2 py-0.5 text-[10px] rounded font-medium transition-all ${
-                                              !server.useProxy ? 'bg-cyan-600 text-white shadow-xs font-semibold' : 'text-slate-400 hover:text-slate-200'
-                                            }`}
-                                          >
-                                            {t('config.egressLocalShort', '本机直连')}
-                                          </button>
-                                          <button
-                                            type="button"
-                                            onClick={() => {
-                                              const updated = [...upstreamServers];
-                                              updated[idx] = { ...updated[idx], useProxy: true };
-                                              setUpstreamServers(updated);
-                                            }}
-                                            className={`px-2 py-0.5 text-[10px] rounded font-medium transition-all ${
-                                              Boolean(server.useProxy) ? 'bg-cyan-600 text-white shadow-xs font-semibold' : 'text-slate-400 hover:text-slate-200'
-                                            }`}
-                                          >
-                                            {t('config.egressProxyShort', '代理通道')}
-                                          </button>
-                                        </div>
+                                  {/* Row 2: Allowed Models + Unified Egress Channel */}
+                                  <div className="col-span-12 grid grid-cols-12 gap-2 sm:gap-2.5 items-end">
+                                    <div className="col-span-12 sm:col-span-7 space-y-1">
+                                      <label className="text-[11px] text-slate-400 block">{t('config.serverAllowedModelsTitle', '允许模型')}</label>
+                                      <div className="relative flex items-center">
+                                        <input
+                                          type="text"
+                                          value={serverModelInputs[idx] !== undefined ? serverModelInputs[idx] : (server.allowedModels || []).join(', ')}
+                                          onChange={(e) => {
+                                            const val = e.target.value;
+                                            setServerModelInputs(prev => ({ ...prev, [idx]: val }));
+                                          }}
+                                          onBlur={() => {
+                                            const raw = serverModelInputs[idx] !== undefined ? serverModelInputs[idx] : (server.allowedModels || []).join(', ');
+                                            const parts = raw.split(',').map(s => s.trim()).filter(Boolean);
+                                            const updated = [...upstreamServers];
+                                            updated[idx] = {
+                                              ...updated[idx],
+                                              allowedModels: parts.length > 0 ? Array.from(new Set(parts)) : undefined
+                                            };
+                                            setUpstreamServers(updated);
+                                            setServerModelInputs(prev => ({ ...prev, [idx]: parts.join(', ') }));
+                                          }}
+                                          placeholder={t('config.serverAllowedModelsPlaceholder', '全部模型 (逗号分隔过滤)')}
+                                          className="w-full ui-input py-1.5 px-2 text-xs font-mono pr-8"
+                                        />
+                                        {(() => {
+                                          const currentVal = serverModelInputs[idx] !== undefined ? serverModelInputs[idx] : (server.allowedModels || []).join(', ');
+                                          const count = currentVal.split(',').map(s => s.trim()).filter(Boolean).length;
+                                          if (count <= 1) return null;
+                                          return (
+                                            <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none z-10 flex items-center">
+                                              <span
+                                                className="text-[9px] font-mono font-bold text-blue-400 bg-[var(--bg-surface-sub)] border border-blue-500/40 shadow-sm px-1 py-0.5 rounded leading-none select-none"
+                                                title={`${count} models configured`}
+                                              >
+                                                ×{count}
+                                              </span>
+                                            </div>
+                                          );
+                                        })()}
                                       </div>
-                                      <div className="flex items-center space-x-1.5 shrink-0">
+                                    </div>
+
+                                    <div className="col-span-12 sm:col-span-5 space-y-1">
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center space-x-1.5">
+                                          <ArrowRightLeft className={`w-3.5 h-3.5 shrink-0 ${server.type === 'direct' ? 'text-cyan-400' : 'text-indigo-400'}`} />
+                                          <span className={`text-[11px] font-semibold ${server.type === 'direct' ? 'text-cyan-400' : 'text-slate-300'}`}>
+                                            {t('config.egressChannelTitle', '出口通道')}
+                                          </span>
+                                        </div>
                                         {server.useProxy ? (
                                           proxyUrl.trim() ? (
-                                            <span className="text-[10px] font-mono text-cyan-300 bg-slate-800/80 px-2 py-0.5 rounded border border-cyan-500/30 truncate max-w-[200px]" title={proxyUrl.trim()}>
+                                            <span
+                                              className={`text-[10px] font-mono px-1.5 py-0.5 rounded border truncate max-w-[160px] ${
+                                                server.type === 'direct'
+                                                  ? 'text-cyan-300 bg-slate-800/80 border-cyan-500/30'
+                                                  : 'text-indigo-300 bg-slate-800/80 border-indigo-500/30'
+                                              }`}
+                                              title={proxyUrl.trim()}
+                                            >
                                               {t('config.viaGlobalProxyBadge', '全局代理: {proxy}').replace('{proxy}', proxyUrl.trim())}
                                             </span>
                                           ) : (
-                                            <span className="text-[10px] font-medium text-amber-300 bg-amber-950/60 px-2 py-0.5 rounded border border-amber-500/30">
+                                            <span className="text-[10px] font-medium text-amber-300 bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-500/30">
                                               {t('config.globalProxyNotConfigured', '需配置全局代理')}
                                             </span>
                                           )
                                         ) : (
-                                          <span className="text-[10px] font-mono text-cyan-300 bg-slate-800/80 px-2 py-0.5 rounded border border-cyan-500/30">
-                                            {t('config.targetOfficialEndpoint', '目标: 官方 Gemini API (本机直连)')}
-                                          </span>
+                                          server.type === 'direct' ? (
+                                            <span className="text-[10px] font-mono text-cyan-300 bg-slate-800/80 px-1.5 py-0.5 rounded border border-cyan-500/30 truncate max-w-[160px]">
+                                              {t('config.targetOfficialEndpoint', '目标: 官方 Gemini API (本机直连)')}
+                                            </span>
+                                          ) : null
                                         )}
                                       </div>
-                                    </div>
-                                  )}
-
-                                  {/* Allowed Models (Single line) */}
-                                  <div className="col-span-12 space-y-1">
-                                    <label className="text-[11px] text-slate-400 block">{t('config.serverAllowedModelsTitle', '允许模型')}</label>
-                                    <div className="relative flex items-center">
-                                      <input
-                                        type="text"
-                                        value={serverModelInputs[idx] !== undefined ? serverModelInputs[idx] : (server.allowedModels || []).join(', ')}
-                                        onChange={(e) => {
-                                          const val = e.target.value;
-                                          setServerModelInputs(prev => ({ ...prev, [idx]: val }));
-                                        }}
-                                        onBlur={() => {
-                                          const raw = serverModelInputs[idx] !== undefined ? serverModelInputs[idx] : (server.allowedModels || []).join(', ');
-                                          const parts = raw.split(',').map(s => s.trim()).filter(Boolean);
-                                          const updated = [...upstreamServers];
-                                          updated[idx] = {
-                                            ...updated[idx],
-                                            allowedModels: parts.length > 0 ? Array.from(new Set(parts)) : undefined
-                                          };
-                                          setUpstreamServers(updated);
-                                          setServerModelInputs(prev => ({ ...prev, [idx]: parts.join(', ') }));
-                                        }}
-                                        placeholder={t('config.serverAllowedModelsPlaceholder', '全部模型 (逗号分隔过滤)')}
-                                        className="w-full ui-input p-2 text-xs font-mono pr-8"
-                                      />
-                                      {(() => {
-                                        const currentVal = serverModelInputs[idx] !== undefined ? serverModelInputs[idx] : (server.allowedModels || []).join(', ');
-                                        const count = currentVal.split(',').map(s => s.trim()).filter(Boolean).length;
-                                        if (count <= 1) return null;
-                                        return (
-                                          <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none z-10 flex items-center">
-                                            <span
-                                              className="text-[9px] font-mono font-bold text-blue-400 bg-[var(--bg-surface-sub)] border border-blue-500/40 shadow-sm px-1 py-0.5 rounded leading-none select-none"
-                                              title={`${count} models configured`}
-                                            >
-                                              ×{count}
-                                            </span>
-                                          </div>
-                                        );
-                                      })()}
+                                      <div className="grid grid-cols-2 p-0.5 rounded-md bg-slate-950 border border-slate-700/80 h-[30px]">
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const updated = [...upstreamServers];
+                                            updated[idx] = { ...updated[idx], useProxy: false };
+                                            setUpstreamServers(updated);
+                                          }}
+                                          className={`h-full flex items-center justify-center text-[10px] rounded font-medium transition-all ${
+                                            !server.useProxy
+                                              ? (server.type === 'direct' ? 'bg-cyan-600 text-white shadow-xs font-semibold' : 'bg-indigo-600 text-white shadow-xs font-semibold')
+                                              : 'text-slate-400 hover:text-slate-200'
+                                          }`}
+                                        >
+                                          {t('config.egressLocalShort', '本机直连')}
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const updated = [...upstreamServers];
+                                            updated[idx] = { ...updated[idx], useProxy: true };
+                                            setUpstreamServers(updated);
+                                          }}
+                                          className={`h-full flex items-center justify-center text-[10px] rounded font-medium transition-all ${
+                                            Boolean(server.useProxy)
+                                              ? (server.type === 'direct' ? 'bg-cyan-600 text-white shadow-xs font-semibold' : 'bg-indigo-600 text-white shadow-xs font-semibold')
+                                              : 'text-slate-400 hover:text-slate-200'
+                                          }`}
+                                        >
+                                          {t('config.egressProxyShort', '代理通道')}
+                                        </button>
+                                      </div>
                                     </div>
                                   </div>
 
-                                  {/* Proxy Mode Egress Channel Switcher */}
-                                  {server.type !== 'direct' && (
-                                    <div className="col-span-12 p-2.5 rounded-lg bg-slate-900/60 border border-slate-700/60 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2">
-                                      <div className="flex items-center space-x-1.5">
-                                        <ArrowRightLeft className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                                        <span className="text-[11px] font-semibold text-slate-300">{t('config.egressChannelTitle', '出口通道')}</span>
-                                        <div className="inline-flex rounded-md p-0.5 bg-slate-950 border border-slate-700/80 ml-1">
-                                          <button
-                                            type="button"
-                                            onClick={() => {
-                                              const updated = [...upstreamServers];
-                                              updated[idx] = { ...updated[idx], useProxy: false };
-                                              setUpstreamServers(updated);
-                                            }}
-                                            className={`px-2 py-0.5 text-[10px] rounded font-medium transition-all ${
-                                              !server.useProxy ? 'bg-indigo-600 text-white shadow-xs font-semibold' : 'text-slate-400 hover:text-slate-200'
-                                            }`}
-                                          >
-                                            {t('config.egressLocalShort', '本机直连')}
-                                          </button>
-                                          <button
-                                            type="button"
-                                            onClick={() => {
-                                              const updated = [...upstreamServers];
-                                              updated[idx] = { ...updated[idx], useProxy: true };
-                                              setUpstreamServers(updated);
-                                            }}
-                                            className={`px-2 py-0.5 text-[10px] rounded font-medium transition-all ${
-                                              Boolean(server.useProxy) ? 'bg-indigo-600 text-white shadow-xs font-semibold' : 'text-slate-400 hover:text-slate-200'
-                                            }`}
-                                          >
-                                            {t('config.egressProxyShort', '代理通道')}
-                                          </button>
-                                        </div>
-                                      </div>
-                                      <div className="flex items-center space-x-1.5 shrink-0">
-                                        {server.useProxy ? (
-                                          proxyUrl.trim() ? (
-                                            <span className="text-[10px] font-mono text-indigo-300 bg-slate-800/80 px-2 py-0.5 rounded border border-indigo-500/30 truncate max-w-[200px]" title={proxyUrl.trim()}>
-                                              {t('config.viaGlobalProxyBadge', '全局代理: {proxy}').replace('{proxy}', proxyUrl.trim())}
-                                            </span>
-                                          ) : (
-                                            <span className="text-[10px] font-medium text-amber-300 bg-amber-950/60 px-2 py-0.5 rounded border border-amber-500/30">
-                                              {t('config.globalProxyNotConfigured', '需配置全局代理')}
-                                            </span>
-                                          )
-                                        ) : null}
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {/* Direct Mode API Keys (Multi-line) */}
+                                  {/* Direct Mode API Keys (Compact 2-line inline) */}
                                   {server.type === 'direct' && (
-                                    <div className="col-span-12 space-y-1 mt-1 p-2.5 rounded bg-slate-900/60 border border-cyan-500/20">
+                                    <div className="col-span-12 space-y-1">
                                       <div className="flex items-center justify-between">
                                         <label className="text-[11px] font-semibold text-cyan-400 flex items-center space-x-1">
                                           <span>{t('config.serverApiKeys', 'Gemini API Keys (直连密钥池)')}</span>
@@ -1589,7 +1552,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                         })()}
                                       </div>
                                       <textarea
-                                        rows={3}
+                                        rows={2}
                                         value={serverKeyInputs[idx] !== undefined ? serverKeyInputs[idx] : (server.apiKeys || []).join('\n')}
                                         onChange={(e) => {
                                           const val = e.target.value;
@@ -1607,7 +1570,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                           setServerKeyInputs(prev => ({ ...prev, [idx]: cleanKeys.join('\n') }));
                                         }}
                                         placeholder={t('config.serverApiKeysPlaceholder', '每行一个 API Key，请求将在配置的 Key 之间均衡轮询负载')}
-                                        className="w-full ui-input p-2 text-xs font-mono resize-y leading-relaxed text-slate-200"
+                                        className="w-full ui-input py-1.5 px-2 text-xs font-mono resize-y leading-relaxed text-slate-200"
                                       />
                                     </div>
                                   )}
