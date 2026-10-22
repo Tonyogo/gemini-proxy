@@ -71,152 +71,228 @@ class ClaudeTranslator {
   public _convertSchemaToGemini(obj: any, isResponseSchema: boolean = false, isProperties: boolean = false): any {
     if (!obj || typeof obj !== "object") return obj;
 
-    const result: any = Array.isArray(obj) ? [] : {};
+    if (Array.isArray(obj)) {
+      return obj.map((item: any) => this._convertSchemaToGemini(item, isResponseSchema, false));
+    }
 
-    if (!isProperties && !Array.isArray(obj)) {
-      if (obj.const !== undefined) {
-        if (obj.enum === undefined) {
-          result.enum = isResponseSchema ? [String(obj.const)] : [obj.const];
+    if (isProperties) {
+      const propsResult: Record<string, any> = {};
+      for (const propName of Object.keys(obj)) {
+        if (obj[propName] && typeof obj[propName] === "object") {
+          propsResult[propName] = this._convertSchemaToGemini(obj[propName], isResponseSchema, false);
         }
-        if (obj.type === undefined) {
-          if (isResponseSchema) {
-            result.type = 'STRING';
-          } else if (typeof obj.const === 'string') {
-            result.type = 'STRING';
-          } else if (typeof obj.const === 'number') {
-            result.type = Number.isInteger(obj.const) ? 'INTEGER' : 'NUMBER';
-          } else if (typeof obj.const === 'boolean') {
-            result.type = 'BOOLEAN';
-          } else if (Array.isArray(obj.const)) {
-            result.type = 'ARRAY';
-          } else if (typeof obj.const === 'object' && obj.const !== null) {
-            result.type = 'OBJECT';
+      }
+      return propsResult;
+    }
+
+    const ALLOWED_SCHEMA_KEYS = new Set([
+      "type",
+      "description",
+      "properties",
+      "required",
+      "items",
+      "enum",
+      "nullable"
+    ]);
+
+    const result: any = {};
+
+    // 1. Handle const -> enum + inferred type
+    if (obj.const !== undefined) {
+      if (obj.enum === undefined) {
+        result.enum = isResponseSchema ? [String(obj.const)] : [obj.const];
+      }
+      if (obj.type === undefined) {
+        if (isResponseSchema || typeof obj.const === "string") {
+          result.type = "STRING";
+        } else if (typeof obj.const === "number") {
+          result.type = Number.isInteger(obj.const) ? "INTEGER" : "NUMBER";
+        } else if (typeof obj.const === "boolean") {
+          result.type = "BOOLEAN";
+        } else if (Array.isArray(obj.const)) {
+          result.type = "ARRAY";
+        } else if (typeof obj.const === "object" && obj.const !== null) {
+          result.type = "OBJECT";
+        }
+      }
+    }
+
+    // 2. Preserve exclusiveMinimum / exclusiveMaximum constraint hints in description
+    if (obj.exclusiveMinimum !== undefined || obj.exclusiveMaximum !== undefined) {
+      const clauses: string[] = [];
+      if (obj.exclusiveMinimum !== undefined) {
+        clauses.push(`must be > ${obj.exclusiveMinimum}`);
+      }
+      if (obj.exclusiveMaximum !== undefined) {
+        clauses.push(`must be < ${obj.exclusiveMaximum}`);
+      }
+      if (clauses.length > 0) {
+        result.description = obj.description
+          ? `${obj.description} (${clauses.join(", ")})`
+          : `(${clauses.join(", ")})`;
+      }
+    }
+
+    // 3. Flatten anyOf / oneOf
+    const rawVariants = Array.isArray(obj.anyOf)
+      ? obj.anyOf
+      : Array.isArray(obj.oneOf)
+      ? obj.oneOf
+      : null;
+
+    if (rawVariants) {
+      const hasNull = rawVariants.some(
+        (v: any) => v && (v.type === "null" || v.type === "NULL" || v.const === null)
+      );
+      const nonNullVariants = rawVariants.filter(
+        (v: any) => v && v.type !== "null" && v.type !== "NULL" && v.const !== null
+      );
+
+      if (hasNull) {
+        result.nullable = true;
+      }
+
+      // Check if all non-null variants represent enum / const choices
+      const collectedEnums: any[] = [];
+      let allEnumOrConst = nonNullVariants.length > 0;
+      for (const v of nonNullVariants) {
+        if (Array.isArray(v.enum)) {
+          for (const val of v.enum) {
+            if (!collectedEnums.includes(val)) {
+              collectedEnums.push(val);
+            }
           }
+        } else if (v.const !== undefined) {
+          if (!collectedEnums.includes(v.const)) {
+            collectedEnums.push(v.const);
+          }
+        } else {
+          allEnumOrConst = false;
         }
       }
 
-      if (obj.exclusiveMinimum !== undefined || obj.exclusiveMaximum !== undefined) {
-        const isInteger = obj.type === 'integer' || (Array.isArray(obj.type) && obj.type.includes('integer'));
-        if (obj.exclusiveMinimum !== undefined && obj.minimum === undefined) {
-          result.minimum = isInteger ? obj.exclusiveMinimum + 1 : obj.exclusiveMinimum;
-        }
-        if (obj.exclusiveMaximum !== undefined && obj.maximum === undefined) {
-          result.maximum = isInteger ? obj.exclusiveMaximum - 1 : obj.exclusiveMaximum;
-        }
-
-        const clauses: string[] = [];
-        if (obj.exclusiveMinimum !== undefined) {
-          clauses.push(`must be > ${obj.exclusiveMinimum}`);
-        }
-        if (obj.exclusiveMaximum !== undefined) {
-          clauses.push(`must be < ${obj.exclusiveMaximum}`);
-        }
-
-        if (clauses.length > 0) {
-          if (obj.description) {
-            result.description = `${obj.description} (${clauses.join(', ')})`;
-          } else {
-            result.description = `(${clauses.join(', ')})`;
+      if (allEnumOrConst && collectedEnums.length > 0) {
+        result.type = "STRING";
+        result.enum = collectedEnums.map((val: any) => String(val));
+      } else if (nonNullVariants.length >= 1) {
+        const converted = this._convertSchemaToGemini(nonNullVariants[0], isResponseSchema, false);
+        if (converted && typeof converted === "object") {
+          for (const k of Object.keys(converted)) {
+            if (ALLOWED_SCHEMA_KEYS.has(k) && result[k] === undefined) {
+              result[k] = converted[k];
+            }
           }
         }
       }
     }
 
+    // 4. Process whitelisted fields from obj
     for (const key of Object.keys(obj)) {
-      const unsupportedKeys = [
-        "$schema", "additionalProperties", "ref", "$ref", "propertyNames",
-        "patternProperties", "unevaluatedProperties", "exclusiveMinimum",
-        "exclusiveMaximum", "const", "$comment", "enumDescriptions"
-      ];
-
-      if (isResponseSchema) {
-        unsupportedKeys.push("default", "examples", "$defs", "id");
-      }
-
-      if (!isProperties && unsupportedKeys.includes(key)) {
+      if (!ALLOWED_SCHEMA_KEYS.has(key)) {
         logger.debug(`[Translator] [Schema Sanitization] Stripping unsupported JSON Schema key '${key}' from parameter object.`);
         continue;
       }
 
-      if (key === "description" && !isProperties && result.description !== undefined) {
-        continue;
-      }
-
-      if (key === "anyOf" && !isProperties) {
-        if (Array.isArray(obj[key])) {
-          const variants = obj[key];
-          const hasNull = variants.some((v: any) => v.type === "null");
-          const nonNullVariants = variants.filter((v: any) => v.type !== "null");
-
-          if (hasNull) {
-            result.nullable = true;
-          }
-
-          if (nonNullVariants.length === 1) {
-            const converted = this._convertSchemaToGemini(nonNullVariants[0], isResponseSchema, false);
-            Object.assign(result, converted);
-            if (hasNull) result.nullable = true;
-            continue;
-          } else if (nonNullVariants.length > 0) {
-            result.anyOf = nonNullVariants.map((v: any) =>
-              this._convertSchemaToGemini(v, isResponseSchema, false)
-            );
-            continue;
-          } else if (hasNull) {
-            continue;
-          }
+      if (key === "description") {
+        if (result.description === undefined && typeof obj.description === "string") {
+          result.description = obj.description;
         }
-      }
-
-      if (key === "type" && !isProperties) {
-        if (Array.isArray(obj[key])) {
-          const types = obj[key];
-          const nonNullTypes = types.filter((t: any) => t !== "null");
-          const hasNull = types.includes("null");
+      } else if (key === "nullable") {
+        if (typeof obj.nullable === "boolean") {
+          result.nullable = obj.nullable;
+        }
+      } else if (key === "type") {
+        if (Array.isArray(obj.type)) {
+          const types = obj.type;
+          const nonNullTypes = types.filter((t: any) => String(t).toLowerCase() !== "null");
+          const hasNull = types.some((t: any) => String(t).toLowerCase() === "null");
 
           if (hasNull) {
             result.nullable = true;
           }
 
-          if (nonNullTypes.length === 1) {
-            result[key] = nonNullTypes[0].toUpperCase();
-          } else if (nonNullTypes.length > 1) {
-            if (isResponseSchema) {
-              result.anyOf = nonNullTypes.map((t: any) => ({
-                type: t.toUpperCase(),
-              }));
-            } else {
-              result[key] = nonNullTypes.map((t: any) => t.toUpperCase());
-            }
+          if (nonNullTypes.length >= 1) {
+            result.type = String(nonNullTypes[0]).toUpperCase();
           } else {
-            result[key] = "STRING";
+            result.type = "STRING";
           }
-        } else if (typeof obj[key] === "string") {
-          result[key] = obj[key].toUpperCase();
-        } else if (typeof obj[key] === "object" && obj[key] !== null) {
-          result[key] = this._convertSchemaToGemini(obj[key], isResponseSchema, false);
-        } else {
-          result[key] = obj[key];
-        }
-      } else if (key === "enum" && !isProperties) {
-        if (isResponseSchema) {
-          if (Array.isArray(obj[key])) {
-            result[key] = obj[key].map(String);
-          } else if (obj[key] !== undefined && obj[key] !== null) {
-            result[key] = [String(obj[key])];
+        } else if (typeof obj.type === "string") {
+          if (obj.type.toLowerCase() === "null") {
+            result.nullable = true;
+            result.type = "STRING";
+          } else {
+            result.type = obj.type.toUpperCase();
           }
-          result["type"] = "STRING";
-        } else {
-          result[key] = obj[key];
         }
-      } else if (typeof obj[key] === "object" && obj[key] !== null) {
-        const nextIsProperties = key === "properties";
-        const recursionFlag = isProperties ? false : nextIsProperties;
-
-        result[key] = this._convertSchemaToGemini(obj[key], isResponseSchema, recursionFlag);
-      } else {
-        result[key] = obj[key];
+      } else if (key === "enum") {
+        if (Array.isArray(obj.enum)) {
+          result.enum = isResponseSchema ? obj.enum.map(String) : obj.enum;
+          if (!result.type) {
+            result.type = "STRING";
+          }
+        } else if (obj.enum !== undefined && obj.enum !== null) {
+          result.enum = [String(obj.enum)];
+          if (!result.type) {
+            result.type = "STRING";
+          }
+        }
+      } else if (key === "properties") {
+        if (obj.properties && typeof obj.properties === "object" && !Array.isArray(obj.properties)) {
+          result.properties = this._convertSchemaToGemini(obj.properties, isResponseSchema, true);
+        }
+      } else if (key === "required") {
+        if (Array.isArray(obj.required)) {
+          const validRequired = obj.required.filter((r: any) => typeof r === "string");
+          if (validRequired.length > 0) {
+            result.required = validRequired;
+          }
+        }
+      } else if (key === "items") {
+        if (obj.items && typeof obj.items === "object") {
+          if (Array.isArray(obj.items)) {
+            result.items = obj.items.length > 0
+              ? this._convertSchemaToGemini(obj.items[0], isResponseSchema, false)
+              : { type: "STRING" };
+          } else {
+            result.items = this._convertSchemaToGemini(obj.items, isResponseSchema, false);
+          }
+        }
       }
+    }
+
+    // 5. Default missing type to uppercase (OBJECT if properties exist, ARRAY if items exist, otherwise STRING)
+    if (!result.type || typeof result.type !== "string") {
+      if (result.properties !== undefined) {
+        result.type = "OBJECT";
+      } else if (result.items !== undefined) {
+        result.type = "ARRAY";
+      } else {
+        result.type = "STRING";
+      }
+    } else {
+      result.type = result.type.toUpperCase();
+    }
+
+    // 6. Handle nested empty OBJECT schemas by injecting _placeholder property
+    if (result.type === "OBJECT") {
+      if (!result.properties || typeof result.properties !== "object" || Object.keys(result.properties).length === 0) {
+        result.properties = {
+          _placeholder: { type: "STRING" }
+        };
+      }
+      if (Array.isArray(result.required)) {
+        const filteredReq = result.required.filter((r: string) => r in result.properties);
+        if (filteredReq.length > 0) {
+          result.required = filteredReq;
+        } else {
+          delete result.required;
+        }
+      }
+    }
+
+    // 7. Ensure ARRAY schemas always have items defined
+    if (result.type === "ARRAY" && !result.items) {
+      result.items = { type: "STRING" };
     }
 
     return result;
@@ -478,14 +554,54 @@ class ClaudeTranslator {
     const contents: GeminiContent[] = [];
     const toolIdToNameMap = new Map<string, string>();
 
+    const sanitizeParts = (rawParts: GeminiPart[]): GeminiPart[] => {
+      const sanitized: GeminiPart[] = [];
+      for (const part of rawParts) {
+        if (!part || typeof part !== 'object') continue;
+        // Strip empty text parts (text: "")
+        if (
+          part.text !== undefined &&
+          part.text === '' &&
+          !part.functionCall &&
+          !part.functionResponse &&
+          !part.inlineData
+        ) {
+          continue;
+        }
+        if (part.functionCall) {
+          const validArgs =
+            part.functionCall.args &&
+            typeof part.functionCall.args === 'object' &&
+            !Array.isArray(part.functionCall.args)
+              ? part.functionCall.args
+              : {};
+          part.functionCall = {
+            ...part.functionCall,
+            args: validArgs
+          };
+        }
+        sanitized.push(part);
+      }
+      return sanitized;
+    };
+
     const parseUserMessageParts = (msg: any): GeminiPart[] => {
       const parts: GeminiPart[] = [];
       if (typeof msg.content === 'string') {
-        parts.push({ text: msg.content });
+        if (msg.content !== '') {
+          parts.push({ text: msg.content });
+        }
       } else if (Array.isArray(msg.content)) {
         for (const block of msg.content) {
-          if (block.type === 'text') {
-            parts.push({ text: block.text });
+          if (!block) continue;
+          if (typeof block === 'string') {
+            if (block !== '') {
+              parts.push({ text: block });
+            }
+          } else if (block.type === 'text') {
+            if (typeof block.text === 'string' && block.text !== '') {
+              parts.push({ text: block.text });
+            }
           } else if (block.type === 'image' || block.type === 'document') {
             const mediaPart = this._extractMediaPart(block);
             if (mediaPart) {
@@ -493,11 +609,15 @@ class ClaudeTranslator {
             }
           } else if (block.type === 'tool_use') {
             toolIdToNameMap.set(block.id, block.name);
-            const geminiCallId = block.id.startsWith('toolu_g_') ? block.id.substring(8) : block.id;
+            const geminiCallId = block.id && block.id.startsWith('toolu_g_') ? block.id.substring(8) : block.id;
+            const safeArgs =
+              block.input && typeof block.input === 'object' && !Array.isArray(block.input)
+                ? block.input
+                : {};
             parts.push({
               functionCall: {
                 name: block.name,
-                args: block.input || {},
+                args: safeArgs,
                 id: geminiCallId
               },
               thoughtSignature: BYPASS_SIGNATURE
@@ -547,7 +667,7 @@ class ClaudeTranslator {
           }
         }
       }
-      return parts;
+      return sanitizeParts(parts);
     };
 
     if (inputMessages.length > 0) {
@@ -555,7 +675,10 @@ class ClaudeTranslator {
 
       const flushUserSegment = () => {
         if (!pendingUserSegment) return;
-        const combinedParts = [...pendingUserSegment.systemParts, ...pendingUserSegment.userParts];
+        const combinedParts = sanitizeParts([
+          ...pendingUserSegment.systemParts,
+          ...pendingUserSegment.userParts
+        ]);
         if (combinedParts.length > 0) {
           contents.push({
             role: 'user',
@@ -568,10 +691,13 @@ class ClaudeTranslator {
       for (const msg of inputMessages) {
         if (msg.role === 'assistant') {
           flushUserSegment();
-          contents.push({
-            role: 'model',
-            parts: parseUserMessageParts(msg)
-          });
+          const modelParts = parseUserMessageParts(msg);
+          if (modelParts.length > 0) {
+            contents.push({
+              role: 'model',
+              parts: modelParts
+            });
+          }
         } else if (msg.role === 'system') {
           if (config.systemRoleToInstruction) {
             continue;
@@ -594,10 +720,15 @@ class ClaudeTranslator {
     // Generic consecutive same-role blocks merging to prevent alternating role constraint violations
     const mergedContents: GeminiContent[] = [];
     for (const content of contents) {
+      const cleanParts = sanitizeParts(content.parts);
+      if (cleanParts.length === 0) continue;
       if (mergedContents.length > 0 && mergedContents[mergedContents.length - 1].role === content.role) {
-        mergedContents[mergedContents.length - 1].parts.push(...content.parts);
+        mergedContents[mergedContents.length - 1].parts.push(...cleanParts);
       } else {
-        mergedContents.push(content);
+        mergedContents.push({
+          role: content.role,
+          parts: cleanParts
+        });
       }
     }
 
@@ -646,11 +777,29 @@ class ClaudeTranslator {
 
       if (validTools.length > 0) {
         googleRequest.tools = [{
-          functionDeclarations: validTools.map((tool: any) => ({
-            name: tool.name,
-            description: tool.description,
-            parameters: this._convertSchemaToGemini(tool.input_schema)
-          }))
+          functionDeclarations: validTools.map((tool: any) => {
+            const declaration: any = {
+              name: tool.name
+            };
+            if (tool.description !== undefined) {
+              declaration.description = tool.description;
+            }
+
+            const schema = tool.input_schema;
+            const hasProperties =
+              schema &&
+              typeof schema === 'object' &&
+              schema.properties &&
+              typeof schema.properties === 'object' &&
+              !Array.isArray(schema.properties) &&
+              Object.keys(schema.properties).length > 0;
+
+            if (hasProperties) {
+              declaration.parameters = this._convertSchemaToGemini(schema);
+            }
+
+            return declaration;
+          })
         }];
       }
     }

@@ -363,7 +363,7 @@ describe('Claude to Gemini Tools Schema Sanitization', () => {
     expect(params.properties.mode.enum).toEqual(['strict']);
   });
 
-  it('translates exclusiveMinimum and exclusiveMaximum to shifted min/max and enhanced descriptions', () => {
+  it('translates exclusiveMinimum and exclusiveMaximum to enhanced descriptions while stripping min/max via whitelist', () => {
     const claudePayload = {
       model: 'gemini-3.5-flash',
       messages: [{ role: 'user', content: 'Use the tool.' }],
@@ -401,23 +401,23 @@ describe('Claude to Gemini Tools Schema Sanitization', () => {
     const result = translator.translateClaudeToGoogle(claudePayload);
     const params = result.googleRequest.tools![0].functionDeclarations[0].parameters;
 
-    // Integer: exclusive bounds shifted by 1
+    // Integer: exclusive bounds appended to description, min/max stripped by whitelist
     expect(params.properties.count.type).toEqual('INTEGER');
-    expect(params.properties.count.minimum).toEqual(1);
-    expect(params.properties.count.maximum).toEqual(9);
+    expect(params.properties.count.minimum).toBeUndefined();
+    expect(params.properties.count.maximum).toBeUndefined();
     expect(params.properties.count.description).toEqual('Total item count (must be > 0, must be < 10)');
     expect(params.properties.count.exclusiveMinimum).toBeUndefined();
     expect(params.properties.count.exclusiveMaximum).toBeUndefined();
 
-    // Number: boundaries retained as min/max
+    // Number: description enhanced, min/max stripped by whitelist
     expect(params.properties.rate.type).toEqual('NUMBER');
-    expect(params.properties.rate.minimum).toEqual(0.0);
-    expect(params.properties.rate.maximum).toEqual(1.0);
+    expect(params.properties.rate.minimum).toBeUndefined();
+    expect(params.properties.rate.maximum).toBeUndefined();
     expect(params.properties.rate.description).toEqual('(must be > 0, must be < 1)');
 
-    // Pre-existing minimum preserved
-    expect(params.properties.offset.minimum).toEqual(0);
-    expect(params.properties.offset.maximum).toEqual(99);
+    // Pre-existing minimum also stripped by whitelist
+    expect(params.properties.offset.minimum).toBeUndefined();
+    expect(params.properties.offset.maximum).toBeUndefined();
     expect(params.properties.offset.description).toEqual('Starting offset (must be < 100)');
   });
 
@@ -455,8 +455,332 @@ describe('Claude to Gemini Tools Schema Sanitization', () => {
     expect(itemProps.kind.type).toEqual('STRING');
     expect(itemProps.kind.enum).toEqual(['entity']);
     expect(itemProps.score.type).toEqual('INTEGER');
-    expect(itemProps.score.minimum).toEqual(1);
+    expect(itemProps.score.minimum).toBeUndefined();
     expect(itemProps.score.description).toEqual('(must be > 0)');
+  });
+
+  it('1. removes parameters field completely for parameterless tools (e.g. CronList, EnterPlanMode, TaskList)', () => {
+    const claudePayload = {
+      model: 'gemini-3.5-flash',
+      messages: [{ role: 'user', content: 'List tasks' }],
+      tools: [
+        {
+          name: 'CronList',
+          description: 'List cron jobs',
+          input_schema: {
+            type: 'object',
+            properties: {},
+            additionalProperties: false
+          }
+        },
+        {
+          name: 'EnterPlanMode',
+          description: 'Enter plan mode',
+          input_schema: {
+            type: 'object',
+            properties: {}
+          }
+        },
+        {
+          name: 'TaskList',
+          description: 'List all tasks',
+          input_schema: {
+            type: 'object'
+          }
+        }
+      ]
+    } as any;
+
+    const result = translator.translateClaudeToGoogle(claudePayload);
+    const decls = result.googleRequest.tools![0].functionDeclarations;
+
+    expect(decls).toHaveLength(3);
+    for (const decl of decls) {
+      expect(decl.parameters).toBeUndefined();
+      expect('parameters' in decl).toBe(false);
+      expect(decl.name).toBeDefined();
+      expect(decl.description).toBeDefined();
+    }
+  });
+
+  it('2. defaults missing type to uppercase STRING (e.g. Workflow.args)', () => {
+    const claudePayload = {
+      model: 'gemini-3.5-flash',
+      messages: [{ role: 'user', content: 'Run workflow' }],
+      tools: [
+        {
+          name: 'Workflow',
+          description: 'Execute workflow script',
+          input_schema: {
+            type: 'object',
+            properties: {
+              args: {
+                description: 'Optional input value exposed to the script as the global args'
+              },
+              script: {
+                type: 'string',
+                description: 'Workflow script'
+              }
+            }
+          }
+        }
+      ]
+    } as any;
+
+    const result = translator.translateClaudeToGoogle(claudePayload);
+    const params = result.googleRequest.tools![0].functionDeclarations[0].parameters;
+
+    expect(params.type).toBe('OBJECT');
+    expect(params.properties.args.type).toBe('STRING');
+    expect(params.properties.args.description).toBe('Optional input value exposed to the script as the global args');
+    expect(params.properties.script.type).toBe('STRING');
+  });
+
+  it('3. handles nested empty OBJECT schemas by injecting _placeholder property (e.g. AskUserQuestion, TaskCreate)', () => {
+    const claudePayload = {
+      model: 'gemini-3.5-flash',
+      messages: [{ role: 'user', content: 'Ask question' }],
+      tools: [
+        {
+          name: 'AskUserQuestion',
+          description: 'Ask user a question',
+          input_schema: {
+            type: 'object',
+            properties: {
+              answers: {
+                type: 'object',
+                description: 'User answers collected by the permission component'
+              },
+              annotations: {
+                type: 'object',
+                properties: {},
+                description: 'Optional per-question annotations'
+              }
+            }
+          }
+        },
+        {
+          name: 'TaskCreate',
+          description: 'Create task',
+          input_schema: {
+            type: 'object',
+            properties: {
+              subject: { type: 'string' },
+              metadata: {
+                type: 'object',
+                additionalProperties: true,
+                description: 'Arbitrary metadata'
+              }
+            },
+            required: ['subject']
+          }
+        }
+      ]
+    } as any;
+
+    const result = translator.translateClaudeToGoogle(claudePayload);
+    const askParams = result.googleRequest.tools![0].functionDeclarations[0].parameters;
+    const taskParams = result.googleRequest.tools![0].functionDeclarations[1].parameters;
+
+    expect(askParams.properties.answers.type).toBe('OBJECT');
+    expect(askParams.properties.answers.properties).toEqual({
+      _placeholder: { type: 'STRING' }
+    });
+
+    expect(askParams.properties.annotations.type).toBe('OBJECT');
+    expect(askParams.properties.annotations.properties).toEqual({
+      _placeholder: { type: 'STRING' }
+    });
+
+    expect(taskParams.properties.metadata.type).toBe('OBJECT');
+    expect(taskParams.properties.metadata.properties).toEqual({
+      _placeholder: { type: 'STRING' }
+    });
+    expect(taskParams.properties.metadata.additionalProperties).toBeUndefined();
+  });
+
+  it('4. flattens anyOf and oneOf enum/const variants into a single STRING enum (e.g. TaskUpdate.status)', () => {
+    const claudePayload = {
+      model: 'gemini-3.5-flash',
+      messages: [{ role: 'user', content: 'Update task' }],
+      tools: [
+        {
+          name: 'TaskUpdate',
+          description: 'Update task status',
+          input_schema: {
+            type: 'object',
+            properties: {
+              status: {
+                description: 'New status for the task',
+                anyOf: [
+                  {
+                    type: 'string',
+                    enum: ['pending', 'in_progress', 'completed']
+                  },
+                  {
+                    type: 'string',
+                    const: 'deleted'
+                  }
+                ]
+              },
+              priority: {
+                description: 'Task priority',
+                oneOf: [
+                  { enum: ['low', 'medium'] },
+                  { const: 'high' },
+                  { type: 'null' }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    } as any;
+
+    const result = translator.translateClaudeToGoogle(claudePayload);
+    const props = result.googleRequest.tools![0].functionDeclarations[0].parameters.properties;
+
+    expect(props.status).toEqual({
+      type: 'STRING',
+      description: 'New status for the task',
+      enum: ['pending', 'in_progress', 'completed', 'deleted']
+    });
+    expect(props.status.anyOf).toBeUndefined();
+
+    expect(props.priority).toEqual({
+      type: 'STRING',
+      description: 'Task priority',
+      enum: ['low', 'medium', 'high'],
+      nullable: true
+    });
+    expect(props.priority.oneOf).toBeUndefined();
+  });
+
+  it('5. strictly filters schema fields against Gemini whitelist recursively', () => {
+    const claudePayload = {
+      model: 'gemini-3.5-flash',
+      messages: [{ role: 'user', content: 'Report findings' }],
+      tools: [
+        {
+          name: 'ReportFindings',
+          description: 'Report code review findings',
+          input_schema: {
+            type: 'object',
+            $schema: 'http://json-schema.org/draft-07/schema#',
+            additionalProperties: false,
+            properties: {
+              findings: {
+                type: 'array',
+                minItems: 1,
+                maxItems: 32,
+                description: 'Verified findings',
+                items: {
+                  type: 'object',
+                  additionalProperties: false,
+                  properties: {
+                    category: {
+                      type: 'string',
+                      minLength: 1,
+                      maxLength: 40,
+                      pattern: '^[a-z-]+$',
+                      format: 'slug',
+                      default: 'correctness',
+                      description: 'Short kebab-case slug'
+                    },
+                    line: {
+                      type: 'integer',
+                      minimum: -9007199254740990,
+                      maximum: 9007199254740990,
+                      description: '1-indexed line'
+                    }
+                  },
+                  required: ['category']
+                }
+              }
+            },
+            required: ['findings']
+          }
+        }
+      ]
+    } as any;
+
+    const result = translator.translateClaudeToGoogle(claudePayload);
+    const params = result.googleRequest.tools![0].functionDeclarations[0].parameters;
+
+    expect(Object.keys(params).sort()).toEqual(['properties', 'required', 'type']);
+    const findingsProp = params.properties.findings;
+    expect(findingsProp.minItems).toBeUndefined();
+    expect(findingsProp.maxItems).toBeUndefined();
+    expect(Object.keys(findingsProp).sort()).toEqual(['description', 'items', 'type']);
+
+    const itemSchema = findingsProp.items;
+    expect(itemSchema.additionalProperties).toBeUndefined();
+    expect(Object.keys(itemSchema).sort()).toEqual(['properties', 'required', 'type']);
+
+    const categoryProp = itemSchema.properties.category;
+    expect(categoryProp).toEqual({
+      type: 'STRING',
+      description: 'Short kebab-case slug'
+    });
+
+    const lineProp = itemSchema.properties.line;
+    expect(lineProp).toEqual({
+      type: 'INTEGER',
+      description: '1-indexed line'
+    });
+  });
+
+  it('6. strips empty text: "" parts in contents and ensures historical functionCall.args is at least {}', () => {
+    const claudePayload = {
+      model: 'gemini-3.5-flash',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: '' },
+            { type: 'text', text: 'Run tool with null input' }
+          ]
+        },
+        {
+          role: 'assistant',
+          content: [
+            { type: 'text', text: '' },
+            {
+              type: 'tool_use',
+              id: 'toolu_null_args',
+              name: 'EnterPlanMode',
+              input: null
+            }
+          ]
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'toolu_null_args',
+              content: 'Done'
+            },
+            { type: 'text', text: '' }
+          ]
+        }
+      ]
+    } as any;
+
+    const result = translator.translateClaudeToGoogle(claudePayload);
+    const contents = result.googleRequest.contents;
+
+    expect(contents).toHaveLength(3);
+    // First user turn should not have the empty text part
+    expect(contents[0].parts).toEqual([{ text: 'Run tool with null input' }]);
+    // Assistant turn should not have the empty text part, and functionCall.args must be {}
+    expect(contents[1].parts).toHaveLength(1);
+    expect(contents[1].parts[0].functionCall).toBeDefined();
+    expect(contents[1].parts[0].functionCall!.args).toEqual({});
+    expect(contents[1].parts[0].functionCall!.args).not.toBeNull();
+    // Second user turn should only have the functionResponse part
+    expect(contents[2].parts).toHaveLength(1);
+    expect(contents[2].parts[0].functionResponse).toBeDefined();
   });
 });
 
