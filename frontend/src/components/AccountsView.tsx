@@ -1047,7 +1047,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                         </span>
                       </div>
                       <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-slate-500/10 text-slate-700 dark:text-slate-300 shrink-0 tabular-nums">
-                        {item.requests.toLocaleString()} <span className="text-[9px] text-slate-400 tabular-nums">({item.sharePercent}%)</span>
+                        {item.requests.toLocaleString()} <span className="text-[9px] text-slate-400">({item.sharePercent}%)</span>
                       </span>
                     </div>
 
