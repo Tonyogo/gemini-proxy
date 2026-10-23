@@ -1135,6 +1135,40 @@ describe('Gemini to Claude Non-Stream Response Translation', () => {
     expect(result.usage.output_tokens).toEqual(53 + 291); // candidates + thoughts
     expect(result.stop_reason).toEqual('tool_use');
   });
+
+  it('cleans _placeholder and restores untyped json string in non-stream response', () => {
+    const geminiResponse = {
+      candidates: [{
+        content: {
+          parts: [{
+            functionCall: {
+              id: 'call_1',
+              name: 'Workflow',
+              args: {
+                args: '{"foo": "bar"}',
+                answers: { _placeholder: 'strip' }
+              }
+            }
+          }]
+        }
+      }]
+    };
+    const tools = [{
+      name: 'Workflow',
+      input_schema: {
+        type: 'object',
+        properties: {
+          args: { description: 'untyped' },
+          answers: { type: 'object' }
+        }
+      }
+    }];
+    const result = translator.convertGoogleToClaudeNonStream(geminiResponse, 'gemini-2.5-flash', tools);
+    expect(result.content[0].input).toEqual({
+      args: { foo: 'bar' },
+      answers: {}
+    });
+  });
 });
 
 describe('ClaudeTranslator - SYSTEM_ROLE_TO_INSTRUCTION & Deduplication', () => {
@@ -1319,6 +1353,44 @@ describe('Gemini to Claude Stream Response Translation', () => {
     expect(result.googleRequest.contents[0].parts[0].text).toEqual('Hello');
     expect(result.googleRequest.contents[0].parts[1].text).toEqual('World');
   });
+
+  it('cleans _placeholder and restores untyped json string in stream response', () => {
+    const streamState: any = {
+      tools: [{
+        name: 'Workflow',
+        input_schema: {
+          type: 'object',
+          properties: {
+            args: { description: 'untyped' },
+            answers: { type: 'object' }
+          }
+        }
+      }]
+    };
+    const chunk = JSON.stringify({
+      candidates: [{
+        content: {
+          parts: [{
+            functionCall: {
+              id: 'call_2',
+              name: 'Workflow',
+              args: {
+                args: '[1, 2]',
+                answers: { _placeholder: 'strip' }
+              }
+            }
+          }]
+        }
+      }]
+    });
+    const events = translator.translateGoogleToClaudeStream(`data: ${chunk}`, 'gemini-2.5-flash', streamState);
+    const deltaEvent = events?.find((e: any) => e.type === 'content_block_delta');
+    expect(deltaEvent).toBeDefined();
+    expect(JSON.parse(deltaEvent.delta.partial_json)).toEqual({
+      args: [1, 2],
+      answers: {}
+    });
+  });
 });
 
 describe('Claude Translator Argument Type Coercion', () => {
@@ -1380,6 +1452,74 @@ describe('Claude Translator Argument Type Coercion', () => {
     expect(coerced.taskId).toEqual('55');
     expect(coerced.percentage).toEqual(100);
     expect(coerced.unmappedField).toEqual(123);
+  });
+
+  it('recursively removes _placeholder properties while preserving empty parent objects', () => {
+    const rawArgs = {
+      metadata: { _placeholder: 'val' },
+      answers: { q1: { _placeholder: 'x' } },
+      name: 'foo',
+      tags: [{ id: 1, _placeholder: 'strip-me' }, { id: 2 }]
+    };
+    const cleaned = (translator as any)._cleanAndCoerceArguments('test_tool', rawArgs);
+    expect(cleaned).toEqual({
+      metadata: {},
+      answers: { q1: {} },
+      name: 'foo',
+      tags: [{ id: 1 }, { id: 2 }]
+    });
+
+    // Test root object being only _placeholder
+    const rootOnlyPlaceholder = { _placeholder: 'placeholder_val' };
+    const cleanedRoot = (translator as any)._cleanAndCoerceArguments('test_tool', rootOnlyPlaceholder);
+    expect(cleanedRoot).toEqual({});
+  });
+
+  it('restores JSON-encoded string to object/array for untyped properties in original schema', () => {
+    const mockWorkflowTools = [
+      {
+        name: 'Workflow',
+        description: 'Runs workflow',
+        input_schema: {
+          type: 'object',
+          properties: {
+            args: {
+              description: 'Optional input value exposed to the script.'
+              // Notice: no type field!
+            },
+            query: {
+              type: 'string',
+              description: 'Explicit string query'
+            }
+          }
+        }
+      }
+    ];
+
+    // Case 1: JSON object string for untyped field is parsed to object
+    const rawArgsObj = { args: '{"items": [1, 2]}' };
+    const coercedObj = (translator as any)._cleanAndCoerceArguments('Workflow', rawArgsObj, mockWorkflowTools);
+    expect(coercedObj.args).toEqual({ items: [1, 2] });
+
+    // Case 2: JSON array string for untyped field is parsed to array
+    const rawArgsArr = { args: '[1, 2, 3]' };
+    const coercedArr = (translator as any)._cleanAndCoerceArguments('Workflow', rawArgsArr, mockWorkflowTools);
+    expect(coercedArr.args).toEqual([1, 2, 3]);
+
+    // Case 3: Plain non-JSON string is preserved as-is
+    const rawArgsText = { args: 'just a normal text' };
+    const coercedText = (translator as any)._cleanAndCoerceArguments('Workflow', rawArgsText, mockWorkflowTools);
+    expect(coercedText.args).toEqual('just a normal text');
+
+    // Case 4: Explicit type: 'string' field is NOT parsed as JSON even if it contains valid JSON
+    const rawArgsExplicit = { query: '{"key": 1}' };
+    const coercedExplicit = (translator as any)._cleanAndCoerceArguments('Workflow', rawArgsExplicit, mockWorkflowTools);
+    expect(coercedExplicit.query).toEqual('{"key": 1}');
+
+    // Case 5: Primitive numeric string "123" or boolean string "true" in untyped field is NOT coerced to primitive
+    const rawArgsPrimitive = { args: '123' };
+    const coercedPrimitive = (translator as any)._cleanAndCoerceArguments('Workflow', rawArgsPrimitive, mockWorkflowTools);
+    expect(coercedPrimitive.args).toEqual('123');
   });
 });
 

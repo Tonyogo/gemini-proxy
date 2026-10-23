@@ -813,26 +813,55 @@ class ClaudeTranslator {
   }
 
   /**
-   * Coerces Gemini's returned function call arguments to match the types expected
-   * by the client's original JSON schema definition.
+   * Recursively traverses an object or array and strips all '_placeholder' properties.
+   * If a parent container becomes empty after deletion, it is preserved as an empty object/array.
    */
-  public _coerceArguments(toolName: string, args: Record<string, any>, tools?: any[]): Record<string, any> {
-    if (!tools || !Array.isArray(tools) || !args || typeof args !== 'object') {
-      return args;
+  public _removePlaceholder(obj: any): any {
+    if (!obj || typeof obj !== 'object') {
+      return obj;
+    }
+
+    if (Array.isArray(obj)) {
+      return obj.map((item: any) => this._removePlaceholder(item));
+    }
+
+    const cleaned: Record<string, any> = {};
+    for (const key of Object.keys(obj)) {
+      if (key === '_placeholder') {
+        continue;
+      }
+      cleaned[key] = this._removePlaceholder(obj[key]);
+    }
+    return cleaned;
+  }
+
+  /**
+   * Cleans arguments by recursively removing '_placeholder' fields,
+   * restoring JSON-encoded strings to structured objects/arrays for untyped schema properties,
+   * and coercing argument types to match the expected schema definition.
+   */
+  public _cleanAndCoerceArguments(toolName: string, rawArgs: Record<string, any>, tools?: any[]): Record<string, any> {
+    const cleanedArgs = this._removePlaceholder(rawArgs);
+    if (!cleanedArgs || typeof cleanedArgs !== 'object') {
+      return cleanedArgs || {};
+    }
+
+    if (!tools || !Array.isArray(tools)) {
+      return cleanedArgs;
     }
 
     // Find the original tool schema definition
     const originalTool = tools.find((t: any) => t && t.name === toolName);
     if (!originalTool || !originalTool.input_schema || typeof originalTool.input_schema !== 'object') {
-      return args;
+      return cleanedArgs;
     }
 
     const properties = originalTool.input_schema.properties;
     if (!properties || typeof properties !== 'object') {
-      return args;
+      return cleanedArgs;
     }
 
-    const coercedArgs = { ...args };
+    const coercedArgs = { ...cleanedArgs };
 
     for (const propName of Object.keys(properties)) {
       const propSchema = properties[propName];
@@ -841,6 +870,27 @@ class ClaudeTranslator {
       const rawValue = coercedArgs[propName];
       if (rawValue === undefined || rawValue === null) continue;
 
+      // 1. Untyped schema property: attempt to restore JSON-encoded string to object/array
+      if (!propSchema.type) {
+        if (typeof rawValue === 'string') {
+          const trimmed = rawValue.trim();
+          if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+            try {
+              const parsed = JSON.parse(trimmed);
+              if (typeof parsed === 'object' && parsed !== null) {
+                logger.info(`[Translator] [Coercion] Restoring untyped JSON-encoded string property '${propName}' of tool '${toolName}' to structured object/array.`);
+                coercedArgs[propName] = this._removePlaceholder(parsed);
+                continue;
+              }
+            } catch (e: any) {
+              // Parsing failed, preserve original string
+            }
+          }
+        }
+        continue;
+      }
+
+      // 2. Typed schema properties: coerce types based on expectedTypes
       // Get expected types (could be a string or array of strings, e.g. ['string', 'null'])
       let expectedTypes: string[] = [];
       if (typeof propSchema.type === 'string') {
@@ -887,6 +937,15 @@ class ClaudeTranslator {
     return coercedArgs;
   }
 
+  /**
+   * Coerces Gemini's returned function call arguments to match the types expected
+   * by the client's original JSON schema definition.
+   * Backwards compatible delegate to _cleanAndCoerceArguments.
+   */
+  public _coerceArguments(toolName: string, args: Record<string, any>, tools?: any[]): Record<string, any> {
+    return this._cleanAndCoerceArguments(toolName, args, tools);
+  }
+
   public convertGoogleToClaudeNonStream(googleResponse: any, modelName: string, tools?: any[]) {
     const candidate = googleResponse.candidates?.[0];
     const usage = googleResponse.usageMetadata || {};
@@ -909,7 +968,7 @@ class ClaudeTranslator {
           });
         } else if (part.functionCall) {
           const callId = part.functionCall.id ? `toolu_g_${part.functionCall.id}` : `toolu_fake_${Math.random().toString(36).substring(2, 11)}`;
-          const coercedArgs = this._coerceArguments(part.functionCall.name, part.functionCall.args || {}, tools);
+          const coercedArgs = this._cleanAndCoerceArguments(part.functionCall.name, part.functionCall.args || {}, tools);
           content.push({
             id: callId,
             type: 'tool_use',
@@ -1041,7 +1100,7 @@ class ClaudeTranslator {
             streamState.contentBlockIndex++;
           }
           const callId = part.functionCall.id ? `toolu_g_${part.functionCall.id}` : `toolu_stream_${Math.random().toString(36).substring(2, 11)}`;
-          const coercedArgs = this._coerceArguments(part.functionCall.name, part.functionCall.args || {}, tools);
+          const coercedArgs = this._cleanAndCoerceArguments(part.functionCall.name, part.functionCall.args || {}, tools);
           // 1. Send content_block_start with empty input object
           events.push({
             type: 'content_block_start',
