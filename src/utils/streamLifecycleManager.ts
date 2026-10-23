@@ -7,9 +7,13 @@ export interface StreamLifecycleOptions {
   res: Response;
   transactionId: string;
   timeoutMs?: number;
+  enableSseHeartbeat?: boolean;
+  heartbeatIntervalMs?: number;
 }
 
 export type AbortReason = 'client_disconnect' | 'timeout' | null;
+
+const DEFAULT_HEARTBEAT_INTERVAL_MS = 15000;
 
 export class StreamLifecycleManager {
   private controller: AbortController;
@@ -20,6 +24,7 @@ export class StreamLifecycleManager {
   private aborted: boolean = false;
   private abortReason: AbortReason = null;
   private timer: NodeJS.Timeout | null = null;
+  private heartbeatTimer: NodeJS.Timeout | null = null;
   private upstreamStream: Readable | null = null;
 
   private handleClose = () => {
@@ -58,6 +63,42 @@ export class StreamLifecycleManager {
         this.handleTimeout(options.timeoutMs!);
       }, options.timeoutMs);
     }
+
+    if (options.enableSseHeartbeat) {
+      const intervalMs = options.heartbeatIntervalMs && options.heartbeatIntervalMs > 0
+        ? options.heartbeatIntervalMs
+        : DEFAULT_HEARTBEAT_INTERVAL_MS;
+      this.sendHeartbeat();
+      this.heartbeatTimer = setInterval(() => {
+        this.sendHeartbeat();
+      }, intervalMs);
+    }
+  }
+
+  public ensureSseHeaders(): void {
+    if (this.finished || this.aborted || this.res.writableEnded) return;
+    if (!this.res.headersSent) {
+      if (typeof this.res.setHeader === 'function') {
+        this.res.setHeader('Content-Type', 'text/event-stream');
+        this.res.setHeader('Cache-Control', 'no-cache');
+        this.res.setHeader('Connection', 'keep-alive');
+        this.res.setHeader('X-Accel-Buffering', 'no');
+      }
+      if (typeof (this.res as any).flushHeaders === 'function') {
+        (this.res as any).flushHeaders();
+      }
+    }
+  }
+
+  private sendHeartbeat(): void {
+    if (this.finished || this.aborted || this.res.writableEnded) {
+      this.clearHeartbeat();
+      return;
+    }
+    this.ensureSseHeaders();
+    if (typeof this.res.write === 'function') {
+      this.res.write(': ping\n\n');
+    }
   }
 
   public get reason(): AbortReason {
@@ -85,11 +126,19 @@ export class StreamLifecycleManager {
     this.cleanup();
   }
 
+  private clearHeartbeat(): void {
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+    }
+  }
+
   private clearTimer(): void {
     if (this.timer) {
       clearTimeout(this.timer);
       this.timer = null;
     }
+    this.clearHeartbeat();
   }
 
   public cleanup(): void {

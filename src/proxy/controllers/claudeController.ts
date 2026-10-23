@@ -80,7 +80,7 @@ class ClaudeController {
       }
 
       if (isStream) {
-        const streamManager = new StreamLifecycleManager({ req, res, transactionId, timeoutMs });
+        const streamManager = new StreamLifecycleManager({ req, res, transactionId, timeoutMs, enableSseHeartbeat: true });
         const targetPath = `/v1beta/models/${cleanModelName}:streamGenerateContent?alt=sse`;
         const serverSelection = upstreamManager.getUpstreamUrl(targetPath, { model: cleanModelName, originalModel: clientModel, resolvedModel: cleanModelName });
         let { targetUrl, serverUrl, serverIndex, serverType, selectedApiKey } = serverSelection;
@@ -137,18 +137,21 @@ class ClaudeController {
             const logErrMessage = isHtml ? `HTML error page (${errStatus})` : (errMessage.length > 500 ? errMessage.slice(0, 500) + '...' : errMessage);
             logger.error(`[Error] [Transaction: ${transactionId}] Stream request failed with status ${errStatus}: ${logErrMessage} (duration: ${(duration / 1000).toFixed(2)}s)`);
             payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: errMessage }, normalized.payload, duration, requestPath, normalized.status, true, ...(accountName ? [accountName] : []));
-            if (normalized.headers && !res.headersSent) {
-              res.set(normalized.headers);
+            if (!res.headersSent) {
+              if (normalized.headers) {
+                res.set(normalized.headers);
+              }
+              return res.status(normalized.status).json(normalized.payload);
             }
-            return res.status(normalized.status).json(normalized.payload);
+            if (!res.writableEnded) {
+              res.write(`event: error\ndata: ${JSON.stringify(normalized.payload)}\n\n`);
+              res.end();
+            }
+            return;
           }
 
           streamManager.attachStream(response.body);
-
-          // Set SSE streaming headers
-          res.setHeader('Content-Type', 'text/event-stream');
-          res.setHeader('Cache-Control', 'no-cache');
-          res.setHeader('Connection', 'keep-alive');
+          streamManager.ensureSseHeaders();
 
           const streamState = { tools: clientReq.tools };
           const gemResChunks: any[] = [];
@@ -428,10 +431,17 @@ class ClaudeController {
       logger.error(`[Error] [Transaction: ${transactionId}] Unhandled error: ${err.message} (duration: ${(duration / 1000).toFixed(2)}s)`);
       const normalized = claudeTranslator.normalizeError(err);
       payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: err.message }, normalized.payload, duration, requestPath, normalized.status, Boolean(clientReq && clientReq.stream));
-      if (normalized.headers && !res.headersSent) {
-        res.set(normalized.headers);
+      if (!res.headersSent) {
+        if (normalized.headers) {
+          res.set(normalized.headers);
+        }
+        return res.status(normalized.status).json(normalized.payload);
       }
-      return res.status(normalized.status).json(normalized.payload);
+      if (!res.writableEnded) {
+        res.write(`event: error\ndata: ${JSON.stringify(normalized.payload)}\n\n`);
+        res.end();
+      }
+      return;
     }
   }
 

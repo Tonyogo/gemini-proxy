@@ -93,4 +93,63 @@ describe('POST /v1/messages (Streaming)', () => {
     expect(res.statusCode).toEqual(200);
     expect(res.text).toContain('Hello World!'); // Verify it correctly parsed and joined the content
   });
+
+  it('immediately flushes SSE headers with initial : ping before upstream fetch resolves and sends X-Accel-Buffering: no', async () => {
+    const { Readable } = require('stream');
+    const mockStream = new Readable({ read() {} });
+
+    (fetch as unknown as jest.Mock).mockImplementationOnce(() => {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({
+            status: 200,
+            ok: true,
+            body: mockStream
+          });
+          setTimeout(() => {
+            mockStream.push('data: {"candidates":[{"content":{"parts":[{"text":"Done thinking"}]},"finishReason":"STOP"}],"usageMetadata":{"promptTokenCount":5,"candidatesTokenCount":2}}\n\n');
+            mockStream.push(null);
+          }, 10);
+        }, 20);
+      });
+    });
+
+    const res = await request(app)
+      .post('/v1/messages')
+      .set('Authorization', 'Bearer dummy-key')
+      .send({
+        model: 'gemini-3.5-flash',
+        messages: [{ role: 'user', content: 'Long thinking request' }],
+        stream: true
+      });
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.headers['x-accel-buffering']).toEqual('no');
+    expect(res.text).toMatch(/^: ping\n\n/);
+    expect(res.text).toContain('Done thinking');
+  });
+
+  it('emits SSE error event when upstream fails with non-200 because SSE headers were already flushed before fetch', async () => {
+    (fetch as unknown as jest.Mock).mockResolvedValueOnce({
+      status: 500,
+      ok: false,
+      text: () => Promise.resolve(JSON.stringify({ error: { message: 'Upstream internal failure' } })),
+      headers: { get: () => null }
+    });
+
+    const res = await request(app)
+      .post('/v1/messages')
+      .set('Authorization', 'Bearer dummy-key')
+      .send({
+        model: 'gemini-3.5-flash',
+        messages: [{ role: 'user', content: 'Slow failing upstream' }],
+        stream: true
+      });
+
+    expect(res.statusCode).toEqual(200);
+    expect(res.headers['content-type']).toContain('text/event-stream');
+    expect(res.text).toContain(': ping\n\n');
+    expect(res.text).toContain('event: error\n');
+    expect(res.text).toContain('Upstream internal failure');
+  });
 });
