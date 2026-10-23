@@ -536,6 +536,18 @@ describe('Claude to Gemini Tools Schema Sanitization', () => {
     expect(params.properties.script.type).toBe('STRING');
   });
 
+  it('updates description for untyped fields with conflicting NOT as a JSON-encoded string notices', () => {
+    const inputSchema = {
+      description: 'Optional input value exposed to the script. Pass arrays/objects as actual JSON values, NOT as a JSON-encoded string — a stringified list breaks args.filter/args.map in the script.'
+    };
+
+    const converted = translator._convertSchemaToGemini(inputSchema);
+    expect(converted.type).toBe('STRING');
+    expect(converted.description).toContain('(Note: Pass arrays/objects as a valid JSON-encoded string)');
+    expect(converted.description).not.toMatch(/NOT as a JSON-encoded string/i);
+    expect(converted.description).toContain('as a valid JSON-encoded string');
+  });
+
   it('3. handles nested empty OBJECT schemas by injecting _placeholder property (e.g. AskUserQuestion, TaskCreate)', () => {
     const claudePayload = {
       model: 'gemini-3.5-flash',

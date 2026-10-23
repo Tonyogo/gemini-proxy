@@ -268,6 +268,14 @@ class ClaudeTranslator {
         result.type = "ARRAY";
       } else {
         result.type = "STRING";
+        if (result.description && typeof result.description === "string") {
+          if (/NOT\s+as\s+a\s+JSON[- ]encoded\s+string/i.test(result.description)) {
+            result.description = result.description.replace(
+              /NOT\s+as\s+a\s+JSON[- ]encoded\s+string/gi,
+              "as a valid JSON-encoded string"
+            ) + " (Note: Pass arrays/objects as a valid JSON-encoded string)";
+          }
+        }
       }
     } else {
       result.type = result.type.toUpperCase();
