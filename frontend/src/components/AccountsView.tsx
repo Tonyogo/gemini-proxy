@@ -1019,11 +1019,11 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
               </span>
               <div className="flex items-center space-x-2">
                 <span>
-                  {t('accounts.nodeTotalRequests')}: <strong className="text-indigo-600 dark:text-indigo-400">{serverModelStats.totalRequests.toLocaleString()}</strong>
+                  {t('accounts.nodeTotalRequests')}: <strong className="text-indigo-600 dark:text-indigo-400 font-mono tabular-nums">{serverModelStats.totalRequests.toLocaleString()}</strong>
                 </span>
                 <span>·</span>
                 <span>
-                  {t('accounts.nodeSuccessRate')}: <strong className="text-emerald-600 dark:text-emerald-400">{serverModelStats.successRate}%</strong>
+                  {t('accounts.nodeSuccessRate')}: <strong className="text-emerald-600 dark:text-emerald-400 font-mono tabular-nums">{serverModelStats.successRate}%</strong>
                 </span>
               </div>
             </div>
@@ -1046,17 +1046,17 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                           {item.model}
                         </span>
                       </div>
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-slate-500/10 text-slate-700 dark:text-slate-300 shrink-0">
-                        {item.requests.toLocaleString()} <span className="text-[9px] text-slate-400">({item.sharePercent}%)</span>
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-slate-500/10 text-slate-700 dark:text-slate-300 shrink-0 tabular-nums">
+                        {item.requests.toLocaleString()} <span className="text-[9px] text-slate-400 tabular-nums">({item.sharePercent}%)</span>
                       </span>
                     </div>
 
                     {/* Bottom Row: Success/Error & Success Rate */}
-                    <div className="flex items-center justify-between gap-1 pt-1 border-t border-[var(--border-subtle)]/60 text-[10px] font-mono text-slate-500 dark:text-slate-400">
-                      <span className="truncate">
+                    <div className="flex items-center justify-between gap-1 pt-1 border-t border-[var(--border-subtle)]/60 text-[10px] font-mono text-slate-500 dark:text-slate-400 tabular-nums">
+                      <span className="truncate tabular-nums">
                         {t('accounts.modelSuccessFailed', { success: item.success.toLocaleString(), error: item.error.toLocaleString() })}
                       </span>
-                      <span className="text-emerald-600 dark:text-emerald-400 font-semibold shrink-0">
+                      <span className="text-emerald-600 dark:text-emerald-400 font-semibold shrink-0 tabular-nums">
                         ({item.successRate}%)
                       </span>
                     </div>
@@ -1125,10 +1125,10 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                 <button
                   type="button"
                   onClick={() => setIsMobileSearchOpen(true)}
-                  className={`p-1.5 rounded-lg border transition-all shrink-0 ${
+                  className={`p-1.5 ui-btn-secondary shrink-0 ${
                     searchQuery
-                      ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30'
-                      : 'bg-black/[0.04] dark:bg-white/[0.05] text-slate-400 hover:text-slate-200 border-[var(--border-subtle)]'
+                      ? '!border-indigo-500/50 !text-indigo-400'
+                      : ''
                   }`}
                   title={t('accounts.searchPlaceholder')}
                 >
@@ -1163,7 +1163,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                       type="button"
                       onClick={() => setDedupConfirm(true)}
                       disabled={actionLoading || accounts.length === 0}
-                      className="p-1.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.05] border border-[var(--border-subtle)] text-amber-400 hover:bg-black/[0.08] active:scale-95 disabled:opacity-40"
+                      className="p-1.5 ui-btn-secondary text-amber-500 hover:text-amber-400 disabled:opacity-40"
                       title={t('accounts.dedup', '去重')}
                     >
                       <CopyCheck className="w-3.5 h-3.5" />
@@ -1173,11 +1173,11 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
                       disabled={actionLoading}
-                      className="px-2.5 py-1 ui-btn-primary flex items-center space-x-1 text-xs active:scale-95"
+                      className="px-2.5 py-1 ui-btn-primary flex items-center space-x-1 text-xs font-semibold"
                       title={t('accounts.importFiles')}
                     >
                       <Upload className="w-3.5 h-3.5" />
-                      <span className="text-[11px]">{t('accounts.importFiles', '导入')}</span>
+                      <span className="text-[11px] font-semibold">{t('accounts.importFiles', '导入')}</span>
                     </button>
                   </>
                 ) : (
@@ -1185,7 +1185,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                     type="button"
                     onClick={() => fetchAllServers(false)}
                     disabled={loading || actionLoading || globalLoading}
-                    className="p-1.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.05] border border-[var(--border-subtle)] text-slate-400 hover:text-slate-200 active:scale-95"
+                    className="p-1.5 ui-btn-secondary"
                     title={t('accounts.refresh', '刷新')}
                   >
                     <RefreshCw className={`w-3.5 h-3.5 ${(loading || globalLoading) ? 'animate-spin text-cyan-400' : ''}`} />
@@ -1246,7 +1246,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={actionLoading}
-                  className="px-3 py-1.5 ui-btn-primary flex items-center space-x-1.5"
+                  className="px-3 py-1.5 ui-btn-primary flex items-center space-x-1.5 text-xs font-semibold"
                   title={t('accounts.importFiles')}
                 >
                   <Upload className="w-3.5 h-3.5" />
@@ -1256,10 +1256,10 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                 <button
                   onClick={() => setDedupConfirm(true)}
                   disabled={actionLoading || accounts.length === 0}
-                  className="px-3 py-1.5 ui-btn-secondary disabled:opacity-40 flex items-center space-x-1.5 text-amber-300"
+                  className="px-3 py-1.5 ui-btn-secondary disabled:opacity-40 flex items-center space-x-1.5 text-amber-500 hover:text-amber-400"
                   title={t('accounts.dedupTooltip', '扫描并清理重复的 refresh_token / 凭据')}
                 >
-                  <CopyCheck className="w-3.5 h-3.5 text-amber-400" />
+                  <CopyCheck className="w-3.5 h-3.5" />
                   <span>{t('accounts.dedup', '去重')}</span>
                 </button>
               </>
