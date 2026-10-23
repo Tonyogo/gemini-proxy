@@ -835,7 +835,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     // 1. Explicitly Suspended / Rate Limited
     if (acc.isSuspended) {
       return (
-        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20 flex items-center space-x-1.5">
+        <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/20 flex items-center space-x-1.5 w-fit">
           <span className="w-1.5 h-1.5 rounded-full bg-rose-500 dark:bg-rose-400 inline-block" />
           <span>{t('accounts.statusSuspended', '已暂停')}</span>
         </span>
@@ -845,7 +845,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     // 2. Explicitly Disabled / Inactive
     if (isManuallyDisabled || rawConcurrent === 'DISABLED') {
       return (
-        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-black/[0.04] dark:bg-white/[0.06] text-slate-600 dark:text-slate-400 border border-black/5 dark:border-white/10 flex items-center space-x-1.5">
+        <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-black/[0.04] dark:bg-white/[0.06] text-slate-600 dark:text-slate-400 border border-black/5 dark:border-white/10 flex items-center space-x-1.5 w-fit">
           <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 inline-block" />
           <span>{t('accounts.statusDisabled')}</span>
         </span>
@@ -855,7 +855,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     // 3. ACTIVATED (已解卡且可用)
     if (rawConcurrent === 'ACTIVATED' || (!rawConcurrent && acc.status === 'active')) {
       return (
-        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25 flex items-center space-x-1.5">
+        <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25 flex items-center space-x-1.5 w-fit">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 inline-block animate-pulse" />
           <span>{t('accounts.statusActivated', '已激活')}</span>
         </span>
@@ -865,7 +865,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     // 4. ACTIVATING (正在激活)
     if (rawConcurrent === 'ACTIVATING') {
       return (
-        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-500/25 flex items-center space-x-1.5">
+        <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-500/25 flex items-center space-x-1.5 w-fit">
           <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 dark:bg-indigo-400 inline-block animate-ping" />
           <span>{t('accounts.statusActivating', '激活中...')}</span>
         </span>
@@ -875,7 +875,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     // 5. RETIRED (下线退休，释放 Context)
     if (rawConcurrent === 'RETIRED') {
       return (
-        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/25 flex items-center space-x-1.5">
+        <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/25 flex items-center space-x-1.5 w-fit">
           <span className="w-1.5 h-1.5 rounded-full bg-amber-500 dark:bg-amber-400 inline-block" />
           <span>{t('accounts.statusRetired', '已下线')}</span>
         </span>
@@ -884,7 +884,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
 
     // 6. INACTIVE (初始 / 未解卡)
     return (
-      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-black/[0.04] dark:bg-white/[0.06] text-slate-600 dark:text-slate-400 border border-black/5 dark:border-white/10 flex items-center space-x-1.5">
+      <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-black/[0.04] dark:bg-white/[0.06] text-slate-600 dark:text-slate-400 border border-black/5 dark:border-white/10 flex items-center space-x-1.5 w-fit">
         <span className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500 inline-block" />
         <span>{t('accounts.statusInactive', '未激活')}</span>
       </span>
@@ -1329,7 +1329,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
             </div>
           ) : (
             <div className="text-center py-16 px-4">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-slate-800/50 text-slate-500 mb-3 border border-white/[0.04]">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-black/[0.03] dark:bg-white/[0.04] text-[var(--text-muted)] mb-3 border border-[var(--border-subtle)]">
                 <Users className="w-6 h-6" />
               </div>
               <p className="text-slate-400 text-xs max-w-md mx-auto">
@@ -1345,7 +1345,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-surface-sub)] text-[11px] font-medium tracking-wider text-[var(--text-secondary)] uppercase select-none">
+                  <tr className="border-b border-[var(--border-subtle)] text-[11px] font-medium tracking-wider text-[var(--text-muted)] uppercase select-none">
                     <th className="px-4 py-3 w-16 text-left">{t('accounts.tableIndex', '序号')}</th>
                     <th className="px-4 py-3 min-w-[240px] text-left">{t('config.serverApiKeys', 'Gemini API Key')}</th>
                     <th className="px-4 py-3 min-w-[120px] text-left">{t('accounts.tableStatus', '状态')}</th>
@@ -1362,7 +1362,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
 
                     return (
                       <tr key={acc.index} className="hover:bg-[var(--bg-surface-hover)] transition-colors">
-                        <td className="px-4 py-3 font-mono text-xs font-semibold text-slate-400">
+                        <td className="px-4 py-3 font-mono text-xs font-semibold text-slate-400 tabular-nums">
                           #{acc.index}
                         </td>
                         <td className="px-4 py-3">
@@ -1386,7 +1386,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border border-cyan-500/25 flex items-center space-x-1.5 w-fit">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border border-cyan-500/25 flex items-center space-x-1.5 w-fit">
                             <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 dark:bg-cyan-400 inline-block animate-pulse" />
                             <span>{t('accounts.statusActive', '轮询活跃')}</span>
                           </span>
@@ -1397,10 +1397,10 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                             onClick={(e) => handleTogglePopover(e, acc.index)}
                             onMouseEnter={(e) => handleMouseEnterPopover(e, acc.index)}
                           >
-                            <div className="flex items-center space-x-1.5 font-mono font-bold text-xs text-slate-800 dark:text-slate-200">
-                              <span>{totalUsage.toLocaleString()}</span>
+                            <div className="flex items-center space-x-1.5 font-mono font-bold text-xs text-slate-800 dark:text-slate-200 tabular-nums">
+                              <span className="tabular-nums">{totalUsage.toLocaleString()}</span>
                               <span className="text-[10px] text-slate-400 font-normal">reqs</span>
-                              <span className="text-[10px] px-1.5 py-0.5 rounded font-normal bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                              <span className="text-[10px] px-1.5 py-0.5 rounded font-normal bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 tabular-nums">
                                 {successRate}%
                               </span>
                               {breakdowns.length > 0 && (
@@ -1413,7 +1413,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                                 {topModels.map(m => (
                                   <span
                                     key={m.model}
-                                    className="text-[9px] font-mono px-1 py-0.5 rounded bg-black/[0.04] dark:bg-white/[0.06] text-slate-500 dark:text-slate-400"
+                                    className="text-[9px] font-mono px-1 py-0.5 rounded bg-black/[0.04] dark:bg-white/[0.06] text-slate-500 dark:text-slate-400 tabular-nums"
                                   >
                                     {m.model.replace('gemini-', '')}: {m.count}
                                   </span>
@@ -1443,7 +1443,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                   <div key={acc.index} className="p-3 space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2 min-w-0">
-                        <span className="font-mono text-xs font-semibold text-slate-400">#{acc.index}</span>
+                        <span className="font-mono text-xs font-semibold text-slate-400 tabular-nums">#{acc.index}</span>
                         <span className="font-mono text-xs font-medium text-slate-800 dark:text-slate-200 bg-slate-500/10 px-2 py-0.5 rounded border border-slate-500/20 truncate">
                           {acc.name || `Key #${acc.index}`}
                         </span>
@@ -1461,8 +1461,9 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                           </button>
                         )}
                       </div>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/25 shrink-0">
-                        {t('accounts.statusActive', '轮询活跃')}
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/25 shrink-0 flex items-center space-x-1.5 w-fit">
+                        <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 dark:bg-cyan-400 inline-block animate-pulse" />
+                        <span>{t('accounts.statusActive', '轮询活跃')}</span>
                       </span>
                     </div>
 
@@ -1471,12 +1472,12 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                       <button
                         type="button"
                         onClick={() => toggleMobileUsage(acc.index)}
-                        className="px-2 py-0.5 rounded-lg text-xs font-mono ui-card-sub hover:bg-[var(--bg-surface-hover)] text-[var(--text-secondary)] border border-[var(--border-subtle)] flex items-center space-x-1.5 transition-colors"
+                        className="px-2 py-0.5 rounded-lg text-xs font-mono ui-card-sub hover:bg-[var(--bg-surface-hover)] text-[var(--text-secondary)] border border-[var(--border-subtle)] flex items-center space-x-1.5 transition-colors tabular-nums"
                       >
                         <Clock className="w-3 h-3 text-indigo-500 dark:text-indigo-400 shrink-0" />
-                        <span className="font-bold text-slate-800 dark:text-slate-200">{totalUsage}</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-200 tabular-nums">{totalUsage.toLocaleString()}</span>
                         <span className="text-[10px] text-slate-500 font-mono">reqs</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded font-normal bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded font-normal bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 tabular-nums">
                           {successRate}%
                         </span>
                         {breakdowns.length > 0 && (
@@ -1488,7 +1489,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                           {topModels.map(m => (
                             <span
                               key={m.model}
-                              className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-black/[0.04] dark:bg-white/[0.06] text-slate-500 dark:text-slate-400 border border-[var(--border-subtle)]"
+                              className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-black/[0.04] dark:bg-white/[0.06] text-slate-500 dark:text-slate-400 border border-[var(--border-subtle)] tabular-nums"
                             >
                               {m.model.replace('gemini-', '')}: {m.count}
                             </span>
@@ -1509,15 +1510,15 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                             const ratio = item.limit ? Math.min(100, Math.round((item.count / item.limit) * 100)) : null;
                             return (
                               <div key={idx} className="space-y-1">
-                                <div className="flex items-center justify-between text-xs font-mono">
+                                <div className="flex items-center justify-between text-xs font-mono tabular-nums">
                                   <span className="text-slate-700 dark:text-slate-300 truncate max-w-[180px]" title={item.model}>
                                     {item.model}
                                   </span>
-                                  <span className="text-slate-500 dark:text-slate-400 font-semibold">
-                                    <strong className="text-slate-800 dark:text-slate-200">{item.count}</strong>
-                                    {item.limit !== undefined && <span className="text-slate-500 text-[10px]"> / {item.limit}</span>}
+                                  <span className="text-slate-500 dark:text-slate-400 font-semibold tabular-nums">
+                                    <strong className="text-slate-800 dark:text-slate-200 tabular-nums">{item.count.toLocaleString()}</strong>
+                                    {item.limit !== undefined && <span className="text-slate-500 text-[10px] tabular-nums"> / {item.limit}</span>}
                                     {item.error !== undefined && item.error > 0 && (
-                                      <span className="text-rose-500 dark:text-rose-400 text-[10px] ml-1 font-normal">
+                                      <span className="text-rose-500 dark:text-rose-400 text-[10px] ml-1 font-normal tabular-nums">
                                         ({item.success ?? 0} ok / {item.error} err)
                                       </span>
                                     )}
@@ -1550,7 +1551,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-surface-sub)] text-[11px] font-medium tracking-wider text-[var(--text-secondary)] uppercase select-none">
+                  <tr className="border-b border-[var(--border-subtle)] text-[11px] font-medium tracking-wider text-[var(--text-muted)] uppercase select-none">
                     <th className="w-10 px-4 py-3 text-center">
                       <input
                         type="checkbox"
@@ -1602,7 +1603,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                         </td>
 
                         {/* Index */}
-                        <td className="px-3 py-3 font-mono text-xs font-semibold text-slate-400">
+                        <td className="px-3 py-3 font-mono text-xs font-semibold text-slate-400 tabular-nums">
                           #{acc.index}
                         </td>
 
@@ -1635,7 +1636,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                                 )}
                               </div>
                               {acc.canonicalIndex !== null && acc.canonicalIndex !== undefined && (
-                                <span className="text-[10px] text-slate-500 font-mono">
+                                <span className="text-[10px] text-slate-500 font-mono tabular-nums">
                                   canonical #{acc.canonicalIndex}
                                 </span>
                               )}
@@ -1656,7 +1657,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                               </span>
                             )}
                             {isCurrent && (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
                                 {t('accounts.currentBadge')}
                               </span>
                             )}
@@ -1670,10 +1671,10 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                             onClick={(e) => handleTogglePopover(e, acc.index)}
                             onMouseEnter={(e) => handleMouseEnterPopover(e, acc.index)}
                           >
-                            <div className="flex items-center space-x-1.5 font-mono font-bold text-xs text-slate-800 dark:text-slate-200">
-                              <span>{totalUsage.toLocaleString()}</span>
+                            <div className="flex items-center space-x-1.5 font-mono font-bold text-xs text-slate-800 dark:text-slate-200 tabular-nums">
+                              <span className="tabular-nums">{totalUsage.toLocaleString()}</span>
                               <span className="text-[10px] text-slate-400 font-normal">reqs</span>
-                              <span className="text-[10px] px-1.5 py-0.5 rounded font-normal bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                              <span className="text-[10px] px-1.5 py-0.5 rounded font-normal bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 tabular-nums">
                                 {successRate}%
                               </span>
                               {breakdowns.length > 0 && (
@@ -1686,7 +1687,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                                 {topModels.map(m => (
                                   <span
                                     key={m.model}
-                                    className="text-[9px] font-mono px-1 py-0.5 rounded bg-black/[0.04] dark:bg-white/[0.06] text-slate-500 dark:text-slate-400"
+                                    className="text-[9px] font-mono px-1 py-0.5 rounded bg-black/[0.04] dark:bg-white/[0.06] text-slate-500 dark:text-slate-400 tabular-nums"
                                   >
                                     {m.model.replace('gemini-', '')}: {m.count}
                                   </span>
@@ -1809,12 +1810,12 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                           onChange={() => handleSelectOne(acc.index)}
                           className="w-4 h-4 rounded bg-[var(--bg-surface)] border-[var(--border-subtle)] text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer shrink-0"
                         />
-                        <span className="font-mono text-xs font-bold text-slate-800 dark:text-slate-200 shrink-0">
+                        <span className="font-mono text-xs font-bold text-slate-800 dark:text-slate-200 shrink-0 tabular-nums">
                           #{acc.index}
                         </span>
 
                         {isCurrent && (
-                          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40 shrink-0">
+                          <span className="px-1.5 py-0.5 rounded-full text-[9px] font-medium bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40 shrink-0">
                             {t('accounts.currentBadge')}
                           </span>
                         )}
@@ -1871,10 +1872,10 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                         <button
                           type="button"
                           onClick={() => toggleMobileUsage(acc.index)}
-                          className="px-2 py-0.5 rounded-lg text-xs font-mono ui-card-sub hover:bg-[var(--bg-surface-hover)] text-[var(--text-secondary)] border border-[var(--border-subtle)] flex items-center space-x-1.5 transition-colors"
+                          className="px-2 py-0.5 rounded-lg text-xs font-mono ui-card-sub hover:bg-[var(--bg-surface-hover)] text-[var(--text-secondary)] border border-[var(--border-subtle)] flex items-center space-x-1.5 transition-colors tabular-nums"
                         >
                           <Clock className="w-3 h-3 text-indigo-500 dark:text-indigo-400 shrink-0" />
-                          <span className="font-bold text-slate-800 dark:text-slate-200">{totalUsage}</span>
+                          <span className="font-bold text-slate-800 dark:text-slate-200 tabular-nums">{totalUsage.toLocaleString()}</span>
                           <span className="text-[10px] text-slate-500 font-mono">reqs</span>
                           {breakdowns.length > 0 && (
                             <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform duration-200 ${isUsageExpanded ? 'rotate-180 text-indigo-400' : ''}`} />
@@ -1885,7 +1886,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                             {topModels.map(m => (
                               <span
                                 key={m.model}
-                                className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-black/[0.04] dark:bg-white/[0.06] text-slate-500 dark:text-slate-400 border border-[var(--border-subtle)]"
+                                className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-black/[0.04] dark:bg-white/[0.06] text-slate-500 dark:text-slate-400 border border-[var(--border-subtle)] tabular-nums"
                               >
                                 {m.model.replace('gemini-', '')}: {m.count}
                               </span>
@@ -1978,15 +1979,15 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                             const ratio = item.limit ? Math.min(100, Math.round((item.count / item.limit) * 100)) : null;
                             return (
                               <div key={idx} className="space-y-1">
-                                <div className="flex items-center justify-between text-xs font-mono">
+                                <div className="flex items-center justify-between text-xs font-mono tabular-nums">
                                   <span className="text-slate-700 dark:text-slate-300 truncate max-w-[180px]" title={item.model}>
                                     {item.model}
                                   </span>
-                                  <span className="text-slate-500 dark:text-slate-400 font-semibold">
-                                    <strong className="text-slate-800 dark:text-slate-200">{item.count}</strong>
-                                    {item.limit !== undefined && <span className="text-slate-500 text-[10px]"> / {item.limit}</span>}
+                                  <span className="text-slate-500 dark:text-slate-400 font-semibold tabular-nums">
+                                    <strong className="text-slate-800 dark:text-slate-200 tabular-nums">{item.count.toLocaleString()}</strong>
+                                    {item.limit !== undefined && <span className="text-slate-500 text-[10px] tabular-nums"> / {item.limit}</span>}
                                     {item.error !== undefined && item.error > 0 && (
-                                      <span className="text-rose-500 dark:text-rose-400 text-[10px] ml-1 font-normal">
+                                      <span className="text-rose-500 dark:text-rose-400 text-[10px] ml-1 font-normal tabular-nums">
                                         ({item.success ?? 0} ok / {item.error} err)
                                       </span>
                                     )}
