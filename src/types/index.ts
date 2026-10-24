@@ -146,7 +146,6 @@ export interface UpstreamServerSelection {
   serverIndex: number;
   weight: number;
   serverType: UpstreamServerType;
-  selectedApiKey?: string;
   proxyUrl?: string;
   useProxy?: boolean;
 }

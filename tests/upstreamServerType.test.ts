@@ -49,55 +49,29 @@ describe('UpstreamServerConfig type & direct mode parsing', () => {
 import upstreamManager from '../src/utils/upstreamManager';
 import config from '../config/default';
 
-describe('UpstreamManager direct mode scheduling and key distribution', () => {
+describe('UpstreamManager direct mode scheduling', () => {
   const originalServers = config.upstreamServers;
 
   afterEach(() => {
     config.upstreamServers = originalServers;
+    upstreamManager.reset();
   });
 
-  it('returns serverType and distributes configured apiKeys evenly in round-robin', () => {
+  it('returns serverType direct for configured direct server', () => {
     config.upstreamServers = [
       {
-        url: 'https://generativelanguage.googleapis.com',
+        url: 'https://direct-claude.example.com',
         weight: 1,
         enabled: true,
         type: 'direct',
-        name: 'Direct Server',
-        apiKeys: ['key-1', 'key-2', 'key-3']
-      }
-    ];
-
-    const sel1 = upstreamManager.getUpstreamServer();
-    expect(sel1.serverType).toBe('direct');
-    expect(sel1.selectedApiKey).toBe('key-1');
-
-    const sel2 = upstreamManager.getUpstreamServer();
-    expect(sel2.serverType).toBe('direct');
-    expect(sel2.selectedApiKey).toBe('key-2');
-
-    const sel3 = upstreamManager.getUpstreamServer();
-    expect(sel3.serverType).toBe('direct');
-    expect(sel3.selectedApiKey).toBe('key-3');
-
-    const sel4 = upstreamManager.getUpstreamServer();
-    expect(sel4.selectedApiKey).toBe('key-1');
-  });
-
-  it('falls back to undefined selectedApiKey if direct server has no apiKeys', () => {
-    config.upstreamServers = [
-      {
-        url: 'https://generativelanguage.googleapis.com',
-        weight: 1,
-        enabled: true,
-        type: 'direct',
-        name: 'Direct Server Empty Keys'
+        name: 'Direct Server'
       }
     ];
 
     const sel = upstreamManager.getUpstreamServer();
     expect(sel.serverType).toBe('direct');
-    expect(sel.selectedApiKey).toBeUndefined();
+    expect(sel.serverUrl).toBe('https://direct-claude.example.com');
+    expect((sel as any).selectedApiKey).toBeUndefined();
   });
 
   it('respects allowedModels filter on direct mode server', () => {
@@ -110,20 +84,18 @@ describe('UpstreamManager direct mode scheduling and key distribution', () => {
         allowedModels: ['gemini-2.5-flash']
       },
       {
-        url: 'https://generativelanguage.googleapis.com',
+        url: 'https://direct-claude.example.com',
         weight: 1,
         enabled: true,
         type: 'direct',
-        allowedModels: ['gemini-2.5-pro'],
-        apiKeys: ['direct-key-pro']
+        allowedModels: ['claude-sonnet-4-5']
       }
     ];
 
-    // Request for gemini-2.5-pro should ONLY hit the direct server
-    const sel = upstreamManager.getUpstreamServer({ model: 'gemini-2.5-pro' });
+    const sel = upstreamManager.getUpstreamServer({ model: 'claude-sonnet-4-5' });
     expect(sel.serverType).toBe('direct');
     expect(sel.serverIndex).toBe(1);
-    expect(sel.selectedApiKey).toBe('direct-key-pro');
+    expect(sel.serverUrl).toBe('https://direct-claude.example.com');
   });
 });
 
