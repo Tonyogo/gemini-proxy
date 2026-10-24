@@ -68,6 +68,102 @@ class ClaudeTranslator {
     return this.getModelMappingInfo(rawModel).targetModel;
   }
 
+  /**
+   * Preprocesses Claude requests intended for upstream Direct Mode without protocol translation.
+   * Runs model mapping (preserving -high), cleans/injects system prompt,
+   * filters historical ephemeral messages without inline system conversion, and filters ignored tools.
+   */
+  public preprocessClaudeDirectRequest(claudeBody: ClaudeRequest): {
+    directRequest: ClaudeRequest;
+    cleanModelName: string;
+    strategy?: SchedulingStrategy;
+    isStream: boolean;
+  } {
+    if (!claudeBody || !claudeBody.model) {
+      throw { status: 400, message: "Missing required parameter: 'model'" };
+    }
+
+    const directRequest: ClaudeRequest = JSON.parse(JSON.stringify(claudeBody));
+
+    const mappingInfo = this.getModelMappingInfo(claudeBody.model);
+    const cleanModelName = mappingInfo.targetModel || claudeBody.model.replace(/^models\//, '');
+    directRequest.model = cleanModelName;
+
+    // Clean directRequest.system
+    if (typeof directRequest.system === 'string') {
+      const cleaned = this.cleanSystemContent(directRequest.system);
+      if (cleaned === null || cleaned === '') {
+        delete directRequest.system;
+      } else {
+        directRequest.system = cleaned;
+      }
+    } else if (Array.isArray(directRequest.system)) {
+      const filteredBlocks = directRequest.system
+        .map((block: any) => {
+          if (typeof block === 'string') {
+            const cleaned = this.cleanSystemContent(block);
+            return cleaned === null ? null : cleaned;
+          }
+          if (block && typeof block === 'object') {
+            if (typeof block.text === 'string') {
+              const cleaned = this.cleanSystemContent(block.text);
+              if (cleaned === null) return null;
+              return { ...block, text: cleaned };
+            }
+            return block;
+          }
+          return block;
+        })
+        .filter((b: any) => b !== null);
+
+      if (filteredBlocks.length === 0) {
+        delete directRequest.system;
+      } else {
+        directRequest.system = filteredBlocks;
+      }
+    }
+
+    // Append config.customSystemInstruction
+    if (config.customSystemInstruction && config.customSystemInstruction.trim()) {
+      const instruction = config.customSystemInstruction;
+      if (Array.isArray(directRequest.system)) {
+        directRequest.system.push({ type: 'text', text: instruction });
+      } else if (typeof directRequest.system === 'string' && directRequest.system.length > 0) {
+        directRequest.system = `${directRequest.system}\n\n${instruction}`;
+      } else {
+        directRequest.system = instruction;
+      }
+    }
+
+    // Filter ephemeral messages
+    if (Array.isArray(directRequest.messages)) {
+      directRequest.messages = this.filterEphemeralMessages(directRequest.messages);
+    }
+
+    // Filter ignored tools
+    if (Array.isArray(directRequest.tools) && Array.isArray(config.ignoredTools) && config.ignoredTools.length > 0) {
+      const ignoredSet = new Set(
+        config.ignoredTools.map(t => (t || '').trim().toLowerCase()).filter(Boolean)
+      );
+      if (ignoredSet.size > 0) {
+        directRequest.tools = directRequest.tools.filter((tool: any) => {
+          const toolName = (tool?.name || tool?.function?.name || '').trim().toLowerCase();
+          return !ignoredSet.has(toolName);
+        });
+        if (directRequest.tools.length === 0) {
+          delete directRequest.tools;
+        }
+      }
+    }
+
+    return {
+      directRequest,
+      cleanModelName,
+      strategy: mappingInfo.strategy,
+      isStream: Boolean(directRequest.stream)
+    };
+  }
+
   public _convertSchemaToGemini(obj: any, isResponseSchema: boolean = false, isProperties: boolean = false): any {
     if (!obj || typeof obj !== "object") return obj;
 

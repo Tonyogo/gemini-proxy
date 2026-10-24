@@ -95,6 +95,63 @@ export function buildUpstreamHeaders(apiKey: string, customHeaders?: Record<stri
 }
 
 /**
+ * Builds standard HTTP headers for direct passthrough to upstream Claude/Gemini servers.
+ * Forwards client authentication and Anthropic protocol headers directly.
+ */
+export function buildDirectUpstreamHeaders(
+  req: Request,
+  effectiveApiKey: string,
+  customHeaders?: Record<string, string>
+): Record<string, string> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...customHeaders
+  };
+
+  let hasAuth = false;
+
+  if (req && req.headers) {
+    if (req.headers['x-api-key']) {
+      headers['x-api-key'] = String(req.headers['x-api-key']);
+      hasAuth = true;
+    }
+    if (req.headers['authorization']) {
+      headers['Authorization'] = String(req.headers['authorization']);
+      hasAuth = true;
+    }
+    if (req.headers['x-goog-api-key']) {
+      headers['x-goog-api-key'] = String(req.headers['x-goog-api-key']);
+      hasAuth = true;
+    }
+  }
+
+  if (headers['Authorization'] || headers['authorization']) {
+    hasAuth = true;
+  }
+
+  if (!hasAuth && effectiveApiKey) {
+    headers['x-api-key'] = effectiveApiKey;
+    headers['Authorization'] = `Bearer ${effectiveApiKey}`;
+    hasAuth = true;
+  }
+
+  if (config.adminSecretKey && effectiveApiKey === config.adminSecretKey && !headers['Authorization'] && !headers['authorization']) {
+    headers['Authorization'] = `Bearer ${effectiveApiKey}`;
+  }
+
+  if (req && req.headers) {
+    if (req.headers['anthropic-version']) {
+      headers['anthropic-version'] = String(req.headers['anthropic-version']);
+    }
+    if (req.headers['anthropic-beta']) {
+      headers['anthropic-beta'] = String(req.headers['anthropic-beta']);
+    }
+  }
+
+  return headers;
+}
+
+/**
  * Masks a sensitive API key for safe logging (e.g., "AIzaSy1234567890" -> "AIzaSy***7890").
  */
 export function maskApiKey(key: string | null | undefined): string {

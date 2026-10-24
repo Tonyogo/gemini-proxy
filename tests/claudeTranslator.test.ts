@@ -2127,6 +2127,130 @@ describe('Claude Translator Ignored Tools Filtering', () => {
   });
 });
 
+import { buildDirectUpstreamHeaders } from '../src/utils/requestHelper';
+
+describe('Claude Direct Mode Preprocessing & Headers', () => {
+  beforeEach(() => {
+    config.customSystemInstruction = '';
+    config.stripSystemFingerprints = true;
+    config.modelMappings = {};
+    config.ignoredTools = ['Artifact', 'ArtifactCheck'];
+    config.ephemeralUserMessages = ['[ephemeral-user-hint]'];
+    config.ephemeralSystemMessages = ['[ephemeral-sys-hint]'];
+  });
+
+  it('maps model name, preserves -high suffix without injecting thinking, and leaves inline system messages untouched', () => {
+    config.modelMappings = {
+      'claude-sonnet': { target: 'claude-sonnet-4-5-high', strategy: 'least-used' }
+    };
+    const input = {
+      model: 'claude-sonnet',
+      stream: true,
+      max_tokens: 1024,
+      messages: [
+        { role: 'system', content: 'Inline system message stays as-is' },
+        { role: 'user', content: 'Hello world' }
+      ]
+    } as any;
+
+    const { directRequest, cleanModelName, strategy, isStream } =
+      translator.preprocessClaudeDirectRequest(input);
+
+    expect(cleanModelName).toBe('claude-sonnet-4-5-high');
+    expect(directRequest.model).toBe('claude-sonnet-4-5-high');
+    expect(directRequest.thinking).toBeUndefined();
+    expect(strategy).toBe('least-used');
+    expect(isStream).toBe(true);
+    expect(directRequest.messages).toEqual([
+      { role: 'system', content: 'Inline system message stays as-is' },
+      { role: 'user', content: 'Hello world' }
+    ]);
+  });
+
+  it('cleans x-anthropic-billing-header from top-level system array/string and appends customSystemInstruction', () => {
+    config.customSystemInstruction = 'Custom direct instruction';
+    const inputWithArray = {
+      model: 'claude-3-5-sonnet',
+      system: [
+        { type: 'text', text: 'x-anthropic-billing-header: cc_version=2.1' },
+        { type: 'text', text: 'Keep this system block' }
+      ],
+      messages: [{ role: 'user', content: 'Hi' }]
+    } as any;
+
+    const resArray = translator.preprocessClaudeDirectRequest(inputWithArray);
+    expect(resArray.directRequest.system).toEqual([
+      { type: 'text', text: 'Keep this system block' },
+      { type: 'text', text: 'Custom direct instruction' }
+    ]);
+
+    config.customSystemInstruction = '';
+    const inputOnlyBilling = {
+      model: 'claude-3-5-sonnet',
+      system: 'x-anthropic-billing-header: cc_version=2.1',
+      messages: [{ role: 'user', content: 'Hi' }]
+    } as any;
+    const resEmpty = translator.preprocessClaudeDirectRequest(inputOnlyBilling);
+    expect(resEmpty.directRequest.system).toBeUndefined();
+  });
+
+  it('filters historical ephemeral messages and removes ignoredTools without mutating input', () => {
+    const original = {
+      model: 'claude-3-5-sonnet',
+      messages: [
+        { role: 'system', content: '[ephemeral-sys-hint] drop me' },
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: '[ephemeral-user-hint] drop block' },
+            { type: 'text', text: 'keep block' }
+          ]
+        },
+        { role: 'assistant', content: 'ok' },
+        { role: 'user', content: 'final user turn [ephemeral-user-hint]' }
+      ],
+      tools: [
+        { name: 'Artifact', input_schema: { type: 'object' } },
+        { name: 'Bash', input_schema: { type: 'object' } }
+      ]
+    } as any;
+
+    const snapshot = JSON.parse(JSON.stringify(original));
+    const { directRequest } = translator.preprocessClaudeDirectRequest(original);
+
+    expect(original).toEqual(snapshot);
+    expect(directRequest.messages).toEqual([
+      { role: 'user', content: [{ type: 'text', text: 'keep block' }] },
+      { role: 'assistant', content: 'ok' },
+      { role: 'user', content: 'final user turn [ephemeral-user-hint]' }
+    ]);
+    expect(directRequest.tools).toEqual([
+      { name: 'Bash', input_schema: { type: 'object' } }
+    ]);
+  });
+
+  it('builds direct upstream headers preserving client auth and anthropic headers', () => {
+    const fakeReq = {
+      headers: {
+        'x-api-key': 'sk-ant-client',
+        'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'Prompt-Caching-2024-07-31'
+      }
+    } as any;
+
+    const headers = buildDirectUpstreamHeaders(fakeReq, 'sk-ant-client', {
+      'x-scheduling-strategy': 'round-robin'
+    });
+
+    expect(headers['Content-Type']).toBe('application/json');
+    expect(headers['x-api-key']).toBe('sk-ant-client');
+    expect(headers['anthropic-version']).toBe('2023-06-01');
+    expect(headers['anthropic-beta']).toBe('Prompt-Caching-2024-07-31');
+    expect(headers['x-scheduling-strategy']).toBe('round-robin');
+  });
+});
+
+
 
 
 
