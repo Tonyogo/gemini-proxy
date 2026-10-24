@@ -48,9 +48,9 @@ describe('ConfigModal Mobile Enhancements & Minimalist Upstream Layout', () => {
     expect(content).toContain('col-span-12 sm:col-span-7 space-y-1');
   });
 
-  test('renders minimalist direct mode badge and target endpoint', () => {
+  test('renders unified egress channel title and removes direct official target badge', () => {
     expect(content).toContain("t('config.egressChannelTitle'");
-    expect(content).toContain("t('config.targetOfficialEndpoint'");
+    expect(content).not.toContain("t('config.targetOfficialEndpoint'");
   });
 
   test('conditionally hides node URL input when server.type is direct', () => {

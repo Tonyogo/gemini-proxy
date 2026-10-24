@@ -50,13 +50,11 @@ describe('ConfigModal Upstream Compact High-Density Accordion Design', () => {
     expect(collapsedToExpandedSlice).not.toContain('grid-cols-2 p-0.5 bg-slate-900');
   });
 
-  test('expanded form unifies egress channel switcher and uses compact 2-row API keys input', () => {
+  test('expanded form unifies egress channel switcher without direct api keys textarea', () => {
     // Egress channel title should appear only once in unified control instead of duplicated for direct/proxy
     const matches = content.match(/t\('config\.egressChannelTitle'/g) || [];
     expect(matches.length).toBe(1);
-    // Direct API keys textarea uses rows={2} for compact vertical footprint
-    expect(content).toContain('rows={2}');
-    expect(content).not.toContain('rows={3}');
+    expect(content).not.toContain('Gemini API Keys (直连密钥池)');
   });
 });
 

@@ -58,9 +58,8 @@ const SPLIT_BORDER_COLORS = [
   'border-l-teal-500'
 ];
 
-const getCompactHost = (rawUrl?: string, type?: 'proxy' | 'direct') => {
-  const fallback = type === 'direct' ? 'generativelanguage.googleapis.com' : '';
-  const target = (rawUrl || '').trim() || fallback;
+const getCompactHost = (rawUrl?: string) => {
+  const target = (rawUrl || '').trim();
   if (!target) return '';
   try {
     const withProto = /^https?:\/\//i.test(target) ? target : `https://${target}`;
@@ -492,18 +491,15 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
           ignoredTools,
           customSystemInstruction,
           proxyUrl: proxyUrl.trim(),
-          upstreamServers: upstreamServers.map((s, idx) => {
-            const rawKeys = serverKeyInputs[idx] !== undefined ? serverKeyInputs[idx] : (s.apiKeys || []).join('\n');
-            const cleanKeys = Array.from(new Set(rawKeys.split('\n').map(k => k.trim()).filter(Boolean)));
+          upstreamServers: upstreamServers.map((s) => {
             return {
-              url: (s.type === 'direct' && !s.url.trim()) ? 'https://generativelanguage.googleapis.com' : s.url.trim().replace(/\/+$/, ''),
+              url: s.url.trim().replace(/\/+$/, ''),
               weight: Math.max(1, Math.min(1000, Number(s.weight) || 1)),
               enabled: s.enabled !== false,
               type: s.type || 'proxy',
               useProxy: Boolean(s.useProxy),
               ...(s.name?.trim() ? { name: s.name.trim() } : {}),
               ...(Array.isArray(s.allowedModels) && s.allowedModels.length > 0 ? { allowedModels: s.allowedModels } : {}),
-              ...(s.type === 'direct' && cleanKeys.length > 0 ? { apiKeys: cleanKeys } : {}),
               ...(s.proxyUrl?.trim() ? { proxyUrl: s.proxyUrl.trim() } : {})
             };
           }),
@@ -1146,11 +1142,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                             const color = SPLIT_COLORS[idx % SPLIT_COLORS.length];
                             const borderColor = SPLIT_BORDER_COLORS[idx % SPLIT_BORDER_COLORS.length];
                             const isExpanded = expandedServers[idx] !== false;
-                            const compactHost = getCompactHost(server.url, server.type);
-                            const rawKeyCount = (serverKeyInputs[idx] !== undefined ? serverKeyInputs[idx] : (server.apiKeys || []).join('\n'))
-                              .split('\n')
-                              .map(k => k.trim())
-                              .filter(Boolean).length;
+                            const compactHost = getCompactHost(server.url);
                             const currentModelCount = (serverModelInputs[idx] !== undefined ? serverModelInputs[idx] : (server.allowedModels || []).join(', '))
                               .split(',')
                               .map(s => s.trim())
@@ -1300,7 +1292,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                         {server.type === 'direct' ? t('config.modeDirectShort', '直连') : t('config.modeProxyShort', '代理')}
                                       </span>
                                       <span className="font-mono text-slate-300 truncate max-w-[280px]" title={server.url}>
-                                        {compactHost || (server.type === 'direct' ? 'generativelanguage.googleapis.com' : '未设置端点')}
+                                        {compactHost || t('config.noEndpointSet', '未设置端点')}
                                       </span>
                                       <span className="text-slate-600">•</span>
                                       <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
@@ -1313,11 +1305,6 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                       {currentModelCount > 0 && (
                                         <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-blue-500/15 text-blue-300 border border-blue-500/30">
                                           模型 ×{currentModelCount}
-                                        </span>
-                                      )}
-                                      {server.type === 'direct' && (
-                                        <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
-                                          Key ×{rawKeyCount}
                                         </span>
                                       )}
                                     </div>
@@ -1491,13 +1478,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                               {t('config.globalProxyNotConfigured', '需配置全局代理')}
                                             </span>
                                           )
-                                        ) : (
-                                          server.type === 'direct' ? (
-                                            <span className="text-[10px] font-mono text-cyan-300 bg-slate-800/80 px-1.5 py-0.5 rounded border border-cyan-500/30 truncate max-w-[160px]">
-                                              {t('config.targetOfficialEndpoint', '目标: 官方 Gemini API (本机直连)')}
-                                            </span>
-                                          ) : null
-                                        )}
+                                        ) : null}
                                       </div>
                                       <div className="grid grid-cols-2 p-0.5 rounded-md bg-slate-950 border border-slate-700/80 h-[30px]">
                                         <button
@@ -1533,47 +1514,6 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                                       </div>
                                     </div>
                                   </div>
-
-                                  {/* Direct Mode API Keys (Compact 2-line inline) */}
-                                  {server.type === 'direct' && (
-                                    <div className="col-span-12 space-y-1">
-                                      <div className="flex items-center justify-between">
-                                        <label className="text-[11px] font-semibold text-cyan-400 flex items-center space-x-1">
-                                          <span>{t('config.serverApiKeys', 'Gemini API Keys (直连密钥池)')}</span>
-                                        </label>
-                                        {(() => {
-                                          const rawKeys = serverKeyInputs[idx] !== undefined ? serverKeyInputs[idx] : (server.apiKeys || []).join('\n');
-                                          const count = rawKeys.split('\n').map(k => k.trim()).filter(Boolean).length;
-                                          return (
-                                            <span className="text-[10px] text-cyan-300/80 font-mono bg-cyan-950/60 px-1.5 py-0.5 rounded border border-cyan-500/30">
-                                              {t('config.keyPoolCountBadge', 'Key × {count}').replace('{count}', String(count))}
-                                            </span>
-                                          );
-                                        })()}
-                                      </div>
-                                      <textarea
-                                        rows={2}
-                                        value={serverKeyInputs[idx] !== undefined ? serverKeyInputs[idx] : (server.apiKeys || []).join('\n')}
-                                        onChange={(e) => {
-                                          const val = e.target.value;
-                                          setServerKeyInputs(prev => ({ ...prev, [idx]: val }));
-                                        }}
-                                        onBlur={() => {
-                                          const raw = serverKeyInputs[idx] !== undefined ? serverKeyInputs[idx] : (server.apiKeys || []).join('\n');
-                                          const cleanKeys = Array.from(new Set(raw.split('\n').map(k => k.trim()).filter(Boolean)));
-                                          const updated = [...upstreamServers];
-                                          updated[idx] = {
-                                            ...updated[idx],
-                                            apiKeys: cleanKeys.length > 0 ? cleanKeys : undefined
-                                          };
-                                          setUpstreamServers(updated);
-                                          setServerKeyInputs(prev => ({ ...prev, [idx]: cleanKeys.join('\n') }));
-                                        }}
-                                        placeholder={t('config.serverApiKeysPlaceholder', '每行一个 API Key，请求将在配置的 Key 之间均衡轮询负载')}
-                                        className="w-full ui-input py-1.5 px-2 text-xs font-mono resize-y leading-relaxed text-slate-200"
-                                      />
-                                    </div>
-                                  )}
                                 </div>
                               )}
                             </div>

@@ -2,7 +2,6 @@ import { Request, Response } from 'express';
 import accountService from '../services/accountService';
 import accountUsageService from '../services/accountUsageService';
 import upstreamManager from '../../utils/upstreamManager';
-import { maskApiKey } from '../../utils/requestHelper';
 
 class AccountController {
   private getServerIndex(req: Request): number | undefined {
@@ -49,51 +48,49 @@ class AccountController {
     const targetServer = servers[serverIdx];
 
     if (targetServer && targetServer.type === 'direct') {
-      const keys = targetServer.apiKeys || [];
-      const accountDetails = keys.map((key, idx) => {
-        const maskedName = maskApiKey(key);
-        const localStats = accountUsageService.getUsageForAccount(maskedName);
-        const byModelCompat: Record<string, any> = {};
-        if (localStats?.byModel) {
-          for (const [model, stats] of Object.entries(localStats.byModel)) {
-            const cleanModel = model.replace(/^models\//, '');
-            byModelCompat[cleanModel] = {
-              usage: stats.success,
-              requests: stats.total,
-              success: stats.success,
-              error: stats.error
-            };
-          }
+      const nodeAccountKey = `__direct_node_${serverIdx}__`;
+      const localStats = accountUsageService.getUsageForAccount(nodeAccountKey);
+      const byModelCompat: Record<string, any> = {};
+      if (localStats?.byModel) {
+        for (const [model, stats] of Object.entries(localStats.byModel)) {
+          const cleanModel = model.replace(/^models\//, '');
+          byModelCompat[cleanModel] = {
+            usage: stats.success,
+            requests: stats.total,
+            success: stats.success,
+            error: stats.error
+          };
         }
-        return {
-          index: idx,
-          name: maskedName,
-          status: 'ACTIVE',
-          isDisabled: false,
-          isInvalid: false,
-          isDuplicate: false,
-          isExpired: false,
-          isRotation: false,
-          hasContext: false,
-          canonicalIndex: null,
-          usage: {
-            total: localStats?.totalSuccess || 0,
-            totalRequests: localStats?.totalRequests || 0,
-            totalSuccess: localStats?.totalSuccess || 0,
-            totalError: localStats?.totalError || 0,
-            byModel: byModelCompat
-          }
-        };
-      });
+      }
+
+      const virtualAccount = {
+        index: 0,
+        name: targetServer.name || `Direct Node ${serverIdx + 1}`,
+        status: 'ACTIVE',
+        isDisabled: false,
+        isInvalid: false,
+        isDuplicate: false,
+        isExpired: false,
+        isRotation: false,
+        hasContext: false,
+        canonicalIndex: null,
+        usage: {
+          total: localStats?.totalSuccess || 0,
+          totalRequests: localStats?.totalRequests || 0,
+          totalSuccess: localStats?.totalSuccess || 0,
+          totalError: localStats?.totalError || 0,
+          byModel: byModelCompat
+        }
+      };
 
       res.json({
         isDirectMode: true,
         status: {
           isSystemBusy: false,
           streamingMode: 'DIRECT',
-          usageCount: accountDetails.reduce((sum, a) => sum + (a.usage?.totalRequests || 0), 0),
-          failureCount: accountDetails.reduce((sum, a) => sum + (a.usage?.totalError || 0), 0),
-          accountDetails
+          usageCount: localStats?.totalRequests || 0,
+          failureCount: localStats?.totalError || 0,
+          accountDetails: [virtualAccount]
         }
       });
       return;

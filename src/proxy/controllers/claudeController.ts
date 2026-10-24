@@ -832,11 +832,15 @@ class ClaudeController {
         return res.status(403).json(errPayload);
       }
 
-      const countTargetPath = `/v1beta/models/${resolvedCountModel}:countTokens`;
+      const effectiveCountModel = (config.countTokensModel && config.countTokensModel.trim())
+        ? claudeTranslator.getCleanModelName(config.countTokensModel.trim())
+        : resolvedCountModel;
+
+      const countTargetPath = `/v1beta/models/${effectiveCountModel}:countTokens`;
       const serverSelection = upstreamManager.getUpstreamUrl(countTargetPath, {
-        model: resolvedCountModel,
+        model: effectiveCountModel,
         originalModel: requestedModel,
-        resolvedModel: resolvedCountModel
+        resolvedModel: effectiveCountModel
       });
 
       if (serverSelection.serverType === 'direct') {

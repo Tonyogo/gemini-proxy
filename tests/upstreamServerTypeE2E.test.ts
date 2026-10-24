@@ -17,11 +17,6 @@ describe('Upstream Server Types and Direct Mode E2E Integration', () => {
   const originalAdminKey = config.adminSecretKey;
   const adminSecret = 'test-e2e-admin-secret';
 
-  const directKeyA = 'AIzaSyKeyAAA1111111111111111';
-  const directKeyB = 'AIzaSyKeyBBB2222222222222222';
-  const maskedKeyA = 'AIzaSy***1111';
-  const maskedKeyB = 'AIzaSy***2222';
-
   beforeEach(() => {
     config.adminSecretKey = adminSecret;
     accountUsageService.resetForTest();
@@ -37,8 +32,8 @@ describe('Upstream Server Types and Direct Mode E2E Integration', () => {
     jest.clearAllMocks();
   });
 
-  it('runs end-to-end mixed cluster routing, direct key round-robin, and admin status virtualization', async () => {
-    // 1. Configure mixed cluster: Server 0 = Proxy (allowedModels: flash), Server 1 = Direct (allowedModels: pro)
+  it('runs end-to-end mixed cluster routing, direct forwarding, and admin status aggregation', async () => {
+    // 1. Configure mixed cluster: Server 0 = Proxy (flash), Server 1 = Direct (claude-sonnet-4-5)
     config.upstreamServers = [
       {
         url: 'https://proxy-upstream.example.com',
@@ -49,17 +44,15 @@ describe('Upstream Server Types and Direct Mode E2E Integration', () => {
         allowedModels: ['gemini-2.5-flash']
       },
       {
-        url: 'https://generativelanguage.googleapis.com',
+        url: 'https://direct-claude.example.com',
         weight: 1,
         enabled: true,
         type: 'direct',
         name: 'Direct Node',
-        allowedModels: ['gemini-2.5-pro'],
-        apiKeys: [directKeyA, directKeyB]
+        allowedModels: ['claude-sonnet-4-5']
       }
     ];
 
-    // Helper mock Gemini response
     const mockGeminiResponse = (text: string) => ({
       status: 200,
       ok: true,
@@ -96,10 +89,43 @@ describe('Upstream Server Types and Direct Mode E2E Integration', () => {
         })
     });
 
+    const mockClaudeDirectResponse = (text: string) => ({
+      status: 200,
+      ok: true,
+      headers: {
+        get: (h: string) => (h.toLowerCase() === 'content-type' ? 'application/json' : null)
+      },
+      json: () =>
+        Promise.resolve({
+          id: 'msg_direct_e2e',
+          type: 'message',
+          role: 'assistant',
+          model: 'claude-sonnet-4-5',
+          content: [{ type: 'text', text }],
+          stop_reason: 'end_turn',
+          usage: { input_tokens: 15, output_tokens: 25 }
+        }),
+      text: () =>
+        Promise.resolve(
+          JSON.stringify({
+            id: 'msg_direct_e2e',
+            type: 'message',
+            role: 'assistant',
+            model: 'claude-sonnet-4-5',
+            content: [{ type: 'text', text }],
+            stop_reason: 'end_turn',
+            usage: { input_tokens: 15, output_tokens: 25 }
+          })
+        )
+    });
+
     const recordedCalls: Array<{ url: string; headers: any }> = [];
     mockedFetch.mockImplementation((url: string, opts: any) => {
       recordedCalls.push({ url, headers: opts?.headers || {} });
-      return Promise.resolve(mockGeminiResponse('OK response'));
+      if (url.includes('/v1/messages')) {
+        return Promise.resolve(mockClaudeDirectResponse('Direct Claude Response'));
+      }
+      return Promise.resolve(mockGeminiResponse('Proxy Gemini Response'));
     });
 
     // 2. Request 1: Route to proxy node with gemini-2.5-flash via Claude Messages
@@ -114,63 +140,42 @@ describe('Upstream Server Types and Direct Mode E2E Integration', () => {
 
     expect(resFlash.status).toBe(200);
     expect(recordedCalls.length).toBe(1);
-    expect(recordedCalls[0].url).toContain('https://proxy-upstream.example.com');
-    // On proxy server, direct keys are not injected
+    expect(recordedCalls[0].url).toContain('https://proxy-upstream.example.com/v1beta/models/gemini-2.5-flash:generateContent');
     expect(recordedCalls[0].headers['x-goog-api-key']).toBe('client-custom-key');
 
-    // 3. Request 2: Route to direct node with gemini-2.5-pro via Claude Messages (Key A)
-    const resPro1 = await request(app)
+    // 3. Request 2: Route to direct node with claude-sonnet-4-5 via Claude Messages (native forward)
+    const resDirect = await request(app)
       .post('/v1/messages')
-      .set('x-api-key', 'client-custom-key')
+      .set('x-api-key', 'client-direct-key')
       .send({
-        model: 'gemini-2.5-pro',
+        model: 'claude-sonnet-4-5',
         max_tokens: 100,
-        messages: [{ role: 'user', content: 'Ping Pro 1' }]
+        messages: [{ role: 'user', content: 'Ping Direct' }]
       });
 
-    expect(resPro1.status).toBe(200);
+    expect(resDirect.status).toBe(200);
     expect(recordedCalls.length).toBe(2);
-    expect(recordedCalls[1].url).toContain('https://generativelanguage.googleapis.com');
-    expect(recordedCalls[1].headers['x-goog-api-key']).toBe(directKeyA);
+    expect(recordedCalls[1].url).toBe('https://direct-claude.example.com/v1/messages');
+    expect(recordedCalls[1].headers['x-api-key']).toBe('client-direct-key');
+    expect(resDirect.body.content[0].text).toBe('Direct Claude Response');
 
-    // 4. Request 3: Route to direct node with gemini-2.5-pro via Gemini Native Route (Key B round-robin)
-    const resPro2 = await request(app)
-      .post('/v1beta/models/gemini-2.5-pro:generateContent')
-      .set('x-goog-api-key', 'client-custom-key')
-      .send({
-        contents: [{ role: 'user', parts: [{ text: 'Ping Pro 2 Native' }] }]
-      });
+    // 4. Verify local account usage service recorded direct node usage under __direct_node_1__
+    const usageDirect = accountUsageService.getUsageForAccount('__direct_node_1__');
+    expect(usageDirect).toBeDefined();
+    expect(usageDirect?.totalRequests).toBe(1);
+    expect(usageDirect?.totalSuccess).toBe(1);
+    expect(usageDirect?.byModel['claude-sonnet-4-5']?.total).toBe(1);
 
-    expect(resPro2.status).toBe(200);
-    expect(recordedCalls.length).toBe(3);
-    expect(recordedCalls[2].url).toContain('https://generativelanguage.googleapis.com');
-    expect(recordedCalls[2].headers['x-goog-api-key']).toBe(directKeyB);
-
-    // 5. Verify local account usage service recorded masked keys
-    const usageA = accountUsageService.getUsageForAccount(maskedKeyA);
-    const usageB = accountUsageService.getUsageForAccount(maskedKeyB);
-    expect(usageA).toBeDefined();
-    expect(usageA?.totalRequests).toBe(1);
-    expect(usageA?.totalSuccess).toBe(1);
-    expect(usageA?.byModel['gemini-2.5-pro']?.total).toBe(1);
-
-    expect(usageB).toBeDefined();
-    expect(usageB?.totalRequests).toBe(1);
-    expect(usageB?.totalSuccess).toBe(1);
-    expect(usageB?.byModel['gemini-2.5-pro']?.total).toBe(1);
-
-    // 6. Admin API: /api/admin/accounts/servers metadata
+    // 5. Admin API: /api/admin/accounts/servers metadata
     const serversRes = await request(app)
       .get('/api/admin/accounts/servers')
       .set('x-admin-key', adminSecret);
 
     expect(serversRes.status).toBe(200);
     expect(serversRes.body.serversMeta[0].type).toBe('proxy');
-    expect(serversRes.body.serversMeta[0].keyCount).toBe(0);
     expect(serversRes.body.serversMeta[1].type).toBe('direct');
-    expect(serversRes.body.serversMeta[1].keyCount).toBe(2);
 
-    // 7. Admin API: /api/admin/accounts/status?serverId=1 for direct node
+    // 6. Admin API: /api/admin/accounts/status?serverId=1 for direct node
     const statusRes = await request(app)
       .get('/api/admin/accounts/status?serverId=1')
       .set('x-admin-key', adminSecret);
@@ -178,20 +183,16 @@ describe('Upstream Server Types and Direct Mode E2E Integration', () => {
     expect(statusRes.status).toBe(200);
     expect(statusRes.body.isDirectMode).toBe(true);
     expect(statusRes.body.status.streamingMode).toBe('DIRECT');
-    expect(statusRes.body.status.usageCount).toBe(2);
-    expect(statusRes.body.status.accountDetails).toHaveLength(2);
+    expect(statusRes.body.status.usageCount).toBe(1);
+    expect(statusRes.body.status.accountDetails).toHaveLength(1);
 
-    const detailsA = statusRes.body.status.accountDetails[0];
-    const detailsB = statusRes.body.status.accountDetails[1];
-    expect(detailsA.name).toBe(maskedKeyA);
-    expect(detailsA.status).toBe('ACTIVE');
-    expect(detailsA.usage.totalRequests).toBe(1);
+    const details = statusRes.body.status.accountDetails[0];
+    expect(details.name).toBe('Direct Node');
+    expect(details.status).toBe('ACTIVE');
+    expect(details.usage.totalRequests).toBe(1);
+    expect(details.usage.byModel['claude-sonnet-4-5'].requests).toBe(1);
 
-    expect(detailsB.name).toBe(maskedKeyB);
-    expect(detailsB.status).toBe('ACTIVE');
-    expect(detailsB.usage.totalRequests).toBe(1);
-
-    // 8. Admin API: Operation protection on direct node
+    // 7. Admin API: Operation protection on direct node
     const uploadRes = await request(app)
       .post('/api/admin/accounts/upload?serverId=1')
       .set('x-admin-key', adminSecret)

@@ -26,10 +26,10 @@ describe('Account Controller in Direct Mode', () => {
     upstreamManager.reset();
   });
 
-  it('returns server metadata with type and keyCount in /api/admin/accounts/servers', async () => {
+  it('returns server metadata with type in /api/admin/accounts/servers', async () => {
     config.upstreamServers = [
       { url: 'https://proxy.example.com', weight: 1, enabled: true, type: 'proxy' },
-      { url: 'https://generativelanguage.googleapis.com', weight: 2, enabled: true, type: 'direct', apiKeys: ['key1', 'key2'] }
+      { url: 'https://direct-claude.example.com', weight: 2, enabled: true, type: 'direct' }
     ];
 
     const res = await request(app)
@@ -40,25 +40,21 @@ describe('Account Controller in Direct Mode', () => {
     expect(res.body.serversMeta).toBeDefined();
     expect(res.body.serversMeta[0].type).toBe('proxy');
     expect(res.body.serversMeta[1].type).toBe('direct');
-    expect(res.body.serversMeta[1].keyCount).toBe(2);
   });
 
   it('returns local virtual account status without network request in /api/admin/accounts/status for direct mode', async () => {
-    const rawKey = 'AIzaSyDirectModeTesting12345';
     config.upstreamServers = [
       {
-        url: 'https://generativelanguage.googleapis.com',
+        url: 'https://direct-claude.example.com',
         weight: 1,
         enabled: true,
         type: 'direct',
-        name: 'Direct Server',
-        apiKeys: [rawKey]
+        name: 'Direct Server'
       }
     ];
 
-    // Seed usage
-    const masked = 'AIzaSy***2345';
-    accountUsageService.record(masked, 'gemini-2.5-pro', true);
+    // Seed usage under __direct_node_0__
+    accountUsageService.record('__direct_node_0__', 'claude-sonnet-4-5', true);
 
     const res = await request(app)
       .get('/api/admin/accounts/status?serverIndex=0')
@@ -66,19 +62,20 @@ describe('Account Controller in Direct Mode', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.isDirectMode).toBe(true);
+    expect(res.body.status?.usageCount).toBe(1);
     expect(res.body.status?.accountDetails).toHaveLength(1);
-    expect(res.body.status.accountDetails[0].name).toBe(masked);
-    expect(res.body.status.accountDetails[0].usage.totalRequests).toBeGreaterThanOrEqual(1);
+    expect(res.body.status.accountDetails[0].name).toBe('Direct Server');
+    expect(res.body.status.accountDetails[0].usage.totalRequests).toBe(1);
+    expect(res.body.status.accountDetails[0].usage.byModel['claude-sonnet-4-5'].requests).toBe(1);
   });
 
   it('rejects proxy-only operations with 400 for direct mode servers', async () => {
     config.upstreamServers = [
       {
-        url: 'https://generativelanguage.googleapis.com',
+        url: 'https://direct-claude.example.com',
         weight: 1,
         enabled: true,
-        type: 'direct',
-        apiKeys: ['key1']
+        type: 'direct'
       }
     ];
 

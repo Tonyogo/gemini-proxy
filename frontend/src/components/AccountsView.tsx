@@ -19,7 +19,6 @@ import {
   Check,
   Radio,
   FileText,
-  Key,
   ShieldCheck,
   AlertTriangle,
   ArrowRightLeft,
@@ -962,11 +961,11 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
                     <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold border shrink-0 ${isActive ? 'bg-rose-500 text-white border-rose-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20'}`}>
                       {t('accounts.nodeOffline')}
                     </span>
-                  ) : count !== undefined ? (
+                  ) : serversMeta[idx]?.type !== 'direct' && count !== undefined ? (
                     <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded shrink-0 tabular-nums ${
                       isActive ? 'bg-white/20 text-white font-semibold' : 'bg-black/5 dark:bg-white/5 text-slate-500 dark:text-slate-400'
                     }`}>
-                      {count} {serversMeta[idx]?.type === 'direct' ? 'Keys' : t('accounts.accountUnit')}
+                      {count} {t('accounts.accountUnit')}
                     </span>
                   ) : null}
                 </button>
@@ -1002,7 +1001,9 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
               <span className={isCurrentOffline ? 'text-rose-500 font-medium' : 'text-emerald-500 font-medium'}>
                 {isCurrentOffline ? t('accounts.nodeOffline') : t('accounts.nodeOnline')}
               </span>
-              <span className="text-slate-400 font-mono">· {accounts.length} {serversMeta[activeServerIndex]?.type === 'direct' ? 'Keys' : t('accounts.accountUnit')}</span>
+              {serversMeta[activeServerIndex]?.type !== 'direct' && (
+                <span className="text-slate-400 font-mono">· {accounts.length} {t('accounts.accountUnit')}</span>
+              )}
             </div>
           </div>
         </div>
@@ -1072,8 +1073,10 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
         )}
       </div>
 
-      {/* Action Toolbar */}
-      <div className="ui-card p-2 sm:p-3.5 shrink-0">
+      {!isCurrentDirect && (
+        <>
+          {/* Action Toolbar */}
+          <div className="ui-card p-2 sm:p-3.5 shrink-0">
         {/* File Upload Hidden Input */}
         <input
           type="file"
@@ -1315,236 +1318,16 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
             <span>{t('accounts.loading')}</span>
           </div>
         ) : filteredAccounts.length === 0 ? (
-          isCurrentDirect ? (
-            <div className="text-center py-16 px-4">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-cyan-500/10 text-cyan-500 mb-3 border border-cyan-500/20">
-                <Key className="w-6 h-6" />
-              </div>
-              <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200 mb-1">
-                {t('config.serverApiKeys', 'Gemini API Keys')}
-              </h4>
-              <p className="text-slate-400 text-xs max-w-md mx-auto">
-                {searchQuery ? t('accounts.noFilteredAccounts', '未找到符合当前搜索关键词的密钥。') : t('accounts.noKeysConfigured', '当前直连节点尚未配置 API Key，请前往系统设置添加')}
-              </p>
+          <div className="text-center py-16 px-4">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-black/[0.03] dark:bg-white/[0.04] text-[var(--text-muted)] mb-3 border border-[var(--border-subtle)]">
+              <Users className="w-6 h-6" />
             </div>
-          ) : (
-            <div className="text-center py-16 px-4">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-black/[0.03] dark:bg-white/[0.04] text-[var(--text-muted)] mb-3 border border-[var(--border-subtle)]">
-                <Users className="w-6 h-6" />
-              </div>
-              <p className="text-slate-400 text-xs max-w-md mx-auto">
-                {searchQuery || statusFilter !== 'ALL'
-                  ? t('accounts.noFilteredAccounts', '未找到符合当前搜索关键词或状态筛选的账号。')
-                  : t('accounts.noAccounts')}
-              </p>
-            </div>
-          )
-        ) : isCurrentDirect ? (
-          <>
-            {/* Desktop Direct Mode Table */}
-            <div className="hidden md:block overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-[var(--border-subtle)] text-[11px] font-medium tracking-wider text-[var(--text-muted)] uppercase select-none">
-                    <th className="px-4 py-3 w-16 text-left">{t('accounts.tableIndex', '序号')}</th>
-                    <th className="px-4 py-3 min-w-[240px] text-left">{t('config.serverApiKeys', 'Gemini API Key')}</th>
-                    <th className="px-4 py-3 min-w-[120px] text-left">{t('accounts.tableStatus', '状态')}</th>
-                    <th className="px-4 py-3 min-w-[200px] text-left">{t('accounts.tableQuota', '配额与今日用量')}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--border-subtle)] text-xs">
-                  {filteredAccounts.map((acc) => {
-                    const totalUsage = getTotalUsage(acc.usage);
-                    const succ = acc.usage?.totalSuccess ?? totalUsage;
-                    const successRate = totalUsage > 0 ? parseFloat(((succ / totalUsage) * 100).toFixed(1)) : 100.0;
-                    const breakdowns = getModelBreakdowns(acc.usage);
-                    const topModels = getAccountTopModels(acc.usage, 2);
-
-                    return (
-                      <tr key={acc.index} className="hover:bg-[var(--bg-surface-hover)] transition-colors">
-                        <td className="px-4 py-3 font-mono text-xs font-semibold text-slate-400 tabular-nums">
-                          #{acc.index}
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center space-x-2">
-                            <span className="font-mono text-xs font-medium text-slate-800 dark:text-slate-100 bg-slate-500/10 px-2 py-0.5 rounded border border-slate-500/20">
-                              {acc.name || `Key #${acc.index}`}
-                            </span>
-                            {acc.name && (
-                              <button
-                                onClick={() => handleCopyAccountName(acc.index, acc.name)}
-                                className="text-slate-500 hover:text-slate-300 transition-colors p-1 rounded"
-                                title={t('accounts.copyAccountName', '复制密钥')}
-                              >
-                                {copiedKeyIndex === acc.index ? (
-                                  <Check className="w-3.5 h-3.5 text-emerald-400" />
-                                ) : (
-                                  <Copy className="w-3.5 h-3.5" />
-                                )}
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border border-cyan-500/25 flex items-center space-x-1.5 w-fit">
-                            <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 dark:bg-cyan-400 inline-block animate-pulse" />
-                            <span>{t('accounts.statusActive', '轮询活跃')}</span>
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div
-                            className="inline-flex flex-col items-start cursor-pointer group"
-                            onClick={(e) => handleTogglePopover(e, acc.index)}
-                            onMouseEnter={(e) => handleMouseEnterPopover(e, acc.index)}
-                          >
-                            <div className="flex items-center space-x-1.5 font-mono font-bold text-xs text-slate-800 dark:text-slate-200 tabular-nums">
-                              <span className="tabular-nums">{totalUsage.toLocaleString()}</span>
-                              <span className="text-[10px] text-slate-400 font-normal">reqs</span>
-                              <span className="text-[10px] px-1.5 py-0.5 rounded font-normal bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 tabular-nums">
-                                {successRate}%
-                              </span>
-                              {breakdowns.length > 0 && (
-                                <Info className="w-3.5 h-3.5 text-slate-400 group-hover:text-indigo-500 transition-colors" />
-                              )}
-                            </div>
-                            {/* Inline Top Models Badges */}
-                            {topModels.length > 0 && (
-                              <div className="flex items-center space-x-1 mt-0.5">
-                                {topModels.map(m => (
-                                  <span
-                                    key={m.model}
-                                    className="text-[9px] font-mono px-1 py-0.5 rounded bg-black/[0.04] dark:bg-white/[0.06] text-slate-500 dark:text-slate-400 tabular-nums"
-                                  >
-                                    {m.model.replace('gemini-', '')}: {m.count}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Mobile Direct Mode Card List */}
-            <div className="block md:hidden divide-y divide-[var(--border-subtle)]">
-              {filteredAccounts.map((acc) => {
-                const totalUsage = getTotalUsage(acc.usage);
-                const succ = acc.usage?.totalSuccess ?? totalUsage;
-                const successRate = totalUsage > 0 ? parseFloat(((succ / totalUsage) * 100).toFixed(1)) : 100.0;
-                const breakdowns = getModelBreakdowns(acc.usage);
-                const topModels = getAccountTopModels(acc.usage, 2);
-                const isUsageExpanded = Boolean(expandedMobileUsage[acc.index]);
-
-                return (
-                  <div key={acc.index} className="p-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2 min-w-0">
-                        <span className="font-mono text-xs font-semibold text-slate-400 tabular-nums">#{acc.index}</span>
-                        <span className="font-mono text-xs font-medium text-slate-800 dark:text-slate-200 bg-slate-500/10 px-2 py-0.5 rounded border border-slate-500/20 truncate">
-                          {acc.name || `Key #${acc.index}`}
-                        </span>
-                        {acc.name && (
-                          <button
-                            onClick={() => handleCopyAccountName(acc.index, acc.name)}
-                            className="text-slate-500 hover:text-slate-300 transition-colors p-1"
-                            title={t('accounts.copyAccountName')}
-                          >
-                            {copiedKeyIndex === acc.index ? (
-                              <Check className="w-3.5 h-3.5 text-emerald-400" />
-                            ) : (
-                              <Copy className="w-3.5 h-3.5" />
-                            )}
-                          </button>
-                        )}
-                      </div>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/25 shrink-0 flex items-center space-x-1.5 w-fit">
-                        <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 dark:bg-cyan-400 inline-block animate-pulse" />
-                        <span>{t('accounts.statusActive', '轮询活跃')}</span>
-                      </span>
-                    </div>
-
-                    {/* Usage Button & Top Models */}
-                    <div className="flex items-center space-x-1.5 flex-wrap pt-0.5">
-                      <button
-                        type="button"
-                        onClick={() => toggleMobileUsage(acc.index)}
-                        className="px-2 py-0.5 rounded-lg text-xs font-mono ui-card-sub hover:bg-[var(--bg-surface-hover)] text-[var(--text-secondary)] border border-[var(--border-subtle)] flex items-center space-x-1.5 transition-colors tabular-nums"
-                      >
-                        <Clock className="w-3 h-3 text-indigo-500 dark:text-indigo-400 shrink-0" />
-                        <span className="font-bold text-slate-800 dark:text-slate-200 tabular-nums">{totalUsage.toLocaleString()}</span>
-                        <span className="text-[10px] text-slate-500 font-mono">reqs</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded font-normal bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 tabular-nums">
-                          {successRate}%
-                        </span>
-                        {breakdowns.length > 0 && (
-                          <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform duration-200 ${isUsageExpanded ? 'rotate-180 text-indigo-400' : ''}`} />
-                        )}
-                      </button>
-                      {topModels.length > 0 && (
-                        <div className="flex items-center space-x-1">
-                          {topModels.map(m => (
-                            <span
-                              key={m.model}
-                              className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-black/[0.04] dark:bg-white/[0.06] text-slate-500 dark:text-slate-400 border border-[var(--border-subtle)] tabular-nums"
-                            >
-                              {m.model.replace('gemini-', '')}: {m.count}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Expandable Model Usage Breakdown when clicked */}
-                    {isUsageExpanded && (
-                      <div className="p-2.5 ui-card-sub rounded-xl space-y-2 animate-in fade-in duration-150 text-xs">
-                        {breakdowns.length === 0 ? (
-                          <div className="text-[11px] text-slate-500 italic text-center py-1">
-                            {totalUsage === 0 ? 'No model requests today' : `Total requests: ${totalUsage}`}
-                          </div>
-                        ) : (
-                          breakdowns.map((item, idx) => {
-                            const ratio = item.limit ? Math.min(100, Math.round((item.count / item.limit) * 100)) : null;
-                            return (
-                              <div key={idx} className="space-y-1">
-                                <div className="flex items-center justify-between text-xs font-mono tabular-nums">
-                                  <span className="text-slate-700 dark:text-slate-300 truncate max-w-[180px]" title={item.model}>
-                                    {item.model}
-                                  </span>
-                                  <span className="text-slate-500 dark:text-slate-400 font-semibold tabular-nums">
-                                    <strong className="text-slate-800 dark:text-slate-200 tabular-nums">{item.count.toLocaleString()}</strong>
-                                    {item.limit !== undefined && <span className="text-slate-500 text-[10px] tabular-nums"> / {item.limit}</span>}
-                                    {item.error !== undefined && item.error > 0 && (
-                                      <span className="text-rose-500 dark:text-rose-400 text-[10px] ml-1 font-normal tabular-nums">
-                                        ({item.success ?? 0} ok / {item.error} err)
-                                      </span>
-                                    )}
-                                  </span>
-                                </div>
-                                {ratio !== null && (
-                                  <div className="w-full bg-black/[0.04] dark:bg-white/[0.04] rounded-full h-1.5 overflow-hidden">
-                                    <div
-                                      className={`h-full rounded-full transition-all ${
-                                        ratio >= 90 ? 'bg-rose-500' : ratio >= 70 ? 'bg-amber-500' : 'bg-indigo-500'
-                                      }`}
-                                      style={{ width: `${ratio}%` }}
-                                    />
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </>
+            <p className="text-slate-400 text-xs max-w-md mx-auto">
+              {searchQuery || statusFilter !== 'ALL'
+                ? t('accounts.noFilteredAccounts', '未找到符合当前搜索关键词或状态筛选的账号。')
+                : t('accounts.noAccounts')}
+            </p>
+          </div>
         ) : (
           <>
             {/* Desktop Table View */}
@@ -2016,6 +1799,8 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
           </>
         )}
       </div>
+      )}
+        </>
       )}
 
       {/* Floating Action Bar when rows are selected */}
