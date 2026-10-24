@@ -47,14 +47,13 @@ describe('claudeController Universal Thinking Suffix (-high)', () => {
     jest.restoreAllMocks();
   });
 
-  it('strips -high and injects thinkingLevel: HIGH in direct mode for non-stream /v1/messages', async () => {
+  it('preserves -high and does not inject thinkingLevel in direct mode for non-stream /v1/messages', async () => {
     jest.spyOn(upstreamManager, 'getUpstreamUrl').mockReturnValue({
-      targetUrl: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-high:generateContent',
-      serverUrl: 'https://generativelanguage.googleapis.com',
+      targetUrl: 'https://direct-claude.example.com/v1/messages',
+      serverUrl: 'https://direct-claude.example.com',
       serverIndex: 0,
       weight: 1,
-      serverType: 'direct',
-      selectedApiKey: 'test-direct-key'
+      serverType: 'direct'
     });
 
     const res = await request(app)
@@ -67,11 +66,10 @@ describe('claudeController Universal Thinking Suffix (-high)', () => {
       });
 
     expect(res.status).toBe(200);
-    expect(capturedUpstreamUrl).toBe('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent');
-    expect(capturedBody.generationConfig?.thinkingConfig).toEqual({
-      thinkingLevel: 'HIGH'
-    });
-    expect(capturedBody.generationConfig?.thinkingConfig?.includeThoughts).toBeUndefined();
+    expect(capturedUpstreamUrl).toBe('https://direct-claude.example.com/v1/messages');
+    expect(capturedBody.model).toBe('gemini-2.5-flash-high');
+    expect(capturedBody.generationConfig).toBeUndefined();
+    expect(capturedBody.thinking).toBeUndefined();
   });
 
   it('strips -high and injects thinkingLevel: HIGH in proxy mode for /v1/messages', async () => {
@@ -139,14 +137,13 @@ describe('claudeController Universal Thinking Suffix (-high)', () => {
     expect(capturedUpstreamUrl).toBe('https://custom-proxy.com/v1beta/models/gemini-2.5-flash');
   });
 
-  it('strips includeThoughts and injects thinkingLevel: HIGH when thinking is enabled', async () => {
+  it('strips includeThoughts and injects thinkingLevel: HIGH when thinking is enabled in proxy mode', async () => {
     jest.spyOn(upstreamManager, 'getUpstreamUrl').mockReturnValue({
       targetUrl: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-high:generateContent',
       serverUrl: 'https://generativelanguage.googleapis.com',
       serverIndex: 0,
       weight: 1,
-      serverType: 'direct',
-      selectedApiKey: 'test-direct-key'
+      serverType: 'proxy'
     });
 
     const res = await request(app)

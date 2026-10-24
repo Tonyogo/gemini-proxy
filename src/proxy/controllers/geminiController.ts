@@ -87,20 +87,18 @@ class GeminiController {
       originalModel: originalModel || undefined,
       resolvedModel: targetModelName || undefined
     });
-    let { targetUrl, serverUrl, serverIndex, serverType, selectedApiKey } = serverSelection;
+    let { targetUrl, serverUrl, serverIndex, serverType } = serverSelection;
     const customUpstreamHeaders: Record<string, string> = {};
     if (effectiveStrategy) {
       customUpstreamHeaders['x-scheduling-strategy'] = effectiveStrategy;
     }
-    const effectiveApiKey = (serverType === 'direct' && selectedApiKey)
-      ? selectedApiKey
-      : apiKey;
+    const effectiveApiKey = apiKey;
     const upstreamHeaders = buildUpstreamHeaders(effectiveApiKey, customUpstreamHeaders);
 
     const clientReq = req.body && Object.keys(req.body).length > 0 ? JSON.parse(JSON.stringify(req.body)) : null;
 
-    // Strip -high from URL, strip from body models, and inject thinkingConfig for generate endpoints across all upstreams
-    if (targetModelName) {
+    // Strip -high from URL, strip from body models, and inject thinkingConfig for generate endpoints only in proxy mode
+    if (targetModelName && serverType !== 'direct') {
       const thinkingInfo = parseModelThinkingSuffix(targetModelName);
       if (thinkingInfo.isHigh) {
         targetUrl = targetUrl.replace(`models/${targetModelName}`, `models/${thinkingInfo.baseModel}`);
@@ -139,8 +137,8 @@ class GeminiController {
         });
 
         let accountName = response.headers?.get ? (response.headers.get('x-account-name') || null) : null;
-        if (serverType === 'direct' && selectedApiKey) {
-          accountName = maskApiKey(selectedApiKey);
+        if (!accountName && serverType === 'direct') {
+          accountName = `__direct_node_${serverIndex}__`;
         }
 
         const isOk = response.ok !== undefined ? response.ok : (response.status >= 200 && response.status < 300);
@@ -241,8 +239,8 @@ class GeminiController {
       });
 
       let accountName = response.headers?.get ? (response.headers.get('x-account-name') || null) : null;
-      if (serverType === 'direct' && selectedApiKey) {
-        accountName = maskApiKey(selectedApiKey);
+      if (!accountName && serverType === 'direct') {
+        accountName = `__direct_node_${serverIndex}__`;
       }
 
       const isOk = response.ok !== undefined ? response.ok : (response.status >= 200 && response.status < 300);

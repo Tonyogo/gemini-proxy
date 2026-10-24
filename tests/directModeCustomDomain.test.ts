@@ -81,7 +81,7 @@ describe('Direct Mode Custom Domain & Endpoint Configuration', () => {
       ];
     });
 
-    it('routes Claude Messages requests to custom direct domain with injected API key', async () => {
+    it('routes Claude Messages requests to custom direct domain with passthrough client auth', async () => {
       let capturedUrl = '';
       let capturedHeaders: Record<string, string> = {};
 
@@ -89,16 +89,11 @@ describe('Direct Mode Custom Domain & Endpoint Configuration', () => {
         capturedUrl = url;
         capturedHeaders = opts?.headers || {};
         const payload = {
-          candidates: [
-            {
-              content: {
-                role: 'model',
-                parts: [{ text: 'Response from custom direct domain!' }]
-              },
-              finishReason: 'STOP'
-            }
-          ],
-          usageMetadata: { promptTokenCount: 10, candidatesTokenCount: 20, totalTokenCount: 30 }
+          id: 'msg_custom_direct',
+          type: 'message',
+          role: 'assistant',
+          content: [{ type: 'text', text: 'Response from custom direct domain!' }],
+          stop_reason: 'end_turn'
         };
         return Promise.resolve({
           status: 200,
@@ -114,18 +109,18 @@ describe('Direct Mode Custom Domain & Endpoint Configuration', () => {
         .post('/v1/messages')
         .set('x-api-key', 'client-dummy-key')
         .send({
-          model: 'gemini-2.5-pro',
+          model: 'claude-3-5-sonnet',
           max_tokens: 100,
           messages: [{ role: 'user', content: 'Testing custom domain' }]
         });
 
       expect(res.status).toBe(200);
-      expect(capturedUrl).toContain('https://custom-mirror.example.com/v1beta/models/gemini-2.5-pro:generateContent');
-      expect(capturedHeaders['x-goog-api-key']).toBe(directKey);
+      expect(capturedUrl).toBe('https://custom-mirror.example.com/v1/messages');
+      expect(capturedHeaders['x-api-key']).toBe('client-dummy-key');
       expect(res.body.content[0].text).toBe('Response from custom direct domain!');
     });
 
-    it('routes Gemini Native requests to custom direct domain with injected API key', async () => {
+    it('routes Gemini Native requests to custom direct domain with passthrough API key', async () => {
       let capturedUrl = '';
       let capturedHeaders: Record<string, string> = {};
 
@@ -162,7 +157,7 @@ describe('Direct Mode Custom Domain & Endpoint Configuration', () => {
 
       expect(res.status).toBe(200);
       expect(capturedUrl).toContain('https://custom-mirror.example.com/v1beta/models/gemini-2.5-flash:generateContent');
-      expect(capturedHeaders['x-goog-api-key']).toBe(directKey);
+      expect(capturedHeaders['x-goog-api-key']).toBe('client-dummy-key');
     });
   });
 });
