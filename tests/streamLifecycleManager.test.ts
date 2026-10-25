@@ -123,4 +123,78 @@ describe('StreamLifecycleManager', () => {
     jest.advanceTimersByTime(30000);
     expect(writeSpy).toHaveBeenCalledTimes(3);
   });
+
+  it('should reset the timeout timer whenever attached stream emits data and only timeout after full idle period', () => {
+    const manager = new StreamLifecycleManager({
+      req: mockReq as Request,
+      res: mockRes as Response,
+      transactionId: 'test_tx_idle_reset',
+      timeoutMs: 5000
+    });
+
+    const mockUpstreamStream = new EventEmitter();
+
+    // Advance 3s before response headers arrive
+    jest.advanceTimersByTime(3000);
+    expect(manager.isAborted).toBe(false);
+
+    // Attach stream at t=3s -> resets 5s timer
+    manager.attachStream(mockUpstreamStream);
+
+    // Emit data chunks every 3s (t=6s, t=9s, t=12s) — total elapsed 12s > 5s initial timeoutMs
+    jest.advanceTimersByTime(3000);
+    mockUpstreamStream.emit('data', Buffer.from('chunk 1'));
+    expect(manager.isAborted).toBe(false);
+
+    jest.advanceTimersByTime(3000);
+    mockUpstreamStream.emit('data', Buffer.from('chunk 2'));
+    expect(manager.isAborted).toBe(false);
+
+    jest.advanceTimersByTime(3000);
+    mockUpstreamStream.emit('data', Buffer.from('chunk 3'));
+    expect(manager.isAborted).toBe(false);
+
+    // Now go idle for 4.9s -> still not aborted
+    jest.advanceTimersByTime(4900);
+    expect(manager.isAborted).toBe(false);
+
+    // Advance remaining 0.1s (total 5s idle since last data) -> aborts with timeout
+    jest.advanceTimersByTime(100);
+    expect(manager.isAborted).toBe(true);
+    expect(manager.signal.aborted).toBe(true);
+    expect(manager.reason).toBe('timeout');
+  });
+
+  it('should not disturb periodic SSE heartbeats when resetTimeout is triggered by stream data', () => {
+    const writeSpy = jest.fn();
+    mockRes.setHeader = jest.fn();
+    mockRes.flushHeaders = jest.fn();
+    mockRes.write = writeSpy;
+    (mockRes as any).headersSent = false;
+    (mockRes as any).writableEnded = false;
+
+    const manager = new StreamLifecycleManager({
+      req: mockReq as Request,
+      res: mockRes as Response,
+      transactionId: 'test_tx_heartbeat_idle',
+      timeoutMs: 20000,
+      enableSseHeartbeat: true,
+      heartbeatIntervalMs: 15000
+    });
+
+    const mockUpstreamStream = new EventEmitter();
+    manager.attachStream(mockUpstreamStream);
+    expect(writeSpy).toHaveBeenCalledTimes(1); // initial : ping
+
+    jest.advanceTimersByTime(10000);
+    mockUpstreamStream.emit('data', Buffer.from('chunk'));
+    expect(writeSpy).toHaveBeenCalledTimes(1);
+
+    // At t=15s, periodic heartbeat still fires on schedule despite resetTimeout at t=10s
+    jest.advanceTimersByTime(5000);
+    expect(writeSpy).toHaveBeenCalledTimes(2);
+    expect(writeSpy).toHaveBeenLastCalledWith(': ping\n\n');
+
+    manager.markFinished();
+  });
 });

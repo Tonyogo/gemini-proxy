@@ -26,6 +26,11 @@ export class StreamLifecycleManager {
   private timer: NodeJS.Timeout | null = null;
   private heartbeatTimer: NodeJS.Timeout | null = null;
   private upstreamStream: Readable | null = null;
+  private timeoutMs: number = 0;
+
+  private handleStreamData = () => {
+    this.resetTimeout();
+  };
 
   private handleClose = () => {
     if (this.finished) return;
@@ -55,14 +60,11 @@ export class StreamLifecycleManager {
     this.req = options.req;
     this.res = options.res;
     this.transactionId = options.transactionId;
+    this.timeoutMs = options.timeoutMs && options.timeoutMs > 0 ? options.timeoutMs : 0;
 
     this.res.on('close', this.handleClose);
 
-    if (options.timeoutMs && options.timeoutMs > 0) {
-      this.timer = setTimeout(() => {
-        this.handleTimeout(options.timeoutMs!);
-      }, options.timeoutMs);
-    }
+    this.resetTimeout();
 
     if (options.enableSseHeartbeat) {
       const intervalMs = options.heartbeatIntervalMs && options.heartbeatIntervalMs > 0
@@ -113,8 +115,26 @@ export class StreamLifecycleManager {
     return this.aborted;
   }
 
+  public resetTimeout(): void {
+    if (this.finished || this.aborted || this.timeoutMs <= 0) return;
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+    this.timer = setTimeout(() => {
+      this.handleTimeout(this.timeoutMs);
+    }, this.timeoutMs);
+  }
+
   public attachStream(stream: any): void {
+    if (this.upstreamStream && typeof (this.upstreamStream as any).off === 'function') {
+      (this.upstreamStream as any).off('data', this.handleStreamData);
+    }
     this.upstreamStream = stream;
+    this.resetTimeout();
+    if (stream && typeof stream.on === 'function') {
+      stream.on('data', this.handleStreamData);
+    }
   }
 
   public setUpstreamStream(stream: any): void {
@@ -144,5 +164,8 @@ export class StreamLifecycleManager {
   public cleanup(): void {
     this.clearTimer();
     this.res.off('close', this.handleClose);
+    if (this.upstreamStream && typeof (this.upstreamStream as any).off === 'function') {
+      (this.upstreamStream as any).off('data', this.handleStreamData);
+    }
   }
 }
