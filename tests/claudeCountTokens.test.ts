@@ -78,4 +78,32 @@ describe('POST /v1/messages/count_tokens', () => {
     const sentBody = JSON.parse(fetchCall[1].body);
     expect(sentBody.generateContentRequest.model).toEqual('models/gemini-2.5-flash-override');
   });
+
+  it('aborts upstream fetch and returns 504 timeout_error when count_tokens exceeds x-timeout-ms', async () => {
+    (fetch as unknown as jest.Mock).mockImplementation((_url: string, opts: any) => {
+      return new Promise((_resolve, reject) => {
+        if (opts?.signal) {
+          opts.signal.addEventListener('abort', () => {
+            const err: any = new Error('The user aborted a request.');
+            err.name = 'AbortError';
+            reject(err);
+          });
+        }
+      });
+    });
+
+    const res = await request(app)
+      .post('/v1/messages/count_tokens')
+      .set('Authorization', 'Bearer dummy-key')
+      .set('x-timeout-ms', '30')
+      .send({
+        model: 'gemini-3.5-flash',
+        messages: [{ role: 'user', content: 'Slow count tokens' }]
+      });
+
+    expect(res.statusCode).toBe(504);
+    expect(res.body.type).toBe('error');
+    expect(res.body.error.type).toBe('timeout_error');
+    expect(res.body.error.message).toContain('timed out after 30ms');
+  });
 });

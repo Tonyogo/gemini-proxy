@@ -800,6 +800,7 @@ class ClaudeController {
 
     try {
       const apiKey = extractClientKey(req);
+      const timeoutMs = extractTimeoutMs(req);
       const requestPath = req.originalUrl || req.path;
 
       if (!apiKey) {
@@ -854,15 +855,39 @@ class ClaudeController {
         const headers = buildDirectUpstreamHeaders(req, apiKey);
         const agent = proxyAgentManager.getAgent(serverSelection);
 
+        const streamManager = new StreamLifecycleManager({ req, res, transactionId, timeoutMs });
         let response;
         try {
           response = await fetch(targetUrl, {
             method: 'POST',
             headers,
             body: JSON.stringify(directRequest),
+            signal: streamManager.signal,
             agent
           });
         } catch (fetchErr: any) {
+          streamManager.markFinished();
+          if (fetchErr.name === 'AbortError' || streamManager.isAborted) {
+            const duration = Date.now() - startTime;
+            if (streamManager.reason === 'timeout') {
+              upstreamManager.recordRequestResult(serverSelection.serverIndex, false, 'Timeout');
+              const errPayload = {
+                type: 'error',
+                error: {
+                  type: 'timeout_error',
+                  message: `Upstream request timed out after ${timeoutMs}ms`
+                }
+              };
+              logger.warn(`[Timeout Error] [Transaction: ${transactionId}] Request timed out after ${timeoutMs}ms (duration: ${(duration / 1000).toFixed(2)}s)`);
+              payloadLogger.saveTransaction(transactionId, clientReq, directRequest, { error: 'Timeout' }, errPayload, duration, requestPath, 504, false);
+              if (!res.headersSent) {
+                return res.status(504).json(errPayload);
+              }
+              return;
+            }
+            logger.info(`[Client Disconnect] [Transaction: ${transactionId}] Request fetch aborted due to client disconnect.`);
+            return;
+          }
           upstreamManager.recordRequestResult(serverSelection.serverIndex, false, fetchErr.message || 'Fetch error');
           throw fetchErr;
         }
@@ -874,6 +899,7 @@ class ClaudeController {
             upstreamManager.recordRequestResult(serverSelection.serverIndex, true);
           }
           const errorText = await response.text();
+          streamManager.markFinished();
           let errorJson: any;
           try { errorJson = JSON.parse(errorText); } catch (e) { /* ignore */ }
           const errMessage = errorJson?.error?.message || errorText || 'Direct upstream API error';
@@ -891,6 +917,7 @@ class ClaudeController {
 
         upstreamManager.recordRequestResult(serverSelection.serverIndex, true);
         const data = await response.json();
+        streamManager.markFinished();
         const tokenResponse = {
           input_tokens: data.input_tokens ?? data.totalTokens ?? 0
         };
@@ -938,15 +965,39 @@ class ClaudeController {
       const effectiveApiKey = apiKey;
       const agent = proxyAgentManager.getAgent(serverSelection);
 
+      const streamManager = new StreamLifecycleManager({ req, res, transactionId, timeoutMs });
       let response;
       try {
         response = await fetch(targetUrl, {
           method: 'POST',
           headers: buildUpstreamHeaders(effectiveApiKey),
           body: JSON.stringify(countTokensPayload),
+          signal: streamManager.signal,
           agent
         });
       } catch (fetchErr: any) {
+        streamManager.markFinished();
+        if (fetchErr.name === 'AbortError' || streamManager.isAborted) {
+          const duration = Date.now() - startTime;
+          if (streamManager.reason === 'timeout') {
+            upstreamManager.recordRequestResult(serverIndex, false, 'Timeout');
+            const errPayload = {
+              type: 'error',
+              error: {
+                type: 'timeout_error',
+                message: `Upstream request timed out after ${timeoutMs}ms`
+              }
+            };
+            logger.warn(`[Timeout Error] [Transaction: ${transactionId}] Request timed out after ${timeoutMs}ms (duration: ${(duration / 1000).toFixed(2)}s)`);
+            payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: 'Timeout' }, errPayload, duration, requestPath, 504, false);
+            if (!res.headersSent) {
+              return res.status(504).json(errPayload);
+            }
+            return;
+          }
+          logger.info(`[Client Disconnect] [Transaction: ${transactionId}] Request fetch aborted due to client disconnect.`);
+          return;
+        }
         upstreamManager.recordRequestResult(serverIndex, false, fetchErr.message || 'Fetch error');
         throw fetchErr;
       }
@@ -958,6 +1009,7 @@ class ClaudeController {
           upstreamManager.recordRequestResult(serverIndex, true);
         }
         const errorText = await response.text();
+        streamManager.markFinished();
         let errorJson;
         try { errorJson = JSON.parse(errorText); } catch (e) { /* ignore */ }
         const errMessage = errorJson?.error?.message || errorText || 'Gemini upstream API error';
@@ -975,6 +1027,7 @@ class ClaudeController {
 
       upstreamManager.recordRequestResult(serverIndex, true);
       const geminiData = await response.json();
+      streamManager.markFinished();
       const tokenResponse = {
         input_tokens: (geminiData as any).totalTokens || 0
       };
@@ -1008,6 +1061,7 @@ class ClaudeController {
 
     try {
       const apiKey = extractClientKey(req);
+      const timeoutMs = extractTimeoutMs(req);
       if (!apiKey) {
         const errPayload = {
           type: 'error',
@@ -1033,14 +1087,38 @@ class ClaudeController {
         const headers = buildDirectUpstreamHeaders(req, apiKey);
         const agent = proxyAgentManager.getAgent(serverSelection);
 
+        const streamManager = new StreamLifecycleManager({ req, res, transactionId, timeoutMs });
         let response;
         try {
           response = await fetch(targetUrl, {
             method: 'GET',
             headers,
+            signal: streamManager.signal,
             agent
           });
         } catch (fetchErr: any) {
+          streamManager.markFinished();
+          if (fetchErr.name === 'AbortError' || streamManager.isAborted) {
+            const duration = Date.now() - startTime;
+            if (streamManager.reason === 'timeout') {
+              upstreamManager.recordRequestResult(serverIndex, false, 'Timeout');
+              const errPayload = {
+                type: 'error',
+                error: {
+                  type: 'timeout_error',
+                  message: `Upstream request timed out after ${timeoutMs}ms`
+                }
+              };
+              logger.warn(`[Timeout Error] [Transaction: ${transactionId}] Request timed out after ${timeoutMs}ms (duration: ${(duration / 1000).toFixed(2)}s)`);
+              payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: 'Timeout' }, errPayload, duration, requestPath, 504, false);
+              if (!res.headersSent) {
+                return res.status(504).json(errPayload);
+              }
+              return;
+            }
+            logger.info(`[Client Disconnect] [Transaction: ${transactionId}] Request fetch aborted due to client disconnect.`);
+            return;
+          }
           upstreamManager.recordRequestResult(serverIndex, false, fetchErr.message || 'Fetch error');
           throw fetchErr;
         }
@@ -1052,6 +1130,7 @@ class ClaudeController {
             upstreamManager.recordRequestResult(serverIndex, true);
           }
           const errorText = await response.text();
+          streamManager.markFinished();
           let errorJson;
           try { errorJson = JSON.parse(errorText); } catch (e) { /* ignore */ }
           const errMessage = errorJson?.error?.message || errorText || 'Direct upstream API error';
@@ -1069,6 +1148,7 @@ class ClaudeController {
 
         upstreamManager.recordRequestResult(serverIndex, true);
         const upstreamData: any = await response.json();
+        streamManager.markFinished();
 
         let responsePayload;
         if (upstreamData && Array.isArray(upstreamData.data)) {
@@ -1110,14 +1190,38 @@ class ClaudeController {
       const effectiveApiKey = apiKey;
       const agent = proxyAgentManager.getAgent(serverSelection);
 
+      const streamManager = new StreamLifecycleManager({ req, res, transactionId, timeoutMs });
       let response;
       try {
         response = await fetch(targetUrl, {
           method: 'GET',
           headers: buildUpstreamHeaders(effectiveApiKey),
+          signal: streamManager.signal,
           agent
         });
       } catch (fetchErr: any) {
+        streamManager.markFinished();
+        if (fetchErr.name === 'AbortError' || streamManager.isAborted) {
+          const duration = Date.now() - startTime;
+          if (streamManager.reason === 'timeout') {
+            upstreamManager.recordRequestResult(serverIndex, false, 'Timeout');
+            const errPayload = {
+              type: 'error',
+              error: {
+                type: 'timeout_error',
+                message: `Upstream request timed out after ${timeoutMs}ms`
+              }
+            };
+            logger.warn(`[Timeout Error] [Transaction: ${transactionId}] Request timed out after ${timeoutMs}ms (duration: ${(duration / 1000).toFixed(2)}s)`);
+            payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: 'Timeout' }, errPayload, duration, requestPath, 504, false);
+            if (!res.headersSent) {
+              return res.status(504).json(errPayload);
+            }
+            return;
+          }
+          logger.info(`[Client Disconnect] [Transaction: ${transactionId}] Request fetch aborted due to client disconnect.`);
+          return;
+        }
         upstreamManager.recordRequestResult(serverIndex, false, fetchErr.message || 'Fetch error');
         throw fetchErr;
       }
@@ -1129,6 +1233,7 @@ class ClaudeController {
           upstreamManager.recordRequestResult(serverIndex, true);
         }
         const errorText = await response.text();
+        streamManager.markFinished();
         let errorJson;
         try { errorJson = JSON.parse(errorText); } catch (e) { /* ignore */ }
         const errMessage = errorJson?.error?.message || errorText || 'Gemini upstream API error';
@@ -1146,6 +1251,7 @@ class ClaudeController {
 
       upstreamManager.recordRequestResult(serverIndex, true);
       const geminiData = await response.json() as GeminiModelsResponse;
+      streamManager.markFinished();
 
       const dynamicModels: ModelConfig[] = (geminiData.models || [])
         .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent'))
@@ -1195,6 +1301,7 @@ class ClaudeController {
 
     try {
       const apiKey = extractClientKey(req);
+      const timeoutMs = extractTimeoutMs(req);
       if (!apiKey) {
         const errPayload = {
           type: 'error',
@@ -1240,19 +1347,44 @@ class ClaudeController {
         const headers = buildDirectUpstreamHeaders(req, apiKey);
         const agent = proxyAgentManager.getAgent(serverSelection);
 
+        const streamManager = new StreamLifecycleManager({ req, res, transactionId, timeoutMs });
         let response;
         try {
           response = await fetch(targetUrl, {
             method: 'GET',
             headers,
+            signal: streamManager.signal,
             agent
           });
         } catch (fetchErr: any) {
+          streamManager.markFinished();
+          if (fetchErr.name === 'AbortError' || streamManager.isAborted) {
+            const duration = Date.now() - startTime;
+            if (streamManager.reason === 'timeout') {
+              upstreamManager.recordRequestResult(serverIndex, false, 'Timeout');
+              const errPayload = {
+                type: 'error',
+                error: {
+                  type: 'timeout_error',
+                  message: `Upstream request timed out after ${timeoutMs}ms`
+                }
+              };
+              logger.warn(`[Timeout Error] [Transaction: ${transactionId}] Request timed out after ${timeoutMs}ms (duration: ${(duration / 1000).toFixed(2)}s)`);
+              payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: 'Timeout' }, errPayload, duration, requestPath, 504, false);
+              if (!res.headersSent) {
+                return res.status(504).json(errPayload);
+              }
+              return;
+            }
+            logger.info(`[Client Disconnect] [Transaction: ${transactionId}] Request fetch aborted due to client disconnect.`);
+            return;
+          }
           upstreamManager.recordRequestResult(serverIndex, false, fetchErr.message || 'Fetch error');
           throw fetchErr;
         }
 
         if (!response.ok) {
+          streamManager.markFinished();
           if (response.status >= 500 && response.status < 600) {
             upstreamManager.recordRequestResult(serverIndex, false, response.status);
           } else {
@@ -1273,6 +1405,7 @@ class ClaudeController {
 
         upstreamManager.recordRequestResult(serverIndex, true);
         const upstreamData: any = await response.json();
+        streamManager.markFinished();
 
         let responsePayload;
         if (upstreamData && upstreamData.type === 'model') {
@@ -1305,19 +1438,44 @@ class ClaudeController {
 
       const effectiveApiKey = apiKey;
 
+      const streamManager = new StreamLifecycleManager({ req, res, transactionId, timeoutMs });
       let response;
       try {
         response = await fetch(targetUrl, {
           method: 'GET',
           headers: buildUpstreamHeaders(effectiveApiKey),
+          signal: streamManager.signal,
           agent
         });
       } catch (fetchErr: any) {
+        streamManager.markFinished();
+        if (fetchErr.name === 'AbortError' || streamManager.isAborted) {
+          const duration = Date.now() - startTime;
+          if (streamManager.reason === 'timeout') {
+            upstreamManager.recordRequestResult(serverIndex, false, 'Timeout');
+            const errPayload = {
+              type: 'error',
+              error: {
+                type: 'timeout_error',
+                message: `Upstream request timed out after ${timeoutMs}ms`
+              }
+            };
+            logger.warn(`[Timeout Error] [Transaction: ${transactionId}] Request timed out after ${timeoutMs}ms (duration: ${(duration / 1000).toFixed(2)}s)`);
+            payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: 'Timeout' }, errPayload, duration, requestPath, 504, false);
+            if (!res.headersSent) {
+              return res.status(504).json(errPayload);
+            }
+            return;
+          }
+          logger.info(`[Client Disconnect] [Transaction: ${transactionId}] Request fetch aborted due to client disconnect.`);
+          return;
+        }
         upstreamManager.recordRequestResult(serverIndex, false, fetchErr.message || 'Fetch error');
         throw fetchErr;
       }
 
       if (!response.ok) {
+        streamManager.markFinished();
         if (response.status >= 500 && response.status < 600) {
           upstreamManager.recordRequestResult(serverIndex, false, response.status);
         } else {
@@ -1338,6 +1496,7 @@ class ClaudeController {
 
       upstreamManager.recordRequestResult(serverIndex, true);
       const m = await response.json() as GeminiModelEntry;
+      streamManager.markFinished();
       const cleanId = m.name.replace(/^models\//, '');
       const mappedModel: ModelConfig = {
         type: 'model',

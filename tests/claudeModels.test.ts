@@ -101,4 +101,34 @@ describe('GET /v1/models (Models API)', () => {
     expect(res.body.error.type).toEqual('invalid_request_error');
     expect(res.body.error.message).toContain("does not exist");
   });
+
+  it('aborts upstream fetch and returns 504 timeout_error when GET /v1/models or GET /v1/models/:model_id exceeds x-timeout-ms', async () => {
+    (fetch as unknown as jest.Mock).mockImplementation((_url: string, opts: any) => {
+      return new Promise((_resolve, reject) => {
+        if (opts?.signal) {
+          opts.signal.addEventListener('abort', () => {
+            const err: any = new Error('The user aborted a request.');
+            err.name = 'AbortError';
+            reject(err);
+          });
+        }
+      });
+    });
+
+    const listRes = await request(app)
+      .get('/v1/models')
+      .set('x-api-key', 'client-test-key')
+      .set('x-timeout-ms', '30');
+
+    expect(listRes.statusCode).toBe(504);
+    expect(listRes.body.error.type).toBe('timeout_error');
+
+    const detailRes = await request(app)
+      .get('/v1/models/gemini-2.5-flash')
+      .set('x-api-key', 'client-test-key')
+      .set('x-timeout-ms', '30');
+
+    expect(detailRes.statusCode).toBe(504);
+    expect(detailRes.body.error.type).toBe('timeout_error');
+  });
 });
