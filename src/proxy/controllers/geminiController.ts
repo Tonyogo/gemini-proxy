@@ -124,9 +124,11 @@ class GeminiController {
     const agent = proxyAgentManager.getAgent(serverSelection);
 
     if (isStream) {
-      const streamManager = new StreamLifecycleManager({ req, res, transactionId, timeoutMs });
+      res.setHeader('x-transaction-id', transactionId);
+      const streamManager = new StreamLifecycleManager({ req, res, transactionId, timeoutMs, enableSseHeartbeat: true });
       logger.info(`[GeminiProxy] [Transaction: ${transactionId}] Proxying stream to [server ${serverIndex + 1}: ${serverUrl}]: ${req.method} ${targetUrl}`);
 
+      let accountName: string | null = null;
       try {
         const response = await fetch(targetUrl, {
           method: req.method,
@@ -136,7 +138,7 @@ class GeminiController {
           agent
         });
 
-        let accountName = response.headers?.get ? (response.headers.get('x-account-name') || null) : null;
+        accountName = response.headers?.get ? (response.headers.get('x-account-name') || null) : null;
         if (!accountName && serverType === 'direct') {
           accountName = `__direct_node_${serverIndex}__`;
         }
@@ -156,78 +158,145 @@ class GeminiController {
           accountUsageService.record(accountName, targetModelName || 'unknown', false);
           const duration = Date.now() - startTime;
           payloadLogger.saveTransaction(transactionId, clientReq, clientReq, errJson, errJson, duration, requestPath, response.status, true, ...(accountName ? [accountName] : []));
-          return res.status(response.status).json(errJson);
+          if (!res.headersSent) {
+            return res.status(response.status).json(errJson);
+          } else if (!res.writableEnded) {
+            res.write(`data: ${JSON.stringify(errJson)}\n\n`);
+            res.end();
+            return;
+          }
+          return;
         }
 
-        // Forward headers
-        res.status(response.status);
-        res.setHeader('Content-Type', response.headers.get('content-type') || 'text/event-stream');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Connection', 'keep-alive');
-        res.setHeader('x-transaction-id', transactionId);
+        // Forward headers if not yet sent
+        if (!res.headersSent) {
+          res.status(response.status);
+          res.setHeader('Content-Type', response.headers.get('content-type') || 'text/event-stream');
+          res.setHeader('Cache-Control', 'no-cache');
+          res.setHeader('Connection', 'keep-alive');
+        }
+        streamManager.ensureSseHeaders();
 
-        streamManager.setUpstreamStream(response.body);
+        if (response.body) {
+          streamManager.setUpstreamStream(response.body);
+        }
 
         let accumulatedStreamText = '';
 
-        response.body.on('data', (chunk: Buffer) => {
-          if (streamManager.isAborted) return;
-          accumulatedStreamText += chunk.toString('utf8');
-          res.write(chunk);
-        });
+        if (response.body) {
+          response.body.on('data', (chunk: Buffer) => {
+            if (streamManager.isAborted) return;
+            accumulatedStreamText += chunk.toString('utf8');
+            res.write(chunk);
+          });
 
-        response.body.on('end', () => {
-          streamManager.markFinished();
-          if (streamManager.isAborted) return;
-          accountUsageService.record(accountName, targetModelName || 'unknown', true);
-          upstreamManager.recordRequestResult(serverIndex, true);
-          res.end();
-          const duration = Date.now() - startTime;
-          logger.info(`[GeminiProxy] [Transaction: ${transactionId}] Stream finished (duration: ${(duration / 1000).toFixed(2)}s)`);
-          let parsedResponse: any = null;
-          try {
-            parsedResponse = JSON.parse(accumulatedStreamText);
-          } catch {
-            parsedResponse = accumulatedStreamText;
-          }
-          payloadLogger.saveTransaction(transactionId, clientReq, clientReq, parsedResponse, parsedResponse, duration, requestPath, 200, true, ...(accountName ? [accountName] : []));
-        });
-
-        response.body.on('error', (err: any) => {
-          streamManager.markFinished();
-          accountUsageService.record(accountName, targetModelName || 'unknown', false);
-          if (streamManager.reason === 'timeout') {
-            upstreamManager.recordRequestResult(serverIndex, false, 'Timeout');
-          } else if (!streamManager.isAborted && err.name !== 'AbortError') {
-            upstreamManager.recordRequestResult(serverIndex, false, err.message || 'Stream error');
-          }
-          logger.error(`[GeminiProxy] [Transaction: ${transactionId}] Stream error: ${err.message}`);
-          if (!res.headersSent) {
-            res.status(502).json({ error: { code: 502, message: err.message, status: 'BAD_GATEWAY' } });
-          } else {
+          response.body.on('end', () => {
+            streamManager.markFinished();
+            if (streamManager.isAborted) return;
+            accountUsageService.record(accountName, targetModelName || 'unknown', true);
+            upstreamManager.recordRequestResult(serverIndex, true);
             res.end();
-          }
-        });
+            const duration = Date.now() - startTime;
+            logger.info(`[GeminiProxy] [Transaction: ${transactionId}] Stream finished (duration: ${(duration / 1000).toFixed(2)}s)`);
+            let parsedResponse: any = null;
+            try {
+              parsedResponse = JSON.parse(accumulatedStreamText);
+            } catch {
+              parsedResponse = accumulatedStreamText;
+            }
+            payloadLogger.saveTransaction(transactionId, clientReq, clientReq, parsedResponse, parsedResponse, duration, requestPath, 200, true, ...(accountName ? [accountName] : []));
+          });
+
+          response.body.on('error', (err: any) => {
+            streamManager.markFinished();
+            const duration = Date.now() - startTime;
+            if (streamManager.reason === 'timeout') {
+              upstreamManager.recordRequestResult(serverIndex, false, 'Timeout');
+              accountUsageService.record(accountName, targetModelName || 'unknown', false);
+              const errJson = {
+                error: {
+                  code: 504,
+                  message: `Upstream request timed out after ${timeoutMs}ms`,
+                  status: 'DEADLINE_EXCEEDED'
+                }
+              };
+              logger.warn(`[Timeout Error] [Transaction: ${transactionId}] Stream timed out after ${timeoutMs}ms (duration: ${(duration / 1000).toFixed(2)}s)`);
+              payloadLogger.saveTransaction(transactionId, clientReq, clientReq, { error: 'Timeout' }, errJson, duration, requestPath, 504, true, ...(accountName ? [accountName] : []));
+              if (!res.headersSent) {
+                return res.status(504).json(errJson);
+              } else if (!res.writableEnded) {
+                res.write(`data: ${JSON.stringify(errJson)}\n\n`);
+                res.end();
+                return;
+              }
+              return;
+            }
+            if (streamManager.reason === 'client_disconnect') {
+              logger.info(`[Client Disconnect] [Transaction: ${transactionId}] Stream aborted due to client disconnect.`);
+              return;
+            }
+            if (!streamManager.isAborted && err.name !== 'AbortError') {
+              upstreamManager.recordRequestResult(serverIndex, false, err.message || 'Stream error');
+            }
+            accountUsageService.record(accountName, targetModelName || 'unknown', false);
+            logger.error(`[GeminiProxy] [Transaction: ${transactionId}] Stream error: ${err.message}`);
+            const errJson = { error: { code: 502, message: err.message, status: 'BAD_GATEWAY' } };
+            payloadLogger.saveTransaction(transactionId, clientReq, clientReq, { error: err.message }, errJson, duration, requestPath, 502, true, ...(accountName ? [accountName] : []));
+            if (!res.headersSent) {
+              return res.status(502).json(errJson);
+            } else if (!res.writableEnded) {
+              res.write(`data: ${JSON.stringify(errJson)}\n\n`);
+              res.end();
+              return;
+            }
+          });
+        }
 
       } catch (err: any) {
         streamManager.markFinished();
         const duration = Date.now() - startTime;
-        if (streamManager.reason === 'timeout') {
-          upstreamManager.recordRequestResult(serverIndex, false, 'Timeout');
-        } else if (!streamManager.isAborted && err.name !== 'AbortError') {
-          upstreamManager.recordRequestResult(serverIndex, false, err.message || 'Stream exception');
+        if (err.name === 'AbortError' || streamManager.isAborted) {
+          if (streamManager.reason === 'timeout') {
+            upstreamManager.recordRequestResult(serverIndex, false, 'Timeout');
+            accountUsageService.record(accountName, targetModelName || 'unknown', false);
+            const errJson = {
+              error: {
+                code: 504,
+                message: `Upstream request timed out after ${timeoutMs}ms`,
+                status: 'DEADLINE_EXCEEDED'
+              }
+            };
+            logger.warn(`[Timeout Error] [Transaction: ${transactionId}] Stream request timed out after ${timeoutMs}ms (duration: ${(duration / 1000).toFixed(2)}s)`);
+            payloadLogger.saveTransaction(transactionId, clientReq, clientReq, { error: 'Timeout' }, errJson, duration, requestPath, 504, true, ...(accountName ? [accountName] : []));
+            if (!res.headersSent) {
+              return res.status(504).json(errJson);
+            } else if (!res.writableEnded) {
+              res.write(`data: ${JSON.stringify(errJson)}\n\n`);
+              res.end();
+              return;
+            }
+            return;
+          }
+          logger.info(`[Client Disconnect] [Transaction: ${transactionId}] Stream request fetch aborted due to client disconnect.`);
+          return;
         }
+        upstreamManager.recordRequestResult(serverIndex, false, err.message || 'Stream exception');
         logger.error(`[GeminiProxy] [Transaction: ${transactionId}] Stream exception: ${err.message}`);
         const errJson = { error: { code: 500, message: err.message, status: 'INTERNAL' } };
         payloadLogger.saveTransaction(transactionId, clientReq, clientReq, errJson, errJson, duration, requestPath, 500, true);
         if (!res.headersSent) {
           return res.status(500).json(errJson);
+        } else if (!res.writableEnded) {
+          res.write(`data: ${JSON.stringify(errJson)}\n\n`);
+          res.end();
         }
       }
       return;
     }
 
     // Non-streaming request
+    const streamManager = new StreamLifecycleManager({ req, res, transactionId, timeoutMs });
+    let accountName: string | null = null;
     try {
       logger.info(`[GeminiProxy] [Transaction: ${transactionId}] Proxying request to [server ${serverIndex + 1}: ${serverUrl}]: ${req.method} ${targetUrl}`);
 
@@ -235,10 +304,11 @@ class GeminiController {
         method: req.method,
         headers: upstreamHeaders,
         body: req.method !== 'GET' && req.method !== 'HEAD' && clientReq ? JSON.stringify(clientReq) : undefined,
+        signal: streamManager.signal,
         agent
       });
 
-      let accountName = response.headers?.get ? (response.headers.get('x-account-name') || null) : null;
+      accountName = response.headers?.get ? (response.headers.get('x-account-name') || null) : null;
       if (!accountName && serverType === 'direct') {
         accountName = `__direct_node_${serverIndex}__`;
       }
@@ -258,6 +328,7 @@ class GeminiController {
       accountUsageService.record(accountName, targetModelName || 'unknown', isOk);
 
       const resText = typeof response.text === 'function' ? await response.text() : '';
+      streamManager.markFinished();
       let resJson: any;
       try {
         resJson = JSON.parse(resText);
@@ -271,12 +342,39 @@ class GeminiController {
       res.setHeader('x-transaction-id', transactionId);
       return res.status(response.status).json(resJson);
     } catch (err: any) {
-      upstreamManager.recordRequestResult(serverIndex, false, err.message || 'Proxy error');
+      streamManager.markFinished();
       const duration = Date.now() - startTime;
+      if (err.name === 'AbortError' || streamManager.isAborted) {
+        if (streamManager.reason === 'timeout') {
+          upstreamManager.recordRequestResult(serverIndex, false, 'Timeout');
+          accountUsageService.record(accountName, targetModelName || 'unknown', false);
+          const timeoutErrJson = {
+            error: {
+              code: 504,
+              message: `Upstream request timed out after ${timeoutMs}ms`,
+              status: 'DEADLINE_EXCEEDED'
+            }
+          };
+          logger.warn(`[Timeout Error] [Transaction: ${transactionId}] Request timed out after ${timeoutMs}ms (duration: ${(duration / 1000).toFixed(2)}s)`);
+          payloadLogger.saveTransaction(transactionId, clientReq, clientReq, { error: 'Timeout' }, timeoutErrJson, duration, requestPath, 504, false, ...(accountName ? [accountName] : []));
+          if (!res.headersSent) {
+            res.setHeader('x-transaction-id', transactionId);
+            return res.status(504).json(timeoutErrJson);
+          }
+          return;
+        }
+        logger.info(`[Client Disconnect] [Transaction: ${transactionId}] Non-stream request fetch aborted due to client disconnect.`);
+        return;
+      }
+      upstreamManager.recordRequestResult(serverIndex, false, err.message || 'Proxy error');
       logger.error(`[GeminiProxy] [Transaction: ${transactionId}] Proxy error: ${err.message}`);
       const errJson = { error: { code: 500, message: err.message, status: 'INTERNAL' } };
       payloadLogger.saveTransaction(transactionId, clientReq, clientReq, errJson, errJson, duration, requestPath, 500, false);
-      return res.status(500).json(errJson);
+      if (!res.headersSent) {
+        res.setHeader('x-transaction-id', transactionId);
+        return res.status(500).json(errJson);
+      }
+      return;
     }
   }
 }

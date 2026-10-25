@@ -110,4 +110,61 @@ describe('GeminiController - Native Gemini API Proxy', () => {
       true
     );
   });
+
+  it('enables SSE heartbeat (: ping) on streaming requests and resets idle timeout on data chunks', async () => {
+    const fetchMock = require('node-fetch');
+    const { Readable } = require('stream');
+    const stream = new Readable({
+      read() {
+        this.push('data: {"candidates":[{"content":{"parts":[{"text":"Heartbeat stream chunk"}]}}]}\n\n');
+        this.push(null);
+      }
+    });
+
+    fetchMock.mockImplementationOnce(() => Promise.resolve({
+      status: 200,
+      ok: true,
+      headers: {
+        get: (h: string) => h.toLowerCase() === 'content-type' ? 'text/event-stream' : null,
+        raw: () => ({ 'content-type': ['text/event-stream'] })
+      },
+      body: stream
+    }));
+
+    const res = await request(app)
+      .post('/v1beta/models/gemini-2.0-flash:streamGenerateContent?alt=sse')
+      .set('x-goog-api-key', 'test-gemini-key')
+      .send({ contents: [{ parts: [{ text: 'Hello Stream Heartbeat' }] }] });
+
+    expect(res.status).toBe(200);
+    expect(res.headers['x-accel-buffering']).toBe('no');
+    expect(res.text).toMatch(/^: ping\n\n/);
+    expect(res.text).toContain('Heartbeat stream chunk');
+  });
+
+  it('aborts non-streaming request and returns 504 DEADLINE_EXCEEDED when upstream exceeds x-timeout-ms', async () => {
+    const fetchMock = require('node-fetch');
+    fetchMock.mockImplementationOnce((_url: string, opts: any) => {
+      return new Promise((_resolve, reject) => {
+        if (opts?.signal) {
+          opts.signal.addEventListener('abort', () => {
+            const err: any = new Error('The user aborted a request.');
+            err.name = 'AbortError';
+            reject(err);
+          });
+        }
+      });
+    });
+
+    const res = await request(app)
+      .post('/v1beta/models/gemini-2.0-flash:generateContent')
+      .set('x-goog-api-key', 'test-gemini-key')
+      .set('x-timeout-ms', '30')
+      .send({ contents: [{ parts: [{ text: 'Slow non-stream request' }] }] });
+
+    expect(res.status).toBe(504);
+    expect(res.body.error.code).toBe(504);
+    expect(res.body.error.status).toBe('DEADLINE_EXCEEDED');
+    expect(res.body.error.message).toContain('timed out after 30ms');
+  });
 });
