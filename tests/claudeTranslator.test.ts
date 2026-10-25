@@ -70,7 +70,7 @@ describe('Claude to Gemini Request Translation', () => {
     // Combined message parts (was role: system merged into next role: user block)
     expect(result.googleRequest.contents[0].role).toEqual('user');
     expect(result.googleRequest.contents[0].parts[0].text).toEqual(
-      '<system-context>\nThis is a message system prompt\n</system-context>'
+      '<system-reminder>\nThis is a message system prompt\n</system-reminder>'
     );
 
     // Second part of merged message (was role: user)
@@ -91,7 +91,7 @@ describe('Claude to Gemini Request Translation', () => {
     expect(result.googleRequest.contents[0].role).toEqual('user');
     expect(result.googleRequest.contents[0].parts.length).toEqual(2);
     expect(result.googleRequest.contents[0].parts[0].text).toEqual(
-      '<system-context>\nContextual system instruction\n</system-context>'
+      '<system-reminder>\nContextual system instruction\n</system-reminder>'
     );
     expect(result.googleRequest.contents[0].parts[1].text).toEqual('Hello user prompt');
   });
@@ -111,8 +111,8 @@ describe('Claude to Gemini Request Translation', () => {
     expect(result.googleRequest.contents.length).toEqual(1);
     expect(result.googleRequest.contents[0].role).toEqual('user');
     expect(result.googleRequest.contents[0].parts.map((p: any) => p.text)).toEqual([
-      '<system-context>\nSystem 1\n</system-context>',
-      '<system-context>\nSystem 2\n</system-context>',
+      '<system-reminder>\nSystem 1\n</system-reminder>',
+      '<system-reminder>\nSystem 2\n</system-reminder>',
       'User 1',
       'User 2'
     ]);
@@ -141,7 +141,7 @@ describe('Claude to Gemini Request Translation', () => {
     expect(result.googleRequest.contents[0].role).toEqual('user');
     expect(result.googleRequest.contents[0].parts.length).toEqual(2);
     expect(result.googleRequest.contents[0].parts[0].text).toEqual(
-      '<system-context>\nInstruction after tool\n</system-context>'
+      '<system-reminder>\nInstruction after tool\n</system-reminder>'
     );
     expect(result.googleRequest.contents[0].parts[1].functionResponse).toBeDefined();
   });
@@ -1183,19 +1183,25 @@ describe('Gemini to Claude Non-Stream Response Translation', () => {
   });
 });
 
-describe('ClaudeTranslator - SYSTEM_ROLE_TO_INSTRUCTION & Deduplication', () => {
+describe('ClaudeTranslator - SYSTEM_ROLE_TO_INSTRUCTION & Tag Wrapping', () => {
   let originalSwitchValue: boolean;
+  let originalRuntimeTag: string;
+  let originalCustomSystemInstruction: string;
 
   beforeEach(() => {
     originalSwitchValue = config.systemRoleToInstruction;
+    originalRuntimeTag = config.runtimeContextTag;
+    originalCustomSystemInstruction = config.customSystemInstruction;
   });
 
   afterEach(() => {
     config.systemRoleToInstruction = originalSwitchValue;
+    config.runtimeContextTag = originalRuntimeTag;
+    config.customSystemInstruction = originalCustomSystemInstruction;
   });
 
-  it('constructs systemInstruction in correct order: claudeBody.system -> customSystemInstruction -> systemRoleToInstruction msgs', () => {
-    config.systemRoleToInstruction = true;
+  it('wraps inline system messages with <system-reminder> when systemRoleToInstruction is false (default) and does NOT route to systemInstruction', () => {
+    config.systemRoleToInstruction = false;
     config.customSystemInstruction = 'Adapter Prompt Content';
 
     const claudePayload: any = {
@@ -1204,7 +1210,7 @@ describe('ClaudeTranslator - SYSTEM_ROLE_TO_INSTRUCTION & Deduplication', () => 
       messages: [
         {
           role: 'system',
-          content: '# runtimeContext\nRuntime Context Content'
+          content: 'Runtime Context Content'
         },
         {
           role: 'user',
@@ -1214,24 +1220,25 @@ describe('ClaudeTranslator - SYSTEM_ROLE_TO_INSTRUCTION & Deduplication', () => 
     };
 
     const result = translator.translateClaudeToGoogle(claudePayload);
+
+    // systemInstruction only contains top-level system and customSystemInstruction
+    expect(result.googleRequest.systemInstruction).toBeDefined();
     const systemText = result.googleRequest.systemInstruction!.parts[0].text;
+    expect(systemText).toContain('Claude Original System Content');
+    expect(systemText).toContain('Adapter Prompt Content');
+    expect(systemText).not.toContain('Runtime Context Content');
 
-    const idxOriginal = systemText.indexOf('Claude Original System Content');
-    const idxCustom = systemText.indexOf('Adapter Prompt Content');
-    const idxRuntime = systemText.indexOf('Runtime Context Content');
-
-    expect(idxOriginal).toBeGreaterThan(-1);
-    expect(idxCustom).toBeGreaterThan(-1);
-    expect(idxRuntime).toBeGreaterThan(-1);
-
-    expect(idxOriginal).toBeLessThan(idxCustom);
-    expect(idxCustom).toBeLessThan(idxRuntime);
-
-    // Clean up
-    config.customSystemInstruction = '';
+    // contents contains merged role: 'user' with system-reminder wrapping
+    expect(result.googleRequest.contents).toHaveLength(1);
+    expect(result.googleRequest.contents[0].role).toBe('user');
+    expect(result.googleRequest.contents[0].parts).toHaveLength(2);
+    expect(result.googleRequest.contents[0].parts[0].text).toBe(
+      '<system-reminder>\nRuntime Context Content\n</system-reminder>'
+    );
+    expect(result.googleRequest.contents[0].parts[1].text).toBe('Hello');
   });
 
-  it('routes system messages to systemInstruction and deduplicates when systemRoleToInstruction is enabled', () => {
+  it('wraps inline system messages with <system-context> when systemRoleToInstruction is true and does NOT route to systemInstruction', () => {
     config.systemRoleToInstruction = true;
 
     const claudePayload: any = {
@@ -1267,20 +1274,55 @@ describe('ClaudeTranslator - SYSTEM_ROLE_TO_INSTRUCTION & Deduplication', () => 
 
     const result = translator.translateClaudeToGoogle(claudePayload);
 
-    // 1. Verify contents does NOT contain role: 'system' messages converted to user turns
+    // 1. Verify contents contains wrapped system-context blocks in user turns
     expect(result.googleRequest.contents).toHaveLength(3);
-    expect(result.googleRequest.contents[0].parts[0].text).toEqual('User message 1');
-    expect(result.googleRequest.contents[1].parts[0].text).toEqual('Assistant reply');
-    expect(result.googleRequest.contents[2].parts[0].text).toEqual('User message 2');
 
-    // 2. Verify systemInstruction contains main prompt and deduplicated system messages (Version 2 & customContext)
+    // Turn 1: user turn with system-context wrapped Version 1 before User message 1
+    expect(result.googleRequest.contents[0].role).toBe('user');
+    expect(result.googleRequest.contents[0].parts[0].text).toBe(
+      '<system-context>\n# claudeMd\nVersion 1: Old instruction content\n</system-context>'
+    );
+    expect(result.googleRequest.contents[0].parts[1].text).toBe('User message 1');
+
+    // Turn 2: assistant
+    expect(result.googleRequest.contents[1].role).toBe('model');
+    expect(result.googleRequest.contents[1].parts[0].text).toBe('Assistant reply');
+
+    // Turn 3: user turn with both system messages wrapped in system-context before User message 2
+    expect(result.googleRequest.contents[2].role).toBe('user');
+    expect(result.googleRequest.contents[2].parts[0].text).toBe(
+      '<system-context>\n# claudeMd\nVersion 2: Updated instruction content\n</system-context>'
+    );
+    expect(result.googleRequest.contents[2].parts[1].text).toBe(
+      '<system-context>\n# customContext\nUnique context content\n</system-context>'
+    );
+    expect(result.googleRequest.contents[2].parts[2].text).toBe('User message 2');
+
+    // 2. Verify systemInstruction only contains top-level prompt, none of the inline messages
     expect(result.googleRequest.systemInstruction).toBeDefined();
     const systemText = result.googleRequest.systemInstruction!.parts[0].text;
-
-    expect(systemText).toContain('Main system instruction');
-    expect(systemText).toContain('# claudeMd\nVersion 2: Updated instruction content');
-    expect(systemText).toContain('# customContext\nUnique context content');
+    expect(systemText).toBe('Main system instruction');
     expect(systemText).not.toContain('Version 1');
+    expect(systemText).not.toContain('Version 2');
+    expect(systemText).not.toContain('Unique context content');
+  });
+
+  it('respects custom runtimeContextTag when configured', () => {
+    config.systemRoleToInstruction = true;
+    config.runtimeContextTag = 'custom-system-wrapper';
+
+    const claudePayload: any = {
+      model: 'gemini-3.5-flash',
+      messages: [
+        { role: 'system', content: 'Custom wrapped prompt' },
+        { role: 'user', content: 'Hello' }
+      ]
+    };
+
+    const result = translator.translateClaudeToGoogle(claudePayload);
+    expect(result.googleRequest.contents[0].parts[0].text).toBe(
+      '<custom-system-wrapper>\nCustom wrapped prompt\n</custom-system-wrapper>'
+    );
   });
 });
 
@@ -2131,6 +2173,8 @@ import { buildDirectUpstreamHeaders } from '../src/utils/requestHelper';
 
 describe('Claude Direct Mode Preprocessing & Headers', () => {
   beforeEach(() => {
+    config.systemRoleToInstruction = false;
+    config.runtimeContextTag = 'system-context';
     config.customSystemInstruction = '';
     config.stripSystemFingerprints = true;
     config.modelMappings = {};
@@ -2247,6 +2291,106 @@ describe('Claude Direct Mode Preprocessing & Headers', () => {
     expect(headers['anthropic-version']).toBe('2023-06-01');
     expect(headers['anthropic-beta']).toBe('Prompt-Caching-2024-07-31');
     expect(headers['x-scheduling-strategy']).toBe('round-robin');
+  });
+
+  it('wraps inline system messages with <system-context> and merges them before user blocks when systemRoleToInstruction is true', () => {
+    config.systemRoleToInstruction = true;
+    const input = {
+      model: 'claude-3-5-sonnet',
+      messages: [
+        { role: 'user', content: 'User 1' },
+        { role: 'system', content: 'Sys 1' },
+        { role: 'assistant', content: 'Ack' },
+        { role: 'system', content: 'x-anthropic-billing-header: cc' },
+        { role: 'system', content: 'Sys 2' },
+        { role: 'user', content: [{ type: 'text', text: 'User 2' }] }
+      ]
+    } as any;
+
+    const snapshot = JSON.parse(JSON.stringify(input));
+    const { directRequest } = translator.preprocessClaudeDirectRequest(input);
+
+    expect(input).toEqual(snapshot);
+    expect(directRequest.messages).toEqual([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: '<system-context>\nSys 1\n</system-context>' },
+          { type: 'text', text: 'User 1' }
+        ]
+      },
+      { role: 'assistant', content: 'Ack' },
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: '<system-context>\nSys 2\n</system-context>' },
+          { type: 'text', text: 'User 2' }
+        ]
+      }
+    ]);
+  });
+
+  it('drops billing-only inline system message and does not emit empty user message when systemRoleToInstruction is true', () => {
+    config.systemRoleToInstruction = true;
+    const input = {
+      model: 'claude-3-5-sonnet',
+      messages: [
+        { role: 'system', content: 'x-anthropic-billing-header: cc_version=2.1' },
+        { role: 'user', content: 'Hello' }
+      ]
+    } as any;
+
+    const { directRequest } = translator.preprocessClaudeDirectRequest(input);
+    expect(directRequest.messages).toEqual([
+      { role: 'user', content: 'Hello' }
+    ]);
+  });
+
+  it('preserves single user turn content format as string when no system blocks are merged in Direct mode', () => {
+    config.systemRoleToInstruction = true;
+    const input = {
+      model: 'claude-3-5-sonnet',
+      messages: [
+        { role: 'user', content: 'Single user string message' },
+        { role: 'assistant', content: 'ok' },
+        { role: 'user', content: [{ type: 'text', text: 'Array block user message' }] }
+      ]
+    } as any;
+
+    const { directRequest } = translator.preprocessClaudeDirectRequest(input);
+    expect(directRequest.messages).toEqual([
+      { role: 'user', content: 'Single user string message' },
+      { role: 'assistant', content: 'ok' },
+      { role: 'user', content: [{ type: 'text', text: 'Array block user message' }] }
+    ]);
+  });
+
+  it('orders multiple interleaved system and user messages placing all wrapped system blocks first in Direct mode', () => {
+    config.systemRoleToInstruction = true;
+    config.runtimeContextTag = 'custom-ctx';
+    const input = {
+      model: 'claude-3-5-sonnet',
+      messages: [
+        { role: 'user', content: 'User 1' },
+        { role: 'system', content: 'Sys 1' },
+        { role: 'user', content: 'User 2' },
+        { role: 'system', content: 'Sys 2' }
+      ]
+    } as any;
+
+    const { directRequest } = translator.preprocessClaudeDirectRequest(input);
+    expect(directRequest.messages).toEqual([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: '<custom-ctx>\nSys 1\n</custom-ctx>' },
+          { type: 'text', text: '<custom-ctx>\nSys 2\n</custom-ctx>' },
+          { type: 'text', text: 'User 1' },
+          { type: 'text', text: 'User 2' }
+        ]
+      }
+    ]);
+    config.runtimeContextTag = 'system-context';
   });
 });
 

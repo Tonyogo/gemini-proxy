@@ -140,6 +140,91 @@ class ClaudeTranslator {
       directRequest.messages = this.filterEphemeralMessages(directRequest.messages);
     }
 
+    // Convert inline system messages if systemRoleToInstruction is enabled
+    if (config.systemRoleToInstruction && Array.isArray(directRequest.messages) && directRequest.messages.length > 0) {
+      const tag = (config.runtimeContextTag || '').trim() || 'system-context';
+
+      const wrapDirectSystemBlocks = (content: any): any[] => {
+        const blocks: any[] = [];
+        if (typeof content === 'string') {
+          const cleaned = this.cleanSystemContent(content);
+          if (cleaned) {
+            blocks.push({ type: 'text', text: `<${tag}>\n${cleaned}\n</${tag}>` });
+          }
+        } else if (Array.isArray(content)) {
+          for (const block of content) {
+            const isTextBlock = typeof block === 'string' || block?.type === 'text' || typeof block?.text === 'string';
+            if (isTextBlock) {
+              const text = typeof block === 'string' ? block : (block.text || '');
+              if (text) {
+                const cleaned = this.cleanSystemContent(text);
+                if (cleaned) {
+                  blocks.push({ type: 'text', text: `<${tag}>\n${cleaned}\n</${tag}>` });
+                }
+              }
+            } else if (block) {
+              blocks.push(block);
+            }
+          }
+        }
+        return blocks;
+      };
+
+      const normalizeDirectUserBlocks = (content: any): any[] => {
+        if (typeof content === 'string') {
+          return content !== '' ? [{ type: 'text', text: content }] : [];
+        }
+        if (Array.isArray(content)) {
+          return content.filter((b: any) => b !== null && b !== undefined);
+        }
+        return [];
+      };
+
+      const convertedMessages: any[] = [];
+      let pendingUserSegment: {
+        systemBlocks: any[];
+        userBlocks: any[];
+        rawUserMessages: any[];
+      } | null = null;
+
+      const flushUserSegment = () => {
+        if (!pendingUserSegment) return;
+        const { systemBlocks, userBlocks, rawUserMessages } = pendingUserSegment;
+        if (systemBlocks.length === 0 && rawUserMessages.length === 1) {
+          convertedMessages.push(rawUserMessages[0]);
+        } else if (systemBlocks.length + userBlocks.length > 0) {
+          convertedMessages.push({
+            role: 'user',
+            content: [...systemBlocks, ...userBlocks]
+          });
+        }
+        pendingUserSegment = null;
+      };
+
+      for (const msg of directRequest.messages) {
+        if (!msg) continue;
+        if (msg.role === 'assistant') {
+          flushUserSegment();
+          convertedMessages.push(msg);
+        } else if (msg.role === 'system') {
+          if (!pendingUserSegment) {
+            pendingUserSegment = { systemBlocks: [], userBlocks: [], rawUserMessages: [] };
+          }
+          pendingUserSegment.systemBlocks.push(...wrapDirectSystemBlocks(msg.content));
+        } else {
+          // role === 'user' (or any other non-assistant role)
+          if (!pendingUserSegment) {
+            pendingUserSegment = { systemBlocks: [], userBlocks: [], rawUserMessages: [] };
+          }
+          pendingUserSegment.rawUserMessages.push(msg);
+          pendingUserSegment.userBlocks.push(...normalizeDirectUserBlocks(msg.content));
+        }
+      }
+      flushUserSegment();
+
+      directRequest.messages = convertedMessages;
+    }
+
     // Filter ignored tools
     if (Array.isArray(directRequest.tools) && Array.isArray(config.ignoredTools) && config.ignoredTools.length > 0) {
       const ignoredSet = new Set(
@@ -560,6 +645,17 @@ class ClaudeTranslator {
     return rawText;
   }
 
+  private resolveInlineSystemTag(): string {
+    const configuredTag = (config.runtimeContextTag || '').trim();
+    if (config.systemRoleToInstruction) {
+      return configuredTag || 'system-context';
+    }
+    if (configuredTag && configuredTag !== 'system-context') {
+      return configuredTag;
+    }
+    return 'system-reminder';
+  }
+
   public translateClaudeToGoogle(claudeBody: ClaudeRequest) {
     const rawModel = claudeBody.model;
 
@@ -615,7 +711,7 @@ class ClaudeTranslator {
       appendSystemContent(config.customSystemInstruction);
     }
 
-    const tag = config.runtimeContextTag || 'system-context';
+    const tag = this.resolveInlineSystemTag();
 
     const wrapSystemMessageContent = (content: any): GeminiPart[] => {
       const parts: GeminiPart[] = [];
@@ -647,13 +743,6 @@ class ClaudeTranslator {
     const inputMessages = claudeBody.messages && Array.isArray(claudeBody.messages)
       ? this.filterEphemeralMessages(claudeBody.messages)
       : [];
-
-    if (config.systemRoleToInstruction) {
-      const deduplicatedSystemMsgs = this.deduplicateSystemMessages(inputMessages);
-      for (const sysMsg of deduplicatedSystemMsgs) {
-        appendSystemContent(sysMsg.content);
-      }
-    }
 
     const contents: GeminiContent[] = [];
     const toolIdToNameMap = new Map<string, string>();
@@ -803,9 +892,6 @@ class ClaudeTranslator {
             });
           }
         } else if (msg.role === 'system') {
-          if (config.systemRoleToInstruction) {
-            continue;
-          }
           if (!pendingUserSegment) {
             pendingUserSegment = { systemParts: [], userParts: [] };
           }
