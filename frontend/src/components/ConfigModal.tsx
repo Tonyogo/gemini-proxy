@@ -1610,7 +1610,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                     {/* Refined Toggle Switch */}
                     <div className="ui-card-sub p-3 sm:p-4 flex items-center justify-between gap-3">
                       <div>
-                        <span className="text-xs font-semibold text-slate-200 block">SYSTEM_ROLE_TO_INSTRUCTION</span>
+                        <span className="text-xs font-semibold text-slate-200 block">{t('config.systemRoleTitle', 'USE_SYSTEM_CONTEXT_TAG (<system-context> 包裹开关)')}</span>
                         <p className="hidden sm:block text-[10px] text-slate-400 mt-0.5">{t('config.systemRoleDesc')}</p>
                       </div>
 

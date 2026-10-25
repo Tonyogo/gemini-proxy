@@ -11,7 +11,7 @@ export const SystemRuntimeMatrix: React.FC<SystemRuntimeMatrixProps> = ({ config
 
   const logLevel = config?.logLevel || 'info';
   const upstreamTimeoutMs = config?.upstreamTimeoutMs || 180000;
-  const systemRoleToInstruction = config?.systemRoleToInstruction !== false;
+  const systemRoleToInstruction = Boolean(config?.systemRoleToInstruction);
   const logRetentionDays = config?.logRetentionDays ?? 3;
   const timeZone = config?.timeZone || 'Asia/Shanghai';
   const countTokensModel = config?.countTokensModel || 'Default Model';
@@ -54,10 +54,10 @@ export const SystemRuntimeMatrix: React.FC<SystemRuntimeMatrixProps> = ({ config
 
           <div className="ui-card-sub p-3 flex flex-col justify-between">
             <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
-              SYSTEM_ROLE_TO_INSTRUCTION
+              SYSTEM_MSG_WRAP_TAG
             </span>
             <span className={`font-bold text-xs mt-1 truncate ${systemRoleToInstruction ? 'text-emerald-400' : 'text-slate-400'}`}>
-              {systemRoleToInstruction ? 'TRUE (INJECT)' : 'FALSE (INLINE)'}
+              {systemRoleToInstruction ? '<system-context>' : '<system-reminder>'}
             </span>
           </div>
 
