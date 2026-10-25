@@ -39,7 +39,7 @@
 - Modifies `ClaudeTranslator.translateClaudeToGoogle(claudeBody: ClaudeRequest)` in `src/proxy/services/claudeTranslator.ts`.
 - Modifies `ClaudeTranslator.preprocessClaudeDirectRequest(claudeBody: ClaudeRequest)` in `src/proxy/services/claudeTranslator.ts`.
 
-- [ ] **Step 1: Update and add unit tests in `tests/claudeTranslator.test.ts`**
+- [x] **Step 1: Update and add unit tests in `tests/claudeTranslator.test.ts`**
 
 1. In `tests/claudeTranslator.test.ts` lines 50-148:
    - Update the 4 default inline system message tests (`translates system prompts with role user and combines messages system roles`, `translates [user, system] sequence...`, `translates interleaved user and system messages...`, `translates tool_result with system message...`) so they expect `<system-reminder>\n...\n</system-reminder>` when `config.systemRoleToInstruction` is `false` (default).
@@ -56,12 +56,12 @@
        - Turn 2 remains `{ role: 'assistant', content: 'Ack' }`;
        - Turn 3 becomes `{ role: 'user', content: [{ type: 'text', text: '<system-context>\nSys 2\n</system-context>' }, { type: 'text', text: 'User 2' }] }`.
 
-- [ ] **Step 2: Run `npx jest tests/claudeTranslator.test.ts` to verify the new/updated tests fail**
+- [x] **Step 2: Run `npx jest tests/claudeTranslator.test.ts` to verify the new/updated tests fail**
 
 Run: `npx jest tests/claudeTranslator.test.ts`
 Expected: FAIL
 
-- [ ] **Step 3: Implement the new wrapping logic in `src/proxy/services/claudeTranslator.ts`**
+- [x] **Step 3: Implement the new wrapping logic in `src/proxy/services/claudeTranslator.ts`**
 
 1. Add helper method `private resolveInlineSystemTag(): string` on `ClaudeTranslator`:
    ```ts
@@ -90,12 +90,12 @@ Expected: FAIL
          - If `systemBlocks.length === 0 && rawUserMessages.length === 1`, push `rawUserMessages[0]` as-is.
          - Else if `systemBlocks.length + userBlocks.length > 0`, push `{ role: 'user', content: [...systemBlocks, ...userBlocks] }`.
 
-- [ ] **Step 4: Run `npx jest tests/claudeTranslator.test.ts tests/dynamicConfigHotReload.test.ts` to verify they pass**
+- [x] **Step 4: Run `npx jest tests/claudeTranslator.test.ts tests/dynamicConfigHotReload.test.ts` to verify they pass**
 
 Run: `npx jest tests/claudeTranslator.test.ts tests/dynamicConfigHotReload.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/proxy/services/claudeTranslator.ts tests/claudeTranslator.test.ts
@@ -117,7 +117,7 @@ Co-Authored-By: Claude Code <noreply@anthropic.com>"
 **Interfaces:**
 - Preserves `systemRoleToInstruction: boolean` in `/api/admin/status` and `/api/admin/config` payloads while updating the UI labels and descriptions to reflect `<system-reminder>` (default OFF) vs `<system-context>` (ON).
 
-- [ ] **Step 1: Update `frontend/src/i18n/locales/zh.ts`, `frontend/src/i18n/locales/en.ts`, `frontend/src/components/ConfigModal.tsx`, and `frontend/src/components/dashboard/SystemRuntimeMatrix.tsx`**
+- [x] **Step 1: Update `frontend/src/i18n/locales/zh.ts`, `frontend/src/i18n/locales/en.ts`, `frontend/src/components/ConfigModal.tsx`, and `frontend/src/components/dashboard/SystemRuntimeMatrix.tsx`**
 
 1. In `frontend/src/i18n/locales/zh.ts`:
    - Update `systemRoleDesc` (and add `systemRoleTitle: "USE_SYSTEM_CONTEXT_TAG (<system-context> 包裹开关)"`):
@@ -131,12 +131,12 @@ Co-Authored-By: Claude Code <noreply@anthropic.com>"
    - Change line 14 from `const systemRoleToInstruction = config?.systemRoleToInstruction !== false;` to `const systemRoleToInstruction = Boolean(config?.systemRoleToInstruction);`.
    - Update the card label and status text at lines 57-61 to display `SYSTEM_MSG_WRAP_TAG` and `{systemRoleToInstruction ? '<system-context>' : '<system-reminder>'}`.
 
-- [ ] **Step 2: Run full test suite and build**
+- [x] **Step 2: Run full test suite and build**
 
 Run: `npx jest --runInBand && npm run build`
 Expected: All test suites PASS and both frontend and backend build cleanly.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add frontend/src/components/ConfigModal.tsx frontend/src/components/dashboard/SystemRuntimeMatrix.tsx frontend/src/i18n/locales/zh.ts frontend/src/i18n/locales/en.ts
