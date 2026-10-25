@@ -118,7 +118,7 @@ describe('Claude to Gemini Request Translation', () => {
     ]);
   });
 
-  it('translates tool_result with system message placing system message first', () => {
+  it('translates tool_result with system message placing system-reminder after tool_result and before normal text by default', () => {
     const claudePayload = {
       model: 'gemini-3.5-flash',
       messages: [
@@ -129,6 +129,10 @@ describe('Claude to Gemini Request Translation', () => {
               type: 'tool_result',
               tool_use_id: 'toolu_123',
               content: 'Tool execution result'
+            },
+            {
+              type: 'text',
+              text: 'Follow-up user question'
             }
           ]
         },
@@ -139,11 +143,12 @@ describe('Claude to Gemini Request Translation', () => {
 
     expect(result.googleRequest.contents.length).toEqual(1);
     expect(result.googleRequest.contents[0].role).toEqual('user');
-    expect(result.googleRequest.contents[0].parts.length).toEqual(2);
-    expect(result.googleRequest.contents[0].parts[0].text).toEqual(
+    expect(result.googleRequest.contents[0].parts.length).toEqual(3);
+    expect(result.googleRequest.contents[0].parts[0].functionResponse).toBeDefined();
+    expect(result.googleRequest.contents[0].parts[1].text).toEqual(
       '<system-reminder>\nInstruction after tool\n</system-reminder>'
     );
-    expect(result.googleRequest.contents[0].parts[1].functionResponse).toBeDefined();
+    expect(result.googleRequest.contents[0].parts[2].text).toEqual('Follow-up user question');
   });
 
   it('translates images', () => {
@@ -1324,6 +1329,42 @@ describe('ClaudeTranslator - SYSTEM_ROLE_TO_INSTRUCTION & Tag Wrapping', () => {
       '<custom-system-wrapper>\nCustom wrapped prompt\n</custom-system-wrapper>'
     );
   });
+
+  it('places <system-context> before functionResponse and normal text when systemRoleToInstruction is true', () => {
+    config.systemRoleToInstruction = true;
+
+    const claudePayload: any = {
+      model: 'gemini-3.5-flash',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'toolu_123',
+              content: 'Tool execution result'
+            },
+            {
+              type: 'text',
+              text: 'Follow-up user question'
+            }
+          ]
+        },
+        { role: 'system', content: 'Instruction after tool' }
+      ]
+    };
+
+    const result = translator.translateClaudeToGoogle(claudePayload);
+
+    expect(result.googleRequest.contents.length).toEqual(1);
+    expect(result.googleRequest.contents[0].role).toEqual('user');
+    expect(result.googleRequest.contents[0].parts.length).toEqual(3);
+    expect(result.googleRequest.contents[0].parts[0].text).toEqual(
+      '<system-context>\nInstruction after tool\n</system-context>'
+    );
+    expect(result.googleRequest.contents[0].parts[1].functionResponse).toBeDefined();
+    expect(result.googleRequest.contents[0].parts[2].text).toEqual('Follow-up user question');
+  });
 });
 
 describe('Gemini to Claude Stream Response Translation', () => {
@@ -2183,7 +2224,7 @@ describe('Claude Direct Mode Preprocessing & Headers', () => {
     config.ephemeralSystemMessages = ['[ephemeral-sys-hint]'];
   });
 
-  it('maps model name, preserves -high suffix without injecting thinking, and leaves inline system messages untouched', () => {
+  it('maps model name, preserves -high suffix without injecting thinking, and converts inline system message to system-reminder by default', () => {
     config.modelMappings = {
       'claude-sonnet': { target: 'claude-sonnet-4-5-high', strategy: 'least-used' }
     };
@@ -2206,8 +2247,42 @@ describe('Claude Direct Mode Preprocessing & Headers', () => {
     expect(strategy).toBe('least-used');
     expect(isStream).toBe(true);
     expect(directRequest.messages).toEqual([
-      { role: 'system', content: 'Inline system message stays as-is' },
-      { role: 'user', content: 'Hello world' }
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: '<system-reminder>\nInline system message stays as-is\n</system-reminder>' },
+          { type: 'text', text: 'Hello world' }
+        ]
+      }
+    ]);
+  });
+
+  it('wraps inline system messages with <system-reminder> and places them after tool_result and before normal user text by default in Direct mode', () => {
+    config.systemRoleToInstruction = false;
+    const input = {
+      model: 'claude-3-5-sonnet',
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'tool_result', tool_use_id: 'toolu_1', content: 'ok' },
+            { type: 'text', text: 'user text' }
+          ]
+        },
+        { role: 'system', content: 'reminder text' }
+      ]
+    } as any;
+
+    const { directRequest } = translator.preprocessClaudeDirectRequest(input);
+    expect(directRequest.messages).toEqual([
+      {
+        role: 'user',
+        content: [
+          { type: 'tool_result', tool_use_id: 'toolu_1', content: 'ok' },
+          { type: 'text', text: '<system-reminder>\nreminder text\n</system-reminder>' },
+          { type: 'text', text: 'user text' }
+        ]
+      }
     ]);
   });
 
@@ -2293,12 +2368,18 @@ describe('Claude Direct Mode Preprocessing & Headers', () => {
     expect(headers['x-scheduling-strategy']).toBe('round-robin');
   });
 
-  it('wraps inline system messages with <system-context> and merges them before user blocks when systemRoleToInstruction is true', () => {
+  it('wraps inline system messages with <system-context> and merges them before user blocks (and before tool_result) when systemRoleToInstruction is true', () => {
     config.systemRoleToInstruction = true;
     const input = {
       model: 'claude-3-5-sonnet',
       messages: [
-        { role: 'user', content: 'User 1' },
+        {
+          role: 'user',
+          content: [
+            { type: 'tool_result', tool_use_id: 'toolu_1', content: 'tool out' },
+            { type: 'text', text: 'User 1' }
+          ]
+        },
         { role: 'system', content: 'Sys 1' },
         { role: 'assistant', content: 'Ack' },
         { role: 'system', content: 'x-anthropic-billing-header: cc' },
@@ -2316,6 +2397,7 @@ describe('Claude Direct Mode Preprocessing & Headers', () => {
         role: 'user',
         content: [
           { type: 'text', text: '<system-context>\nSys 1\n</system-context>' },
+          { type: 'tool_result', tool_use_id: 'toolu_1', content: 'tool out' },
           { type: 'text', text: 'User 1' }
         ]
       },
@@ -2391,6 +2473,44 @@ describe('Claude Direct Mode Preprocessing & Headers', () => {
       }
     ]);
     config.runtimeContextTag = 'system-context';
+  });
+
+  it('merges consecutive role: user messages in the same turn into a single user message in Direct mode', () => {
+    config.systemRoleToInstruction = false;
+    const input = {
+      model: 'claude-3-5-sonnet',
+      messages: [
+        { role: 'user', content: 'First user message' },
+        { role: 'user', content: 'Second user message' }
+      ]
+    } as any;
+
+    const { directRequest } = translator.preprocessClaudeDirectRequest(input);
+    expect(directRequest.messages).toEqual([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'First user message' },
+          { type: 'text', text: 'Second user message' }
+        ]
+      }
+    ]);
+  });
+
+  it('drops billing-only inline system message and preserves single user message string content when systemRoleToInstruction is false in Direct mode', () => {
+    config.systemRoleToInstruction = false;
+    const input = {
+      model: 'claude-3-5-sonnet',
+      messages: [
+        { role: 'system', content: 'x-anthropic-billing-header: cc_version=2.1' },
+        { role: 'user', content: 'Hello world' }
+      ]
+    } as any;
+
+    const { directRequest } = translator.preprocessClaudeDirectRequest(input);
+    expect(directRequest.messages).toEqual([
+      { role: 'user', content: 'Hello world' }
+    ]);
   });
 });
 

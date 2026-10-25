@@ -140,9 +140,9 @@ class ClaudeTranslator {
       directRequest.messages = this.filterEphemeralMessages(directRequest.messages);
     }
 
-    // Convert inline system messages if systemRoleToInstruction is enabled
-    if (config.systemRoleToInstruction && Array.isArray(directRequest.messages) && directRequest.messages.length > 0) {
-      const tag = (config.runtimeContextTag || '').trim() || 'system-context';
+    // Convert inline system messages across both modes
+    if (Array.isArray(directRequest.messages) && directRequest.messages.length > 0) {
+      const tag = this.resolveInlineSystemTag();
 
       const wrapDirectSystemBlocks = (content: any): any[] => {
         const blocks: any[] = [];
@@ -193,9 +193,21 @@ class ClaudeTranslator {
         if (systemBlocks.length === 0 && rawUserMessages.length === 1) {
           convertedMessages.push(rawUserMessages[0]);
         } else if (systemBlocks.length + userBlocks.length > 0) {
+          let mergedContent: any[];
+          if (config.systemRoleToInstruction) {
+            mergedContent = [...systemBlocks, ...userBlocks];
+          } else {
+            const toolResultBlocks = userBlocks.filter(
+              (b: any) => b && typeof b === 'object' && b.type === 'tool_result'
+            );
+            const normalUserBlocks = userBlocks.filter(
+              (b: any) => !(b && typeof b === 'object' && b.type === 'tool_result')
+            );
+            mergedContent = [...toolResultBlocks, ...systemBlocks, ...normalUserBlocks];
+          }
           convertedMessages.push({
             role: 'user',
-            content: [...systemBlocks, ...userBlocks]
+            content: mergedContent
           });
         }
         pendingUserSegment = null;
@@ -868,10 +880,26 @@ class ClaudeTranslator {
 
       const flushUserSegment = () => {
         if (!pendingUserSegment) return;
-        const combinedParts = sanitizeParts([
-          ...pendingUserSegment.systemParts,
-          ...pendingUserSegment.userParts
-        ]);
+        let orderedParts: GeminiPart[];
+        if (config.systemRoleToInstruction) {
+          orderedParts = [
+            ...pendingUserSegment.systemParts,
+            ...pendingUserSegment.userParts
+          ];
+        } else {
+          const toolResponseParts = pendingUserSegment.userParts.filter(
+            (p: GeminiPart) => Boolean(p && p.functionResponse)
+          );
+          const normalUserParts = pendingUserSegment.userParts.filter(
+            (p: GeminiPart) => !Boolean(p && p.functionResponse)
+          );
+          orderedParts = [
+            ...toolResponseParts,
+            ...pendingUserSegment.systemParts,
+            ...normalUserParts
+          ];
+        }
+        const combinedParts = sanitizeParts(orderedParts);
         if (combinedParts.length > 0) {
           contents.push({
             role: 'user',

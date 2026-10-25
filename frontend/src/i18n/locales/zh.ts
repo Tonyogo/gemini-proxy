@@ -455,7 +455,7 @@ export const zh: Translations = {
     factoryResetDesc: "丢弃当前运行时所有的热更新参数，完全重置并回滚到 .env 中定义的初始基准配置。",
     footerNote: "修改在保存后立即生效并应用于后续所有请求",
     systemRoleTitle: "USE_SYSTEM_CONTEXT_TAG (<system-context> 包裹开关)",
-    systemRoleDesc: "默认将消息数组中的 system 消息用 <system-reminder> 包裹（直连模式默认不转换）；开启后统一强制使用 <system-context> 包裹并合入 user 消息。",
+    systemRoleDesc: "默认将消息数组中的 system 消息用 <system-reminder> 包裹并合流至 user 轮次（排在所有 tool_result 之后、普通文本之前）；开启后切换为使用 <system-context> 包裹并排在 user 消息最前面。",
     stripFingerprintsTitle: "STRIP_SYSTEM_FINGERPRINTS",
     stripFingerprintsDesc: "自动过滤 Claude 系统提示词指纹（包括 x-anthropic-billing-header 整段丢弃、身份中性化及 Git 署名剥离）。",
     ignoredToolsTitle: "IGNORED_TOOLS (过滤特殊工具)",

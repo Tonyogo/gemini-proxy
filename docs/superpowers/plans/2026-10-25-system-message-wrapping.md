@@ -40,7 +40,7 @@
 - Modifies `ClaudeTranslator.preprocessClaudeDirectRequest(claudeBody: ClaudeRequest)` in `src/proxy/services/claudeTranslator.ts`.
 - Modifies `ClaudeTranslator.translateClaudeToGoogle(claudeBody: ClaudeRequest)` in `src/proxy/services/claudeTranslator.ts`.
 
-- [ ] **Step 1: Update unit tests in `tests/claudeTranslator.test.ts` to assert the unified wrapping and `tool_result` ordering**
+- [x] **Step 1: Update unit tests in `tests/claudeTranslator.test.ts` to assert the unified wrapping and `tool_result` ordering**
 
 1. In `tests/claudeTranslator.test.ts` around lines 121-148 (`it('translates tool_result with system message...')`):
    - Update the test to verify that by default (`config.systemRoleToInstruction === false`), `functionResponse` comes **first** (`parts[0].functionResponse` is defined) and `<system-reminder>\nInstruction after tool\n</system-reminder>` comes **after `functionResponse` and before normal text**:
@@ -122,12 +122,12 @@
      ]
      ```
 
-- [ ] **Step 2: Run `npx jest tests/claudeTranslator.test.ts` to verify the updated tests fail**
+- [x] **Step 2: Run `npx jest tests/claudeTranslator.test.ts` to verify the updated tests fail**
 
 Run: `npx jest tests/claudeTranslator.test.ts`
 Expected: FAIL
 
-- [ ] **Step 3: Implement unified wrapping and `tool_result` ordering in `src/proxy/services/claudeTranslator.ts` and update i18n descriptions**
+- [x] **Step 3: Implement unified wrapping and `tool_result` ordering in `src/proxy/services/claudeTranslator.ts` and update i18n descriptions**
 
 1. In `src/proxy/services/claudeTranslator.ts` inside `preprocessClaudeDirectRequest`:
    - Always run the inline `role: 'system'` conversion when `Array.isArray(directRequest.messages) && directRequest.messages.length > 0` (remove the `config.systemRoleToInstruction &&` guard).
@@ -197,12 +197,12 @@ Expected: FAIL
 3. In `frontend/src/i18n/locales/zh.ts` and `frontend/src/i18n/locales/en.ts`:
    - Update `systemRoleDesc` to match the spec copy.
 
-- [ ] **Step 4: Run full test suite and build**
+- [x] **Step 4: Run full test suite and build**
 
 Run: `npx jest --runInBand && npm run build`
 Expected: All 120 test suites PASS and `npm run build` succeeds with 0 errors.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/proxy/services/claudeTranslator.ts frontend/src/i18n/locales/zh.ts frontend/src/i18n/locales/en.ts tests/claudeTranslator.test.ts docs/superpowers/plans/2026-10-25-system-message-wrapping.md

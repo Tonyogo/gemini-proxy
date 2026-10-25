@@ -453,7 +453,7 @@ export const en = {
     factoryResetDesc: "Discard all live dynamic runtime overrides and revert directly to the baseline configuration defined in .env.",
     footerNote: "Changes take effect immediately upon saving",
     systemRoleTitle: "USE_SYSTEM_CONTEXT_TAG (<system-context> Wrapper)",
-    systemRoleDesc: "Wraps inline system messages with <system-reminder> by default in Proxy mode (untouched in Direct mode); enable to force <system-context> wrapping across both modes.",
+    systemRoleDesc: "By default, wraps inline system messages with <system-reminder> and merges them into user turns after tool_result blocks and before normal text; enable to wrap with <system-context> at the very front of user messages.",
     stripFingerprintsTitle: "STRIP_SYSTEM_FINGERPRINTS",
     stripFingerprintsDesc: "Automatically strip Claude system prompt fingerprints (drop x-anthropic-billing-header blocks, neutralize identity, remove git attributions).",
     ignoredToolsTitle: "IGNORED_TOOLS",
