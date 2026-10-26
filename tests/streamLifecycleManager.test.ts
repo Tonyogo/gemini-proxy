@@ -79,7 +79,7 @@ describe('StreamLifecycleManager', () => {
     expect(manager.reason).toBeNull();
   });
 
-  it('should immediately flush SSE headers with initial : ping and periodically send heartbeats when enableSseHeartbeat is true', () => {
+  it('should defer SSE headers and heartbeat ping until timer fires or attachStream is called', () => {
     const setHeaderSpy = jest.fn();
     const flushHeadersSpy = jest.fn();
     const writeSpy = jest.fn();
@@ -97,7 +97,13 @@ describe('StreamLifecycleManager', () => {
       heartbeatIntervalMs: 15000
     });
 
-    // Immediately upon construction: headers set, flushed, and initial : ping sent
+    // Upon construction: headers are NOT sent yet, ensuring res.headersSent remains false for fast-failing upstreams
+    expect(setHeaderSpy).not.toHaveBeenCalled();
+    expect(flushHeadersSpy).not.toHaveBeenCalled();
+    expect(writeSpy).not.toHaveBeenCalled();
+
+    // Advance 15s: heartbeat timer fires, flushing SSE headers and writing : ping
+    jest.advanceTimersByTime(15000);
     expect(setHeaderSpy).toHaveBeenCalledWith('Content-Type', 'text/event-stream');
     expect(setHeaderSpy).toHaveBeenCalledWith('Cache-Control', 'no-cache');
     expect(setHeaderSpy).toHaveBeenCalledWith('Connection', 'keep-alive');
@@ -109,7 +115,7 @@ describe('StreamLifecycleManager', () => {
     // Simulate headersSent becoming true after initial flush/write
     (mockRes as any).headersSent = true;
 
-    // Advance 15s: periodic heartbeat writes : ping
+    // Advance 15s: second periodic heartbeat writes : ping
     jest.advanceTimersByTime(15000);
     expect(writeSpy).toHaveBeenCalledTimes(2);
     expect(writeSpy).toHaveBeenLastCalledWith(': ping\n\n');

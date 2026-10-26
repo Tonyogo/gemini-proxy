@@ -129,7 +129,7 @@ describe('POST /v1/messages (Streaming)', () => {
     expect(res.text).toContain('Done thinking');
   });
 
-  it('emits SSE error event when upstream fails with non-200 because SSE headers were already flushed before fetch', async () => {
+  it('returns real HTTP error status when upstream fails before SSE headers are flushed', async () => {
     (fetch as unknown as jest.Mock).mockResolvedValueOnce({
       status: 500,
       ok: false,
@@ -146,10 +146,7 @@ describe('POST /v1/messages (Streaming)', () => {
         stream: true
       });
 
-    expect(res.statusCode).toEqual(200);
-    expect(res.headers['content-type']).toContain('text/event-stream');
-    expect(res.text).toContain(': ping\n\n');
-    expect(res.text).toContain('event: error\n');
-    expect(res.text).toContain('Upstream internal failure');
+    expect(res.statusCode).toEqual(500);
+    expect(res.body.error.message).toContain('Upstream internal failure');
   });
 });

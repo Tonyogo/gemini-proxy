@@ -51,7 +51,7 @@ describe('Upstream 524 Timeout Interception & Anthropic 529 Retry Response', () 
     expect(res.body.error.message).toBe('Upstream gateway timed out (524). Service is temporarily overloaded, please retry.');
   });
 
-  it('intercepts stream 524 error after pre-fetch SSE initialization and streams error event', async () => {
+  it('intercepts stream 524 error and returns real HTTP 529 with retry headers when upstream fails fast', async () => {
     (fetch as unknown as jest.Mock).mockResolvedValueOnce({
       status: 524,
       ok: false,
@@ -70,12 +70,10 @@ describe('Upstream 524 Timeout Interception & Anthropic 529 Retry Response', () 
         messages: [{ role: 'user', content: 'stream test' }]
       });
 
-    expect(res.statusCode).toBe(200);
-    expect(res.headers['content-type']).toContain('text/event-stream');
-    expect(res.text).toContain(': ping\n\n');
-    expect(res.text).toContain('event: error\n');
-    expect(res.text).toContain('overloaded_error');
-    expect(res.text).toContain('Upstream gateway timed out (524). Service is temporarily overloaded, please retry.');
+    expect(res.statusCode).toBe(529);
+    expect(res.body.error.type).toBe('overloaded_error');
+    expect(res.body.error.message).toBe('Upstream gateway timed out (524). Service is temporarily overloaded, please retry.');
+    expect(res.headers['retry-after']).toBeDefined();
   });
 
   it('intercepts 524 during count_tokens and returns 529 with retry headers', async () => {

@@ -64,9 +64,10 @@ export interface ClaudeRequest {
   top_k?: number;
   stop_sequences?: string[];
   thinking?: {
-    type: 'enabled';
-    budget_tokens: number;
-  };
+    type: 'enabled' | 'disabled';
+    budget_tokens?: number;
+    [key: string]: any;
+  } | any;
   tools?: ClaudeTool[] | any[];
   tool_choice?: any;
   output_format?: any;
@@ -92,6 +93,7 @@ export interface GeminiRequest {
   systemInstruction?: { parts: { text: string }[]; role: 'user' };
   generationConfig?: Record<string, any>;
   tools?: any[];
+  toolConfig?: any;
 }
 
 export interface GeminiModelEntry {

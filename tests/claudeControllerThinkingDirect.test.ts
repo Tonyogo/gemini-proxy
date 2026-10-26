@@ -177,7 +177,8 @@ describe('claudeController Universal Thinking Suffix (-high)', () => {
     expect(res.status).toBe(200);
     expect(capturedUpstreamUrl).toBe('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent');
     expect(capturedBody.generationConfig?.thinkingConfig).toEqual({
-      thinkingLevel: 'HIGH'
+      thinkingLevel: 'HIGH',
+      thinkingBudget: 1024
     });
     expect(capturedBody.generationConfig?.thinkingConfig?.includeThoughts).toBeUndefined();
   });

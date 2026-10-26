@@ -27,6 +27,8 @@ export class StreamLifecycleManager {
   private heartbeatTimer: NodeJS.Timeout | null = null;
   private upstreamStream: Readable | null = null;
   private timeoutMs: number = 0;
+  private enableSseHeartbeat: boolean = false;
+  private initialHeartbeatSent: boolean = false;
 
   private handleStreamData = () => {
     this.resetTimeout();
@@ -67,10 +69,11 @@ export class StreamLifecycleManager {
     this.resetTimeout();
 
     if (options.enableSseHeartbeat) {
+      this.enableSseHeartbeat = true;
       const intervalMs = options.heartbeatIntervalMs && options.heartbeatIntervalMs > 0
         ? options.heartbeatIntervalMs
         : DEFAULT_HEARTBEAT_INTERVAL_MS;
-      this.sendHeartbeat();
+      // Do NOT send heartbeat immediately in constructor!
       this.heartbeatTimer = setInterval(() => {
         this.sendHeartbeat();
       }, intervalMs);
@@ -97,9 +100,14 @@ export class StreamLifecycleManager {
       this.clearHeartbeat();
       return;
     }
+    this.initialHeartbeatSent = true;
     this.ensureSseHeaders();
-    if (typeof this.res.write === 'function') {
-      this.res.write(': ping\n\n');
+    try {
+      if (typeof this.res.write === 'function') {
+        this.res.write(': ping\n\n');
+      }
+    } catch (e) {
+      this.clearHeartbeat();
     }
   }
 
@@ -132,6 +140,11 @@ export class StreamLifecycleManager {
     }
     this.upstreamStream = stream;
     this.resetTimeout();
+    if (this.enableSseHeartbeat && !this.initialHeartbeatSent) {
+      this.sendHeartbeat();
+    } else {
+      this.ensureSseHeaders();
+    }
     if (stream && typeof stream.on === 'function') {
       stream.on('data', this.handleStreamData);
     }

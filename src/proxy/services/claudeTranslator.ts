@@ -1,6 +1,6 @@
 import config from '../../../config/default';
 import logger from '../../utils/logger';
-import { parseModelThinkingSuffix } from '../../utils/modelThinkingHelper';
+import { parseModelThinkingSuffix, applyThinkingConfigHigh } from '../../utils/modelThinkingHelper';
 import {
   ClaudeMessage,
   ClaudeRequest,
@@ -826,9 +826,54 @@ class ClaudeTranslator {
       return parts;
     };
 
-    const inputMessages = claudeBody.messages && Array.isArray(claudeBody.messages)
+    const rawInputMessages = claudeBody.messages && Array.isArray(claudeBody.messages)
       ? this.slimHistoricalMessages(this.filterEphemeralMessages(claudeBody.messages))
       : [];
+    const inputMessages: ClaudeMessage[] = JSON.parse(JSON.stringify(rawInputMessages));
+
+    let prefillContent: string | null = null;
+    if (inputMessages.length > 0) {
+      const lastMsg = inputMessages[inputMessages.length - 1];
+      const hasThinkingOrTool = lastMsg && Array.isArray(lastMsg.content) && lastMsg.content.some((b: any) =>
+        b && typeof b === 'object' && (b.type === 'thinking' || b.type === 'redacted_thinking' || b.type === 'tool_use')
+      );
+      if (lastMsg && lastMsg.role === 'assistant' && !hasThinkingOrTool) {
+        if (typeof lastMsg.content === 'string') {
+          prefillContent = lastMsg.content;
+        } else if (Array.isArray(lastMsg.content)) {
+          prefillContent = lastMsg.content
+            .filter((b: any) => typeof b === 'string' || b?.type === 'text')
+            .map((b: any) => (typeof b === 'string' ? b : (b.text || '')))
+            .join('');
+        }
+        // Remove trailing assistant message from Gemini contents
+        inputMessages.pop();
+
+        if (prefillContent) {
+          const instruction = `\n\n[Instruction: Continue your response starting directly with: "${prefillContent}"]`;
+          let injected = false;
+          if (inputMessages.length > 0 && inputMessages[inputMessages.length - 1].role === 'user') {
+            const uMsg = inputMessages[inputMessages.length - 1];
+            if (typeof uMsg.content === 'string') {
+              uMsg.content += instruction;
+            } else if (Array.isArray(uMsg.content)) {
+              uMsg.content.push({ type: 'text', text: instruction });
+            }
+            injected = true;
+          }
+          if (!injected) {
+            if (inputMessages.length === 0 && systemInstruction) {
+              systemInstruction.parts[0].text = `${systemInstruction.parts[0].text}\n\n[Instruction: Continue your response starting directly with: "${prefillContent}"]`;
+            } else {
+              inputMessages.push({
+                role: 'user',
+                content: `[Instruction: Continue your response starting directly with: "${prefillContent}"]`
+              });
+            }
+          }
+        }
+      }
+    }
 
     const contents: GeminiContent[] = [];
     const toolIdToNameMap = new Map<string, string>();
@@ -1095,6 +1140,26 @@ class ClaudeTranslator {
         generationConfig.stopSequences = validStopSequences;
       }
     }
+
+    const thinkingInfo = parseModelThinkingSuffix(cleanModelName);
+    if (thinkingInfo.isHigh) {
+      applyThinkingConfigHigh(generationConfig);
+    }
+    if (claudeBody.thinking && typeof claudeBody.thinking === 'object') {
+      if (claudeBody.thinking.type === 'enabled') {
+        const thinkingBudget = claudeBody.thinking.budget_tokens;
+        generationConfig.thinkingConfig = {
+          ...(generationConfig.thinkingConfig || {}),
+          ...(thinkingBudget !== undefined ? { thinkingBudget } : {})
+        };
+      } else if (claudeBody.thinking.type === 'disabled') {
+        generationConfig.thinkingConfig = {
+          ...(generationConfig.thinkingConfig || {}),
+          thinkingBudget: 0
+        };
+      }
+    }
+
     if (Object.keys(generationConfig).length > 0) {
       googleRequest.generationConfig = generationConfig;
     }
@@ -1138,11 +1203,47 @@ class ClaudeTranslator {
       }
     }
 
+    if (claudeBody.tool_choice) {
+      let tc = claudeBody.tool_choice;
+      if (typeof tc === 'string') {
+        tc = { type: tc };
+      }
+      if (typeof tc === 'object') {
+        if (tc.type === 'auto') {
+          googleRequest.toolConfig = {
+            functionCallingConfig: {
+              mode: 'AUTO'
+            }
+          };
+        } else if (tc.type === 'any') {
+          googleRequest.toolConfig = {
+            functionCallingConfig: {
+              mode: 'ANY'
+            }
+          };
+        } else if (tc.type === 'tool' && tc.name) {
+          googleRequest.toolConfig = {
+            functionCallingConfig: {
+              mode: 'ANY',
+              allowedFunctionNames: [tc.name]
+            }
+          };
+        } else if (tc.type === 'none') {
+          googleRequest.toolConfig = {
+            functionCallingConfig: {
+              mode: 'NONE'
+            }
+          };
+        }
+      }
+    }
+
     return {
       googleRequest,
       cleanModelName,
       strategy: mappingStrategy,
-      isStream: claudeBody.stream === true
+      isStream: claudeBody.stream === true,
+      prefillContent
     };
   }
 
@@ -1280,7 +1381,12 @@ class ClaudeTranslator {
     return this._cleanAndCoerceArguments(toolName, args, tools);
   }
 
-  public convertGoogleToClaudeNonStream(googleResponse: any, modelName: string, tools?: any[]) {
+  public convertGoogleToClaudeNonStream(
+    googleResponse: any,
+    modelName: string,
+    tools?: any[],
+    prefillContent?: string | null
+  ) {
     const candidate = googleResponse.candidates?.[0];
     const usage = googleResponse.usageMetadata || {};
 
@@ -1313,12 +1419,36 @@ class ClaudeTranslator {
       }
     }
 
+    if (prefillContent) {
+      const firstTextBlock = content.find((b: any) => b.type === 'text');
+      if (firstTextBlock) {
+        if (!firstTextBlock.text.startsWith(prefillContent)) {
+          firstTextBlock.text = prefillContent + firstTextBlock.text;
+        }
+      } else {
+        let insertIndex = 0;
+        while (
+          insertIndex < content.length &&
+          (content[insertIndex].type === 'thinking' || content[insertIndex].type === 'redacted_thinking')
+        ) {
+          insertIndex++;
+        }
+        content.splice(insertIndex, 0, { type: 'text', text: prefillContent });
+      }
+    }
+
     if (content.length === 0) {
       content.push({ type: 'text', text: '' });
     }
 
+    const isSafetyBlock =
+      Boolean(candidate?.finishReason && ['SAFETY', 'BLOCKLIST', 'PROHIBITED_CONTENT'].includes(candidate.finishReason)) ||
+      Boolean(googleResponse.promptFeedback?.blockReason && ['SAFETY', 'BLOCKLIST', 'PROHIBITED_CONTENT'].includes(googleResponse.promptFeedback.blockReason));
+
     let stopReason = 'end_turn';
-    if (candidate && candidate.finishReason === 'MAX_TOKENS') {
+    if (isSafetyBlock) {
+      stopReason = 'refusal';
+    } else if (candidate && candidate.finishReason === 'MAX_TOKENS') {
       stopReason = 'max_tokens';
     } else if (candidate && candidate.content && candidate.content.parts.some((p: any) => p.functionCall)) {
       stopReason = 'tool_use';
@@ -1334,7 +1464,8 @@ class ClaudeTranslator {
       stop_sequence: null,
       usage: {
         input_tokens: usage.promptTokenCount || 0,
-        output_tokens: (usage.candidatesTokenCount || 0) + (usage.thoughtsTokenCount || 0)
+        output_tokens: (usage.candidatesTokenCount || 0) + (usage.thoughtsTokenCount || 0),
+        ...(usage.cachedContentTokenCount !== undefined ? { cache_read_input_tokens: usage.cachedContentTokenCount } : {})
       }
     };
   }
@@ -1377,6 +1508,13 @@ class ClaudeTranslator {
     }
 
     if (!streamState.messageStartSent) {
+      const startUsage: any = {
+        input_tokens: usage ? usage.promptTokenCount || 0 : 0,
+        output_tokens: 0
+      };
+      if (usage?.cachedContentTokenCount !== undefined) {
+        startUsage.cache_read_input_tokens = usage.cachedContentTokenCount;
+      }
       events.push({
         type: 'message_start',
         message: {
@@ -1387,10 +1525,7 @@ class ClaudeTranslator {
           content: [],
           stop_reason: null,
           stop_sequence: null,
-          usage: {
-            input_tokens: usage ? usage.promptTokenCount || 0 : 0,
-            output_tokens: 0
-          }
+          usage: startUsage
         }
       });
       streamState.messageStartSent = true;
@@ -1423,19 +1558,66 @@ class ClaudeTranslator {
             streamState.thinkingBlockStarted = false;
             streamState.contentBlockIndex++;
           }
-          if (!streamState.textBlockStarted) {
+
+          if (streamState.prefillContent && !streamState.prefillEmitted) {
+            const prefill = streamState.prefillContent;
+            const accumulated = (streamState.prefillBuffer || '') + part.text;
+
+            if (accumulated.startsWith(prefill)) {
+              if (!streamState.textBlockStarted) {
+                events.push({
+                  type: 'content_block_start',
+                  index: streamState.contentBlockIndex,
+                  content_block: { type: 'text', text: '' }
+                });
+                streamState.textBlockStarted = true;
+              }
+              events.push({
+                type: 'content_block_delta',
+                index: streamState.contentBlockIndex,
+                delta: { type: 'text_delta', text: accumulated }
+              });
+              streamState.prefillEmitted = true;
+              streamState.prefillBuffer = '';
+            } else if (prefill.startsWith(accumulated)) {
+              streamState.prefillBuffer = accumulated;
+            } else {
+              if (!streamState.textBlockStarted) {
+                events.push({
+                  type: 'content_block_start',
+                  index: streamState.contentBlockIndex,
+                  content_block: { type: 'text', text: '' }
+                });
+                streamState.textBlockStarted = true;
+              }
+              events.push({
+                type: 'content_block_delta',
+                index: streamState.contentBlockIndex,
+                delta: { type: 'text_delta', text: prefill }
+              });
+              events.push({
+                type: 'content_block_delta',
+                index: streamState.contentBlockIndex,
+                delta: { type: 'text_delta', text: accumulated }
+              });
+              streamState.prefillEmitted = true;
+              streamState.prefillBuffer = '';
+            }
+          } else {
+            if (!streamState.textBlockStarted) {
+              events.push({
+                type: 'content_block_start',
+                index: streamState.contentBlockIndex,
+                content_block: { type: 'text', text: '' }
+              });
+              streamState.textBlockStarted = true;
+            }
             events.push({
-              type: 'content_block_start',
+              type: 'content_block_delta',
               index: streamState.contentBlockIndex,
-              content_block: { type: 'text', text: '' }
+              delta: { type: 'text_delta', text: part.text }
             });
-            streamState.textBlockStarted = true;
           }
-          events.push({
-            type: 'content_block_delta',
-            index: streamState.contentBlockIndex,
-            delta: { type: 'text_delta', text: part.text }
-          });
         } else if (part.functionCall) {
           if (streamState.thinkingBlockStarted) {
             events.push({ type: 'content_block_stop', index: streamState.contentBlockIndex });
@@ -1446,6 +1628,25 @@ class ClaudeTranslator {
             events.push({ type: 'content_block_stop', index: streamState.contentBlockIndex });
             streamState.textBlockStarted = false;
             streamState.contentBlockIndex++;
+          }
+          if (streamState.prefillContent && !streamState.prefillEmitted) {
+            streamState.prefillEmitted = true;
+            const prefill = streamState.prefillContent;
+            const extra = streamState.prefillBuffer || '';
+            const textToEmit = extra && !prefill.startsWith(extra) ? prefill + extra : prefill;
+            events.push({
+              type: 'content_block_start',
+              index: streamState.contentBlockIndex,
+              content_block: { type: 'text', text: '' }
+            });
+            events.push({
+              type: 'content_block_delta',
+              index: streamState.contentBlockIndex,
+              delta: { type: 'text_delta', text: textToEmit }
+            });
+            events.push({ type: 'content_block_stop', index: streamState.contentBlockIndex });
+            streamState.contentBlockIndex++;
+            streamState.prefillBuffer = '';
           }
           streamState.hasToolCalls = true;
           const callId = part.functionCall.id && part.functionCall.id.startsWith('toolu_')
@@ -1485,8 +1686,15 @@ class ClaudeTranslator {
     if (candidate?.finishReason) {
       streamState.cachedFinishReason = candidate.finishReason;
     }
+    if (googleResponse.promptFeedback?.blockReason) {
+      streamState.cachedPromptBlockReason = googleResponse.promptFeedback.blockReason;
+    }
 
-    if (!streamState.hasEmittedMessageStop && streamState.cachedFinishReason && streamState.cachedUsage) {
+    const isSafetyFinish =
+      Boolean(streamState.cachedFinishReason && ['SAFETY', 'BLOCKLIST', 'PROHIBITED_CONTENT'].includes(streamState.cachedFinishReason)) ||
+      Boolean(streamState.cachedPromptBlockReason && ['SAFETY', 'BLOCKLIST', 'PROHIBITED_CONTENT'].includes(streamState.cachedPromptBlockReason));
+
+    if (!streamState.hasEmittedMessageStop && (streamState.cachedFinishReason || streamState.cachedPromptBlockReason) && (streamState.cachedUsage || isSafetyFinish)) {
       if (streamState.thinkingBlockStarted) {
         events.push({ type: 'content_block_stop', index: streamState.contentBlockIndex });
         streamState.thinkingBlockStarted = false;
@@ -1497,16 +1705,50 @@ class ClaudeTranslator {
         streamState.textBlockStarted = false;
         streamState.contentBlockIndex++;
       }
+      if (streamState.prefillContent && !streamState.prefillEmitted) {
+        streamState.prefillEmitted = true;
+        const prefill = streamState.prefillContent;
+        const extra = streamState.prefillBuffer || '';
+        const textToEmit = extra && !prefill.startsWith(extra) ? prefill + extra : prefill;
+        events.push({
+          type: 'content_block_start',
+          index: streamState.contentBlockIndex,
+          content_block: { type: 'text', text: '' }
+        });
+        events.push({
+          type: 'content_block_delta',
+          index: streamState.contentBlockIndex,
+          delta: { type: 'text_delta', text: textToEmit }
+        });
+        events.push({ type: 'content_block_stop', index: streamState.contentBlockIndex });
+        streamState.contentBlockIndex++;
+        streamState.prefillBuffer = '';
+      }
+
       let stopReason = 'end_turn';
-      if (streamState.cachedFinishReason === 'MAX_TOKENS') {
+      if (isSafetyFinish) {
+        stopReason = 'refusal';
+      } else if (streamState.cachedFinishReason === 'MAX_TOKENS') {
         stopReason = 'max_tokens';
       } else if (streamState.hasToolCalls) {
         stopReason = 'tool_use';
       }
+
+      const effUsage = streamState.cachedUsage || {};
+      const usageObj: any = {
+        output_tokens: (effUsage.candidatesTokenCount || 0) + (effUsage.thoughtsTokenCount || 0)
+      };
+      if (effUsage.promptTokenCount !== undefined) {
+        usageObj.input_tokens = effUsage.promptTokenCount;
+      }
+      if (effUsage.cachedContentTokenCount !== undefined) {
+        usageObj.cache_read_input_tokens = effUsage.cachedContentTokenCount;
+      }
+
       events.push({
         type: 'message_delta',
         delta: { stop_reason: stopReason, stop_sequence: null },
-        usage: { output_tokens: (streamState.cachedUsage.candidatesTokenCount || 0) + (streamState.cachedUsage.thoughtsTokenCount || 0) }
+        usage: usageObj
       });
       events.push({ type: 'message_stop' });
       streamState.hasEmittedMessageStop = true;
@@ -1526,6 +1768,13 @@ class ClaudeTranslator {
         streamState.messageId = `msg_stream_${Math.random().toString(36).substring(2, 11)}`;
         streamState.contentBlockIndex = 0;
       }
+      const startUsage: any = {
+        input_tokens: streamState.cachedUsage ? streamState.cachedUsage.promptTokenCount || 0 : 0,
+        output_tokens: 0
+      };
+      if (streamState.cachedUsage?.cachedContentTokenCount !== undefined) {
+        startUsage.cache_read_input_tokens = streamState.cachedUsage.cachedContentTokenCount;
+      }
       events.push({
         type: 'message_start',
         message: {
@@ -1536,10 +1785,7 @@ class ClaudeTranslator {
           content: [],
           stop_reason: null,
           stop_sequence: null,
-          usage: {
-            input_tokens: streamState.cachedUsage ? streamState.cachedUsage.promptTokenCount || 0 : 0,
-            output_tokens: 0
-          }
+          usage: startUsage
         }
       });
       streamState.messageStartSent = true;
@@ -1557,9 +1803,35 @@ class ClaudeTranslator {
       streamState.contentBlockIndex++;
     }
 
+    if (streamState.prefillContent && !streamState.prefillEmitted) {
+      streamState.prefillEmitted = true;
+      const prefill = streamState.prefillContent;
+      const extra = streamState.prefillBuffer || '';
+      const textToEmit = extra && !prefill.startsWith(extra) ? prefill + extra : prefill;
+      events.push({
+        type: 'content_block_start',
+        index: streamState.contentBlockIndex,
+        content_block: { type: 'text', text: '' }
+      });
+      events.push({
+        type: 'content_block_delta',
+        index: streamState.contentBlockIndex,
+        delta: { type: 'text_delta', text: textToEmit }
+      });
+      events.push({ type: 'content_block_stop', index: streamState.contentBlockIndex });
+      streamState.contentBlockIndex++;
+      streamState.prefillBuffer = '';
+    }
+
     if (!streamState.hasEmittedMessageStop) {
+      const isSafetyFinish =
+        Boolean(streamState.cachedFinishReason && ['SAFETY', 'BLOCKLIST', 'PROHIBITED_CONTENT'].includes(streamState.cachedFinishReason)) ||
+        Boolean(streamState.cachedPromptBlockReason && ['SAFETY', 'BLOCKLIST', 'PROHIBITED_CONTENT'].includes(streamState.cachedPromptBlockReason));
+
       let stopReason = 'end_turn';
-      if (streamState.cachedFinishReason === 'MAX_TOKENS') {
+      if (isSafetyFinish) {
+        stopReason = 'refusal';
+      } else if (streamState.cachedFinishReason === 'MAX_TOKENS') {
         stopReason = 'max_tokens';
       } else if (streamState.hasToolCalls) {
         stopReason = 'tool_use';
@@ -1568,10 +1840,17 @@ class ClaudeTranslator {
       const outputTokens = effUsage
         ? (effUsage.candidatesTokenCount || 0) + (effUsage.thoughtsTokenCount || 0)
         : 0;
+      const usageObj: any = { output_tokens: outputTokens };
+      if (effUsage?.promptTokenCount !== undefined) {
+        usageObj.input_tokens = effUsage.promptTokenCount;
+      }
+      if (effUsage?.cachedContentTokenCount !== undefined) {
+        usageObj.cache_read_input_tokens = effUsage.cachedContentTokenCount;
+      }
       events.push({
         type: 'message_delta',
         delta: { stop_reason: stopReason, stop_sequence: null },
-        usage: { output_tokens: outputTokens }
+        usage: usageObj
       });
       events.push({ type: 'message_stop' });
       streamState.hasEmittedMessageStop = true;

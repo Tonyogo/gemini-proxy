@@ -101,7 +101,7 @@ class ClaudeController {
         );
       }
 
-      const { googleRequest, cleanModelName: proxyModelName, strategy } = claudeTranslator.translateClaudeToGoogle(clientReq, mappingInfo);
+      const { googleRequest, cleanModelName: proxyModelName, strategy, prefillContent } = claudeTranslator.translateClaudeToGoogle(clientReq, mappingInfo);
       gemReq = googleRequest;
 
       // Determine effective scheduling strategy: mapping config takes precedence over client header
@@ -181,7 +181,7 @@ class ClaudeController {
           streamManager.attachStream(response.body);
           streamManager.ensureSseHeaders();
 
-          const streamState: any = { tools: clientReq.tools };
+          const streamState: any = { tools: clientReq.tools, prefillContent };
           const gemResChunks: any[] = [];
           const claudeResChunks: any[] = [];
           let streamBuffer = '';
@@ -430,7 +430,7 @@ class ClaudeController {
           }
           geminiData = JSON.parse(Buffer.concat(chunks).toString('utf-8'));
         }
-        const translatedResponse = claudeTranslator.convertGoogleToClaudeNonStream(geminiData, cleanModelName, clientReq.tools);
+        const translatedResponse = claudeTranslator.convertGoogleToClaudeNonStream(geminiData, cleanModelName, clientReq.tools, prefillContent);
 
         accountUsageService.record(accountName, cleanModelName, true);
 
