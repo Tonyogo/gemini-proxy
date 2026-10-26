@@ -2514,6 +2514,446 @@ describe('Claude Direct Mode Preprocessing & Headers', () => {
   });
 });
 
+describe('ClaudeTranslator - Historical Thinking Blocks Slimming', () => {
+  beforeEach(() => {
+    config.customSystemInstruction = '';
+  });
+
+  describe('findLastHumanTurnIndex', () => {
+    it('returns the last user index when content is a plain string', () => {
+      const messages: any[] = [
+        { role: 'user', content: 'Turn 1' },
+        { role: 'assistant', content: 'Reply 1' },
+        { role: 'user', content: 'Turn 2' },
+        { role: 'assistant', content: 'Reply 2' }
+      ];
+      expect(translator.findLastHumanTurnIndex(messages)).toBe(2);
+    });
+
+    it('skips trailing user messages whose content array contains only tool_result blocks or is empty and returns earlier human turn', () => {
+      const messages: any[] = [
+        { role: 'user', content: [{ type: 'text', text: 'Turn 1' }] },
+        { role: 'assistant', content: [{ type: 'tool_use', id: 'tool_1', name: 'read_file', input: {} }] },
+        { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'tool_1', content: 'file content' }] },
+        { role: 'assistant', content: [{ type: 'tool_use', id: 'tool_2', name: 'write_file', input: {} }] },
+        { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'tool_2', content: 'ok' }] }
+      ];
+      expect(translator.findLastHumanTurnIndex(messages)).toBe(0);
+
+      // Trailing user message with empty content array
+      const messagesWithEmpty: any[] = [
+        { role: 'user', content: 'First message' },
+        { role: 'assistant', content: 'First reply' },
+        { role: 'user', content: [] }
+      ];
+      expect(translator.findLastHumanTurnIndex(messagesWithEmpty)).toBe(0);
+
+      // Human turn with image block
+      const messagesWithImage: any[] = [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: { type: 'base64', media_type: 'image/png', data: 'abc' }
+            }
+          ]
+        },
+        { role: 'assistant', content: [{ type: 'tool_use', id: 't1', name: 'inspect', input: {} }] },
+        { role: 'user', content: [{ type: 'tool_result', tool_use_id: 't1', content: 'done' }] }
+      ];
+      expect(translator.findLastHumanTurnIndex(messagesWithImage)).toBe(0);
+    });
+
+    it('selects a user message that mixes tool_result and text/image blocks as lastHumanIndex', () => {
+      const messages: any[] = [
+        { role: 'user', content: 'Turn 1' },
+        { role: 'assistant', content: [{ type: 'tool_use', id: 'tool_1', name: 'search', input: {} }] },
+        {
+          role: 'user',
+          content: [
+            { type: 'tool_result', tool_use_id: 'tool_1', content: 'results' },
+            { type: 'text', text: 'Now please summarize these results' }
+          ]
+        },
+        { role: 'assistant', content: 'Summary' }
+      ];
+      expect(translator.findLastHumanTurnIndex(messages)).toBe(2);
+    });
+
+    it('returns -1 when all user messages are pure tool_result or messages has no real user turns', () => {
+      const pureToolResults: any[] = [
+        { role: 'user', content: [{ type: 'tool_result', tool_use_id: 't1', content: 'res1' }] },
+        { role: 'assistant', content: [{ type: 'tool_use', id: 't2', name: 'tool2', input: {} }] },
+        { role: 'user', content: [{ type: 'tool_result', tool_use_id: 't2', content: 'res2' }] }
+      ];
+      expect(translator.findLastHumanTurnIndex(pureToolResults)).toBe(-1);
+
+      expect(translator.findLastHumanTurnIndex([])).toBe(-1);
+      expect(translator.findLastHumanTurnIndex(null as any)).toBe(-1);
+      expect(translator.findLastHumanTurnIndex([{ role: 'assistant', content: 'hello' }] as any)).toBe(-1);
+      expect(translator.findLastHumanTurnIndex([{ role: 'user', content: [] }] as any)).toBe(-1);
+    });
+  });
+
+  describe('slimHistoricalMessages', () => {
+    it('removes thinking and redacted_thinking blocks from assistant messages at index < lastHumanIndex while keeping other blocks', () => {
+      const messages: any[] = [
+        { role: 'user', content: 'Turn 1' },
+        {
+          role: 'assistant',
+          content: [
+            { type: 'thinking', thinking: 'internal historical thought', signature: 'sig_hist_1' },
+            { type: 'redacted_thinking', data: 'encrypted_data_1' },
+            { type: 'text', text: 'Historical reply' },
+            { type: 'tool_use', id: 't1', name: 'read', input: {} }
+          ]
+        },
+        { role: 'user', content: 'Turn 2' },
+        {
+          role: 'assistant',
+          content: [
+            { type: 'thinking', thinking: 'active loop thought', signature: 'sig_active_2' },
+            { type: 'redacted_thinking', data: 'encrypted_data_2' },
+            { type: 'text', text: 'Active reply' }
+          ]
+        }
+      ];
+
+      const slimmed = translator.slimHistoricalMessages(messages);
+
+      // Index 1 (historical assistant) should have thinking & redacted_thinking stripped
+      expect(slimmed[1].content).toEqual([
+        { type: 'text', text: 'Historical reply' },
+        { type: 'tool_use', id: 't1', name: 'read', input: {} }
+      ]);
+
+      // Index 3 (active assistant, index > lastHumanIndex) should keep thinking and redacted_thinking intact
+      expect(slimmed[3].content).toEqual([
+        { type: 'thinking', thinking: 'active loop thought', signature: 'sig_active_2' },
+        { type: 'redacted_thinking', data: 'encrypted_data_2' },
+        { type: 'text', text: 'Active reply' }
+      ]);
+    });
+
+    it('replaces content with [{ type: "text", text: "..." }] when a historical assistant message had only thinking / redacted_thinking blocks', () => {
+      const messages: any[] = [
+        { role: 'user', content: 'Turn 1' },
+        {
+          role: 'assistant',
+          content: [
+            { type: 'thinking', thinking: 'only thought', signature: 'sig_1' },
+            { type: 'redacted_thinking', data: 'only_redacted' }
+          ]
+        },
+        { role: 'user', content: 'Turn 2' }
+      ];
+
+      const slimmed = translator.slimHistoricalMessages(messages);
+      expect(slimmed[1].content).toEqual([
+        { type: 'text', text: '...' }
+      ]);
+    });
+
+    it('preserves thinking and redacted_thinking blocks in assistant messages at index > lastHumanIndex', () => {
+      const messages: any[] = [
+        { role: 'user', content: 'Turn 1' },
+        {
+          role: 'assistant',
+          content: [
+            { type: 'thinking', thinking: 'turn 1 thought', signature: 'sig_1' },
+            { type: 'tool_use', id: 't1', name: 'search', input: {} }
+          ]
+        },
+        {
+          role: 'user',
+          content: [{ type: 'tool_result', tool_use_id: 't1', content: 'data' }]
+        },
+        {
+          role: 'assistant',
+          content: [
+            { type: 'thinking', thinking: 'active thought in loop', signature: 'sig_active' },
+            { type: 'text', text: 'active response' }
+          ]
+        }
+      ];
+
+      // lastHumanIndex is 0 because message 2 is pure tool_result.
+      // Since lastHumanIndex === 0, no message has index < lastHumanIndex, so all thinking blocks remain intact.
+      const slimmed = translator.slimHistoricalMessages(messages);
+      expect(slimmed[1].content).toEqual(messages[1].content);
+      expect(slimmed[3].content).toEqual(messages[3].content);
+    });
+
+    it('preserves all thinking blocks when lastHumanIndex === -1 or lastHumanIndex === 0', () => {
+      const lastHumanZero: any[] = [
+        { role: 'user', content: 'Initial prompt' },
+        {
+          role: 'assistant',
+          content: [
+            { type: 'thinking', thinking: 'thought 0', signature: 'sig_0' },
+            { type: 'text', text: 'reply' }
+          ]
+        }
+      ];
+      const resZero = translator.slimHistoricalMessages(lastHumanZero);
+      expect(resZero[1].content).toEqual(lastHumanZero[1].content);
+
+      const pureToolResults: any[] = [
+        {
+          role: 'assistant',
+          content: [
+            { type: 'thinking', thinking: 'thought pure', signature: 'sig_pure' },
+            { type: 'tool_use', id: 't1', name: 'search', input: {} }
+          ]
+        },
+        { role: 'user', content: [{ type: 'tool_result', tool_use_id: 't1', content: 'res' }] }
+      ];
+      const resNegativeOne = translator.slimHistoricalMessages(pureToolResults);
+      expect(resNegativeOne[0].content).toEqual(pureToolResults[0].content);
+
+      expect(translator.slimHistoricalMessages([])).toEqual([]);
+      expect(translator.slimHistoricalMessages(null as any)).toEqual([]);
+    });
+
+    it('does not mutate the original input messages array or nested message objects', () => {
+      const original: any[] = [
+        { role: 'user', content: 'Turn 1' },
+        {
+          role: 'assistant',
+          content: [
+            { type: 'thinking', thinking: 'thought to strip', signature: 'sig' },
+            { type: 'text', text: 'keep me' }
+          ]
+        },
+        { role: 'user', content: 'Turn 2' }
+      ];
+
+      const snapshot = JSON.parse(JSON.stringify(original));
+      const slimmed = translator.slimHistoricalMessages(original);
+
+      // Verify original is untouched
+      expect(original).toEqual(snapshot);
+      expect(slimmed).not.toBe(original);
+      expect(slimmed[1]).not.toBe(original[1]);
+      expect(slimmed[1].content).not.toBe(original[1].content);
+    });
+  });
+
+  describe('Pipeline integration: Direct Mode & Gemini Mode', () => {
+    it('in Direct mode (preprocessClaudeDirectRequest), strips historical thinking blocks, adds fallback on empty, and preserves active loop thinking', () => {
+      const claudePayload: any = {
+        model: 'claude-3-5-sonnet',
+        messages: [
+          { role: 'user', content: 'Initial task' },
+          {
+            role: 'assistant',
+            content: [
+              { type: 'thinking', thinking: 'history thought', signature: 'sig_hist' },
+              { type: 'redacted_thinking', data: 'data_hist' },
+              { type: 'text', text: 'History response' }
+            ]
+          },
+          {
+            role: 'assistant',
+            content: [
+              { type: 'thinking', thinking: 'only thought in history', signature: 'sig_only' }
+            ]
+          },
+          { role: 'user', content: 'Next user turn' },
+          {
+            role: 'assistant',
+            content: [
+              { type: 'thinking', thinking: 'active thought in loop', signature: 'sig_active' },
+              { type: 'redacted_thinking', data: 'data_active' },
+              { type: 'tool_use', id: 't_active', name: 'execute', input: {} }
+            ]
+          },
+          {
+            role: 'user',
+            content: [{ type: 'tool_result', tool_use_id: 't_active', content: 'done' }]
+          },
+          {
+            role: 'assistant',
+            content: [
+              { type: 'thinking', thinking: 'final active thought', signature: 'sig_active_final' },
+              { type: 'text', text: 'Final answer' }
+            ]
+          }
+        ]
+      };
+
+      const originalSnapshot = JSON.parse(JSON.stringify(claudePayload));
+      const { directRequest } = translator.preprocessClaudeDirectRequest(claudePayload);
+
+      // Original claudePayload must not be mutated
+      expect(claudePayload).toEqual(originalSnapshot);
+
+      const msgs = directRequest.messages;
+      // lastHumanIndex is index 3 ("Next user turn").
+      // Messages before index 3:
+      // index 1: assistant with thinking, redacted_thinking, text -> thinking & redacted_thinking stripped
+      expect(msgs[1].content).toEqual([
+        { type: 'text', text: 'History response' }
+      ]);
+
+      // index 2: assistant with only thinking -> fallback to [{ type: 'text', text: '...' }]
+      expect(msgs[2].content).toEqual([
+        { type: 'text', text: '...' }
+      ]);
+
+      // Messages after index 3 (active loop):
+      // index 4: assistant with active thinking, redacted_thinking, tool_use -> fully preserved
+      expect(msgs[4].content).toEqual([
+        { type: 'thinking', thinking: 'active thought in loop', signature: 'sig_active' },
+        { type: 'redacted_thinking', data: 'data_active' },
+        { type: 'tool_use', id: 't_active', name: 'execute', input: {} }
+      ]);
+
+      // index 6: assistant with final active thought and text -> fully preserved
+      expect(msgs[6].content).toEqual([
+        { type: 'thinking', thinking: 'final active thought', signature: 'sig_active_final' },
+        { type: 'text', text: 'Final answer' }
+      ]);
+    });
+
+    it('in Gemini mode (translateClaudeToGoogle), strips historical thinking, handles fallback text, and maps active thinking to Gemini thought parts', () => {
+      const claudePayload: any = {
+        model: 'gemini-3.5-flash',
+        messages: [
+          { role: 'user', content: 'Initial prompt' },
+          {
+            role: 'assistant',
+            content: [
+              { type: 'thinking', thinking: 'history thought to discard', signature: 'sig_old' },
+              { type: 'text', text: 'History answer' }
+            ]
+          },
+          { role: 'user', content: 'Follow-up question' },
+          {
+            role: 'assistant',
+            content: [
+              { type: 'thinking', thinking: 'only thought to become ellipsis', signature: 'sig_old_2' }
+            ]
+          },
+          { role: 'user', content: 'Active human turn' },
+          {
+            role: 'assistant',
+            content: [
+              { type: 'thinking', thinking: 'active thinking text', signature: 'sig_gemini_active' },
+              { type: 'tool_use', id: 'toolu_g_calc', name: 'calc', input: { expr: '1+1' } }
+            ]
+          },
+          {
+            role: 'user',
+            content: [{ type: 'tool_result', tool_use_id: 'toolu_g_calc', content: '2' }]
+          },
+          {
+            role: 'assistant',
+            content: [
+              // Empty thinking string with a valid signature should still produce thought part
+              { type: 'thinking', thinking: '', signature: 'sig_empty_text' },
+              { type: 'text', text: 'Calculation verified' }
+            ]
+          }
+        ]
+      };
+
+      const originalSnapshot = JSON.parse(JSON.stringify(claudePayload));
+      const result = translator.translateClaudeToGoogle(claudePayload);
+
+      // Verify immutability of input claudePayload
+      expect(claudePayload).toEqual(originalSnapshot);
+
+      const contents = result.googleRequest.contents;
+      // Structure of contents:
+      // 0: user ('Initial prompt')
+      expect(contents[0].role).toBe('user');
+      expect(contents[0].parts[0].text).toBe('Initial prompt');
+
+      // 1: model ('History answer', historical thinking was stripped)
+      expect(contents[1].role).toBe('model');
+      expect(contents[1].parts).toEqual([{ text: 'History answer' }]);
+
+      // 2: user ('Follow-up question')
+      expect(contents[2].role).toBe('user');
+      expect(contents[2].parts[0].text).toBe('Follow-up question');
+
+      // 3: model (fallback '...', because message had only thinking)
+      expect(contents[3].role).toBe('model');
+      expect(contents[3].parts).toEqual([{ text: '...' }]);
+
+      // 4: user ('Active human turn')
+      expect(contents[4].role).toBe('user');
+      expect(contents[4].parts[0].text).toBe('Active human turn');
+
+      // 5: model (active turn thinking mapped to thought: true + tool call)
+      expect(contents[5].role).toBe('model');
+      expect(contents[5].parts[0]).toEqual({
+        thought: true,
+        text: 'active thinking text',
+        thoughtSignature: 'sig_gemini_active'
+      });
+      expect(contents[5].parts[1].functionCall).toEqual({
+        name: 'calc',
+        args: { expr: '1+1' },
+        id: 'calc'
+      });
+
+      // 6: user (tool response '2')
+      expect(contents[6].role).toBe('user');
+      expect(contents[6].parts[0].functionResponse).toBeDefined();
+
+      // 7: model (empty thinking text with signature preserved, thought: true + text part)
+      expect(contents[7].role).toBe('model');
+      expect(contents[7].parts[0]).toEqual({
+        thought: true,
+        text: '',
+        thoughtSignature: 'sig_empty_text'
+      });
+      expect(contents[7].parts[1]).toEqual({
+        text: 'Calculation verified'
+      });
+    });
+
+    it('in Gemini mode, merges consecutive historical assistant messages and strips historical thinking blocks', () => {
+      const claudePayload: any = {
+        model: 'gemini-3.5-flash',
+        messages: [
+          { role: 'user', content: 'Initial prompt' },
+          {
+            role: 'assistant',
+            content: [
+              { type: 'thinking', thinking: 'historical thought 1', signature: 'sig_1' },
+              { type: 'text', text: 'Answer part 1' }
+            ]
+          },
+          {
+            role: 'assistant',
+            content: [
+              { type: 'thinking', thinking: 'historical thought 2', signature: 'sig_2' },
+              { type: 'text', text: 'Answer part 2' }
+            ]
+          },
+          { role: 'user', content: 'Next user prompt' }
+        ]
+      };
+
+      const result = translator.translateClaudeToGoogle(claudePayload);
+      const contents = result.googleRequest.contents;
+      expect(contents.length).toBe(3);
+      expect(contents[0].role).toBe('user');
+      expect(contents[1].role).toBe('model');
+      expect(contents[1].parts).toEqual([
+        { text: 'Answer part 1' },
+        { text: 'Answer part 2' }
+      ]);
+      expect(contents[2].role).toBe('user');
+    });
+  });
+});
+
+
 
 
 

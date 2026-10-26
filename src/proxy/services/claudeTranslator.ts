@@ -1,6 +1,7 @@
 import config from '../../../config/default';
 import logger from '../../utils/logger';
 import {
+  ClaudeMessage,
   ClaudeRequest,
   GeminiRequest,
   GeminiContent,
@@ -138,6 +139,7 @@ class ClaudeTranslator {
     // Filter ephemeral messages
     if (Array.isArray(directRequest.messages)) {
       directRequest.messages = this.filterEphemeralMessages(directRequest.messages);
+      directRequest.messages = this.slimHistoricalMessages(directRequest.messages);
     }
 
     // Convert inline system messages across both modes
@@ -657,6 +659,55 @@ class ClaudeTranslator {
     return rawText;
   }
 
+  public findLastHumanTurnIndex(messages: ClaudeMessage[]): number {
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return -1;
+    }
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const msg = messages[i];
+      if (!msg || msg.role !== 'user') continue;
+      if (typeof msg.content === 'string') {
+        return i;
+      }
+      if (Array.isArray(msg.content)) {
+        const hasNonToolResult = msg.content.some(
+          (block: any) =>
+            typeof block === 'string' ||
+            (block && typeof block === 'object' && block.type !== 'tool_result')
+        );
+        if (hasNonToolResult) {
+          return i;
+        }
+      }
+    }
+    return -1;
+  }
+
+  public slimHistoricalMessages(messages: ClaudeMessage[]): ClaudeMessage[] {
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return [];
+    }
+    const clonedMessages: ClaudeMessage[] = JSON.parse(JSON.stringify(messages));
+    const lastHumanIndex = this.findLastHumanTurnIndex(clonedMessages);
+    if (lastHumanIndex <= 0) {
+      return clonedMessages;
+    }
+
+    return clonedMessages.map((msg, index) => {
+      if (!msg || index >= lastHumanIndex || msg.role !== 'assistant' || !Array.isArray(msg.content)) {
+        return msg;
+      }
+      const filteredContent = msg.content.filter(
+        (block: any) =>
+          !(block && typeof block === 'object' && (block.type === 'thinking' || block.type === 'redacted_thinking'))
+      );
+      return {
+        ...msg,
+        content: filteredContent.length > 0 ? filteredContent : [{ type: 'text', text: '...' }]
+      };
+    });
+  }
+
   private resolveInlineSystemTag(): string {
     const configuredTag = (config.runtimeContextTag || '').trim();
     if (config.systemRoleToInstruction) {
@@ -753,7 +804,7 @@ class ClaudeTranslator {
     };
 
     const inputMessages = claudeBody.messages && Array.isArray(claudeBody.messages)
-      ? this.filterEphemeralMessages(claudeBody.messages)
+      ? this.slimHistoricalMessages(this.filterEphemeralMessages(claudeBody.messages))
       : [];
 
     const contents: GeminiContent[] = [];
@@ -767,6 +818,8 @@ class ClaudeTranslator {
         if (
           part.text !== undefined &&
           part.text === '' &&
+          !part.thought &&
+          !part.thoughtSignature &&
           !part.functionCall &&
           !part.functionResponse &&
           !part.inlineData
@@ -811,6 +864,19 @@ class ClaudeTranslator {
             const mediaPart = this._extractMediaPart(block);
             if (mediaPart) {
               parts.push(mediaPart);
+            }
+          } else if (block.type === 'thinking') {
+            const thinkingText = typeof block.thinking === 'string' ? block.thinking : '';
+            const signature = typeof block.signature === 'string' && block.signature !== '' ? block.signature : undefined;
+            if (thinkingText !== '' || signature) {
+              const thoughtPart: GeminiPart = {
+                thought: true,
+                text: thinkingText
+              };
+              if (signature) {
+                thoughtPart.thoughtSignature = signature;
+              }
+              parts.push(thoughtPart);
             }
           } else if (block.type === 'tool_use') {
             toolIdToNameMap.set(block.id, block.name);

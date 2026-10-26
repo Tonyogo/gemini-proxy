@@ -1,6 +1,49 @@
+export interface ClaudeTextBlock {
+  type: 'text';
+  text: string;
+  [key: string]: any;
+}
+
+export interface ClaudeThinkingBlock {
+  type: 'thinking';
+  thinking: string;
+  signature?: string;
+  [key: string]: any;
+}
+
+export interface ClaudeRedactedThinkingBlock {
+  type: 'redacted_thinking';
+  data: string;
+  [key: string]: any;
+}
+
+export interface ClaudeToolUseBlock {
+  type: 'tool_use';
+  id: string;
+  name: string;
+  input: Record<string, any>;
+  [key: string]: any;
+}
+
+export interface ClaudeToolResultBlock {
+  type: 'tool_result';
+  tool_use_id: string;
+  content?: string | any[];
+  is_error?: boolean;
+  [key: string]: any;
+}
+
+export type ClaudeContentBlock =
+  | ClaudeTextBlock
+  | ClaudeThinkingBlock
+  | ClaudeRedactedThinkingBlock
+  | ClaudeToolUseBlock
+  | ClaudeToolResultBlock
+  | Record<string, any>;
+
 export interface ClaudeMessage {
   role: 'user' | 'assistant' | 'system';
-  content: string | any[];
+  content: string | ClaudeContentBlock[];
 }
 
 export interface ClaudeTool {
@@ -32,6 +75,7 @@ export interface ClaudeRequest {
 
 export interface GeminiPart {
   text?: string;
+  thought?: boolean;
   inlineData?: { mimeType: string; data: string };
   functionCall?: { name: string; args: Record<string, any>; id?: string };
   functionResponse?: { name: string; response: any; id?: string; parts?: GeminiPart[] };
