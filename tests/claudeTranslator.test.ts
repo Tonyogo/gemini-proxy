@@ -141,14 +141,16 @@ describe('Claude to Gemini Request Translation', () => {
     } as any;
     const result = translator.translateClaudeToGoogle(claudePayload);
 
-    expect(result.googleRequest.contents.length).toEqual(1);
+    expect(result.googleRequest.contents.length).toEqual(2);
     expect(result.googleRequest.contents[0].role).toEqual('user');
-    expect(result.googleRequest.contents[0].parts.length).toEqual(3);
+    expect(result.googleRequest.contents[0].parts.length).toEqual(1);
     expect(result.googleRequest.contents[0].parts[0].functionResponse).toBeDefined();
-    expect(result.googleRequest.contents[0].parts[1].text).toEqual(
+    expect(result.googleRequest.contents[1].role).toEqual('user');
+    expect(result.googleRequest.contents[1].parts.length).toEqual(2);
+    expect(result.googleRequest.contents[1].parts[0].text).toEqual(
       '<system-reminder>\nInstruction after tool\n</system-reminder>'
     );
-    expect(result.googleRequest.contents[0].parts[2].text).toEqual('Follow-up user question');
+    expect(result.googleRequest.contents[1].parts[1].text).toEqual('Follow-up user question');
   });
 
   it('translates images', () => {
@@ -249,13 +251,19 @@ describe('Claude to Gemini Request Translation', () => {
     };
 
     const { googleRequest } = translator.translateClaudeToGoogle(claudeReq);
-    expect(googleRequest.contents).toHaveLength(2);
+    expect(googleRequest.contents).toHaveLength(3);
     const userTurn = googleRequest.contents[1];
     expect(userTurn.parts[0].functionResponse).toBeDefined();
     expect(userTurn.parts[0].functionResponse?.name).toBe('fetch_pdf');
     expect(userTurn.parts[0].functionResponse?.response?.result).toBe('Fetched file output:');
-    expect(userTurn.parts[0].functionResponse?.parts).toHaveLength(1);
-    expect(userTurn.parts[0].functionResponse?.parts?.[0]).toEqual({
+    // Defect 16: functionResponse must NOT contain illegal parts property
+    expect((userTurn.parts[0].functionResponse as any)?.parts).toBeUndefined();
+
+    // Defect 20: Multimodal parts separated into distinct user turn
+    const mediaTurn = googleRequest.contents[2];
+    expect(mediaTurn.role).toBe('user');
+    expect(mediaTurn.parts).toHaveLength(1);
+    expect(mediaTurn.parts[0]).toEqual({
       inlineData: {
         mimeType: 'application/pdf',
         data: 'JVBERi0xLjQK...'
@@ -970,16 +978,22 @@ describe('Claude Tools Interaction Roundtrips (Complex and Multi-Turn)', () => {
     } as any;
 
     const result = translator.translateClaudeToGoogle(claudePayload);
+    expect(result.googleRequest.contents).toHaveLength(3);
     const userBubble = result.googleRequest.contents[1];
     expect(userBubble.role).toEqual('user');
 
     const funcResp = userBubble.parts[0].functionResponse!;
     expect(funcResp.name).toEqual('take_screenshot');
     expect(funcResp.response.result).toEqual('Screenshot captured successfully');
-    expect(funcResp.parts).toBeDefined();
-    expect(funcResp.parts!.length).toEqual(1);
-    expect(funcResp.parts![0].inlineData!.mimeType).toEqual('image/png');
-    expect(funcResp.parts![0].inlineData!.data).toEqual('iVBORw0KGgoAAAANSUhEUgAA...');
+    // Defect 16: functionResponse must NOT contain illegal parts property
+    expect((funcResp as any).parts).toBeUndefined();
+
+    // Defect 20: Image parts separated into distinct user turn
+    const imageTurn = result.googleRequest.contents[2];
+    expect(imageTurn.role).toEqual('user');
+    expect(imageTurn.parts).toHaveLength(1);
+    expect(imageTurn.parts[0].inlineData!.mimeType).toEqual('image/png');
+    expect(imageTurn.parts[0].inlineData!.data).toEqual('iVBORw0KGgoAAAANSUhEUgAA...');
   });
 
   it('translates tool_result with is_error=true to response.error instead of response.result', () => {
@@ -1356,14 +1370,17 @@ describe('ClaudeTranslator - SYSTEM_ROLE_TO_INSTRUCTION & Tag Wrapping', () => {
 
     const result = translator.translateClaudeToGoogle(claudePayload);
 
-    expect(result.googleRequest.contents.length).toEqual(1);
+    expect(result.googleRequest.contents.length).toEqual(2);
     expect(result.googleRequest.contents[0].role).toEqual('user');
-    expect(result.googleRequest.contents[0].parts.length).toEqual(3);
-    expect(result.googleRequest.contents[0].parts[0].text).toEqual(
+    expect(result.googleRequest.contents[0].parts.length).toEqual(1);
+    expect(result.googleRequest.contents[0].parts[0].functionResponse).toBeDefined();
+
+    expect(result.googleRequest.contents[1].role).toEqual('user');
+    expect(result.googleRequest.contents[1].parts.length).toEqual(2);
+    expect(result.googleRequest.contents[1].parts[0].text).toEqual(
       '<system-context>\nInstruction after tool\n</system-context>'
     );
-    expect(result.googleRequest.contents[0].parts[1].functionResponse).toBeDefined();
-    expect(result.googleRequest.contents[0].parts[2].text).toEqual('Follow-up user question');
+    expect(result.googleRequest.contents[1].parts[1].text).toEqual('Follow-up user question');
   });
 });
 

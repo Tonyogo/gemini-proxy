@@ -78,7 +78,7 @@ export interface GeminiPart {
   thought?: boolean;
   inlineData?: { mimeType: string; data: string };
   functionCall?: { name: string; args: Record<string, any>; id?: string };
-  functionResponse?: { name: string; response: any; id?: string; parts?: GeminiPart[] };
+  functionResponse?: { name: string; response: any; id?: string };
   thoughtSignature?: string;
 }
 

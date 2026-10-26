@@ -56,7 +56,7 @@ class GeminiController {
       originalModel = modelMatch[1];
       targetModelName = originalModel;
 
-      const mappingInfo = claudeTranslator.getModelMappingInfo(originalModel);
+      const mappingInfo = claudeTranslator.getModelMappingInfo(originalModel, true);
       if (mappingInfo && mappingInfo.targetModel && mappingInfo.targetModel !== originalModel) {
         logger.info(`[GeminiProxy] [Transaction: ${transactionId}] Model mapping: ${originalModel} -> ${mappingInfo.targetModel}`);
         cleanPath = cleanPath.replace(`models/${originalModel}`, `models/${mappingInfo.targetModel}`);

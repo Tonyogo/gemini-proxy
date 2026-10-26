@@ -21,7 +21,10 @@ class ClaudeTranslator {
    * Dynamically resolves raw model aliases against config.modelMappings
    * Supports plain string target, string array, or object target { target, targets, strategy }
    */
-  public getModelMappingInfo(rawModel: string): { targetModel: string; strategy?: SchedulingStrategy } {
+  public getModelMappingInfo(
+    rawModel: string,
+    advanceCounter: boolean = false
+  ): { targetModel: string; strategy?: SchedulingStrategy } {
     if (!rawModel) return { targetModel: rawModel };
     if (config.modelMappings && typeof config.modelMappings === 'object') {
       const mapping = config.modelMappings[rawModel];
@@ -38,7 +41,9 @@ class ClaudeTranslator {
           }
           const counter = this.roundRobinCounters.get(rawModel) || 0;
           const chosen = mapping[counter % mapping.length];
-          this.roundRobinCounters.set(rawModel, counter + 1);
+          if (advanceCounter) {
+            this.roundRobinCounters.set(rawModel, counter + 1);
+          }
           return { targetModel: chosen };
         }
         if (typeof mapping === 'object' && mapping !== null) {
@@ -48,7 +53,9 @@ class ClaudeTranslator {
             }
             const counter = this.roundRobinCounters.get(rawModel) || 0;
             const chosen = mapping.targets[counter % mapping.targets.length];
-            this.roundRobinCounters.set(rawModel, counter + 1);
+            if (advanceCounter) {
+              this.roundRobinCounters.set(rawModel, counter + 1);
+            }
             return { targetModel: chosen, strategy: mapping.strategy };
           }
           if (mapping.target) {
@@ -67,7 +74,7 @@ class ClaudeTranslator {
    * Dynamically resolves raw model aliases against config.modelMappings
    */
   public getCleanModelName(rawModel: string): string {
-    return this.getModelMappingInfo(rawModel).targetModel;
+    return this.getModelMappingInfo(rawModel, false).targetModel;
   }
 
   /**
@@ -75,7 +82,10 @@ class ClaudeTranslator {
    * Runs model mapping (preserving -high), cleans/injects system prompt,
    * filters historical ephemeral messages without inline system conversion, and filters ignored tools.
    */
-  public preprocessClaudeDirectRequest(claudeBody: ClaudeRequest): {
+  public preprocessClaudeDirectRequest(
+    claudeBody: ClaudeRequest,
+    preResolvedMapping?: { targetModel: string; strategy?: SchedulingStrategy }
+  ): {
     directRequest: ClaudeRequest;
     cleanModelName: string;
     strategy?: SchedulingStrategy;
@@ -87,7 +97,7 @@ class ClaudeTranslator {
 
     const directRequest: ClaudeRequest = JSON.parse(JSON.stringify(claudeBody));
 
-    const mappingInfo = this.getModelMappingInfo(claudeBody.model);
+    const mappingInfo = preResolvedMapping || this.getModelMappingInfo(claudeBody.model, true);
     const cleanModelName = mappingInfo.targetModel || claudeBody.model.replace(/^models\//, '');
     const thinkingInfo = parseModelThinkingSuffix(cleanModelName);
     if (thinkingInfo.isHigh) {
@@ -729,14 +739,17 @@ class ClaudeTranslator {
     return 'system-reminder';
   }
 
-  public translateClaudeToGoogle(claudeBody: ClaudeRequest) {
+  public translateClaudeToGoogle(
+    claudeBody: ClaudeRequest,
+    preResolvedMapping?: { targetModel: string; strategy?: SchedulingStrategy }
+  ) {
     const rawModel = claudeBody.model;
 
     if (!rawModel) {
       throw { status: 400, message: "Missing required parameter: 'model'" };
     }
 
-    const mappingInfo = this.getModelMappingInfo(rawModel);
+    const mappingInfo = preResolvedMapping || this.getModelMappingInfo(rawModel, true);
     let cleanModelName = mappingInfo.targetModel;
     if (!cleanModelName) {
       cleanModelName = rawModel.replace(/^models\//, '');
@@ -938,13 +951,13 @@ class ClaudeTranslator {
               id: geminiResponseId
             };
 
-            if (imageParts.length > 0) {
-              functionResponseObj.parts = imageParts;
-            }
-
             parts.push({
               functionResponse: functionResponseObj
             });
+
+            if (imageParts.length > 0) {
+              parts.push(...imageParts);
+            }
           }
         }
       }
@@ -956,31 +969,42 @@ class ClaudeTranslator {
 
       const flushUserSegment = () => {
         if (!pendingUserSegment) return;
-        let orderedParts: GeminiPart[];
-        if (config.systemRoleToInstruction) {
-          orderedParts = [
-            ...pendingUserSegment.systemParts,
-            ...pendingUserSegment.userParts
-          ];
-        } else {
-          const toolResponseParts = pendingUserSegment.userParts.filter(
-            (p: GeminiPart) => Boolean(p && p.functionResponse)
-          );
-          const normalUserParts = pendingUserSegment.userParts.filter(
-            (p: GeminiPart) => !Boolean(p && p.functionResponse)
-          );
-          orderedParts = [
-            ...toolResponseParts,
+        const toolResponseParts = pendingUserSegment.userParts.filter(
+          (p: GeminiPart) => Boolean(p && p.functionResponse)
+        );
+        const normalUserParts = pendingUserSegment.userParts.filter(
+          (p: GeminiPart) => !Boolean(p && p.functionResponse)
+        );
+
+        if (toolResponseParts.length > 0) {
+          const cleanToolParts = sanitizeParts(toolResponseParts);
+          if (cleanToolParts.length > 0) {
+            contents.push({
+              role: 'user',
+              parts: cleanToolParts
+            });
+          }
+          const followUpParts = sanitizeParts([
             ...pendingUserSegment.systemParts,
             ...normalUserParts
-          ];
-        }
-        const combinedParts = sanitizeParts(orderedParts);
-        if (combinedParts.length > 0) {
-          contents.push({
-            role: 'user',
-            parts: combinedParts
-          });
+          ]);
+          if (followUpParts.length > 0) {
+            contents.push({
+              role: 'user',
+              parts: followUpParts
+            });
+          }
+        } else {
+          const cleanParts = sanitizeParts([
+            ...pendingUserSegment.systemParts,
+            ...normalUserParts
+          ]);
+          if (cleanParts.length > 0) {
+            contents.push({
+              role: 'user',
+              parts: cleanParts
+            });
+          }
         }
         pendingUserSegment = null;
       };
@@ -1016,8 +1040,24 @@ class ClaudeTranslator {
     for (const content of contents) {
       const cleanParts = sanitizeParts(content.parts);
       if (cleanParts.length === 0) continue;
-      if (mergedContents.length > 0 && mergedContents[mergedContents.length - 1].role === content.role) {
-        mergedContents[mergedContents.length - 1].parts.push(...cleanParts);
+      const prev = mergedContents[mergedContents.length - 1];
+      if (prev && prev.role === content.role) {
+        const prevHasFunc = prev.parts.some(p => Boolean(p && p.functionResponse));
+        const currHasFunc = cleanParts.some(p => Boolean(p && p.functionResponse));
+        if (prevHasFunc || currHasFunc) {
+          const prevOnlyFunc = prev.parts.every(p => Boolean(p && p.functionResponse));
+          const currOnlyFunc = cleanParts.every(p => Boolean(p && p.functionResponse));
+          if (prevOnlyFunc && currOnlyFunc) {
+            prev.parts.push(...cleanParts);
+          } else {
+            mergedContents.push({
+              role: content.role,
+              parts: cleanParts
+            });
+          }
+        } else {
+          prev.parts.push(...cleanParts);
+        }
       } else {
         mergedContents.push({
           role: content.role,
@@ -1303,6 +1343,7 @@ class ClaudeTranslator {
     if (!googleChunk || googleChunk.trim() === '') return null;
 
     const trimmed = googleChunk.trim();
+    if (streamState.hasEmittedMessageStop) return null;
     // Ignore SSE comment/heartbeat lines (e.g. ": ping") and standard non-data SSE fields
     if (trimmed.startsWith(':')) return null;
     if (/^(event|id|retry):/i.test(trimmed)) return null;
@@ -1331,6 +1372,9 @@ class ClaudeTranslator {
       streamState.messageId = `msg_stream_${Math.random().toString(36).substring(2, 11)}`;
       streamState.contentBlockIndex = 0;
     }
+    if (modelName && !streamState.modelName) {
+      streamState.modelName = modelName;
+    }
 
     if (!streamState.messageStartSent) {
       events.push({
@@ -1355,6 +1399,11 @@ class ClaudeTranslator {
     if (candidate && candidate.content && Array.isArray(candidate.content.parts)) {
       for (const part of candidate.content.parts) {
         if (part.thought === true && part.text) {
+          if (streamState.textBlockStarted) {
+            events.push({ type: 'content_block_stop', index: streamState.contentBlockIndex });
+            streamState.textBlockStarted = false;
+            streamState.contentBlockIndex++;
+          }
           if (!streamState.thinkingBlockStarted) {
             events.push({
               type: 'content_block_start',
@@ -1388,12 +1437,20 @@ class ClaudeTranslator {
             delta: { type: 'text_delta', text: part.text }
           });
         } else if (part.functionCall) {
+          if (streamState.thinkingBlockStarted) {
+            events.push({ type: 'content_block_stop', index: streamState.contentBlockIndex });
+            streamState.thinkingBlockStarted = false;
+            streamState.contentBlockIndex++;
+          }
           if (streamState.textBlockStarted) {
             events.push({ type: 'content_block_stop', index: streamState.contentBlockIndex });
             streamState.textBlockStarted = false;
             streamState.contentBlockIndex++;
           }
-          const callId = part.functionCall.id ? `toolu_g_${part.functionCall.id}` : `toolu_stream_${Math.random().toString(36).substring(2, 11)}`;
+          streamState.hasToolCalls = true;
+          const callId = part.functionCall.id && part.functionCall.id.startsWith('toolu_')
+            ? part.functionCall.id
+            : (part.functionCall.id ? `toolu_g_${part.functionCall.id}` : `toolu_stream_${Math.random().toString(36).substring(2, 11)}`);
           const coercedArgs = this._cleanAndCoerceArguments(part.functionCall.name, part.functionCall.args || {}, tools);
           // 1. Send content_block_start with empty input object
           events.push({
@@ -1422,24 +1479,103 @@ class ClaudeTranslator {
       }
     }
 
-    if (usage && googleResponse.candidates?.[0]?.finishReason) {
+    if (usage) {
+      streamState.cachedUsage = usage;
+    }
+    if (candidate?.finishReason) {
+      streamState.cachedFinishReason = candidate.finishReason;
+    }
+
+    if (!streamState.hasEmittedMessageStop && streamState.cachedFinishReason && streamState.cachedUsage) {
+      if (streamState.thinkingBlockStarted) {
+        events.push({ type: 'content_block_stop', index: streamState.contentBlockIndex });
+        streamState.thinkingBlockStarted = false;
+        streamState.contentBlockIndex++;
+      }
       if (streamState.textBlockStarted) {
         events.push({ type: 'content_block_stop', index: streamState.contentBlockIndex });
         streamState.textBlockStarted = false;
+        streamState.contentBlockIndex++;
       }
       let stopReason = 'end_turn';
-      if (candidate.finishReason === 'MAX_TOKENS') {
+      if (streamState.cachedFinishReason === 'MAX_TOKENS') {
         stopReason = 'max_tokens';
+      } else if (streamState.hasToolCalls) {
+        stopReason = 'tool_use';
       }
       events.push({
         type: 'message_delta',
         delta: { stop_reason: stopReason, stop_sequence: null },
-        usage: { output_tokens: (usage.candidatesTokenCount || 0) + (usage.thoughtsTokenCount || 0) }
+        usage: { output_tokens: (streamState.cachedUsage.candidatesTokenCount || 0) + (streamState.cachedUsage.thoughtsTokenCount || 0) }
       });
       events.push({ type: 'message_stop' });
+      streamState.hasEmittedMessageStop = true;
     }
 
     if (events.length === 0) return null;
+
+    return events;
+  }
+
+  public flushRemainingStreamEvents(streamState: any, modelName?: string): any[] {
+    const events: any[] = [];
+    if (!streamState || streamState.hasEmittedMessageStop) return events;
+
+    if (!streamState.messageStartSent) {
+      if (!streamState.messageId) {
+        streamState.messageId = `msg_stream_${Math.random().toString(36).substring(2, 11)}`;
+        streamState.contentBlockIndex = 0;
+      }
+      events.push({
+        type: 'message_start',
+        message: {
+          id: streamState.messageId,
+          type: 'message',
+          role: 'assistant',
+          model: modelName || streamState.modelName || 'unknown',
+          content: [],
+          stop_reason: null,
+          stop_sequence: null,
+          usage: {
+            input_tokens: streamState.cachedUsage ? streamState.cachedUsage.promptTokenCount || 0 : 0,
+            output_tokens: 0
+          }
+        }
+      });
+      streamState.messageStartSent = true;
+    }
+
+    if (streamState.thinkingBlockStarted) {
+      events.push({ type: 'content_block_stop', index: streamState.contentBlockIndex });
+      streamState.thinkingBlockStarted = false;
+      streamState.contentBlockIndex++;
+    }
+
+    if (streamState.textBlockStarted) {
+      events.push({ type: 'content_block_stop', index: streamState.contentBlockIndex });
+      streamState.textBlockStarted = false;
+      streamState.contentBlockIndex++;
+    }
+
+    if (!streamState.hasEmittedMessageStop) {
+      let stopReason = 'end_turn';
+      if (streamState.cachedFinishReason === 'MAX_TOKENS') {
+        stopReason = 'max_tokens';
+      } else if (streamState.hasToolCalls) {
+        stopReason = 'tool_use';
+      }
+      const effUsage = streamState.cachedUsage;
+      const outputTokens = effUsage
+        ? (effUsage.candidatesTokenCount || 0) + (effUsage.thoughtsTokenCount || 0)
+        : 0;
+      events.push({
+        type: 'message_delta',
+        delta: { stop_reason: stopReason, stop_sequence: null },
+        usage: { output_tokens: outputTokens }
+      });
+      events.push({ type: 'message_stop' });
+      streamState.hasEmittedMessageStop = true;
+    }
 
     return events;
   }

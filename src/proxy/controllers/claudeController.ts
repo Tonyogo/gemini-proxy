@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import fetch from 'node-fetch';
 import config from '../../../config/default';
-import { ModelConfig, GeminiModelsResponse, GeminiModelEntry, UpstreamServerSelection } from '../../types';
+import { ModelConfig, GeminiModelsResponse, GeminiModelEntry, UpstreamServerSelection, SchedulingStrategy } from '../../types';
 import claudeTranslator from '../services/claudeTranslator';
 import payloadLogger from '../services/payloadLogger';
 import accountUsageService from '../../admin/services/accountUsageService';
@@ -59,7 +59,7 @@ class ClaudeController {
       }
 
       const clientModel = clientReq.model;
-      const mappingInfo = claudeTranslator.getModelMappingInfo(clientModel);
+      const mappingInfo = claudeTranslator.getModelMappingInfo(clientModel, true);
       const cleanModelName = mappingInfo.targetModel || clientModel.replace(/^models\//, '');
 
       if (!upstreamManager.hasUpstreamForModel(clientModel, cleanModelName)) {
@@ -96,11 +96,12 @@ class ClaudeController {
           transactionId,
           startTime,
           requestPath,
-          serverSelection
+          serverSelection,
+          mappingInfo
         );
       }
 
-      const { googleRequest, cleanModelName: proxyModelName, strategy } = claudeTranslator.translateClaudeToGoogle(clientReq);
+      const { googleRequest, cleanModelName: proxyModelName, strategy } = claudeTranslator.translateClaudeToGoogle(clientReq, mappingInfo);
       gemReq = googleRequest;
 
       // Determine effective scheduling strategy: mapping config takes precedence over client header
@@ -180,7 +181,7 @@ class ClaudeController {
           streamManager.attachStream(response.body);
           streamManager.ensureSseHeaders();
 
-          const streamState = { tools: clientReq.tools };
+          const streamState: any = { tools: clientReq.tools };
           const gemResChunks: any[] = [];
           const claudeResChunks: any[] = [];
           let streamBuffer = '';
@@ -250,6 +251,17 @@ class ClaudeController {
                     const sseText = events.map((ev: any) => `event: ${ev.type}\ndata: ${JSON.stringify(ev)}\n\n`).join('');
                     res.write(sseText);
                   }
+                }
+              }
+            }
+
+            if (!streamState.hasEmittedMessageStop) {
+              const flushed = claudeTranslator.flushRemainingStreamEvents(streamState, cleanModelName);
+              if (flushed && flushed.length > 0) {
+                claudeResChunks.push(...flushed);
+                if (!res.writableEnded) {
+                  const sseText = flushed.map((ev: any) => `event: ${ev.type}\ndata: ${JSON.stringify(ev)}\n\n`).join('');
+                  res.write(sseText);
                 }
               }
             }
@@ -477,10 +489,11 @@ class ClaudeController {
     transactionId: string,
     startTime: number,
     requestPath: string,
-    serverSelection: UpstreamServerSelection
+    serverSelection: UpstreamServerSelection,
+    mappingInfo?: { targetModel: string; strategy?: SchedulingStrategy }
   ): Promise<any> {
     const { directRequest, cleanModelName, strategy, isStream } =
-      claudeTranslator.preprocessClaudeDirectRequest(clientReq);
+      claudeTranslator.preprocessClaudeDirectRequest(clientReq, mappingInfo);
 
     const clientStrategy = extractClientSchedulingStrategy(req);
     const effectiveStrategy = strategy || clientStrategy;
@@ -845,7 +858,7 @@ class ClaudeController {
       });
 
       if (serverSelection.serverType === 'direct') {
-        const { directRequest } = claudeTranslator.preprocessClaudeDirectRequest(clientReq);
+        const { directRequest } = claudeTranslator.preprocessClaudeDirectRequest(clientReq, { targetModel: effectiveCountModel });
         if (config.countTokensModel && config.countTokensModel.trim()) {
           const cleanCountModel = claudeTranslator.getCleanModelName(config.countTokensModel.trim());
           directRequest.model = parseModelThinkingSuffix(cleanCountModel).baseModel;
@@ -929,7 +942,7 @@ class ClaudeController {
         return res.status(200).json(tokenResponse);
       }
 
-      let { googleRequest, cleanModelName } = claudeTranslator.translateClaudeToGoogle(clientReq);
+      let { googleRequest, cleanModelName } = claudeTranslator.translateClaudeToGoogle(clientReq, { targetModel: effectiveCountModel });
 
       if (config.countTokensModel && config.countTokensModel.trim()) {
         cleanModelName = claudeTranslator.getCleanModelName(config.countTokensModel.trim());
