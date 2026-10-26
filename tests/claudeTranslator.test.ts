@@ -2224,7 +2224,7 @@ describe('Claude Direct Mode Preprocessing & Headers', () => {
     config.ephemeralSystemMessages = ['[ephemeral-sys-hint]'];
   });
 
-  it('maps model name, preserves -high suffix without injecting thinking, and converts inline system message to system-reminder by default', () => {
+  it('maps model name, strips -high suffix to baseModel, injects output_config.effort = high, and converts inline system message to system-reminder by default', () => {
     config.modelMappings = {
       'claude-sonnet': { target: 'claude-sonnet-4-5-high', strategy: 'least-used' }
     };
@@ -2242,7 +2242,8 @@ describe('Claude Direct Mode Preprocessing & Headers', () => {
       translator.preprocessClaudeDirectRequest(input);
 
     expect(cleanModelName).toBe('claude-sonnet-4-5-high');
-    expect(directRequest.model).toBe('claude-sonnet-4-5-high');
+    expect(directRequest.model).toBe('claude-sonnet-4-5');
+    expect(directRequest.output_config).toEqual({ effort: 'high' });
     expect(directRequest.thinking).toBeUndefined();
     expect(strategy).toBe('least-used');
     expect(isStream).toBe(true);
@@ -2255,6 +2256,26 @@ describe('Claude Direct Mode Preprocessing & Headers', () => {
         ]
       }
     ]);
+  });
+
+  it('preserves existing output_config properties and thinking while merging effort: high for -high models in Direct mode', () => {
+    const input = {
+      model: 'claude-3-7-sonnet-high',
+      output_config: { format: 'json', otherField: 123 },
+      thinking: { type: 'enabled', budget_tokens: 2048 },
+      messages: [{ role: 'user', content: 'Hello' }]
+    } as any;
+
+    const { directRequest, cleanModelName } = translator.preprocessClaudeDirectRequest(input);
+
+    expect(cleanModelName).toBe('claude-3-7-sonnet-high');
+    expect(directRequest.model).toBe('claude-3-7-sonnet');
+    expect(directRequest.output_config).toEqual({
+      format: 'json',
+      otherField: 123,
+      effort: 'high'
+    });
+    expect(directRequest.thinking).toEqual({ type: 'enabled', budget_tokens: 2048 });
   });
 
   it('wraps inline system messages with <system-reminder> and places them after tool_result and before normal user text by default in Direct mode', () => {

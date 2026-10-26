@@ -47,7 +47,7 @@ describe('claudeController Universal Thinking Suffix (-high)', () => {
     jest.restoreAllMocks();
   });
 
-  it('preserves -high and does not inject thinkingLevel in direct mode for non-stream /v1/messages', async () => {
+  it('strips -high to baseModel and injects output_config.effort = high in direct mode for non-stream /v1/messages', async () => {
     jest.spyOn(upstreamManager, 'getUpstreamUrl').mockReturnValue({
       targetUrl: 'https://direct-claude.example.com/v1/messages',
       serverUrl: 'https://direct-claude.example.com',
@@ -67,7 +67,8 @@ describe('claudeController Universal Thinking Suffix (-high)', () => {
 
     expect(res.status).toBe(200);
     expect(capturedUpstreamUrl).toBe('https://direct-claude.example.com/v1/messages');
-    expect(capturedBody.model).toBe('gemini-2.5-flash-high');
+    expect(capturedBody.model).toBe('gemini-2.5-flash');
+    expect(capturedBody.output_config).toEqual({ effort: 'high' });
     expect(capturedBody.generationConfig).toBeUndefined();
     expect(capturedBody.thinking).toBeUndefined();
   });
@@ -135,6 +136,23 @@ describe('claudeController Universal Thinking Suffix (-high)', () => {
 
     expect(res.status).toBe(200);
     expect(capturedUpstreamUrl).toBe('https://custom-proxy.com/v1beta/models/gemini-2.5-flash');
+  });
+
+  it('strips -high when retrieving model metadata via GET /v1/models/:model_id in direct mode', async () => {
+    jest.spyOn(upstreamManager, 'getUpstreamUrl').mockReturnValue({
+      targetUrl: 'https://direct-claude.example.com/v1/models/claude-3-7-sonnet-high',
+      serverUrl: 'https://direct-claude.example.com',
+      serverIndex: 0,
+      weight: 1,
+      serverType: 'direct'
+    });
+
+    const res = await request(app)
+      .get('/v1/models/claude-3-7-sonnet-high')
+      .set('x-api-key', 'client-key');
+
+    expect(res.status).toBe(200);
+    expect(capturedUpstreamUrl).toBe('https://direct-claude.example.com/v1/models/claude-3-7-sonnet');
   });
 
   it('strips includeThoughts and injects thinkingLevel: HIGH when thinking is enabled in proxy mode', async () => {

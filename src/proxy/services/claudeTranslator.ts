@@ -1,5 +1,6 @@
 import config from '../../../config/default';
 import logger from '../../utils/logger';
+import { parseModelThinkingSuffix } from '../../utils/modelThinkingHelper';
 import {
   ClaudeMessage,
   ClaudeRequest,
@@ -88,7 +89,16 @@ class ClaudeTranslator {
 
     const mappingInfo = this.getModelMappingInfo(claudeBody.model);
     const cleanModelName = mappingInfo.targetModel || claudeBody.model.replace(/^models\//, '');
-    directRequest.model = cleanModelName;
+    const thinkingInfo = parseModelThinkingSuffix(cleanModelName);
+    if (thinkingInfo.isHigh) {
+      directRequest.model = thinkingInfo.baseModel;
+      directRequest.output_config = {
+        ...(directRequest.output_config || {}),
+        effort: 'high'
+      };
+    } else {
+      directRequest.model = cleanModelName;
+    }
 
     // Clean directRequest.system
     if (typeof directRequest.system === 'string') {

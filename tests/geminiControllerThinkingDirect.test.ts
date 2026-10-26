@@ -43,7 +43,7 @@ describe('geminiController Direct Mode Thinking Suffix', () => {
     jest.restoreAllMocks();
   });
 
-  it('does NOT strip -high from path and does NOT inject thinkingLevel in direct mode', async () => {
+  it('strips -high from path and injects thinkingLevel: HIGH in direct mode', async () => {
     jest.spyOn(upstreamManager, 'getUpstreamUrl').mockReturnValue({
       targetUrl: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-high:generateContent',
       serverUrl: 'https://generativelanguage.googleapis.com',
@@ -63,9 +63,11 @@ describe('geminiController Direct Mode Thinking Suffix', () => {
       });
 
     expect(res.status).toBe(200);
-    expect(capturedUpstreamUrl).toBe('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-high:generateContent');
+    expect(capturedUpstreamUrl).toBe('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent');
     expect(capturedBody.generationConfig.temperature).toBe(0.7);
-    expect(capturedBody.generationConfig.thinkingConfig).toBeUndefined();
+    expect(capturedBody.generationConfig.thinkingConfig).toEqual({
+      thinkingLevel: 'HIGH'
+    });
   });
 
   it('strips includeThoughts when client sends it and preserves other thinkingConfig properties in proxy mode', async () => {

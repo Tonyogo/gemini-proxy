@@ -847,7 +847,8 @@ class ClaudeController {
       if (serverSelection.serverType === 'direct') {
         const { directRequest } = claudeTranslator.preprocessClaudeDirectRequest(clientReq);
         if (config.countTokensModel && config.countTokensModel.trim()) {
-          directRequest.model = claudeTranslator.getCleanModelName(config.countTokensModel.trim());
+          const cleanCountModel = claudeTranslator.getCleanModelName(config.countTokensModel.trim());
+          directRequest.model = parseModelThinkingSuffix(cleanCountModel).baseModel;
         }
         const targetUrl = (serverSelection as any).targetUrl && (serverSelection as any).targetUrl.startsWith('http') && (serverSelection as any).targetUrl.includes('count_tokens')
           ? (serverSelection as any).targetUrl
@@ -1339,9 +1340,14 @@ class ClaudeController {
       const { serverUrl, serverIndex, serverType } = serverSelection;
 
       if (serverType === 'direct') {
-        const targetUrl = (serverSelection as any).targetUrl && (serverSelection as any).targetUrl.startsWith('http') && (serverSelection as any).targetUrl.includes('/v1/models')
+        const thinkingInfo = parseModelThinkingSuffix(resolvedModelId);
+        const effectiveModelId = thinkingInfo.isHigh ? thinkingInfo.baseModel : resolvedModelId;
+        let targetUrl = (serverSelection as any).targetUrl && (serverSelection as any).targetUrl.startsWith('http') && (serverSelection as any).targetUrl.includes('/v1/models')
           ? (serverSelection as any).targetUrl
-          : `${serverUrl.replace(/\/+$/, '')}/v1/models/${resolvedModelId}`;
+          : `${serverUrl.replace(/\/+$/, '')}/v1/models/${effectiveModelId}`;
+        if (thinkingInfo.isHigh) {
+          targetUrl = targetUrl.replace(`/v1/models/${resolvedModelId}`, `/v1/models/${effectiveModelId}`);
+        }
         logger.info(`[Request] [Transaction: ${transactionId}] Direct proxying model metadata [server ${serverIndex + 1}: ${serverUrl}]: GET ${targetUrl}`);
         gemReq = { endpoint: targetUrl };
         const headers = buildDirectUpstreamHeaders(req, apiKey);
