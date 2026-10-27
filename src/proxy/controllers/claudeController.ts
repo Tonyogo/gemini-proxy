@@ -9,12 +9,7 @@ import logger from '../../utils/logger';
 import { StreamLifecycleManager } from '../../utils/streamLifecycleManager';
 import upstreamManager from '../../utils/upstreamManager';
 import proxyAgentManager from '../../utils/proxyAgentManager';
-import {
-  parseModelThinkingSuffix,
-  applyThinkingConfigHigh,
-  applyThinkingConfigMedium,
-  hasClaudeExplicitThinking
-} from '../../utils/modelThinkingHelper';
+import { parseModelThinkingSuffix, applyThinkingConfigHigh } from '../../utils/modelThinkingHelper';
 import {
   extractClientKey,
   extractTimeoutMs,
@@ -125,9 +120,6 @@ class ClaudeController {
           targetUrl = targetUrl.replace(`models/${proxyModelName}:`, `models/${thinkingInfo.baseModel}:`);
           gemReq.generationConfig = gemReq.generationConfig || {};
           applyThinkingConfigHigh(gemReq.generationConfig);
-        } else if (!hasClaudeExplicitThinking(clientReq)) {
-          gemReq.generationConfig = gemReq.generationConfig || {};
-          applyThinkingConfigMedium(gemReq.generationConfig);
         }
 
         const effectiveApiKey = apiKey;
@@ -376,9 +368,6 @@ class ClaudeController {
         targetUrl = targetUrl.replace(`models/${proxyModelName}:`, `models/${thinkingInfo.baseModel}:`);
         gemReq.generationConfig = gemReq.generationConfig || {};
         applyThinkingConfigHigh(gemReq.generationConfig);
-      } else if (!hasClaudeExplicitThinking(clientReq)) {
-        gemReq.generationConfig = gemReq.generationConfig || {};
-        applyThinkingConfigMedium(gemReq.generationConfig);
       }
 
       const effectiveApiKey = apiKey;
@@ -965,9 +954,6 @@ class ClaudeController {
       // Clean generationConfig maxOutputTokens if present as countTokens only evaluates input
       if (googleRequest.generationConfig) {
         delete googleRequest.generationConfig.maxOutputTokens;
-        if (googleRequest.generationConfig.thinkingConfig?.thinkingLevel === 'MEDIUM' && !hasClaudeExplicitThinking(clientReq)) {
-          delete googleRequest.generationConfig.thinkingConfig;
-        }
         if (Object.keys(googleRequest.generationConfig).length === 0) {
           delete googleRequest.generationConfig;
         }

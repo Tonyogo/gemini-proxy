@@ -183,31 +183,7 @@ describe('claudeController Universal Thinking Suffix (-high)', () => {
     expect(capturedBody.generationConfig?.thinkingConfig?.includeThoughts).toBeUndefined();
   });
 
-  it('injects output_config.effort = medium in direct mode when model does not have -high and no client thinking is provided', async () => {
-    jest.spyOn(upstreamManager, 'getUpstreamUrl').mockReturnValue({
-      targetUrl: 'https://direct-claude.example.com/v1/messages',
-      serverUrl: 'https://direct-claude.example.com',
-      serverIndex: 0,
-      weight: 1,
-      serverType: 'direct'
-    });
-
-    const res = await request(app)
-      .post('/v1/messages')
-      .set('x-api-key', 'client-key')
-      .send({
-        model: 'gemini-2.5-flash',
-        max_tokens: 100,
-        messages: [{ role: 'user', content: 'Hi' }]
-      });
-
-    expect(res.status).toBe(200);
-    expect(capturedUpstreamUrl).toBe('https://direct-claude.example.com/v1/messages');
-    expect(capturedBody.model).toBe('gemini-2.5-flash');
-    expect(capturedBody.output_config).toEqual({ effort: 'medium' });
-  });
-
-  it('preserves client output_config.effort in direct mode without overriding to medium', async () => {
+  it('forces output_config.effort = medium in direct mode when model does not have -high and client provides output_config.effort', async () => {
     jest.spyOn(upstreamManager, 'getUpstreamUrl').mockReturnValue({
       targetUrl: 'https://direct-claude.example.com/v1/messages',
       serverUrl: 'https://direct-claude.example.com',
@@ -227,10 +203,12 @@ describe('claudeController Universal Thinking Suffix (-high)', () => {
       });
 
     expect(res.status).toBe(200);
-    expect(capturedBody.output_config).toEqual({ effort: 'low' });
+    expect(capturedUpstreamUrl).toBe('https://direct-claude.example.com/v1/messages');
+    expect(capturedBody.model).toBe('gemini-2.5-flash');
+    expect(capturedBody.output_config).toEqual({ effort: 'medium' });
   });
 
-  it('preserves client thinking: disabled in direct mode without injecting output_config.effort', async () => {
+  it('does NOT inject or add output_config in direct mode when model does not have -high and client does not provide output_config.effort', async () => {
     jest.spyOn(upstreamManager, 'getUpstreamUrl').mockReturnValue({
       targetUrl: 'https://direct-claude.example.com/v1/messages',
       serverUrl: 'https://direct-claude.example.com',
@@ -245,16 +223,36 @@ describe('claudeController Universal Thinking Suffix (-high)', () => {
       .send({
         model: 'gemini-2.5-flash',
         max_tokens: 100,
-        messages: [{ role: 'user', content: 'Hi' }],
-        thinking: { type: 'disabled' }
+        messages: [{ role: 'user', content: 'Hi' }]
       });
 
     expect(res.status).toBe(200);
     expect(capturedBody.output_config).toBeUndefined();
-    expect(capturedBody.thinking).toEqual({ type: 'disabled' });
   });
 
-  it('injects thinkingLevel: MEDIUM in proxy mode when model does not have -high and no client thinking is provided', async () => {
+  it('does NOT modify output_config.effort in direct mode for /v1/messages/count_tokens even if client provides output_config.effort', async () => {
+    jest.spyOn(upstreamManager, 'getUpstreamUrl').mockReturnValue({
+      targetUrl: 'https://direct-claude.example.com/v1/messages/count_tokens',
+      serverUrl: 'https://direct-claude.example.com',
+      serverIndex: 0,
+      weight: 1,
+      serverType: 'direct'
+    });
+
+    const res = await request(app)
+      .post('/v1/messages/count_tokens')
+      .set('x-api-key', 'client-key')
+      .send({
+        model: 'gemini-2.5-flash',
+        messages: [{ role: 'user', content: 'Count this' }],
+        output_config: { effort: 'low' }
+      });
+
+    expect(res.status).toBe(200);
+    expect(capturedBody.output_config).toEqual({ effort: 'low' });
+  });
+
+  it('does NOT inject thinkingLevel: MEDIUM in proxy mode when model does not have -high', async () => {
     jest.spyOn(upstreamManager, 'getUpstreamUrl').mockReturnValue({
       targetUrl: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
       serverUrl: 'https://generativelanguage.googleapis.com',
@@ -273,9 +271,7 @@ describe('claudeController Universal Thinking Suffix (-high)', () => {
       });
 
     expect(res.status).toBe(200);
-    expect(capturedBody.generationConfig?.thinkingConfig).toEqual({
-      thinkingLevel: 'MEDIUM'
-    });
+    expect(capturedBody.generationConfig?.thinkingConfig).toBeUndefined();
   });
 
   it('preserves client thinking: disabled in proxy mode without injecting thinkingLevel: MEDIUM', async () => {
@@ -303,7 +299,7 @@ describe('claudeController Universal Thinking Suffix (-high)', () => {
     });
   });
 
-  it('does NOT inject thinkingConfig in count_tokens for models without -high', async () => {
+  it('does NOT inject thinkingConfig in count_tokens for models without -high in proxy mode', async () => {
     jest.spyOn(upstreamManager, 'getUpstreamUrl').mockReturnValue({
       targetUrl: 'https://custom-proxy.com/v1beta/models/gemini-2.5-flash:countTokens',
       serverUrl: 'https://custom-proxy.com',

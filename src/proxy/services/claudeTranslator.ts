@@ -1,11 +1,6 @@
 import config from '../../../config/default';
 import logger from '../../utils/logger';
-import {
-  parseModelThinkingSuffix,
-  applyThinkingConfigHigh,
-  applyThinkingConfigMedium,
-  hasClaudeExplicitThinking
-} from '../../utils/modelThinkingHelper';
+import { parseModelThinkingSuffix, applyThinkingConfigHigh } from '../../utils/modelThinkingHelper';
 import {
   ClaudeMessage,
   ClaudeRequest,
@@ -113,9 +108,9 @@ class ClaudeTranslator {
       };
     } else {
       directRequest.model = cleanModelName;
-      if (!options?.isCountTokens && !hasClaudeExplicitThinking(claudeBody)) {
+      if (!options?.isCountTokens && claudeBody.output_config && typeof claudeBody.output_config === 'object' && claudeBody.output_config.effort !== undefined) {
         directRequest.output_config = {
-          ...(directRequest.output_config || {}),
+          ...directRequest.output_config,
           effort: 'medium'
         };
       }
@@ -1143,8 +1138,6 @@ class ClaudeTranslator {
     const thinkingInfo = parseModelThinkingSuffix(cleanModelName);
     if (thinkingInfo.isHigh) {
       applyThinkingConfigHigh(generationConfig);
-    } else if (!options?.isCountTokens && !hasClaudeExplicitThinking(claudeBody)) {
-      applyThinkingConfigMedium(generationConfig);
     }
     if (claudeBody.thinking && typeof claudeBody.thinking === 'object') {
       if (claudeBody.thinking.type === 'enabled') {

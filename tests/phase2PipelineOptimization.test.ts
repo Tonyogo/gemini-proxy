@@ -81,15 +81,13 @@ describe('Phase 2 Pipeline Optimizations', () => {
       });
     });
 
-    it('injects thinkingLevel: MEDIUM when thinking is not specified and model is not -high', () => {
+    it('does not inject thinkingConfig when thinking is not specified and model is not -high', () => {
       const result = translator.translateClaudeToGoogle({
         model: 'gemini-2.5-flash',
         messages: [{ role: 'user', content: 'Hello' }]
       });
 
-      expect(result.googleRequest.generationConfig?.thinkingConfig).toEqual({
-        thinkingLevel: 'MEDIUM'
-      });
+      expect(result.googleRequest.generationConfig?.thinkingConfig).toBeUndefined();
     });
 
     it('maps tool_choice { type: "auto" } to functionCallingConfig.mode: AUTO', () => {

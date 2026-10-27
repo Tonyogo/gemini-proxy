@@ -151,7 +151,7 @@ describe('geminiController Direct Mode Thinking Suffix', () => {
     expect(capturedBody?.generationConfig?.thinkingConfig?.includeThoughts).toBeUndefined();
   });
 
-  it('injects thinkingLevel: MEDIUM in direct mode when model does not have -high and no thinkingConfig is specified', async () => {
+  it('does NOT inject thinkingConfig in direct mode when model does not have -high and no thinkingConfig is specified', async () => {
     jest.spyOn(upstreamManager, 'getUpstreamUrl').mockReturnValue({
       targetUrl: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
       serverUrl: 'https://generativelanguage.googleapis.com',
@@ -169,12 +169,10 @@ describe('geminiController Direct Mode Thinking Suffix', () => {
 
     expect(res.status).toBe(200);
     expect(capturedUpstreamUrl).toBe('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent');
-    expect(capturedBody?.generationConfig?.thinkingConfig).toEqual({
-      thinkingLevel: 'MEDIUM'
-    });
+    expect(capturedBody?.generationConfig?.thinkingConfig).toBeUndefined();
   });
 
-  it('injects thinkingLevel: MEDIUM in proxy mode when model does not have -high and no thinkingConfig is specified', async () => {
+  it('does NOT inject thinkingConfig in proxy mode when model does not have -high and no thinkingConfig is specified', async () => {
     jest.spyOn(upstreamManager, 'getUpstreamUrl').mockReturnValue({
       targetUrl: 'https://custom-proxy.com/v1beta/models/gemini-2.5-flash:generateContent',
       serverUrl: 'https://custom-proxy.com',
@@ -192,12 +190,10 @@ describe('geminiController Direct Mode Thinking Suffix', () => {
 
     expect(res.status).toBe(200);
     expect(capturedUpstreamUrl).toBe('https://custom-proxy.com/v1beta/models/gemini-2.5-flash:generateContent');
-    expect(capturedBody?.generationConfig?.thinkingConfig).toEqual({
-      thinkingLevel: 'MEDIUM'
-    });
+    expect(capturedBody?.generationConfig?.thinkingConfig).toBeUndefined();
   });
 
-  it('preserves client explicit thinkingConfig (e.g. thinkingBudget: 0) without overriding to MEDIUM', async () => {
+  it('preserves client explicit thinkingConfig (e.g. thinkingBudget: 0) without alteration', async () => {
     jest.spyOn(upstreamManager, 'getUpstreamUrl').mockReturnValue({
       targetUrl: 'https://custom-proxy.com/v1beta/models/gemini-2.5-flash:generateContent',
       serverUrl: 'https://custom-proxy.com',
