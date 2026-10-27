@@ -1,8 +1,7 @@
 import request from 'supertest';
 import app from '../src/app';
 import config from '../config/default';
-import claudeController from '../src/proxy/controllers/claudeController';
-import { getUpstreamUrl, extractClientKey, generateShortId, generateTransactionId, buildUpstreamHeaders, maskApiKey, sanitizeData } from '../src/utils/requestHelper';
+import { getUpstreamUrl, extractClientKey, generateShortId, buildUpstreamHeaders, maskApiKey, sanitizeData } from '../src/utils/requestHelper';
 
 // Mock payloadLogger to prevent async disk writing side-effects and background log warnings
 jest.mock('../src/proxy/services/payloadLogger', () => ({
@@ -153,15 +152,12 @@ describe('extractClientKey helper', () => {
   });
 });
 
-describe('generateTransactionId and generateShortId helpers', () => {
+describe('generateShortId helper', () => {
   it('generates unique short transaction IDs', () => {
     const id1 = generateShortId();
     const id2 = generateShortId();
     expect(id1).not.toEqual(id2);
     expect(id1).toMatch(/^[a-z0-9]{9}$/);
-
-    const txId = generateTransactionId();
-    expect(txId).toMatch(/^[a-z0-9]{9}$/);
   });
 });
 

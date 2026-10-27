@@ -4,19 +4,14 @@ import {
   List,
   Plus,
   Search,
-  Filter,
   CheckCircle2,
   Circle,
-  Clock,
   Calendar,
   Trash2,
   Edit2,
   AlertCircle,
   RefreshCw,
   ArrowLeft,
-  ChevronRight,
-  GripVertical,
-  Flag,
   Check
 } from 'lucide-react';
 import { useTranslation } from '../i18n/LanguageContext';

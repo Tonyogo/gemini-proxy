@@ -14,15 +14,10 @@ import {
   extractClientKey,
   extractTimeoutMs,
   extractClientSchedulingStrategy,
-  getUpstreamUrl,
   generateShortId,
-  generateTransactionId,
   buildUpstreamHeaders,
-  buildDirectUpstreamHeaders,
-  maskApiKey
+  buildDirectUpstreamHeaders
 } from '../../utils/requestHelper';
-
-const SUPPORTED_MODELS: ModelConfig[] = [];
 
 class ClaudeController {
   public async handleMessages(req: Request, res: Response): Promise<any> {

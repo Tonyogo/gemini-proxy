@@ -1,6 +1,6 @@
 import { Request } from 'express';
 import config from '../../config/default';
-import upstreamManager, { UpstreamUrlSelection } from './upstreamManager';
+import upstreamManager from './upstreamManager';
 
 /**
  * Extracts the Google Gemini API key from various client request headers or query parameters.
@@ -67,13 +67,6 @@ export function getUpstreamUrl(
  */
 export function generateShortId(): string {
   return Math.random().toString(36).substring(2, 11);
-}
-
-/**
- * Generates a unique transaction ID for tracing request-response cycles.
- */
-export function generateTransactionId(): string {
-  return generateShortId();
 }
 
 /**

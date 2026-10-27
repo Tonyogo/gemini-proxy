@@ -382,16 +382,6 @@ export default function ConfigModal({ isOpen, onClose, adminKey, initialTab, onS
     handleEntryChange(id, 'target', newTarget);
   };
 
-  const handleServerAllowedModelsChange = (serverIndex: number, rawVal: string) => {
-    const parts = rawVal.split(',').map(s => s.trim()).filter(Boolean);
-    const updated = [...upstreamServers];
-    updated[serverIndex] = {
-      ...updated[serverIndex],
-      allowedModels: parts.length > 0 ? Array.from(new Set(parts)) : undefined
-    };
-    setUpstreamServers(updated);
-  };
-
   const handleRawJsonChange = (val: string) => {
     setEffortMappingsRaw(prev => ({
       ...prev,

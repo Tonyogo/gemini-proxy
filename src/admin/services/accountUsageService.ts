@@ -2,7 +2,7 @@ import { promises as fs } from 'fs';
 import * as path from 'path';
 import config from '../../../config/default';
 import logger from '../../utils/logger';
-import { AccountUsageStats, ModelUsageStats, PeriodUsageStore } from '../../types';
+import { AccountUsageStats, PeriodUsageStore } from '../../types';
 
 class AccountUsageService {
   private currentStore: PeriodUsageStore | null = null;

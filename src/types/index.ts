@@ -138,7 +138,6 @@ export type EffortLevel = 'low' | 'medium' | 'high';
 export type EffortModelMappings = Record<EffortLevel, ModelMappingsConfig>;
 
 export type DiscoverAppType = 'builtin' | 'custom';
-export type BuiltinToolId = 'systemLogs' | 'playground' | 'translate' | 'tasks';
 
 export interface DiscoverAppItem {
   id: string;

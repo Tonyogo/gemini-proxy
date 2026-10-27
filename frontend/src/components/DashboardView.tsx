@@ -5,7 +5,6 @@ import {
   CheckCircle2,
   AlertCircle,
   Server,
-  Activity,
   BarChart3
 } from 'lucide-react';
 import { useTranslation } from '../i18n/LanguageContext';
@@ -189,15 +188,6 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
       }
     }
     return count > 0 ? Math.round(totalDur / count) : 0;
-  };
-
-  const getModelPath = (modelName: string) => {
-    if (N === 0) return '';
-    const points = timeSeries.map((p, i) => ({
-      x: getX(i),
-      y: getYVolume(getModelHourlyCount(p, modelName))
-    }));
-    return getBezierSplinePath(points);
   };
 
   // Stacked/Bar top-rounded path generator
@@ -685,7 +675,6 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                         if (!mPath) return null;
                         const mColor = getModelColor(model, idx);
                         const isFocused = focusedModel === model;
-                        const isDimmed = focusedModel !== null && !isFocused;
 
                         return (
                           <g key={`latency-line-${model}`}>

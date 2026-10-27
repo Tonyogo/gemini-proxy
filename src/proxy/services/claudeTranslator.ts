@@ -7,7 +7,6 @@ import {
   GeminiRequest,
   GeminiContent,
   GeminiPart,
-  GeminiModelsResponse,
   SchedulingStrategy,
   NormalizedErrorResponse
 } from '../../types';

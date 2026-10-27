@@ -1,25 +1,17 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Editor from '@monaco-editor/react';
 import {
-  Play,
   Copy,
   Check,
   Zap,
   Sparkles,
   RefreshCw,
   Code,
-  Terminal,
-  Activity,
-  Layers,
   Flame,
   Send,
   Eye,
-  Sliders,
-  CheckCircle2,
-  AlertCircle,
   Clock,
   Globe,
-  Braces,
   RotateCcw,
   AlignLeft,
   ChevronDown
@@ -34,7 +26,6 @@ import { STANDARD_MODELS } from '../utils/modelHelpers';
 
 import {
   EndpointOption,
-  ProtocolType,
   PresetKey,
   ClaudePresetKey,
   GeminiPresetKey,
@@ -95,7 +86,6 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
   const [mobileActiveTab, setMobileActiveTab] = useState<'editor' | 'response'>('editor');
   const [copiedCurl, setCopiedCurl] = useState<boolean>(false);
   const [copiedResponse, setCopiedResponse] = useState<boolean>(false);
-  const [copiedAnswer, setCopiedAnswer] = useState<boolean>(false);
   const [showConcurrentModal, setShowConcurrentModal] = useState<boolean>(false);
   const [activePreset, setActivePreset] = useState<PresetKey>('basicChat');
 
@@ -332,13 +322,6 @@ export default function PlaygroundView({ adminKey = '' }: { adminKey?: string })
 
     return { text: text.trim(), thinking: thinking.trim(), toolCalls };
   }, [isStreamingActive, responseStreamChunks, responseJson]);
-
-  const handleCopyAnswer = () => {
-    const content = parsedMessageView.text || responseRaw;
-    navigator.clipboard.writeText(content);
-    setCopiedAnswer(true);
-    setTimeout(() => setCopiedAnswer(false), 2000);
-  };
 
   const handleSend = async () => {
     if (!effectiveApiKey) {

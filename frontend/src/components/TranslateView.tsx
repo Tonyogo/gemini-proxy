@@ -12,18 +12,14 @@ import {
   Check,
   Square,
   Play,
-  RefreshCw,
   Trash2,
   Clipboard,
-  FileText,
   AlertCircle,
-  Clock,
   RotateCcw,
   Eye,
   AlignLeft,
   ChevronDown,
   Layers,
-  Sliders,
   CheckCircle2,
   AlertTriangle
 } from 'lucide-react';
@@ -34,8 +30,7 @@ import {
   detectLanguageClient,
   getLanguageName,
   buildTranslationSystemPrompt,
-  formatTranslationUserPrompt,
-  StylePresetOption
+  formatTranslationUserPrompt
 } from '../utils/translateHelper';
 import { STANDARD_MODELS } from '../utils/modelHelpers';
 

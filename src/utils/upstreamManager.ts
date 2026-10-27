@@ -1,4 +1,4 @@
-import config, { parseBaseUrls, parseUpstreamServers } from '../../config/default';
+import config, { parseUpstreamServers } from '../../config/default';
 import { UpstreamServerConfig, UpstreamServerStatus, UpstreamServerSelection } from '../types';
 import logger from './logger';
 import { parseModelThinkingSuffix } from './modelThinkingHelper';

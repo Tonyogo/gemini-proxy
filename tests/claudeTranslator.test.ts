@@ -887,58 +887,6 @@ describe('Claude Tools Interaction Roundtrips (Complex and Multi-Turn)', () => {
     expect(userBubble.parts[2].functionResponse!.id).toEqual('toolu_key_unmapped_03');
   });
 
-  it.skip('substitutes Launching skill tool_result content with subsequent text content (based on log.json)', () => {
-    // Simulated Skill invocation payload:
-    // 1. Assistant message with a Skill tool_use block
-    // 2. User message containing the Skill tool_result AND the massive instructions text block
-    const claudePayload = {
-      model: 'gemini-3.5-flash',
-      messages: [
-        {
-          role: 'assistant',
-          content: [
-            {
-              type: 'tool_use',
-              id: 'toolu_g_using_superpowers',
-              name: 'Skill',
-              input: { skill: 'superpowers:using-superpowers' }
-            }
-          ]
-        },
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'tool_result',
-              tool_use_id: 'toolu_g_using_superpowers',
-              content: 'Launching skill: superpowers:using-superpowers'
-            },
-            {
-              type: 'text',
-              text: 'Base directory for this skill: /Users/yogo/... [Complete skill guide instructions here]'
-            }
-          ]
-        }
-      ]
-    } as any;
-
-    const result = translator.translateClaudeToGoogle(claudePayload);
-
-    // Verify 1: The conversation bubbles length (assistant model bubble + user tool response bubble) is 2
-    expect(result.googleRequest.contents.length).toEqual(2);
-
-    const userBubble = result.googleRequest.contents[1];
-    expect(userBubble.role).toEqual('user');
-
-    // Verify 2: Sibling text block is stripped and merged directly as the response content of the Skill function Response
-    expect(userBubble.parts.length).toEqual(1); // Merged into 1 part!
-    expect(userBubble.parts[0].functionResponse!.name).toEqual('Skill');
-    expect(userBubble.parts[0].functionResponse!.id).toEqual('using_superpowers'); // Stripped prefix "toolu_g_"
-    expect(userBubble.parts[0].functionResponse!.response.result).toEqual(
-      'Base directory for this skill: /Users/yogo/... [Complete skill guide instructions here]'
-    );
-  });
-
   it('correctly extracts image blocks inside tool_result to functionResponse.parts as inlineData', () => {
     const claudePayload = {
       model: 'gemini-3.5-flash',

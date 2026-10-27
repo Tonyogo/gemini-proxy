@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 import fetch from 'node-fetch';
-import config from '../../../config/default';
 import payloadLogger from '../services/payloadLogger';
 import claudeTranslator from '../services/claudeTranslator';
 import accountUsageService from '../../admin/services/accountUsageService';
@@ -13,10 +12,8 @@ import {
   extractClientKey,
   extractTimeoutMs,
   extractClientSchedulingStrategy,
-  getUpstreamUrl,
   generateShortId,
-  buildUpstreamHeaders,
-  maskApiKey
+  buildUpstreamHeaders
 } from '../../utils/requestHelper';
 
 class GeminiController {

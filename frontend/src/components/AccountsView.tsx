@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom';
 import {
   Users,
   Search,
-  Filter,
   RefreshCw,
   Upload,
   Layers,
@@ -19,16 +18,12 @@ import {
   Check,
   Radio,
   FileText,
-  ShieldCheck,
   AlertTriangle,
   ArrowRightLeft,
   X,
-  ExternalLink,
   ArrowDownCircle,
   Info,
-  CopyCheck,
-  Server,
-  Globe
+  CopyCheck
 } from 'lucide-react';
 import { useTranslation } from '../i18n/LanguageContext';
 import { calculateServerModelStats, getAccountTopModels } from '../utils/accountModelStats';
@@ -122,7 +117,6 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
 
 
   const currentAuthIndex = currentData?.status?.currentAuthIndex;
-  const isSystemBusy = Boolean(currentData?.status?.isSystemBusy);
 
   const data = currentData;
   const loading = isCurrentLoading;
@@ -430,8 +424,6 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     const cStatus = (a.concurrentStatus || '').toUpperCase().trim();
     return cStatus === 'INACTIVE' || (!cStatus && a.status !== 'active');
   }).length;
-
-  const inFlightCount = accounts.reduce((acc, cur) => acc + (cur.inFlight || 0), 0);
 
   // Filtered accounts list based on searchQuery and statusFilter
   const filteredAccounts = useMemo(() => {

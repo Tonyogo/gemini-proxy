@@ -1,13 +1,9 @@
-import fetch, { Response } from 'node-fetch';
+import fetch from 'node-fetch';
 import config from '../../../config/default';
 import upstreamManager from '../../utils/upstreamManager';
 import proxyAgentManager from '../../utils/proxyAgentManager';
 
 export class AccountService {
-  private getBaseUrl(serverIndex?: number): string {
-    return upstreamManager.getUpstreamServer({ serverIndex }).serverUrl;
-  }
-
   private getHeaders(extraHeaders: Record<string, string> = {}): Record<string, string> {
     const headers: Record<string, string> = {
       'Accept': 'application/json',

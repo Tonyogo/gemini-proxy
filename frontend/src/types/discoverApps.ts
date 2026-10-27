@@ -1,5 +1,4 @@
 export type DiscoverAppType = 'builtin' | 'custom';
-export type BuiltinToolId = 'systemLogs' | 'playground' | 'translate' | 'tasks';
 
 export interface DiscoverAppItem {
   id: string;
