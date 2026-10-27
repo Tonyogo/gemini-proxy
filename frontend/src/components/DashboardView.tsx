@@ -577,7 +577,6 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
                       allModels,
                       getModelHourlyCount,
                       volumeLimit,
-                      volumeLimit,
                       plottingHeight
                     );
 

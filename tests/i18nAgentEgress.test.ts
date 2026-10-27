@@ -5,7 +5,6 @@ describe('i18n locales for Minimalist Agent Egress', () => {
   const requiredKeys = [
     'egressChannelTitle',
     'egressLocalShort',
-    'egressAgentShort',
     'targetOfficialEndpoint',
     'serverAllowedModelsPlaceholder'
   ];
@@ -27,9 +26,21 @@ describe('i18n locales for Minimalist Agent Egress', () => {
     expect((en.config as any).viaGlobalProxyBadge).toBe('Global Proxy: {proxy}');
     expect((zh.config as any).globalProxyNotConfigured).toBe('需配置全局代理');
     expect((en.config as any).globalProxyNotConfigured).toBe('Global Proxy Required');
-    expect((zh.config as any).egressAgentShort).toBe('Agent 节点');
-    expect((en.config as any).egressAgentShort).toBe('Remote Agent');
     expect((zh.config as any).targetOfficialEndpoint).toBe('目标: 官方 Gemini API (本机直连)');
     expect((en.config as any).targetOfficialEndpoint).toBe('Target: Official Gemini API (Local Direct)');
+  });
+
+  it('confirms obsolete egress agent translation keys are cleanly removed', () => {
+    const obsoleteKeys = [
+      'egressAgent',
+      'egressAgentDesc',
+      'egressAgentShort',
+      'selectAgent',
+      'noAgentsAvailable',
+    ];
+    for (const key of obsoleteKeys) {
+      expect((zh.config as any)[key]).toBeUndefined();
+      expect((en.config as any)[key]).toBeUndefined();
+    }
   });
 });

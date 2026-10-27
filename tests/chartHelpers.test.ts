@@ -54,7 +54,7 @@ describe('Chart Helpers & APM Formatters', () => {
     const allModels = ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-2.0-flash'];
     const getModelCount = (pt: typeof point, m: string) => pt.models[m as keyof typeof pt.models] || 0;
 
-    const segments = getStackedBarSegments(point, allModels, getModelCount, 30, 30, 105);
+    const segments = getStackedBarSegments(point, allModels, getModelCount, 30, 105);
 
     // Should exclude 0-count model
     expect(segments).toHaveLength(2);
@@ -76,7 +76,7 @@ describe('Chart Helpers & APM Formatters', () => {
 
   test('getStackedBarSegments should handle edge cases gracefully (yMax = 0, no data)', () => {
     const point = { count: 5 };
-    const segments = getStackedBarSegments(point, ['model-a'], (pt: { count: number }) => pt.count, 0, 0, 105);
+    const segments = getStackedBarSegments(point, ['model-a'], (pt: { count: number }) => pt.count, 0, 105);
 
     expect(Array.isArray(segments)).toBe(true);
     for (const seg of segments) {
@@ -85,5 +85,13 @@ describe('Chart Helpers & APM Formatters', () => {
       expect(isNaN(seg.y)).toBe(false);
       expect(isNaN(seg.height)).toBe(false);
     }
+  });
+
+  test('getStackedBarSegments should default plottingHeight to 105 when omitted', () => {
+    const point = { models: { 'm1': 10 } };
+    const defaultSegments = getStackedBarSegments(point, ['m1'], (pt: any, m: string) => pt.models[m], 10);
+    const explicitSegments = getStackedBarSegments(point, ['m1'], (pt: any, m: string) => pt.models[m], 10, 105);
+    expect(defaultSegments).toEqual(explicitSegments);
+    expect(defaultSegments[0].height).toBe(105);
   });
 });

@@ -7,6 +7,7 @@ import {
   deleteCustomAppInList,
   fetchRemoteDiscoverApps,
   saveRemoteDiscoverApps,
+  normalizeWebAppUrl,
 } from '../frontend/src/utils/discoverAppsStorage';
 import { DiscoverAppItem } from '../frontend/src/types/discoverApps';
 
@@ -97,5 +98,12 @@ describe('discoverAppsStorage (In-Memory & Remote Only)', () => {
     );
 
     global.fetch = originalFetch;
+  });
+
+  it('re-exports and correctly normalizes web app urls via normalizeWebAppUrl', () => {
+    expect(normalizeWebAppUrl('test.domain.com/app')).toBe('https://test.domain.com/app');
+    expect(normalizeWebAppUrl('http://192.168.1.1:8080')).toBe('http://192.168.1.1:8080');
+    expect(() => normalizeWebAppUrl('')).toThrow('URL cannot be empty');
+    expect(() => normalizeWebAppUrl('javascript:alert(1)')).toThrow('Only HTTP and HTTPS');
   });
 });

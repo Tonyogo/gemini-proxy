@@ -185,7 +185,6 @@ export function resolveTargetEndpoint(params: {
   customPath: string;
 }): { url: string; method: string; protocol: ProtocolType } {
   const { option, model, isStream, customMethod, customPath } = params;
-  const protocol = getProtocolForEndpoint(option);
 
   switch (option) {
     case 'claude_messages':

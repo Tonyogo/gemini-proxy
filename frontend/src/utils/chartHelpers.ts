@@ -103,7 +103,6 @@ export function getStackedBarSegments<T>(
   allModels: string[],
   getModelCount: (point: T, model: string) => number,
   yMax: number,
-  volumeLimit: number,
   plottingHeight: number = 105
 ): StackedSegment[] {
   const segments: StackedSegment[] = [];

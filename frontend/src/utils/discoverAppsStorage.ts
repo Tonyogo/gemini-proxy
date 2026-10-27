@@ -1,4 +1,7 @@
 import { DiscoverAppItem } from '../types/discoverApps';
+import { normalizeWebAppUrl } from './customWebAppsStorage';
+
+export { normalizeWebAppUrl };
 
 export const DEFAULT_BUILTIN_APPS: DiscoverAppItem[] = [
   {
@@ -65,31 +68,6 @@ export const DEFAULT_DISCOVER_APPS: DiscoverAppItem[] = [
   ...DEFAULT_BUILTIN_APPS.map((a, i) => ({ ...a, order: i })),
   { ...PRESET_CUSTOM_APP, order: DEFAULT_BUILTIN_APPS.length },
 ];
-
-export function normalizeWebAppUrl(rawUrl: string): string {
-  const trimmed = rawUrl.trim();
-  if (!trimmed) {
-    throw new Error('URL cannot be empty');
-  }
-
-  let finalUrl = trimmed;
-  if (!/^https?:\/\//i.test(finalUrl)) {
-    if (/^[a-zA-Z0-9_-]+:/i.test(finalUrl)) {
-      throw new Error('Only HTTP and HTTPS protocols are supported');
-    }
-    finalUrl = `https://${finalUrl}`;
-  }
-
-  try {
-    const parsed = new URL(finalUrl);
-    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-      throw new Error('Only HTTP and HTTPS protocols are supported');
-    }
-    return finalUrl;
-  } catch (err: any) {
-    throw new Error(err.message || 'Invalid URL');
-  }
-}
 
 export function reindexApps(apps: DiscoverAppItem[]): DiscoverAppItem[] {
   return apps.map((app, index) => ({

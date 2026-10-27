@@ -3,7 +3,6 @@ import { en, Translations } from './locales/en';
 import { zh } from './locales/zh';
 
 export type Language = 'zh' | 'en';
-export type TerminalTranslationKey = 'interactiveTab' | 'exitFullscreen' | 'fullscreen';
 
 export interface LanguageContextType {
   lang: Language;
