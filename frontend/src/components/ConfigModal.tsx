@@ -1759,7 +1759,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, initialTab, onS
                                 onClick={() => setEditingEffortTab(lvl)}
                                 className={`px-2 py-1.5 rounded-lg border text-xs font-medium transition-all flex items-center justify-between gap-1 cursor-pointer ${
                                   isEditing
-                                    ? 'bg-[var(--card-bg)] border-indigo-500/50 shadow-sm text-[var(--text-primary)] font-semibold ring-1 ring-indigo-500/30'
+                                    ? 'bg-[var(--bg-surface)] border-indigo-500/50 shadow-sm text-[var(--text-primary)] font-semibold ring-1 ring-indigo-500/30'
                                     : 'border-transparent hover:bg-black/[0.04] dark:hover:bg-white/[0.05] text-[var(--text-secondary)]'
                                 }`}
                                 data-testid={`config-effort-tab-${lvl}`}
@@ -1774,7 +1774,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, initialTab, onS
                                   {lvl === 'high' && <Zap className="w-2.5 h-2.5 text-amber-500 shrink-0" />}
                                 </div>
                                 <div className="flex items-center space-x-1 shrink-0">
-                                  <span className="text-[10px] font-mono text-[var(--text-tertiary)] bg-black/5 dark:bg-white/10 px-1 py-0.2 rounded">
+                                  <span className="text-[10px] font-mono text-[var(--text-secondary)] bg-black/5 dark:bg-white/10 px-1 py-0.2 rounded">
                                     {ruleCount}
                                   </span>
                                   {isActiveEffort && (
@@ -1811,7 +1811,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, initialTab, onS
                         </div>
 
                         {/* Quick Copy Buttons */}
-                        <div className="flex items-center space-x-1 text-[11px] text-[var(--text-tertiary)]">
+                        <div className="flex items-center space-x-1 text-[11px] text-[var(--text-muted)]">
                           <span className="hidden sm:inline">{t('effort.copyFrom')}</span>
                           {(['low', 'medium', 'high'] as EffortLevel[])
                             .filter(lvl => lvl !== editingEffortTab)

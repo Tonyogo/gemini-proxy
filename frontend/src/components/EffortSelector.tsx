@@ -101,9 +101,9 @@ export const EffortSelector: React.FC<EffortSelectorProps> = ({
       {isOpen && (
         <div
           role="menu"
-          className="absolute left-0 mt-1.5 w-64 sm:w-72 bg-[var(--card-bg)] backdrop-blur-xl border border-[var(--border-subtle)] rounded-xl shadow-xl z-50 p-1.5 space-y-1 animate-in fade-in zoom-in-95 duration-100"
+          className="absolute left-0 mt-1.5 w-64 sm:w-72 bg-white dark:bg-[#11131C] border border-slate-200/90 dark:border-slate-700/80 rounded-xl shadow-2xl ring-1 ring-black/5 dark:ring-white/10 z-50 p-1.5 space-y-1 animate-in fade-in zoom-in-95 duration-100"
         >
-          <div className="px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[var(--text-tertiary)] flex items-center justify-between select-none">
+          <div className="px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center justify-between select-none border-b border-[var(--border-subtle)] mb-1">
             <span>{t('effort.title')}</span>
             <span className="text-[9px] font-normal lowercase opacity-75">{t('effort.label')}</span>
           </div>
@@ -129,8 +129,8 @@ export const EffortSelector: React.FC<EffortSelectorProps> = ({
                 }}
                 className={`flex items-start justify-between p-2 rounded-lg text-left transition-colors cursor-pointer w-full group ${
                   isActive
-                    ? 'bg-indigo-500/10 border border-indigo-500/25 dark:bg-indigo-950/40'
-                    : 'hover:bg-black/[0.04] dark:hover:bg-white/[0.05] border border-transparent'
+                    ? 'bg-indigo-50/90 dark:bg-indigo-950/60 border border-indigo-500/30'
+                    : 'hover:bg-slate-100/80 dark:hover:bg-slate-800/70 border border-transparent'
                 }`}
                 data-testid={`effort-option-${lvl}`}
               >
@@ -144,7 +144,7 @@ export const EffortSelector: React.FC<EffortSelectorProps> = ({
                       <span className={`text-xs font-semibold ${isActive ? 'text-[var(--text-primary)] font-bold' : 'text-[var(--text-primary)]'}`}>
                         {t(`effort.${lvl}`)}
                       </span>
-                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-black/5 dark:bg-white/10 text-[var(--text-tertiary)]">
+                      <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-[var(--text-secondary)] border border-slate-200/70 dark:border-slate-700/70">
                         {t('effort.rulesCount', { count: ruleCount })}
                       </span>
                     </div>
@@ -167,7 +167,7 @@ export const EffortSelector: React.FC<EffortSelectorProps> = ({
               setIsOpen(false);
               onOpenMappingsConfig();
             }}
-            className="w-full flex items-center justify-center space-x-1.5 px-2.5 py-1.5 text-xs text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-black/[0.04] dark:hover:bg-white/[0.05] rounded-lg transition-colors font-medium"
+            className="w-full flex items-center justify-center space-x-1.5 px-2.5 py-1.5 text-xs text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100/80 dark:hover:bg-slate-800/70 rounded-lg transition-colors font-medium"
             data-testid="effort-configure-mappings-btn"
           >
             <ArrowRightLeft className="w-3.5 h-3.5" />

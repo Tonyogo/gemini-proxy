@@ -119,6 +119,14 @@ describe('Effort Level UI & ConfigModal Workbench Integration', () => {
       expect(effortSelectorContent).toContain('data-testid="effort-configure-mappings-btn"');
       expect(effortSelectorContent).toContain("data-testid={`effort-option-${lvl}`}");
     });
+
+    test('uses solid opaque surface background for dropdown popover to prevent background bleed-through', () => {
+      expect(effortSelectorContent).not.toContain('--card-bg');
+      expect(effortSelectorContent).not.toContain('--text-tertiary');
+      expect(effortSelectorContent).toContain('bg-white dark:bg-[#11131C]');
+      expect(configModalContent).not.toContain('--card-bg');
+      expect(configModalContent).not.toContain('--text-tertiary');
+    });
   });
 
   describe('Header Integration in App.tsx', () => {
