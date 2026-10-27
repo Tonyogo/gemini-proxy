@@ -1,6 +1,11 @@
 import config from '../../../config/default';
 import logger from '../../utils/logger';
-import { parseModelThinkingSuffix, applyThinkingConfigHigh } from '../../utils/modelThinkingHelper';
+import {
+  parseModelThinkingSuffix,
+  applyThinkingConfigHigh,
+  applyThinkingConfigMedium,
+  hasClaudeExplicitThinking
+} from '../../utils/modelThinkingHelper';
 import {
   ClaudeMessage,
   ClaudeRequest,
@@ -83,7 +88,8 @@ class ClaudeTranslator {
    */
   public preprocessClaudeDirectRequest(
     claudeBody: ClaudeRequest,
-    preResolvedMapping?: { targetModel: string; strategy?: SchedulingStrategy }
+    preResolvedMapping?: { targetModel: string; strategy?: SchedulingStrategy },
+    options?: { isCountTokens?: boolean }
   ): {
     directRequest: ClaudeRequest;
     cleanModelName: string;
@@ -107,6 +113,12 @@ class ClaudeTranslator {
       };
     } else {
       directRequest.model = cleanModelName;
+      if (!options?.isCountTokens && !hasClaudeExplicitThinking(claudeBody)) {
+        directRequest.output_config = {
+          ...(directRequest.output_config || {}),
+          effort: 'medium'
+        };
+      }
     }
 
     // Clean directRequest.system
@@ -728,7 +740,8 @@ class ClaudeTranslator {
 
   public translateClaudeToGoogle(
     claudeBody: ClaudeRequest,
-    preResolvedMapping?: { targetModel: string; strategy?: SchedulingStrategy }
+    preResolvedMapping?: { targetModel: string; strategy?: SchedulingStrategy },
+    options?: { isCountTokens?: boolean }
   ) {
     const rawModel = claudeBody.model;
 
@@ -1130,6 +1143,8 @@ class ClaudeTranslator {
     const thinkingInfo = parseModelThinkingSuffix(cleanModelName);
     if (thinkingInfo.isHigh) {
       applyThinkingConfigHigh(generationConfig);
+    } else if (!options?.isCountTokens && !hasClaudeExplicitThinking(claudeBody)) {
+      applyThinkingConfigMedium(generationConfig);
     }
     if (claudeBody.thinking && typeof claudeBody.thinking === 'object') {
       if (claudeBody.thinking.type === 'enabled') {

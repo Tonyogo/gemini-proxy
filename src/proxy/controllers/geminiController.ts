@@ -7,7 +7,12 @@ import logger from '../../utils/logger';
 import { StreamLifecycleManager } from '../../utils/streamLifecycleManager';
 import upstreamManager from '../../utils/upstreamManager';
 import proxyAgentManager from '../../utils/proxyAgentManager';
-import { parseModelThinkingSuffix, applyThinkingConfigHigh } from '../../utils/modelThinkingHelper';
+import {
+  parseModelThinkingSuffix,
+  applyThinkingConfigHigh,
+  applyThinkingConfigMedium,
+  hasGeminiExplicitThinking
+} from '../../utils/modelThinkingHelper';
 import {
   extractClientKey,
   extractTimeoutMs,
@@ -113,6 +118,19 @@ class GeminiController {
           if (isGenerateRoute) {
             clientReq.generationConfig = clientReq.generationConfig || {};
             applyThinkingConfigHigh(clientReq.generationConfig);
+          }
+        }
+      } else {
+        // Model does NOT have -high suffix
+        const isGenerateRoute = cleanPath.includes(':generateContent') || cleanPath.includes(':streamGenerateContent');
+        if (isGenerateRoute && clientReq) {
+          if (!hasGeminiExplicitThinking(clientReq.generationConfig)) {
+            clientReq.generationConfig = clientReq.generationConfig || {};
+            applyThinkingConfigMedium(clientReq.generationConfig);
+          }
+          if (clientReq.generateContentRequest && !hasGeminiExplicitThinking(clientReq.generateContentRequest.generationConfig)) {
+            clientReq.generateContentRequest.generationConfig = clientReq.generateContentRequest.generationConfig || {};
+            applyThinkingConfigMedium(clientReq.generateContentRequest.generationConfig);
           }
         }
       }

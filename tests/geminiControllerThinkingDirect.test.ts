@@ -150,4 +150,97 @@ describe('geminiController Direct Mode Thinking Suffix', () => {
     });
     expect(capturedBody?.generationConfig?.thinkingConfig?.includeThoughts).toBeUndefined();
   });
+
+  it('injects thinkingLevel: MEDIUM in direct mode when model does not have -high and no thinkingConfig is specified', async () => {
+    jest.spyOn(upstreamManager, 'getUpstreamUrl').mockReturnValue({
+      targetUrl: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
+      serverUrl: 'https://generativelanguage.googleapis.com',
+      serverIndex: 0,
+      weight: 1,
+      serverType: 'direct'
+    });
+
+    const res = await request(app)
+      .post('/v1beta/models/gemini-2.5-flash:generateContent')
+      .set('x-goog-api-key', 'client-key')
+      .send({
+        contents: [{ role: 'user', parts: [{ text: 'Hello' }] }]
+      });
+
+    expect(res.status).toBe(200);
+    expect(capturedUpstreamUrl).toBe('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent');
+    expect(capturedBody?.generationConfig?.thinkingConfig).toEqual({
+      thinkingLevel: 'MEDIUM'
+    });
+  });
+
+  it('injects thinkingLevel: MEDIUM in proxy mode when model does not have -high and no thinkingConfig is specified', async () => {
+    jest.spyOn(upstreamManager, 'getUpstreamUrl').mockReturnValue({
+      targetUrl: 'https://custom-proxy.com/v1beta/models/gemini-2.5-flash:generateContent',
+      serverUrl: 'https://custom-proxy.com',
+      serverIndex: 0,
+      weight: 1,
+      serverType: 'proxy'
+    });
+
+    const res = await request(app)
+      .post('/v1beta/models/gemini-2.5-flash:generateContent')
+      .set('x-goog-api-key', 'client-key')
+      .send({
+        contents: [{ role: 'user', parts: [{ text: 'Hello' }] }]
+      });
+
+    expect(res.status).toBe(200);
+    expect(capturedUpstreamUrl).toBe('https://custom-proxy.com/v1beta/models/gemini-2.5-flash:generateContent');
+    expect(capturedBody?.generationConfig?.thinkingConfig).toEqual({
+      thinkingLevel: 'MEDIUM'
+    });
+  });
+
+  it('preserves client explicit thinkingConfig (e.g. thinkingBudget: 0) without overriding to MEDIUM', async () => {
+    jest.spyOn(upstreamManager, 'getUpstreamUrl').mockReturnValue({
+      targetUrl: 'https://custom-proxy.com/v1beta/models/gemini-2.5-flash:generateContent',
+      serverUrl: 'https://custom-proxy.com',
+      serverIndex: 0,
+      weight: 1,
+      serverType: 'proxy'
+    });
+
+    const res = await request(app)
+      .post('/v1beta/models/gemini-2.5-flash:generateContent')
+      .set('x-goog-api-key', 'client-key')
+      .send({
+        contents: [{ role: 'user', parts: [{ text: 'Hello' }] }],
+        generationConfig: {
+          thinkingConfig: {
+            thinkingBudget: 0
+          }
+        }
+      });
+
+    expect(res.status).toBe(200);
+    expect(capturedBody?.generationConfig?.thinkingConfig).toEqual({
+      thinkingBudget: 0
+    });
+  });
+
+  it('does NOT inject generationConfig for models without -high in :countTokens', async () => {
+    jest.spyOn(upstreamManager, 'getUpstreamUrl').mockReturnValue({
+      targetUrl: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:countTokens',
+      serverUrl: 'https://generativelanguage.googleapis.com',
+      serverIndex: 0,
+      weight: 1,
+      serverType: 'direct'
+    });
+
+    const res = await request(app)
+      .post('/v1beta/models/gemini-2.5-flash:countTokens')
+      .set('x-goog-api-key', 'client-key')
+      .send({
+        contents: [{ role: 'user', parts: [{ text: 'Count' }] }]
+      });
+
+    expect(res.status).toBe(200);
+    expect(capturedBody?.generationConfig).toBeUndefined();
+  });
 });

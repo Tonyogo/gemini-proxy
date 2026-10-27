@@ -37,3 +37,39 @@ export function applyThinkingConfigHigh(generationConfig: any = {}): any {
   return generationConfig;
 }
 
+/**
+ * Injects thinkingLevel: 'MEDIUM' into generationConfig.thinkingConfig while stripping includeThoughts.
+ * Preserves other custom thinkingConfig properties.
+ */
+export function applyThinkingConfigMedium(generationConfig: any = {}): any {
+  const existingThinking = generationConfig?.thinkingConfig || {};
+  const { includeThoughts, ...cleanThinking } = existingThinking;
+  generationConfig.thinkingConfig = {
+    ...cleanThinking,
+    thinkingLevel: 'MEDIUM'
+  };
+  return generationConfig;
+}
+
+/**
+ * Checks whether the client explicitly configured thinking in Gemini generationConfig.
+ * Returns true if thinkingConfig is explicitly present on generationConfig.
+ */
+export function hasGeminiExplicitThinking(generationConfig?: any): boolean {
+  if (!generationConfig || typeof generationConfig !== 'object') return false;
+  return 'thinkingConfig' in generationConfig && generationConfig.thinkingConfig !== undefined;
+}
+
+/**
+ * Checks whether the client explicitly configured thinking or effort in a Claude request body.
+ * Returns true if claudeBody.thinking or claudeBody.output_config?.effort is explicitly defined.
+ */
+export function hasClaudeExplicitThinking(claudeBody?: any): boolean {
+  if (!claudeBody || typeof claudeBody !== 'object') return false;
+  if (claudeBody.thinking !== undefined) return true;
+  if (claudeBody.output_config && typeof claudeBody.output_config === 'object' && claudeBody.output_config.effort !== undefined) {
+    return true;
+  }
+  return false;
+}
+
