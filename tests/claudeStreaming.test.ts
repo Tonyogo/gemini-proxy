@@ -94,7 +94,7 @@ describe('POST /v1/messages (Streaming)', () => {
     expect(res.text).toContain('Hello World!'); // Verify it correctly parsed and joined the content
   });
 
-  it('immediately flushes SSE headers with initial : ping before upstream fetch resolves and sends X-Accel-Buffering: no', async () => {
+  it('sets X-Accel-Buffering: no and does not inject : ping when data arrives before heartbeat interval', async () => {
     const { Readable } = require('stream');
     const mockStream = new Readable({ read() {} });
 
@@ -125,7 +125,7 @@ describe('POST /v1/messages (Streaming)', () => {
 
     expect(res.statusCode).toEqual(200);
     expect(res.headers['x-accel-buffering']).toEqual('no');
-    expect(res.text).toMatch(/^: ping\n\n/);
+    expect(res.text).not.toContain(': ping');
     expect(res.text).toContain('Done thinking');
   });
 

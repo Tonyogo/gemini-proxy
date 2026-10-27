@@ -13,7 +13,7 @@ export interface StreamLifecycleOptions {
 
 export type AbortReason = 'client_disconnect' | 'timeout' | null;
 
-const DEFAULT_HEARTBEAT_INTERVAL_MS = 15000;
+const DEFAULT_HEARTBEAT_INTERVAL_MS = 60000;
 
 export class StreamLifecycleManager {
   private controller: AbortController;
@@ -27,10 +27,13 @@ export class StreamLifecycleManager {
   private heartbeatTimer: NodeJS.Timeout | null = null;
   private upstreamStream: Readable | null = null;
   private timeoutMs: number = 0;
-  private enableSseHeartbeat: boolean = false;
-  private initialHeartbeatSent: boolean = false;
+  private hasReceivedData: boolean = false;
 
   private handleStreamData = () => {
+    if (!this.hasReceivedData) {
+      this.hasReceivedData = true;
+      this.clearHeartbeat();
+    }
     this.resetTimeout();
   };
 
@@ -69,11 +72,10 @@ export class StreamLifecycleManager {
     this.resetTimeout();
 
     if (options.enableSseHeartbeat) {
-      this.enableSseHeartbeat = true;
       const intervalMs = options.heartbeatIntervalMs && options.heartbeatIntervalMs > 0
         ? options.heartbeatIntervalMs
         : DEFAULT_HEARTBEAT_INTERVAL_MS;
-      // Do NOT send heartbeat immediately in constructor!
+      // Only send heartbeat if no data packet has been received after intervalMs
       this.heartbeatTimer = setInterval(() => {
         this.sendHeartbeat();
       }, intervalMs);
@@ -96,11 +98,10 @@ export class StreamLifecycleManager {
   }
 
   private sendHeartbeat(): void {
-    if (this.finished || this.aborted || this.res.writableEnded) {
+    if (this.finished || this.aborted || this.hasReceivedData || this.res.writableEnded) {
       this.clearHeartbeat();
       return;
     }
-    this.initialHeartbeatSent = true;
     this.ensureSseHeaders();
     try {
       if (typeof this.res.write === 'function') {
@@ -140,11 +141,7 @@ export class StreamLifecycleManager {
     }
     this.upstreamStream = stream;
     this.resetTimeout();
-    if (this.enableSseHeartbeat && !this.initialHeartbeatSent) {
-      this.sendHeartbeat();
-    } else {
-      this.ensureSseHeaders();
-    }
+    this.ensureSseHeaders();
     if (stream && typeof stream.on === 'function') {
       stream.on('data', this.handleStreamData);
     }

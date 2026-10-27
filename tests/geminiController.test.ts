@@ -111,7 +111,7 @@ describe('GeminiController - Native Gemini API Proxy', () => {
     );
   });
 
-  it('enables SSE heartbeat (: ping) on streaming requests and resets idle timeout on data chunks', async () => {
+  it('sets SSE headers with X-Accel-Buffering: no and omits : ping when data arrives before heartbeat interval', async () => {
     const fetchMock = require('node-fetch');
     const { Readable } = require('stream');
     const stream = new Readable({
@@ -138,7 +138,7 @@ describe('GeminiController - Native Gemini API Proxy', () => {
 
     expect(res.status).toBe(200);
     expect(res.headers['x-accel-buffering']).toBe('no');
-    expect(res.text).toMatch(/^: ping\n\n/);
+    expect(res.text).not.toContain(': ping');
     expect(res.text).toContain('Heartbeat stream chunk');
   });
 

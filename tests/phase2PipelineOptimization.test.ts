@@ -669,7 +669,7 @@ describe('Phase 2 Pipeline Optimizations', () => {
       manager.markFinished();
     });
 
-    it('flushes headers and sends initial : ping when attachStream is called on 2xx upstream response', () => {
+    it('flushes headers without sending : ping when attachStream is called on fast 2xx upstream response, and stops heartbeat once data arrives', () => {
       const setHeaderSpy = jest.fn();
       const flushHeadersSpy = jest.fn();
       const writeSpy = jest.fn();
@@ -684,17 +684,21 @@ describe('Phase 2 Pipeline Optimizations', () => {
         res: mockRes as Response,
         transactionId: 'test_tx_attach_stream',
         enableSseHeartbeat: true,
-        heartbeatIntervalMs: 15000
+        heartbeatIntervalMs: 60000
       });
 
-      // Upstream responds in 50ms (before 15s timer fires)
+      // Upstream responds in 50ms (before 60s timer fires)
       const mockStream = new EventEmitter();
       manager.attachStream(mockStream);
 
       expect(setHeaderSpy).toHaveBeenCalledWith('Content-Type', 'text/event-stream');
       expect(flushHeadersSpy).toHaveBeenCalledTimes(1);
-      expect(writeSpy).toHaveBeenCalledTimes(1);
-      expect(writeSpy).toHaveBeenCalledWith(': ping\n\n');
+      expect(writeSpy).not.toHaveBeenCalled();
+
+      // Once data arrives, heartbeat timer is cleared
+      mockStream.emit('data', Buffer.from('data: {"text":"chunk"}\n\n'));
+      jest.advanceTimersByTime(120000);
+      expect(writeSpy).not.toHaveBeenCalled();
 
       manager.markFinished();
     });
