@@ -12,6 +12,8 @@ class AdminController {
       memoryUsage: process.memoryUsage(),
       config: {
         logLevel: config.logLevel,
+        effortLevel: config.effortLevel,
+        effortModelMappings: config.effortModelMappings,
         proxyUrl: config.proxyUrl,
         geminiBaseUrl: config.geminiBaseUrl,
         geminiBaseUrls: upstreamManager.getBaseUrls(),
@@ -37,6 +39,8 @@ class AdminController {
   public async getModels(req: Request, res: Response): Promise<void> {
     res.json({
       mappings: config.modelMappings,
+      effortLevel: config.effortLevel,
+      effortModelMappings: config.effortModelMappings,
     });
   }
 
@@ -115,6 +119,8 @@ class AdminController {
         message: 'Configuration updated successfully',
         config: {
           logLevel: config.logLevel,
+          effortLevel: config.effortLevel,
+          effortModelMappings: config.effortModelMappings,
           proxyUrl: config.proxyUrl,
           geminiBaseUrl: config.geminiBaseUrl,
           geminiBaseUrls: upstreamManager.getBaseUrls(),

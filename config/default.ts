@@ -1,7 +1,7 @@
 import * as dotenv from 'dotenv';
 import * as path from 'path';
 import { existsSync, readFileSync, promises as fs } from 'fs';
-import { ModelMappingsConfig, CustomWebAppItem, DiscoverAppItem, UpstreamServerConfig, UpstreamServerType } from '../src/types';
+import { ModelMappingsConfig, EffortLevel, EffortModelMappings, CustomWebAppItem, DiscoverAppItem, UpstreamServerConfig, UpstreamServerType } from '../src/types';
 
 dotenv.config();
 
@@ -137,6 +137,45 @@ if (process.env.MODEL_MAPPINGS) {
   } catch (err) {
     // Falls back to defaults
   }
+}
+
+function deepClone<T>(val: T): T {
+  if (val === undefined || val === null) return val;
+  return JSON.parse(JSON.stringify(val));
+}
+
+export const VALID_EFFORT_LEVELS: EffortLevel[] = ['low', 'medium', 'high'];
+
+export function normalizeEffortLevel(raw: any, fallback: EffortLevel = 'medium'): EffortLevel {
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim().toLowerCase() as EffortLevel;
+    if (VALID_EFFORT_LEVELS.includes(trimmed)) {
+      return trimmed;
+    }
+  }
+  return fallback;
+}
+
+export function normalizeEffortModelMappings(
+  raw: any,
+  fallbackMappings: ModelMappingsConfig = {},
+  baseEffortMappings?: EffortModelMappings
+): EffortModelMappings {
+  const result: Record<EffortLevel, ModelMappingsConfig> = {
+    low: {},
+    medium: {},
+    high: {}
+  };
+  for (const lvl of VALID_EFFORT_LEVELS) {
+    if (raw && typeof raw === 'object' && raw[lvl] !== undefined && typeof raw[lvl] === 'object' && raw[lvl] !== null && !Array.isArray(raw[lvl])) {
+      result[lvl] = deepClone(raw[lvl]);
+    } else if (baseEffortMappings && baseEffortMappings[lvl] !== undefined && typeof baseEffortMappings[lvl] === 'object' && baseEffortMappings[lvl] !== null) {
+      result[lvl] = deepClone(baseEffortMappings[lvl]);
+    } else {
+      result[lvl] = deepClone(fallbackMappings);
+    }
+  }
+  return result;
 }
 
 export const DEFAULT_IGNORED_TOOLS: string[] = [
@@ -397,9 +436,13 @@ export function parseBaseUrls(raw?: string): string[] {
 }
 
 const getEnvConfig = () => {
+  const envEffortLevel = normalizeEffortLevel(process.env.EFFORT_LEVEL, 'medium');
+  const envEffortModelMappings = normalizeEffortModelMappings(undefined, parsedModelMappings);
   return {
     logLevel: (process.env.LOG_LEVEL || 'info') as string,
-    modelMappings: parsedModelMappings as ModelMappingsConfig,
+    effortLevel: envEffortLevel as EffortLevel,
+    effortModelMappings: envEffortModelMappings as EffortModelMappings,
+    modelMappings: deepClone(envEffortModelMappings[envEffortLevel]) as ModelMappingsConfig,
     ephemeralUserMessages: parsedEphemeralUserMessages as string[],
     ephemeralSystemMessages: parsedEphemeralSystemMessages as string[],
     customSystemInstruction: (process.env.CUSTOM_SYSTEM_INSTRUCTION || '') as string,
@@ -415,6 +458,10 @@ const getEnvConfig = () => {
   };
 };
 
+const initialEffortLevel = normalizeEffortLevel(runtimeOverrides.effortLevel ?? process.env.EFFORT_LEVEL, 'medium');
+const initialBaseMappings = (runtimeOverrides.modelMappings ?? parsedModelMappings) as ModelMappingsConfig;
+const initialEffortModelMappings = normalizeEffortModelMappings(runtimeOverrides.effortModelMappings, initialBaseMappings);
+
 export const config = {
   port: process.env.PORT || 8001,
   transactionLogsDir: process.env.TRANSACTION_LOGS_DIR || 'logs',
@@ -423,6 +470,10 @@ export const config = {
 
   ...getEnvConfig(),
   ...runtimeOverrides,
+
+  effortLevel: initialEffortLevel,
+  effortModelMappings: initialEffortModelMappings,
+  modelMappings: deepClone(initialEffortModelMappings[initialEffortLevel]),
 
   get geminiBaseUrl(): string {
     const servers = this.upstreamServers;
@@ -566,6 +617,36 @@ export async function updateConfig(
 
   if (partialConfig.proxyUrl !== undefined) {
     partialConfig.proxyUrl = typeof partialConfig.proxyUrl === 'string' ? partialConfig.proxyUrl.trim() : '';
+  }
+
+  const currentLevel = normalizeEffortLevel(config.effortLevel, 'medium');
+  const nextLevel = partialConfig.effortLevel !== undefined
+    ? normalizeEffortLevel(partialConfig.effortLevel, currentLevel)
+    : currentLevel;
+  const currentEffortMappings = normalizeEffortModelMappings(config.effortModelMappings, config.modelMappings);
+
+  let nextEffortMappings: EffortModelMappings;
+  if (partialConfig.effortModelMappings !== undefined) {
+    nextEffortMappings = normalizeEffortModelMappings(
+      partialConfig.effortModelMappings,
+      config.modelMappings,
+      currentEffortMappings
+    );
+  } else if (partialConfig.modelMappings !== undefined) {
+    nextEffortMappings = deepClone(currentEffortMappings);
+    nextEffortMappings[nextLevel] = deepClone(partialConfig.modelMappings);
+  } else {
+    nextEffortMappings = currentEffortMappings;
+  }
+
+  if (
+    partialConfig.effortLevel !== undefined ||
+    partialConfig.effortModelMappings !== undefined ||
+    partialConfig.modelMappings !== undefined
+  ) {
+    partialConfig.effortLevel = nextLevel;
+    partialConfig.effortModelMappings = nextEffortMappings;
+    partialConfig.modelMappings = deepClone(nextEffortMappings[nextLevel]);
   }
 
   if (partialConfig.discoverApps !== undefined) {

@@ -134,6 +134,9 @@ export type ModelMappingValue = string | string[] | ModelMappingTargetConfig;
 
 export type ModelMappingsConfig = Record<string, ModelMappingValue>;
 
+export type EffortLevel = 'low' | 'medium' | 'high';
+export type EffortModelMappings = Record<EffortLevel, ModelMappingsConfig>;
+
 export type DiscoverAppType = 'builtin' | 'custom';
 export type BuiltinToolId = 'systemLogs' | 'playground' | 'translate' | 'tasks';
 
