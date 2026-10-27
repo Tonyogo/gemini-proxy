@@ -215,18 +215,13 @@ class ClaudeTranslator {
         if (systemBlocks.length === 0 && rawUserMessages.length === 1) {
           convertedMessages.push(rawUserMessages[0]);
         } else if (systemBlocks.length + userBlocks.length > 0) {
-          let mergedContent: any[];
-          if (config.systemRoleToInstruction) {
-            mergedContent = [...systemBlocks, ...userBlocks];
-          } else {
-            const toolResultBlocks = userBlocks.filter(
-              (b: any) => b && typeof b === 'object' && b.type === 'tool_result'
-            );
-            const normalUserBlocks = userBlocks.filter(
-              (b: any) => !(b && typeof b === 'object' && b.type === 'tool_result')
-            );
-            mergedContent = [...toolResultBlocks, ...systemBlocks, ...normalUserBlocks];
-          }
+          const toolResultBlocks = userBlocks.filter(
+            (b: any) => b && typeof b === 'object' && b.type === 'tool_result'
+          );
+          const normalUserBlocks = userBlocks.filter(
+            (b: any) => !(b && typeof b === 'object' && b.type === 'tool_result')
+          );
+          const mergedContent = [...toolResultBlocks, ...systemBlocks, ...normalUserBlocks];
           convertedMessages.push({
             role: 'user',
             content: mergedContent
@@ -729,13 +724,6 @@ class ClaudeTranslator {
   }
 
   private resolveInlineSystemTag(): string {
-    const configuredTag = (config.runtimeContextTag || '').trim();
-    if (config.systemRoleToInstruction) {
-      return configuredTag || 'system-context';
-    }
-    if (configuredTag && configuredTag !== 'system-context') {
-      return configuredTag;
-    }
     return 'system-reminder';
   }
 
@@ -1020,7 +1008,6 @@ class ClaudeTranslator {
         const normalUserParts = pendingUserSegment.userParts.filter(
           (p: GeminiPart) => !Boolean(p && p.functionResponse)
         );
-
         if (toolResponseParts.length > 0) {
           const cleanToolParts = sanitizeParts(toolResponseParts);
           if (cleanToolParts.length > 0) {

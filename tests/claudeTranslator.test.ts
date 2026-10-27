@@ -1070,38 +1070,6 @@ describe('Claude Tools Interaction Roundtrips (Complex and Multi-Turn)', () => {
     expect(funcResp.response.error).toEqual('Tool execution failed');
     expect(funcResp.response.result).toBeUndefined();
   });
-
-  it('supports custom runtimeContextTag configuration overriding', () => {
-    const originalTag = config.runtimeContextTag;
-    try {
-      config.runtimeContextTag = 'custom-system-wrapper';
-
-      const claudePayload: any = {
-        model: 'gemini-3.5-flash',
-        messages: [
-          {
-            role: 'system',
-            content: 'Custom tagged system message'
-          },
-          {
-            role: 'user',
-            content: 'User message'
-          }
-        ]
-      };
-
-      const result = translator.translateClaudeToGoogle(claudePayload);
-
-      expect(result.googleRequest.contents[0].parts[0].text).toContain(
-        'Custom tagged system message'
-      );
-      expect(result.googleRequest.contents[0].parts[0].text).toContain(
-        '<custom-system-wrapper>'
-      );
-    } finally {
-      config.runtimeContextTag = originalTag;
-    }
-  });
 });
 
 describe('Gemini to Claude Non-Stream Response Translation', () => {
@@ -1202,25 +1170,18 @@ describe('Gemini to Claude Non-Stream Response Translation', () => {
   });
 });
 
-describe('ClaudeTranslator - SYSTEM_ROLE_TO_INSTRUCTION & Tag Wrapping', () => {
-  let originalSwitchValue: boolean;
-  let originalRuntimeTag: string;
+describe('ClaudeTranslator - Inline System Message Wrapping', () => {
   let originalCustomSystemInstruction: string;
 
   beforeEach(() => {
-    originalSwitchValue = config.systemRoleToInstruction;
-    originalRuntimeTag = config.runtimeContextTag;
     originalCustomSystemInstruction = config.customSystemInstruction;
   });
 
   afterEach(() => {
-    config.systemRoleToInstruction = originalSwitchValue;
-    config.runtimeContextTag = originalRuntimeTag;
     config.customSystemInstruction = originalCustomSystemInstruction;
   });
 
-  it('wraps inline system messages with <system-reminder> when systemRoleToInstruction is false (default) and does NOT route to systemInstruction', () => {
-    config.systemRoleToInstruction = false;
+  it('wraps inline system messages with <system-reminder> and places them after functionResponse, and does NOT route to systemInstruction', () => {
     config.customSystemInstruction = 'Adapter Prompt Content';
 
     const claudePayload: any = {
@@ -1257,96 +1218,9 @@ describe('ClaudeTranslator - SYSTEM_ROLE_TO_INSTRUCTION & Tag Wrapping', () => {
     expect(result.googleRequest.contents[0].parts[1].text).toBe('Hello');
   });
 
-  it('wraps inline system messages with <system-context> when systemRoleToInstruction is true and does NOT route to systemInstruction', () => {
-    config.systemRoleToInstruction = true;
 
-    const claudePayload: any = {
-      model: 'gemini-3.5-flash',
-      system: 'Main system instruction',
-      messages: [
-        {
-          role: 'system',
-          content: '# claudeMd\nVersion 1: Old instruction content'
-        },
-        {
-          role: 'user',
-          content: 'User message 1'
-        },
-        {
-          role: 'assistant',
-          content: 'Assistant reply'
-        },
-        {
-          role: 'system',
-          content: '# claudeMd\nVersion 2: Updated instruction content'
-        },
-        {
-          role: 'system',
-          content: '# customContext\nUnique context content'
-        },
-        {
-          role: 'user',
-          content: 'User message 2'
-        }
-      ]
-    };
 
-    const result = translator.translateClaudeToGoogle(claudePayload);
-
-    // 1. Verify contents contains wrapped system-context blocks in user turns
-    expect(result.googleRequest.contents).toHaveLength(3);
-
-    // Turn 1: user turn with system-context wrapped Version 1 before User message 1
-    expect(result.googleRequest.contents[0].role).toBe('user');
-    expect(result.googleRequest.contents[0].parts[0].text).toBe(
-      '<system-context>\n# claudeMd\nVersion 1: Old instruction content\n</system-context>'
-    );
-    expect(result.googleRequest.contents[0].parts[1].text).toBe('User message 1');
-
-    // Turn 2: assistant
-    expect(result.googleRequest.contents[1].role).toBe('model');
-    expect(result.googleRequest.contents[1].parts[0].text).toBe('Assistant reply');
-
-    // Turn 3: user turn with both system messages wrapped in system-context before User message 2
-    expect(result.googleRequest.contents[2].role).toBe('user');
-    expect(result.googleRequest.contents[2].parts[0].text).toBe(
-      '<system-context>\n# claudeMd\nVersion 2: Updated instruction content\n</system-context>'
-    );
-    expect(result.googleRequest.contents[2].parts[1].text).toBe(
-      '<system-context>\n# customContext\nUnique context content\n</system-context>'
-    );
-    expect(result.googleRequest.contents[2].parts[2].text).toBe('User message 2');
-
-    // 2. Verify systemInstruction only contains top-level prompt, none of the inline messages
-    expect(result.googleRequest.systemInstruction).toBeDefined();
-    const systemText = result.googleRequest.systemInstruction!.parts[0].text;
-    expect(systemText).toBe('Main system instruction');
-    expect(systemText).not.toContain('Version 1');
-    expect(systemText).not.toContain('Version 2');
-    expect(systemText).not.toContain('Unique context content');
-  });
-
-  it('respects custom runtimeContextTag when configured', () => {
-    config.systemRoleToInstruction = true;
-    config.runtimeContextTag = 'custom-system-wrapper';
-
-    const claudePayload: any = {
-      model: 'gemini-3.5-flash',
-      messages: [
-        { role: 'system', content: 'Custom wrapped prompt' },
-        { role: 'user', content: 'Hello' }
-      ]
-    };
-
-    const result = translator.translateClaudeToGoogle(claudePayload);
-    expect(result.googleRequest.contents[0].parts[0].text).toBe(
-      '<custom-system-wrapper>\nCustom wrapped prompt\n</custom-system-wrapper>'
-    );
-  });
-
-  it('places <system-context> before functionResponse and normal text when systemRoleToInstruction is true', () => {
-    config.systemRoleToInstruction = true;
-
+  it('places <system-reminder> after functionResponse and before normal text', () => {
     const claudePayload: any = {
       model: 'gemini-3.5-flash',
       messages: [
@@ -1378,7 +1252,7 @@ describe('ClaudeTranslator - SYSTEM_ROLE_TO_INSTRUCTION & Tag Wrapping', () => {
     expect(result.googleRequest.contents[1].role).toEqual('user');
     expect(result.googleRequest.contents[1].parts.length).toEqual(2);
     expect(result.googleRequest.contents[1].parts[0].text).toEqual(
-      '<system-context>\nInstruction after tool\n</system-context>'
+      '<system-reminder>\nInstruction after tool\n</system-reminder>'
     );
     expect(result.googleRequest.contents[1].parts[1].text).toEqual('Follow-up user question');
   });
@@ -2231,8 +2105,6 @@ import { buildDirectUpstreamHeaders } from '../src/utils/requestHelper';
 
 describe('Claude Direct Mode Preprocessing & Headers', () => {
   beforeEach(() => {
-    config.systemRoleToInstruction = false;
-    config.runtimeContextTag = 'system-context';
     config.customSystemInstruction = '';
     config.stripSystemFingerprints = true;
     config.modelMappings = {};
@@ -2295,8 +2167,7 @@ describe('Claude Direct Mode Preprocessing & Headers', () => {
     expect(directRequest.thinking).toEqual({ type: 'enabled', budget_tokens: 2048 });
   });
 
-  it('wraps inline system messages with <system-reminder> and places them after tool_result and before normal user text by default in Direct mode', () => {
-    config.systemRoleToInstruction = false;
+  it('wraps inline system messages with <system-reminder> and places them after tool_result and before normal user text in Direct mode', () => {
     const input = {
       model: 'claude-3-5-sonnet',
       messages: [
@@ -2406,68 +2277,7 @@ describe('Claude Direct Mode Preprocessing & Headers', () => {
     expect(headers['x-scheduling-strategy']).toBe('round-robin');
   });
 
-  it('wraps inline system messages with <system-context> and merges them before user blocks (and before tool_result) when systemRoleToInstruction is true', () => {
-    config.systemRoleToInstruction = true;
-    const input = {
-      model: 'claude-3-5-sonnet',
-      messages: [
-        {
-          role: 'user',
-          content: [
-            { type: 'tool_result', tool_use_id: 'toolu_1', content: 'tool out' },
-            { type: 'text', text: 'User 1' }
-          ]
-        },
-        { role: 'system', content: 'Sys 1' },
-        { role: 'assistant', content: 'Ack' },
-        { role: 'system', content: 'x-anthropic-billing-header: cc' },
-        { role: 'system', content: 'Sys 2' },
-        { role: 'user', content: [{ type: 'text', text: 'User 2' }] }
-      ]
-    } as any;
-
-    const snapshot = JSON.parse(JSON.stringify(input));
-    const { directRequest } = translator.preprocessClaudeDirectRequest(input);
-
-    expect(input).toEqual(snapshot);
-    expect(directRequest.messages).toEqual([
-      {
-        role: 'user',
-        content: [
-          { type: 'text', text: '<system-context>\nSys 1\n</system-context>' },
-          { type: 'tool_result', tool_use_id: 'toolu_1', content: 'tool out' },
-          { type: 'text', text: 'User 1' }
-        ]
-      },
-      { role: 'assistant', content: 'Ack' },
-      {
-        role: 'user',
-        content: [
-          { type: 'text', text: '<system-context>\nSys 2\n</system-context>' },
-          { type: 'text', text: 'User 2' }
-        ]
-      }
-    ]);
-  });
-
-  it('drops billing-only inline system message and does not emit empty user message when systemRoleToInstruction is true', () => {
-    config.systemRoleToInstruction = true;
-    const input = {
-      model: 'claude-3-5-sonnet',
-      messages: [
-        { role: 'system', content: 'x-anthropic-billing-header: cc_version=2.1' },
-        { role: 'user', content: 'Hello' }
-      ]
-    } as any;
-
-    const { directRequest } = translator.preprocessClaudeDirectRequest(input);
-    expect(directRequest.messages).toEqual([
-      { role: 'user', content: 'Hello' }
-    ]);
-  });
-
   it('preserves single user turn content format as string when no system blocks are merged in Direct mode', () => {
-    config.systemRoleToInstruction = true;
     const input = {
       model: 'claude-3-5-sonnet',
       messages: [
@@ -2485,36 +2295,7 @@ describe('Claude Direct Mode Preprocessing & Headers', () => {
     ]);
   });
 
-  it('orders multiple interleaved system and user messages placing all wrapped system blocks first in Direct mode', () => {
-    config.systemRoleToInstruction = true;
-    config.runtimeContextTag = 'custom-ctx';
-    const input = {
-      model: 'claude-3-5-sonnet',
-      messages: [
-        { role: 'user', content: 'User 1' },
-        { role: 'system', content: 'Sys 1' },
-        { role: 'user', content: 'User 2' },
-        { role: 'system', content: 'Sys 2' }
-      ]
-    } as any;
-
-    const { directRequest } = translator.preprocessClaudeDirectRequest(input);
-    expect(directRequest.messages).toEqual([
-      {
-        role: 'user',
-        content: [
-          { type: 'text', text: '<custom-ctx>\nSys 1\n</custom-ctx>' },
-          { type: 'text', text: '<custom-ctx>\nSys 2\n</custom-ctx>' },
-          { type: 'text', text: 'User 1' },
-          { type: 'text', text: 'User 2' }
-        ]
-      }
-    ]);
-    config.runtimeContextTag = 'system-context';
-  });
-
   it('merges consecutive role: user messages in the same turn into a single user message in Direct mode', () => {
-    config.systemRoleToInstruction = false;
     const input = {
       model: 'claude-3-5-sonnet',
       messages: [
@@ -2535,8 +2316,7 @@ describe('Claude Direct Mode Preprocessing & Headers', () => {
     ]);
   });
 
-  it('drops billing-only inline system message and preserves single user message string content when systemRoleToInstruction is false in Direct mode', () => {
-    config.systemRoleToInstruction = false;
+  it('drops billing-only inline system message and preserves single user message string content in Direct mode', () => {
     const input = {
       model: 'claude-3-5-sonnet',
       messages: [

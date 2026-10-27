@@ -16,8 +16,7 @@
 - **正向出站代理支持 (HTTP / HTTPS / SOCKS5)**：原生支持 HTTP/HTTPS/SOCKS4/SOCKS5 出站代理。支持在全局一次配置代理地址（通过环境变量 `GLOBAL_PROXY_URL` / `PROXY_URL`、系统环境变量 `HTTPS_PROXY` 或 Web 控制台设置），并在各服务器节点通过直观的胶囊按钮一键切换“本机直连”或“代理通道”，消除在每个节点重复输入代理 URL 的冗余。未开启代理通道或未配置代理时直接走原生网络协议栈，零性能损耗。
 - **模型别名与调度解耦 (`MODEL_MAPPINGS`)**：支持通过环境变量 `MODEL_MAPPINGS` 或 Web Admin 控制台动态配置模型别名重定向与负载均衡策略（如 `round-robin`、`least-used`、`weighted`）。无需改动或重新编译任何代码，即可实时热重载生效。
 - **全功能翻译转换**：
-  - 系统提示词（System Prompt）映射与自定义控制：支持 `SYSTEM_ROLE_TO_INSTRUCTION` 开关控制将 `role: 'system'` 消息映射至 Gemini 的 `systemInstruction` 中，并自动按标题前缀进行增量去重（仅保留最新版系统指令）。
-  - 可配置的运行时上下文标签：支持通过 `RUNTIME_CONTEXT_TAG` 环境变量（默认 `system-context`）自定义系统提示词的包裹标签。
+  - 系统提示词（System Prompt）规范化：自动将行内 `role: 'system'` 消息使用 `<system-reminder>` 包裹合流至 User 轮次，置于 `tool_result` 之后、普通文本之前。
   - 多轮复杂对话及角色（User / Assistant / Tool）自动映射。
   - 多模态与文档支持：支持 Base64 图片及 PDF/文档类型（`type === 'document'`）数据的自动抽取与转换，完美支持包含文档与图片的 `tool_result` 工具执行结果。
   - 智能思考（Thinking Mode）：支持 Claude `thinking` 参数与 Gemini 思考预算的自动映射与 Token 统计。
@@ -117,12 +116,6 @@ LOG_RETENTION_DAYS=3
 
 # 时区配置 (默认 Asia/Shanghai)
 TIME_ZONE=Asia/Shanghai
-
-# 是否将消息中的 role='system' 路由至 systemInstruction 并按标题去重 (默认 false)
-SYSTEM_ROLE_TO_INSTRUCTION=false
-
-# 运行时上下文包裹标签名 (默认 system-context)
-RUNTIME_CONTEXT_TAG=system-context
 
 # 上游 Gemini 请求超时毫秒数 (默认 180000ms / 3分钟)
 UPSTREAM_TIMEOUT_MS=180000

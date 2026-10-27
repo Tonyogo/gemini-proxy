@@ -6,8 +6,6 @@ describe('Dynamic Config Hot-Reload in Translator', () => {
     // Reset config to defaults
     await updateConfig({
       customSystemInstruction: '',
-      runtimeContextTag: 'system-context',
-      systemRoleToInstruction: false,
       modelMappings: {}
     });
   });
@@ -53,19 +51,5 @@ describe('Dynamic Config Hot-Reload in Translator', () => {
     const result2 = translator.translateClaudeToGoogle(payload2);
     expect(result2.cleanModelName).toBe('gemini-2.5-pro');
     expect(result2.strategy).toBe('least-used');
-  });
-
-  it('immediately applies RUNTIME_CONTEXT_TAG changes without server restart', async () => {
-    await updateConfig({
-      runtimeContextTag: 'dynamic-context-tag'
-    });
-
-    const payload = {
-      model: 'gemini-1.5-flash',
-      messages: [{ role: 'system', content: 'System instruction' }, { role: 'user', content: 'Hi' }]
-    } as any;
-
-    const result = translator.translateClaudeToGoogle(payload);
-    expect(result.googleRequest.contents[0].parts[0].text).toContain('<dynamic-context-tag>');
   });
 });

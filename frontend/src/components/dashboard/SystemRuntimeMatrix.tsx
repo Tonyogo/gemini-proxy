@@ -11,7 +11,6 @@ export const SystemRuntimeMatrix: React.FC<SystemRuntimeMatrixProps> = ({ config
 
   const logLevel = config?.logLevel || 'info';
   const upstreamTimeoutMs = config?.upstreamTimeoutMs || 180000;
-  const systemRoleToInstruction = Boolean(config?.systemRoleToInstruction);
   const logRetentionDays = config?.logRetentionDays ?? 3;
   const timeZone = config?.timeZone || 'Asia/Shanghai';
   const countTokensModel = config?.countTokensModel || 'Default Model';
@@ -33,7 +32,7 @@ export const SystemRuntimeMatrix: React.FC<SystemRuntimeMatrixProps> = ({ config
           </span>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 flex-1 font-mono text-xs">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 flex-1 font-mono text-xs">
           <div className="ui-card-sub p-3 flex flex-col justify-between">
             <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
               LOG_LEVEL
@@ -49,15 +48,6 @@ export const SystemRuntimeMatrix: React.FC<SystemRuntimeMatrixProps> = ({ config
             </span>
             <span className="text-purple-400 font-bold text-xs mt-1 truncate">
               {upstreamTimeoutMs}ms
-            </span>
-          </div>
-
-          <div className="ui-card-sub p-3 flex flex-col justify-between">
-            <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
-              SYSTEM_MSG_WRAP_TAG
-            </span>
-            <span className={`font-bold text-xs mt-1 truncate ${systemRoleToInstruction ? 'text-emerald-400' : 'text-slate-400'}`}>
-              {systemRoleToInstruction ? '<system-context>' : '<system-reminder>'}
             </span>
           </div>
 

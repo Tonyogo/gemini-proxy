@@ -3,15 +3,9 @@ import config from '../config/default';
 
 describe('Phase 1 Pipeline Optimizations', () => {
   const originalMappings = config.modelMappings;
-  const originalSystemRole = config.systemRoleToInstruction;
-
-  beforeEach(() => {
-    config.systemRoleToInstruction = false;
-  });
 
   afterEach(() => {
     config.modelMappings = originalMappings;
-    config.systemRoleToInstruction = originalSystemRole;
   });
 
   describe('Issue 1: getModelMappingInfo round-robin counter drift', () => {
@@ -656,9 +650,7 @@ describe('Phase 1 Pipeline Optimizations', () => {
       expect(contents[2].parts[0].text).toBe('Now summarize both results.');
     });
 
-    it('splits tool_result and follow-up text into separate turns when systemRoleToInstruction is true', () => {
-      config.systemRoleToInstruction = true;
-
+    it('splits tool_result and follow-up text with inline system message into separate turns', () => {
       const claudePayload: any = {
         model: 'gemini-2.5-flash',
         messages: [
@@ -700,10 +692,10 @@ describe('Phase 1 Pipeline Optimizations', () => {
       expect(contents[1].parts[0].functionResponse?.name).toBe('get_time');
       expect((contents[1].parts[0] as any).text).toBeUndefined();
 
-      // Turn 2: User turn containing system-context and follow-up text
+      // Turn 2: User turn containing system-reminder and follow-up text
       expect(contents[2].role).toBe('user');
       expect(contents[2].parts).toHaveLength(2);
-      expect(contents[2].parts[0].text).toContain('<system-context>');
+      expect(contents[2].parts[0].text).toContain('<system-reminder>');
       expect(contents[2].parts[0].text).toContain('Be polite and brief');
       expect(contents[2].parts[1].text).toBe('Is it lunchtime yet?');
       expect(contents[2].parts[0].functionResponse).toBeUndefined();

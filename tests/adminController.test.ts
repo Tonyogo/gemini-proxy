@@ -15,8 +15,7 @@ describe('Admin API Endpoints', () => {
 
   afterAll(async () => {
     await updateConfig({
-      runtimeContextTag: 'system-context',
-      systemRoleToInstruction: false
+      logLevel: 'info'
     });
   });
 
@@ -25,7 +24,7 @@ describe('Admin API Endpoints', () => {
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('uptime');
     expect(res.body).toHaveProperty('config');
-    expect(res.body.config).toHaveProperty('systemRoleToInstruction');
+    expect(res.body.config).toHaveProperty('stripSystemFingerprints');
     expect(res.body.config).toHaveProperty('customSystemInstruction');
     expect(res.body.config).toHaveProperty('modelMappings');
     expect(res.body.config).toHaveProperty('logRetentionDays');
@@ -171,13 +170,13 @@ describe('Admin API Endpoints', () => {
     const res = await request(app)
       .post('/api/admin/config')
       .send({
-        runtimeContextTag: 'admin-test-tag',
-        systemRoleToInstruction: true
+        customSystemInstruction: 'admin-test-instruction',
+        logRetentionDays: 7
       });
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('ok');
-    expect(res.body.config.runtimeContextTag).toBe('admin-test-tag');
-    expect(res.body.config.systemRoleToInstruction).toBe(true);
+    expect(res.body.config.customSystemInstruction).toBe('admin-test-instruction');
+    expect(res.body.config.logRetentionDays).toBe(7);
   });
 
   test('POST /api/admin/config with resetToEnv resets configuration to .env defaults', async () => {
@@ -188,7 +187,7 @@ describe('Admin API Endpoints', () => {
       });
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('ok');
-    expect(res.body.config.runtimeContextTag).toBe('system-context');
+    expect(res.body.config.logRetentionDays).toBe(3);
   });
 
   it('GET /api/admin/logs/:date/:hour/:filename sets 1-hour immutable Cache-Control header', async () => {

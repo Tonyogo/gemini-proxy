@@ -92,7 +92,6 @@ interface MappingEntry {
 }
 
 interface ConfigSnapshot {
-  systemRoleToInstruction: boolean;
   stripSystemFingerprints: boolean;
   ignoredTools: string[];
   customSystemInstruction: string;
@@ -130,7 +129,6 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
   const [expandedServers, setExpandedServers] = useState<Record<number, boolean>>({ 0: true });
   const [mappingSearchQuery, setMappingSearchQuery] = useState<string>('');
 
-  const [systemRoleToInstruction, setSystemRoleToInstruction] = useState<boolean>(false);
   const [stripSystemFingerprints, setStripSystemFingerprints] = useState<boolean>(true);
   const [ignoredTools, setIgnoredTools] = useState<string[]>(DEFAULT_IGNORED_TOOLS);
   const [toolInputText, setToolInputText] = useState<string>('');
@@ -203,7 +201,6 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
       .then(r => r.json())
       .then(data => {
         if (data?.config) {
-          setSystemRoleToInstruction(Boolean(data.config.systemRoleToInstruction));
           setStripSystemFingerprints(data.config.stripSystemFingerprints !== false);
           if (Array.isArray(data.config.ignoredTools)) {
             setIgnoredTools(data.config.ignoredTools);
@@ -293,7 +290,6 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
 
           // Capture initial pristine snapshot for dirty checking
           initialConfigRef.current = {
-            systemRoleToInstruction: Boolean(data.config.systemRoleToInstruction),
             stripSystemFingerprints: data.config.stripSystemFingerprints !== false,
             ignoredTools: Array.isArray(data.config.ignoredTools) ? [...data.config.ignoredTools] : [...DEFAULT_IGNORED_TOOLS],
             customSystemInstruction: data.config.customSystemInstruction || '',
@@ -486,7 +482,6 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
         method: 'POST',
         headers,
         body: JSON.stringify({
-          systemRoleToInstruction,
           stripSystemFingerprints,
           ignoredTools,
           customSystemInstruction,
@@ -516,7 +511,6 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
       if (res.ok) {
         setToast(t('config.toastSaved'));
         initialConfigRef.current = {
-          systemRoleToInstruction,
           stripSystemFingerprints,
           ignoredTools: [...ignoredTools],
           customSystemInstruction,
@@ -583,7 +577,6 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
     const snap = initialConfigRef.current;
     if (!snap) return;
     if (window.confirm(t('config.confirmRevert'))) {
-      setSystemRoleToInstruction(snap.systemRoleToInstruction);
       setStripSystemFingerprints(snap.stripSystemFingerprints);
       setIgnoredTools([...snap.ignoredTools]);
       setCustomSystemInstruction(snap.customSystemInstruction);
@@ -665,7 +658,6 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
     };
 
     let generalDirty = false;
-    if (systemRoleToInstruction !== snap.systemRoleToInstruction) { count++; generalDirty = true; }
     if (logLevel !== snap.logLevel) { count++; generalDirty = true; }
     if (logRetentionDays !== snap.logRetentionDays) { count++; generalDirty = true; }
     if (countTokensModel !== snap.countTokensModel) { count++; generalDirty = true; }
@@ -704,7 +696,6 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
       tabDirtyMap: dirtyTabs
     };
   }, [
-    systemRoleToInstruction,
     logLevel,
     logRetentionDays,
     countTokensModel,
@@ -1605,28 +1596,6 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                     <div className="hidden sm:flex items-center space-x-2 text-xs font-bold text-emerald-400 uppercase tracking-wider">
                       <FileCode className="w-3.5 h-3.5 text-emerald-400" />
                       <span>{t('config.translationGroup')}</span>
-                    </div>
-
-                    {/* Refined Toggle Switch */}
-                    <div className="ui-card-sub p-3 sm:p-4 flex items-center justify-between gap-3">
-                      <div>
-                        <span className="text-xs font-semibold text-slate-200 block">{t('config.systemRoleTitle', 'USE_SYSTEM_CONTEXT_TAG (<system-context> 包裹开关)')}</span>
-                        <p className="hidden sm:block text-[10px] text-slate-400 mt-0.5">{t('config.systemRoleDesc')}</p>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => setSystemRoleToInstruction(!systemRoleToInstruction)}
-                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                          systemRoleToInstruction ? 'bg-emerald-500' : 'bg-slate-800'
-                        }`}
-                      >
-                        <span
-                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
-                            systemRoleToInstruction ? 'translate-x-5' : 'translate-x-0'
-                          }`}
-                        />
-                      </button>
                     </div>
 
                     {/* STRIP_SYSTEM_FINGERPRINTS Toggle Switch */}

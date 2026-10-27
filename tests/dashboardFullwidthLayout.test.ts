@@ -36,7 +36,7 @@ describe('Dashboard Full-Width Layout & Merged Charts', () => {
     expect(matrixContent).toContain('percentage');
   });
 
-  test('SystemRuntimeMatrix should use full-width 6-column responsive grid', () => {
-    expect(systemContent).toContain('lg:grid-cols-6');
+  test('SystemRuntimeMatrix should use full-width 5-column responsive grid', () => {
+    expect(systemContent).toContain('lg:grid-cols-5');
   });
 });

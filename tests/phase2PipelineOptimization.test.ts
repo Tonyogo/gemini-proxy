@@ -14,16 +14,13 @@ jest.mock('../src/proxy/services/payloadLogger', () => ({
 
 describe('Phase 2 Pipeline Optimizations', () => {
   const originalMappings = config.modelMappings;
-  const originalSystemRole = config.systemRoleToInstruction;
 
   beforeEach(() => {
-    config.systemRoleToInstruction = false;
     jest.clearAllMocks();
   });
 
   afterEach(() => {
     config.modelMappings = originalMappings;
-    config.systemRoleToInstruction = originalSystemRole;
   });
 
   // =========================================================================

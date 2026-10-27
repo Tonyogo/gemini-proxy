@@ -19,15 +19,15 @@ describe('Explicit Overrides Runtime Config', () => {
   });
 
   test('updateConfig only writes explicit keys and resets cleanly', async () => {
-    // 1. Update only runtimeContextTag
-    await updateConfig({ runtimeContextTag: 'explicit-tag-override' });
+    // 1. Update only customSystemInstruction
+    await updateConfig({ customSystemInstruction: 'explicit-instruction-override' });
 
-    expect(config.runtimeContextTag).toBe('explicit-tag-override');
+    expect(config.customSystemInstruction).toBe('explicit-instruction-override');
 
     const rawData = JSON.parse(await fs.readFile(runtimeJsonPath, 'utf8'));
-    // Should contain runtimeContextTag and only explicit keys
-    expect(rawData).toHaveProperty('runtimeContextTag');
-    expect(Object.keys(rawData)).toEqual(['runtimeContextTag']);
+    // Should contain customSystemInstruction and only explicit keys
+    expect(rawData).toHaveProperty('customSystemInstruction');
+    expect(Object.keys(rawData)).toEqual(['customSystemInstruction']);
 
     // 2. Reset to env
     await updateConfig({}, { resetToEnv: true });

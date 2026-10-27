@@ -55,8 +55,6 @@ This is a **stateless API proxy** that translates Anthropic Claude Messages API 
   - `LOG_RETENTION_DAYS`: Days to preserve transaction logs before auto-pruning (default `3`, set `0` to disable).
   - `ADMIN_SECRET_KEY`: Key protecting `/api/admin/*` management endpoints (`x-admin-key`).
   - `ENABLE_UI`: Boolean flag to enable/disable static web console hosting at `/ui` (default `true`).
-  - `SYSTEM_ROLE_TO_INSTRUCTION`: Boolean switch (`true`/`false`) to route inline `role: 'system'` messages to `systemInstruction`.
-  - `RUNTIME_CONTEXT_TAG`: Configurable wrapper tag name (default `system-context`).
   - `UPSTREAM_TIMEOUT_MS`: Timeout for upstream Gemini requests in milliseconds (default `180000`).
   - `CUSTOM_SYSTEM_INSTRUCTION`: Optional custom system instructions injected into upstream calls.
   - `GLOBAL_PROXY_URL` / `PROXY_URL`: Global egress proxy URL supporting HTTP, HTTPS, and SOCKS5 (e.g. `http://127.0.0.1:7890` or `socks5://127.0.0.1:10808`). Combined with node-level `useProxy: boolean` channel toggle, nodes can individually switch between Local Direct and Proxy Channel.
