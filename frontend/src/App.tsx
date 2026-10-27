@@ -10,7 +10,6 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   RefreshCw,
-  Lock,
   ShieldCheck,
   KeyRound,
   ChevronRight,
@@ -23,7 +22,6 @@ import {
   Languages,
   Github,
   ExternalLink,
-  AlertTriangle,
   Maximize2,
   Minimize2,
   Edit3
@@ -132,6 +130,7 @@ export default function App() {
       setMobileLogDetailOpen(false);
     } else if (activeTab === 'discover') {
       setDiscoverSubView('hub');
+      setIsEmbeddedFullscreen(false);
     }
   };
 
@@ -151,14 +150,6 @@ export default function App() {
   const [isEditEmbeddedAppModalOpen, setIsEditEmbeddedAppModalOpen] = useState<boolean>(false);
   const [embeddedReloadKey, setEmbeddedReloadKey] = useState<number>(0);
   const [isEmbeddedFullscreen, setIsEmbeddedFullscreen] = useState<boolean>(false);
-
-  const getEmbeddedHostname = (rawUrl: string) => {
-    try {
-      return new URL(rawUrl).hostname;
-    } catch {
-      return rawUrl;
-    }
-  };
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -629,122 +620,80 @@ export default function App() {
       >
         {/* Minimal Glass Top Bar */}
         <header className="h-12 sm:h-14 backdrop-blur-md bg-[var(--bg-surface)]/95 border-b border-[var(--border-subtle)] px-3 sm:px-6 flex items-center justify-between sticky top-0 z-40 shrink-0 select-none shadow-xs">
-          {/* Left Controls: Embedded Web Mode vs Standard Mode */}
-          {activeTab === 'discover' && discoverSubView === 'embeddedWeb' && activeEmbeddedApp ? (
-            <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
+          {/* Left Breadcrumbs & Brand / Sidebar Toggle */}
+          <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
+            {/* Mobile Brand Logo Icon or Immersive Detail Back Button */}
+            {isMobileDetailActive ? (
               <button
                 type="button"
                 data-testid="embed-back-btn"
-                onClick={() => {
-                  setDiscoverSubView('hub');
-                  setIsEmbeddedFullscreen(false);
-                }}
-                className="flex items-center space-x-1.5 py-1 px-2.5 rounded-lg text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/15 border border-indigo-500/20 font-semibold text-xs active:scale-95 transition-all shrink-0 shadow-xs"
-                title={t('discover.backToDiscover', '返回发现')}
+                onClick={handleMobileBack}
+                className="flex items-center space-x-1.5 py-1 px-2.5 -ml-1 rounded-lg text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/15 border border-indigo-500/20 font-semibold text-xs active:scale-95 transition-all md:hidden shrink-0 shadow-xs"
               >
                 <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
-                <span className="hidden sm:inline">{t('discover.backToDiscover', '返回发现')}</span>
+                <span>{activeTab === 'logs' ? t('logs.title', '日志') : t('discover.back', '发现')}</span>
               </button>
+            ) : (
+              <img
+                src="/favicon.svg"
+                alt="Gemini Proxy Logo"
+                className="w-7 h-7 shrink-0 md:hidden drop-shadow-[0_0_10px_rgba(99,102,241,0.4)] select-none"
+              />
+            )}
 
-              <div className="h-4 w-px bg-[var(--border-subtle)] hidden sm:block shrink-0" />
-
-              <div className="flex items-center space-x-2.5 min-w-0">
-                <div
-                  className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-br ${
-                    activeEmbeddedApp.color || 'from-orange-500 to-amber-600'
-                  } flex items-center justify-center text-white shrink-0 shadow-sm`}
-                >
-                  <Globe className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center space-x-1.5">
-                    <span className="text-xs sm:text-sm font-semibold text-[var(--text-primary)] truncate">
-                      {activeEmbeddedApp.name}
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-1 text-[10px] text-[var(--text-muted)] truncate">
-                    {activeEmbeddedApp.url.startsWith('https://') ? (
-                      <Lock className="w-2.5 h-2.5 text-emerald-500 shrink-0" />
-                    ) : (
-                      <AlertTriangle className="w-2.5 h-2.5 text-amber-500 shrink-0" />
-                    )}
-                    <span className="font-mono truncate">{getEmbeddedHostname(activeEmbeddedApp.url)}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            /* Left Breadcrumbs & Brand / Sidebar Toggle */
-            <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
-              {/* Mobile Brand Logo Icon or Immersive Detail Back Button */}
-              {isMobileDetailActive ? (
-                <button
-                  type="button"
-                  onClick={handleMobileBack}
-                  className="flex items-center space-x-1.5 py-1 px-2.5 -ml-1 rounded-lg text-indigo-600 dark:text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/15 border border-indigo-500/20 font-semibold text-xs active:scale-95 transition-all md:hidden shrink-0 shadow-xs"
-                >
-                  <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
-                  <span>{activeTab === 'logs' ? t('logs.title', '日志') : t('discover.back', '发现')}</span>
-                </button>
+            {/* Desktop Sidebar Toggle */}
+            <button
+              onClick={toggleSidebar}
+              title={isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+              className="hidden md:inline-flex p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-white/[0.05] transition-colors border border-transparent hover:border-white/[0.06]"
+            >
+              {isSidebarCollapsed ? (
+                <PanelLeftOpen className="w-4 h-4" />
               ) : (
-                <img
-                  src="/favicon.svg"
-                  alt="Gemini Proxy Logo"
-                  className="w-7 h-7 shrink-0 md:hidden drop-shadow-[0_0_10px_rgba(99,102,241,0.4)] select-none"
-                />
+                <PanelLeftClose className="w-4 h-4" />
               )}
+            </button>
 
-              {/* Desktop Sidebar Toggle */}
-              <button
-                onClick={toggleSidebar}
-                title={isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
-                className="hidden md:inline-flex p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-white/[0.05] transition-colors border border-transparent hover:border-white/[0.06]"
-              >
-                {isSidebarCollapsed ? (
-                  <PanelLeftOpen className="w-4 h-4" />
-                ) : (
-                  <PanelLeftClose className="w-4 h-4" />
-                )}
-              </button>
+            <div className="h-4 w-px bg-[var(--border-subtle)] hidden sm:block shrink-0" />
 
-              <div className="h-4 w-px bg-[var(--border-subtle)] hidden sm:block shrink-0" />
-
-              <div className="flex items-center space-x-1.5 sm:space-x-2 text-xs font-medium min-w-0">
-                <span className="hidden sm:inline text-slate-500 shrink-0">Gemini Proxy</span>
-                <ChevronRight className="hidden sm:inline w-3.5 h-3.5 text-slate-600 shrink-0" />
-                {activeTab === 'discover' && discoverSubView !== 'hub' ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => setDiscoverSubView('hub')}
-                      className="text-slate-400 hover:text-indigo-400 transition-colors hidden sm:inline"
-                    >
-                      {t('nav.discover')}
-                    </button>
-                    <ChevronRight className="hidden sm:inline w-3.5 h-3.5 text-slate-600 shrink-0" />
-                    <span className="text-[var(--text-primary)] font-semibold truncate max-w-[130px] sm:max-w-none">
-                      {discoverSubView === 'systemLogs' && t('discover.systemLogsTitle')}
-                      {discoverSubView === 'playground' && t('discover.playgroundTitle')}
-                      {discoverSubView === 'translate' && t('discover.translateTitle')}
-                      {discoverSubView === 'tasks' && t('tasks.title', '在线事项')}
-                      {discoverSubView === 'embeddedWeb' && (activeEmbeddedApp?.name || t('discover.customAppsTitle'))}
-                    </span>
-                  </>
-                ) : (
-                  <span className="text-[var(--text-primary)] font-semibold truncate max-w-[130px] sm:max-w-none">{getActiveTabTitle()}</span>
-                )}
-                <EffortSelector
-                  effortLevel={effortLevel}
-                  effortModelMappings={effortModelMappings}
-                  onSelectEffort={handleSelectEffort}
-                  onOpenMappingsConfig={() => {
-                    setConfigModalInitialTab('mappings');
-                    setIsConfigModalOpen(true);
-                  }}
-                />
-              </div>
+            <div className="flex items-center space-x-1.5 sm:space-x-2 text-xs font-medium min-w-0">
+              <span className="hidden sm:inline text-slate-500 shrink-0">Gemini Proxy</span>
+              <ChevronRight className="hidden sm:inline w-3.5 h-3.5 text-slate-600 shrink-0" />
+              {activeTab === 'discover' && discoverSubView !== 'hub' ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDiscoverSubView('hub');
+                      setIsEmbeddedFullscreen(false);
+                    }}
+                    className="text-slate-400 hover:text-indigo-400 transition-colors hidden sm:inline"
+                  >
+                    {t('nav.discover')}
+                  </button>
+                  <ChevronRight className="hidden sm:inline w-3.5 h-3.5 text-slate-600 shrink-0" />
+                  <span className="text-[var(--text-primary)] font-semibold truncate max-w-[130px] sm:max-w-none">
+                    {discoverSubView === 'systemLogs' && t('discover.systemLogsTitle')}
+                    {discoverSubView === 'playground' && t('discover.playgroundTitle')}
+                    {discoverSubView === 'translate' && t('discover.translateTitle')}
+                    {discoverSubView === 'tasks' && t('tasks.title', '在线事项')}
+                    {discoverSubView === 'embeddedWeb' && (activeEmbeddedApp?.name || t('discover.customAppsTitle'))}
+                  </span>
+                </>
+              ) : (
+                <span className="text-[var(--text-primary)] font-semibold truncate max-w-[130px] sm:max-w-none">{getActiveTabTitle()}</span>
+              )}
+              <EffortSelector
+                effortLevel={effortLevel}
+                effortModelMappings={effortModelMappings}
+                onSelectEffort={handleSelectEffort}
+                onOpenMappingsConfig={() => {
+                  setConfigModalInitialTab('mappings');
+                  setIsConfigModalOpen(true);
+                }}
+              />
             </div>
-          )}
+          </div>
 
           {/* Right Action Controls: Embedded Web Actions vs Standard Actions */}
           {activeTab === 'discover' && discoverSubView === 'embeddedWeb' && activeEmbeddedApp ? (
