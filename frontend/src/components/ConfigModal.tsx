@@ -23,6 +23,7 @@ import {
   Search
 } from 'lucide-react';
 import { useTranslation } from '../i18n/LanguageContext';
+import type { EffortLevel, EffortModelMappings } from './EffortSelector';
 
 export interface UpstreamServerConfig {
   url: string;
@@ -81,15 +82,18 @@ interface ConfigModalProps {
   isOpen: boolean;
   onClose: () => void;
   adminKey: string;
+  initialTab?: TabType;
   onSaved?: () => void;
 }
 
-interface MappingEntry {
-  id: string;
-  source: string;
-  target: string;
-  strategy?: string;
-}
+import {
+  MappingEntry,
+  parseMappingsObjectToEntries,
+  serializeEntriesToMappingsObject
+} from '../utils/mappingHelpers';
+
+export type { MappingEntry };
+export { parseMappingsObjectToEntries, serializeEntriesToMappingsObject };
 
 interface ConfigSnapshot {
   stripSystemFingerprints: boolean;
@@ -105,19 +109,29 @@ interface ConfigSnapshot {
   countTokensModel: string;
   ephemeralUserMessagesText: string;
   ephemeralSystemMessagesText: string;
-  modelMappingsRaw: string;
+  effortLevel: EffortLevel;
+  effortMappingsRaw: Record<EffortLevel, string>;
 }
 
 type TabType = 'general' | 'upstream' | 'instructions' | 'mappings' | 'security';
 
 const VALID_CONFIG_TABS: TabType[] = ['general', 'upstream', 'instructions', 'mappings', 'security'];
 
-export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: ConfigModalProps) {
+export default function ConfigModal({ isOpen, onClose, adminKey, initialTab, onSaved }: ConfigModalProps) {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<TabType>(() => {
+    if (initialTab && VALID_CONFIG_TABS.includes(initialTab)) {
+      return initialTab;
+    }
     const saved = localStorage.getItem('admin_config_tab') as TabType;
     return VALID_CONFIG_TABS.includes(saved) ? saved : 'general';
   });
+
+  useEffect(() => {
+    if (isOpen && initialTab && VALID_CONFIG_TABS.includes(initialTab)) {
+      setActiveTab(initialTab);
+    }
+  }, [isOpen, initialTab]);
 
   const handleTabChange = (tabId: TabType) => {
     setActiveTab(tabId);
@@ -184,9 +198,19 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
     setIgnoredTools([]);
   };
 
-  // KV Editor and Raw JSON Sync States
-  const [mappingEntries, setMappingEntries] = useState<MappingEntry[]>([]);
-  const [modelMappingsRaw, setModelMappingsRaw] = useState<string>('{}');
+  // KV Editor and Raw JSON Sync States (Per Effort Level)
+  const [activeEffortLevel, setActiveEffortLevel] = useState<EffortLevel>('medium');
+  const [editingEffortTab, setEditingEffortTab] = useState<EffortLevel>('medium');
+  const [effortMappingEntries, setEffortMappingEntries] = useState<Record<EffortLevel, MappingEntry[]>>({
+    low: [],
+    medium: [],
+    high: []
+  });
+  const [effortMappingsRaw, setEffortMappingsRaw] = useState<Record<EffortLevel, string>>({
+    low: '{}',
+    medium: '{}',
+    high: '{}'
+  });
   const [showAdvancedJson, setShowAdvancedJson] = useState<boolean>(false);
   const [focusedTargetId, setFocusedTargetId] = useState<string | null>(null);
 
@@ -247,46 +271,34 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
           setEphemeralUserMessagesText(userMsgs);
           setEphemeralSystemMessagesText(sysMsgs);
 
-          const mappings = data.config.modelMappings || {};
-          const rawMappings = JSON.stringify(mappings, null, 2);
-          setModelMappingsRaw(rawMappings);
-          const entries: MappingEntry[] = Object.entries(mappings).map(([source, val]) => {
-            if (Array.isArray(val)) {
-              return {
-                id: Math.random().toString(36).substring(2, 9),
-                source,
-                target: val.join(', '),
-                strategy: ''
-              };
-            }
-            if (val && typeof val === 'object') {
-              if ('targets' in val && Array.isArray((val as any).targets)) {
-                const targetObj = val as { targets: string[]; strategy?: string };
-                return {
-                  id: Math.random().toString(36).substring(2, 9),
-                  source,
-                  target: targetObj.targets.join(', '),
-                  strategy: targetObj.strategy || ''
-                };
-              }
-              if ('target' in val) {
-                const targetObj = val as { target: string; strategy?: string };
-                return {
-                  id: Math.random().toString(36).substring(2, 9),
-                  source,
-                  target: String(targetObj.target || ''),
-                  strategy: targetObj.strategy || ''
-                };
-              }
-            }
-            return {
-              id: Math.random().toString(36).substring(2, 9),
-              source,
-              target: String(val || ''),
-              strategy: ''
-            };
-          });
-          setMappingEntries(entries);
+          const lvl: EffortLevel = (data.config.effortLevel && ['low', 'medium', 'high'].includes(data.config.effortLevel))
+            ? data.config.effortLevel
+            : 'medium';
+          setActiveEffortLevel(lvl);
+          setEditingEffortTab(lvl);
+
+          const rawEffortMappings: Record<string, any> = data.config.effortModelMappings || {};
+          const fallbackMappings = data.config.modelMappings || {};
+
+          const initialEntries: Record<EffortLevel, MappingEntry[]> = {
+            low: [],
+            medium: [],
+            high: []
+          };
+          const initialRaw: Record<EffortLevel, string> = {
+            low: '{}',
+            medium: '{}',
+            high: '{}'
+          };
+
+          for (const el of (['low', 'medium', 'high'] as EffortLevel[])) {
+            const m = rawEffortMappings[el] !== undefined ? rawEffortMappings[el] : fallbackMappings;
+            initialRaw[el] = JSON.stringify(m || {}, null, 2);
+            initialEntries[el] = parseMappingsObjectToEntries(m || {});
+          }
+
+          setEffortMappingEntries(initialEntries);
+          setEffortMappingsRaw(initialRaw);
 
           // Capture initial pristine snapshot for dirty checking
           initialConfigRef.current = {
@@ -303,7 +315,8 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
             countTokensModel: data.config.countTokensModel || '',
             ephemeralUserMessagesText: userMsgs,
             ephemeralSystemMessagesText: sysMsgs,
-            modelMappingsRaw: rawMappings
+            effortLevel: lvl,
+            effortMappingsRaw: { ...initialRaw }
           };
           setSnapshotRevision(prev => prev + 1);
           setExpandedServers({ 0: true });
@@ -330,68 +343,37 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
 
   if (!isOpen) return null;
 
-  const updateRawFromEntries = (entries: MappingEntry[]) => {
-    const obj: Record<string, any> = {};
-    for (const e of entries) {
-      if (e.source.trim()) {
-        const targetTrimmed = e.target.trim();
-        const strategyTrimmed = e.strategy?.trim();
+  const currentEntries = effortMappingEntries[editingEffortTab] || [];
 
-        if (targetTrimmed.includes(',')) {
-          const parts = targetTrimmed.split(',').map(s => s.trim()).filter(Boolean);
-          if (parts.length > 1) {
-            if (strategyTrimmed) {
-              obj[e.source.trim()] = {
-                targets: parts,
-                strategy: strategyTrimmed
-              };
-            } else {
-              obj[e.source.trim()] = parts;
-            }
-          } else if (parts.length === 1) {
-            if (strategyTrimmed) {
-              obj[e.source.trim()] = {
-                target: parts[0],
-                strategy: strategyTrimmed
-              };
-            } else {
-              obj[e.source.trim()] = parts[0];
-            }
-          }
-        } else {
-          if (strategyTrimmed) {
-            obj[e.source.trim()] = {
-              target: targetTrimmed,
-              strategy: strategyTrimmed
-            };
-          } else {
-            obj[e.source.trim()] = targetTrimmed;
-          }
-        }
-      }
-    }
-    setModelMappingsRaw(JSON.stringify(obj, null, 2));
+  const updateCurrentEntriesAndRaw = (newEntries: MappingEntry[]) => {
+    const rawObj = serializeEntriesToMappingsObject(newEntries);
+    const rawStr = JSON.stringify(rawObj, null, 2);
+    setEffortMappingEntries(prev => ({
+      ...prev,
+      [editingEffortTab]: newEntries
+    }));
+    setEffortMappingsRaw(prev => ({
+      ...prev,
+      [editingEffortTab]: rawStr
+    }));
   };
 
   const handleAddMapping = () => {
     const newEntries: MappingEntry[] = [
-      ...mappingEntries,
+      ...currentEntries,
       { id: Math.random().toString(36).substring(2, 9), source: '', target: '', strategy: '' }
     ];
-    setMappingEntries(newEntries);
-    updateRawFromEntries(newEntries);
+    updateCurrentEntriesAndRaw(newEntries);
   };
 
   const handleRemoveMapping = (id: string) => {
-    const newEntries = mappingEntries.filter(e => e.id !== id);
-    setMappingEntries(newEntries);
-    updateRawFromEntries(newEntries);
+    const newEntries = currentEntries.filter(e => e.id !== id);
+    updateCurrentEntriesAndRaw(newEntries);
   };
 
   const handleEntryChange = (id: string, field: 'source' | 'target' | 'strategy', value: string) => {
-    const newEntries = mappingEntries.map(e => e.id === id ? { ...e, [field]: value } : e);
-    setMappingEntries(newEntries);
-    updateRawFromEntries(newEntries);
+    const newEntries = currentEntries.map(e => e.id === id ? { ...e, [field]: value } : e);
+    updateCurrentEntriesAndRaw(newEntries);
   };
 
   const handleToggleHigh = (id: string, target: string) => {
@@ -411,62 +393,60 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
   };
 
   const handleRawJsonChange = (val: string) => {
-    setModelMappingsRaw(val);
+    setEffortMappingsRaw(prev => ({
+      ...prev,
+      [editingEffortTab]: val
+    }));
     try {
       const parsed = JSON.parse(val);
       if (typeof parsed === 'object' && parsed !== null) {
-        const entries: MappingEntry[] = Object.entries(parsed).map(([source, mappingVal]) => {
-          if (Array.isArray(mappingVal)) {
-            return {
-              id: Math.random().toString(36).substring(2, 9),
-              source,
-              target: mappingVal.join(', '),
-              strategy: ''
-            };
-          }
-          if (mappingVal && typeof mappingVal === 'object') {
-            if ('targets' in mappingVal && Array.isArray((mappingVal as any).targets)) {
-              const targetObj = mappingVal as { targets: string[]; strategy?: string };
-              return {
-                id: Math.random().toString(36).substring(2, 9),
-                source,
-                target: targetObj.targets.join(', '),
-                strategy: targetObj.strategy || ''
-              };
-            }
-            if ('target' in mappingVal) {
-              const targetObj = mappingVal as { target: string; strategy?: string };
-              return {
-                id: Math.random().toString(36).substring(2, 9),
-                source,
-                target: String(targetObj.target || ''),
-                strategy: targetObj.strategy || ''
-              };
-            }
-          }
-          return {
-            id: Math.random().toString(36).substring(2, 9),
-            source,
-            target: String(mappingVal || ''),
-            strategy: ''
-          };
-        });
-        setMappingEntries(entries);
+        const entries = parseMappingsObjectToEntries(parsed);
+        setEffortMappingEntries(prev => ({
+          ...prev,
+          [editingEffortTab]: entries
+        }));
       }
     } catch {
       // Ignore JSON parse error while user is typing
     }
   };
 
+  const handleCopyFromEffort = (sourceLevel: EffortLevel) => {
+    const srcRaw = effortMappingsRaw[sourceLevel] || '{}';
+    try {
+      const parsed = JSON.parse(srcRaw);
+      const clonedEntries = parseMappingsObjectToEntries(parsed);
+      const clonedRaw = JSON.stringify(parsed, null, 2);
+      setEffortMappingEntries(prev => ({
+        ...prev,
+        [editingEffortTab]: clonedEntries
+      }));
+      setEffortMappingsRaw(prev => ({
+        ...prev,
+        [editingEffortTab]: clonedRaw
+      }));
+    } catch (err: any) {
+      alert(`${t('effort.invalidJsonInLevel', { level: sourceLevel.toUpperCase() })}${err.message}`);
+    }
+  };
+
   const handleSave = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
 
-    let parsedMappings = {};
-    try {
-      parsedMappings = JSON.parse(modelMappingsRaw);
-    } catch (err: any) {
-      alert(`${t('config.alertInvalidJson')}${err.message}`);
-      return;
+    const parsedEffortMappings: Record<EffortLevel, any> = {
+      low: {},
+      medium: {},
+      high: {}
+    };
+
+    for (const lvl of (['low', 'medium', 'high'] as EffortLevel[])) {
+      try {
+        parsedEffortMappings[lvl] = JSON.parse(effortMappingsRaw[lvl] || '{}');
+      } catch (err: any) {
+        alert(`${t('effort.invalidJsonInLevel', { level: lvl.toUpperCase() })}${err.message}`);
+        setEditingEffortTab(lvl);
+        return;
+      }
     }
 
     setSaving(true);
@@ -504,7 +484,9 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
           countTokensModel,
           ephemeralUserMessages: ephemeralUserMessagesText.split('\n').map(s => s.trim()).filter(Boolean),
           ephemeralSystemMessages: ephemeralSystemMessagesText.split('\n').map(s => s.trim()).filter(Boolean),
-          modelMappings: parsedMappings
+          effortLevel: activeEffortLevel,
+          effortModelMappings: parsedEffortMappings,
+          modelMappings: parsedEffortMappings[activeEffortLevel]
         })
       });
 
@@ -524,7 +506,8 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
           countTokensModel,
           ephemeralUserMessagesText,
           ephemeralSystemMessagesText,
-          modelMappingsRaw
+          effortLevel: activeEffortLevel,
+          effortMappingsRaw: { ...effortMappingsRaw }
         };
         setSnapshotRevision(prev => prev + 1);
         if (onSaved) onSaved();
@@ -590,51 +573,23 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
       setCountTokensModel(snap.countTokensModel);
       setEphemeralUserMessagesText(snap.ephemeralUserMessagesText);
       setEphemeralSystemMessagesText(snap.ephemeralSystemMessagesText);
-      setModelMappingsRaw(snap.modelMappingsRaw);
-      try {
-        const parsed = JSON.parse(snap.modelMappingsRaw);
-        if (typeof parsed === 'object' && parsed !== null) {
-          const entries: MappingEntry[] = Object.entries(parsed).map(([source, val]) => {
-            if (Array.isArray(val)) {
-              return {
-                id: Math.random().toString(36).substring(2, 9),
-                source,
-                target: val.join(', '),
-                strategy: ''
-              };
-            }
-            if (val && typeof val === 'object') {
-              if ('targets' in val && Array.isArray((val as any).targets)) {
-                const targetObj = val as { targets: string[]; strategy?: string };
-                return {
-                  id: Math.random().toString(36).substring(2, 9),
-                  source,
-                  target: targetObj.targets.join(', '),
-                  strategy: targetObj.strategy || ''
-                };
-              }
-              if ('target' in val) {
-                const targetObj = val as { target: string; strategy?: string };
-                return {
-                  id: Math.random().toString(36).substring(2, 9),
-                  source,
-                  target: String(targetObj.target || ''),
-                  strategy: targetObj.strategy || ''
-                };
-              }
-            }
-            return {
-              id: Math.random().toString(36).substring(2, 9),
-              source,
-              target: String(val || ''),
-              strategy: ''
-            };
-          });
-          setMappingEntries(entries);
+      setActiveEffortLevel(snap.effortLevel);
+      setEditingEffortTab(snap.effortLevel);
+      setEffortMappingsRaw({ ...snap.effortMappingsRaw });
+      const revertedEntries: Record<EffortLevel, MappingEntry[]> = {
+        low: [],
+        medium: [],
+        high: []
+      };
+      for (const el of (['low', 'medium', 'high'] as EffortLevel[])) {
+        try {
+          const parsed = JSON.parse(snap.effortMappingsRaw[el]);
+          revertedEntries[el] = parseMappingsObjectToEntries(parsed);
+        } catch {
+          revertedEntries[el] = [];
         }
-      } catch {
-        // ignore
       }
+      setEffortMappingEntries(revertedEntries);
     }
   };
 
@@ -684,9 +639,15 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
     dirtyTabs.instructions = instructionsDirty;
 
     let mappingsDirty = false;
-    if (modelMappingsRaw.trim() !== snap.modelMappingsRaw.trim()) {
+    if (activeEffortLevel !== snap.effortLevel) {
       count++;
       mappingsDirty = true;
+    }
+    for (const lvl of (['low', 'medium', 'high'] as EffortLevel[])) {
+      if ((effortMappingsRaw[lvl] || '').trim() !== (snap.effortMappingsRaw[lvl] || '').trim()) {
+        count++;
+        mappingsDirty = true;
+      }
     }
     dirtyTabs.mappings = mappingsDirty;
 
@@ -709,7 +670,8 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
     customSystemInstruction,
     ephemeralUserMessagesText,
     ephemeralSystemMessagesText,
-    modelMappingsRaw,
+    activeEffortLevel,
+    effortMappingsRaw,
     snapshotRevision
   ]);
 
@@ -731,11 +693,11 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
 
   const filteredMappingEntries = useMemo(() => {
     const q = mappingSearchQuery.trim().toLowerCase();
-    if (!q) return mappingEntries;
-    return mappingEntries.filter(
+    if (!q) return currentEntries;
+    return currentEntries.filter(
       e => e.source.toLowerCase().includes(q) || e.target.toLowerCase().includes(q)
     );
-  }, [mappingEntries, mappingSearchQuery]);
+  }, [currentEntries, mappingSearchQuery]);
 
   const handleCloseModal = useCallback(() => {
     if (isDirty) {
@@ -903,7 +865,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                   const badgeText = tab.id === 'upstream'
                     ? t('config.nodesBadge', '{count} 节点').replace('{count}', String(upstreamServers.length))
                     : tab.id === 'mappings'
-                    ? t('config.rulesBadge', '{count} 规则').replace('{count}', String(mappingEntries.length))
+                    ? t('config.rulesBadge', '{count} 规则').replace('{count}', String(effortMappingEntries[activeEffortLevel]?.length || 0))
                     : null;
 
                   return (
@@ -992,7 +954,7 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                   )}
                   {activeTab === 'mappings' && (
                     <span className="text-[11px] font-mono text-slate-400 bg-[var(--bg-surface-sub)] px-2 py-0.5 rounded border border-[var(--border-subtle)]">
-                      {t('config.rulesBadge', '{count} 规则').replace('{count}', String(mappingEntries.length))}
+                      {t('config.rulesBadge', '{count} 规则').replace('{count}', String((effortMappingEntries[editingEffortTab] || []).length))}
                     </span>
                   )}
                 </div>
@@ -1747,7 +1709,9 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                         <ArrowRightLeft className="w-3.5 h-3.5 text-amber-400" />
                         <span className="hidden sm:inline">{t('config.modelMappingsGroup')}</span>
                         <span className="sm:hidden text-xs">模型映射规则</span>
-                        <span className="text-[11px] font-mono text-amber-400/80 lowercase">({mappingEntries.length})</span>
+                        <span className="text-[11px] font-mono text-amber-400/80 lowercase">
+                          ({(effortMappingEntries[editingEffortTab] || []).length})
+                        </span>
                       </div>
 
                       <button
@@ -1771,6 +1735,101 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                       </button>
                     </div>
 
+                    {/* Effort Level Switcher Bar */}
+                    <div className="p-2 sm:p-2.5 rounded-xl bg-black/[0.04] dark:bg-white/[0.03] border border-[var(--border-subtle)] space-y-2.5">
+                      <div className="flex items-center justify-between gap-1 sm:gap-2">
+                        <div className="grid grid-cols-3 gap-1 sm:gap-1.5 flex-1">
+                          {(['low', 'medium', 'high'] as EffortLevel[]).map((lvl) => {
+                            const isEditing = editingEffortTab === lvl;
+                            const isActiveEffort = activeEffortLevel === lvl;
+                            const ruleCount = (effortMappingEntries[lvl] || []).length;
+                            const litCount = lvl === 'low' ? 1 : lvl === 'medium' ? 2 : 3;
+                            const barColor =
+                              lvl === 'low'
+                                ? 'bg-emerald-500'
+                                : lvl === 'medium'
+                                ? 'bg-indigo-500'
+                                : 'bg-amber-500';
+                            const dimColor = 'bg-slate-300 dark:bg-slate-700/60';
+
+                            return (
+                              <button
+                                key={lvl}
+                                type="button"
+                                onClick={() => setEditingEffortTab(lvl)}
+                                className={`px-2 py-1.5 rounded-lg border text-xs font-medium transition-all flex items-center justify-between gap-1 cursor-pointer ${
+                                  isEditing
+                                    ? 'bg-[var(--card-bg)] border-indigo-500/50 shadow-sm text-[var(--text-primary)] font-semibold ring-1 ring-indigo-500/30'
+                                    : 'border-transparent hover:bg-black/[0.04] dark:hover:bg-white/[0.05] text-[var(--text-secondary)]'
+                                }`}
+                                data-testid={`config-effort-tab-${lvl}`}
+                              >
+                                <div className="flex items-center space-x-1.5 min-w-0">
+                                  <div className="flex items-end space-x-[2px] h-3 shrink-0" aria-hidden="true">
+                                    <span className={`w-[2px] h-1.5 rounded-full ${litCount >= 1 ? barColor : dimColor}`} />
+                                    <span className={`w-[2px] h-2.2 rounded-full ${litCount >= 2 ? barColor : dimColor}`} />
+                                    <span className={`w-[2px] h-3 rounded-full ${litCount >= 3 ? barColor : dimColor}`} />
+                                  </div>
+                                  <span className="truncate">{t(`effort.${lvl}`)}</span>
+                                  {lvl === 'high' && <Zap className="w-2.5 h-2.5 text-amber-500 shrink-0" />}
+                                </div>
+                                <div className="flex items-center space-x-1 shrink-0">
+                                  <span className="text-[10px] font-mono text-[var(--text-tertiary)] bg-black/5 dark:bg-white/10 px-1 py-0.2 rounded">
+                                    {ruleCount}
+                                  </span>
+                                  {isActiveEffort && (
+                                    <span
+                                      className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0 shadow-[0_0_6px_rgba(16,185,129,0.8)]"
+                                      title={t('effort.activeBadge')}
+                                    />
+                                  )}
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Editing Toolbar: Set Active & Copy From */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[var(--border-subtle)]/60 text-xs">
+                        <div className="flex items-center space-x-2 min-w-0">
+                          {activeEffortLevel === editingEffortTab ? (
+                            <span className="inline-flex items-center space-x-1 text-emerald-600 dark:text-emerald-400 font-medium text-[11px] bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                              <Check className="w-3 h-3 text-emerald-500 shrink-0" />
+                              <span>{t('effort.isCurrentlyActive')}</span>
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setActiveEffortLevel(editingEffortTab)}
+                              className="px-2.5 py-0.5 rounded-full text-[11px] font-medium border border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 transition-colors flex items-center space-x-1 cursor-pointer"
+                              data-testid="set-active-effort-btn"
+                            >
+                              <span>{t('effort.setActive')}</span>
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Quick Copy Buttons */}
+                        <div className="flex items-center space-x-1 text-[11px] text-[var(--text-tertiary)]">
+                          <span className="hidden sm:inline">{t('effort.copyFrom')}</span>
+                          {(['low', 'medium', 'high'] as EffortLevel[])
+                            .filter(lvl => lvl !== editingEffortTab)
+                            .map(sourceLvl => (
+                              <button
+                                key={sourceLvl}
+                                type="button"
+                                onClick={() => handleCopyFromEffort(sourceLvl)}
+                                className="px-2 py-0.5 rounded bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors border border-transparent hover:border-[var(--border-subtle)] cursor-pointer"
+                                title={t('effort.copyFromLevel', { level: t(`effort.${sourceLvl}`) })}
+                              >
+                                {t(`effort.${sourceLvl}Short`)}
+                              </button>
+                            ))}
+                        </div>
+                      </div>
+                    </div>
+
                     {!showAdvancedJson && (
                       <div className="relative">
                         <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -1788,15 +1847,15 @@ export default function ConfigModal({ isOpen, onClose, adminKey, onSaved }: Conf
                       <div className="space-y-1.5">
                         <textarea
                           rows={6}
-                          value={modelMappingsRaw}
+                          value={effortMappingsRaw[editingEffortTab] || '{}'}
                           onChange={(e) => handleRawJsonChange(e.target.value)}
                           placeholder={t('config.mappingsPlaceholder')}
-                          className="w-full ui-input p-3 text-xs text-amber-300 leading-relaxed"
+                          className="w-full ui-input p-3 text-xs text-amber-300 leading-relaxed font-mono"
                         />
                       </div>
                     ) : (
                       <div className="space-y-3">
-                        {mappingEntries.length === 0 ? (
+                        {(effortMappingEntries[editingEffortTab] || []).length === 0 ? (
                           <div className="p-6 text-center border border-dashed border-white/[0.08] rounded-xl text-xs text-slate-500">
                             {t('config.emptyMappings')}
                           </div>

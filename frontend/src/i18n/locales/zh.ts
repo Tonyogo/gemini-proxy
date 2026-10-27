@@ -777,5 +777,26 @@ export const zh: Translations = {
     emptyList: '暂无匹配的事项',
     save: '保存',
     cancel: '取消',
+  },
+  effort: {
+    title: "Effort 档位与模型路由",
+    label: "档位",
+    low: "Low",
+    medium: "Medium",
+    high: "High",
+    lowShort: "Low",
+    mediumShort: "Med",
+    highShort: "High",
+    lowDesc: "轻量极速模型映射方案",
+    mediumDesc: "标准均衡模型映射方案",
+    highDesc: "深度思考与高阶模型映射方案",
+    rulesCount: "{count} 规则",
+    activeBadge: "当前生效",
+    setActive: "设为当前生效档位",
+    isCurrentlyActive: "当前全局生效档位",
+    copyFrom: "从其他档位复制...",
+    copyFromLevel: "从 {level} 复制规则",
+    configureMappings: "配置各档位映射规则...",
+    invalidJsonInLevel: "[{level}] 档位的模型映射 JSON 格式错误: "
   }
 };

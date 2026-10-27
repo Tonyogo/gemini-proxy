@@ -36,6 +36,7 @@ import { mergeBuiltinDiscoverApps } from './utils/discoverAppsStorage';
 import { useTranslation } from './i18n/LanguageContext';
 import { ThemeSwitcher } from './components/ThemeSwitcher';
 import { isMobileScreenOrDevice } from './utils/mobileViewportHelper';
+import { EffortSelector, EffortLevel, EffortModelMappings } from './components/EffortSelector';
 
 const DashboardView = lazy(() => import('./components/DashboardView'));
 const AccountsView = lazy(() => import('./components/AccountsView'));
@@ -182,6 +183,48 @@ export default function App() {
   // Modal State
   const [isConfigModalOpen, setIsConfigModalOpen] = useState<boolean>(false);
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
+  const [effortLevel, setEffortLevel] = useState<EffortLevel>('medium');
+  const [effortModelMappings, setEffortModelMappings] = useState<EffortModelMappings | undefined>(undefined);
+  const [configModalInitialTab, setConfigModalInitialTab] = useState<'general' | 'upstream' | 'instructions' | 'mappings' | 'security' | undefined>(undefined);
+
+  const syncEffortStateFromConfig = useCallback((cfg: any) => {
+    if (!cfg) return;
+    if (cfg.effortLevel && ['low', 'medium', 'high'].includes(cfg.effortLevel)) {
+      setEffortLevel(cfg.effortLevel as EffortLevel);
+    }
+    if (cfg.effortModelMappings && typeof cfg.effortModelMappings === 'object') {
+      setEffortModelMappings(cfg.effortModelMappings);
+    }
+  }, []);
+
+  const handleSelectEffort = async (nextLevel: EffortLevel) => {
+    const previousLevel = effortLevel;
+    setEffortLevel(nextLevel);
+    try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+      if (adminKey) {
+        headers['x-admin-key'] = adminKey;
+      }
+      const res = await fetch('/api/admin/config', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ effortLevel: nextLevel }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.config) {
+          syncEffortStateFromConfig(data.config);
+        }
+        setRefreshTrigger(prev => prev + 1);
+      } else {
+        setEffortLevel(previousLevel);
+      }
+    } catch {
+      setEffortLevel(previousLevel);
+    }
+  };
 
   const toggleSidebar = () => {
     setIsSidebarCollapsed(prev => {
@@ -198,14 +241,17 @@ export default function App() {
       fetch('/api/admin/status', { headers: { 'x-admin-key': adminKey } })
         .then(res => res.ok ? res.json() : null)
         .then(data => {
-          if (data?.config?.discoverApps && Array.isArray(data.config.discoverApps)) {
-            setCloudDiscoverApps(mergeBuiltinDiscoverApps(data.config.discoverApps));
+          if (data?.config) {
+            syncEffortStateFromConfig(data.config);
+            if (data.config.discoverApps && Array.isArray(data.config.discoverApps)) {
+              setCloudDiscoverApps(mergeBuiltinDiscoverApps(data.config.discoverApps));
+            }
           }
         })
         .catch(() => {});
     }
     setTimeout(() => setIsRefreshing(false), 600);
-  }, [adminKey]);
+  }, [adminKey, syncEffortStateFromConfig]);
 
   const verifyAuth = async (keyToTest: string) => {
     setLoading(true);
@@ -216,11 +262,14 @@ export default function App() {
 
       if (res.ok) {
         const data = await res.json().catch(() => ({}));
-        if (data?.config?.customWebApps) {
-          syncCustomWebAppsFromRemote(data.config.customWebApps);
-        }
-        if (data?.config?.discoverApps && Array.isArray(data.config.discoverApps)) {
-          setCloudDiscoverApps(mergeBuiltinDiscoverApps(data.config.discoverApps));
+        if (data?.config) {
+          syncEffortStateFromConfig(data.config);
+          if (data.config.customWebApps) {
+            syncCustomWebAppsFromRemote(data.config.customWebApps);
+          }
+          if (data.config.discoverApps && Array.isArray(data.config.discoverApps)) {
+            setCloudDiscoverApps(mergeBuiltinDiscoverApps(data.config.discoverApps));
+          }
         }
         setIsAuthenticated(true);
         setAdminKey(keyToTest);
@@ -684,6 +733,15 @@ export default function App() {
                 ) : (
                   <span className="text-[var(--text-primary)] font-semibold truncate max-w-[130px] sm:max-w-none">{getActiveTabTitle()}</span>
                 )}
+                <EffortSelector
+                  effortLevel={effortLevel}
+                  effortModelMappings={effortModelMappings}
+                  onSelectEffort={handleSelectEffort}
+                  onOpenMappingsConfig={() => {
+                    setConfigModalInitialTab('mappings');
+                    setIsConfigModalOpen(true);
+                  }}
+                />
               </div>
             </div>
           )}
@@ -936,9 +994,25 @@ export default function App() {
         <Suspense fallback={null}>
           <ConfigModal
             isOpen={isConfigModalOpen}
-            onClose={() => setIsConfigModalOpen(false)}
+            onClose={() => {
+              setIsConfigModalOpen(false);
+              setConfigModalInitialTab(undefined);
+            }}
             adminKey={adminKey}
-            onSaved={() => setRefreshTrigger(prev => prev + 1)}
+            initialTab={configModalInitialTab}
+            onSaved={() => {
+              setRefreshTrigger(prev => prev + 1);
+              if (adminKey) {
+                fetch('/api/admin/status', { headers: { 'x-admin-key': adminKey } })
+                  .then(res => res.ok ? res.json() : null)
+                  .then(data => {
+                    if (data?.config) {
+                      syncEffortStateFromConfig(data.config);
+                    }
+                  })
+                  .catch(() => {});
+              }
+            }}
           />
         </Suspense>
       )}

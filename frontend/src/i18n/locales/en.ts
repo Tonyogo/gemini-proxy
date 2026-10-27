@@ -775,6 +775,27 @@ export const en = {
     emptyList: 'No matching tasks found',
     save: 'Save',
     cancel: 'Cancel',
+  },
+  effort: {
+    title: "Reasoning Effort & Model Routing",
+    label: "Effort",
+    low: "Low",
+    medium: "Medium",
+    high: "High",
+    lowShort: "Low",
+    mediumShort: "Med",
+    highShort: "High",
+    lowDesc: "Fast & lightweight model routing",
+    mediumDesc: "Balanced standard model routing",
+    highDesc: "Deep reasoning & high-capacity routing",
+    rulesCount: "{count} rules",
+    activeBadge: "Active",
+    setActive: "Set as Active Effort",
+    isCurrentlyActive: "Currently Active Effort",
+    copyFrom: "Copy rules from...",
+    copyFromLevel: "Copy from {level}",
+    configureMappings: "Configure Effort Mappings...",
+    invalidJsonInLevel: "Invalid JSON in [{level}] effort mappings: "
   }
 };
 
