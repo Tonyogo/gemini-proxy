@@ -217,7 +217,15 @@ export const en = {
     filterModelsPlaceholder: "Filter models...",
     copyModelName: "Copy model name",
     modelCopied: "Copied",
-    sortBy: "Click to sort"
+    sortBy: "Click to sort",
+    upstreamNodes: "Upstream Nodes",
+    upstreamNodeShare: "Traffic Share",
+    upstreamNodeLatency: "Avg Latency",
+    upstreamNodeSuccessRate: "Success Rate",
+    upstreamNodeWeight: "Weight",
+    upstreamNodeUrl: "Endpoint URL",
+    upstreamNodeIsolated: "Isolated (Circuit Broken)",
+    upstreamNodeLegacy: "Unassigned / Legacy Traffic"
   },
   logs: {
     title: "Request Logs",

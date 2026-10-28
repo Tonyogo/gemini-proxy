@@ -2,6 +2,14 @@ import { promises as fs } from 'fs';
 import * as path from 'path';
 import config from '../../../config/default';
 
+export interface ModelNodeMetrics {
+  requests: number;
+  success: number;
+  error: number;
+  totalDuration: number;
+  durationCount: number;
+}
+
 export interface TimeSeriesPoint {
   time: string;
   total: number;
@@ -10,6 +18,7 @@ export interface TimeSeriesPoint {
   avgDurationMs: number;
   models: Record<string, number>;
   modelDurations?: Record<string, number>;
+  modelNodes?: Record<string, Record<string, ModelNodeMetrics>>;
 }
 
 class MetricsService {
@@ -30,6 +39,7 @@ class MetricsService {
       durationCount: number;
       models: Record<string, number>;
       modelDurations: Record<string, { totalDuration: number; durationCount: number }>;
+      modelNodes: Record<string, Record<string, ModelNodeMetrics>>;
     }
   > = new Map();
 
@@ -64,10 +74,25 @@ class MetricsService {
     }
   }
 
-  private updateBucket(hourKey: string, isError: boolean, duration?: number | null, modelName?: string | null): void {
+  private updateBucket(
+    hourKey: string,
+    isError: boolean,
+    duration?: number | null,
+    modelName?: string | null,
+    serverIndex?: number | null
+  ): void {
     let bucket = this.timeSeriesMap.get(hourKey);
     if (!bucket) {
-      bucket = { total: 0, success: 0, error: 0, totalDuration: 0, durationCount: 0, models: {}, modelDurations: {} };
+      bucket = {
+        total: 0,
+        success: 0,
+        error: 0,
+        totalDuration: 0,
+        durationCount: 0,
+        models: {},
+        modelDurations: {},
+        modelNodes: {}
+      };
       this.timeSeriesMap.set(hourKey, bucket);
     }
 
@@ -93,6 +118,41 @@ class MetricsService {
 
       if (modelName) {
         bucket.models[modelName] = (bucket.models[modelName] || 0) + 1;
+      }
+    }
+
+    if (modelName) {
+      if (!bucket.modelNodes) {
+        bucket.modelNodes = {};
+      }
+      if (!bucket.modelNodes[modelName]) {
+        bucket.modelNodes[modelName] = {};
+      }
+
+      const nodeKey = (serverIndex !== undefined && serverIndex !== null && typeof serverIndex === 'number' && !isNaN(serverIndex))
+        ? String(serverIndex)
+        : 'legacy';
+
+      if (!bucket.modelNodes[modelName][nodeKey]) {
+        bucket.modelNodes[modelName][nodeKey] = {
+          requests: 0,
+          success: 0,
+          error: 0,
+          totalDuration: 0,
+          durationCount: 0
+        };
+      }
+
+      const nodeMetric = bucket.modelNodes[modelName][nodeKey];
+      nodeMetric.requests++;
+      if (isError) {
+        nodeMetric.error++;
+      } else {
+        nodeMetric.success++;
+        if (duration !== undefined && duration !== null && typeof duration === 'number') {
+          nodeMetric.totalDuration += duration;
+          nodeMetric.durationCount++;
+        }
       }
     }
   }
@@ -157,6 +217,7 @@ class MetricsService {
           for (const record of records) {
             this.totalLogs++;
             const isError = record.status >= 400;
+            const recServerIndex = typeof record.serverIndex === 'number' ? record.serverIndex : null;
             // Hydrate stats for Today and Yesterday
             if (date === todayStr || date === yesterdayStr) {
               if (isError) {
@@ -171,11 +232,11 @@ class MetricsService {
 
               const dateObj = record.timestamp ? new Date(record.timestamp) : undefined;
               const hourKey = this.getHourKey(dateObj);
-              this.updateBucket(hourKey, isError, record.duration, record.model);
+              this.updateBucket(hourKey, isError, record.duration, record.model, recServerIndex);
             } else {
               const dateObj = record.timestamp ? new Date(record.timestamp) : undefined;
               const hourKey = this.getHourKey(dateObj);
-              this.updateBucket(hourKey, isError, null, null);
+              this.updateBucket(hourKey, isError, null, null, recServerIndex);
             }
           }
         } catch {
@@ -187,7 +248,13 @@ class MetricsService {
     }
   }
 
-  public record(isError: boolean, duration?: number | null, timestamp?: Date, modelName?: string | null): void {
+  public record(
+    isError: boolean,
+    duration?: number | null,
+    timestamp?: Date,
+    modelName?: string | null,
+    serverIndex?: number | null
+  ): void {
     this.totalLogs++;
     if (isError) {
       this.errorCount++;
@@ -200,7 +267,7 @@ class MetricsService {
     }
 
     const hourKey = this.getHourKey(timestamp || new Date());
-    this.updateBucket(hourKey, isError, duration, modelName);
+    this.updateBucket(hourKey, isError, duration, modelName, serverIndex);
   }
 
   public getStats(rangeParam: number | 'today' = 24) {
@@ -281,7 +348,8 @@ class MetricsService {
           error: bucket.error,
           avgDurationMs: bucket.durationCount > 0 ? Math.round(bucket.totalDuration / bucket.durationCount) : 0,
           models: bucket.models,
-          modelDurations: modelAvgDurations
+          modelDurations: modelAvgDurations,
+          modelNodes: bucket.modelNodes || {}
         };
       } else {
         return {
@@ -291,7 +359,8 @@ class MetricsService {
           error: 0,
           avgDurationMs: 0,
           models: {},
-          modelDurations: {}
+          modelDurations: {},
+          modelNodes: {}
         };
       }
     });

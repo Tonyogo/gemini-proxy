@@ -219,7 +219,15 @@ export const zh: Translations = {
     filterModelsPlaceholder: "搜索模型...",
     copyModelName: "复制模型名称",
     modelCopied: "已复制",
-    sortBy: "点击排序"
+    sortBy: "点击排序",
+    upstreamNodes: "上游节点对比",
+    upstreamNodeShare: "流量占比",
+    upstreamNodeLatency: "平均延迟",
+    upstreamNodeSuccessRate: "成功率",
+    upstreamNodeWeight: "调度权重",
+    upstreamNodeUrl: "节点地址",
+    upstreamNodeIsolated: "已熔断隔离",
+    upstreamNodeLegacy: "未分配 / 历史流量"
   },
   logs: {
     title: "请求日志列表",

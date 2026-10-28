@@ -105,7 +105,8 @@ describe('Direct Mode Proxy Forwarding & Account Usage', () => {
       '/v1/messages',
       200,
       false,
-      '__direct_node_0__'
+      '__direct_node_0__',
+      0
     );
   });
 
@@ -180,7 +181,8 @@ describe('Direct Mode Proxy Forwarding & Account Usage', () => {
       '/v1/messages',
       200,
       true,
-      '__direct_node_0__'
+      '__direct_node_0__',
+      0
     );
   });
 

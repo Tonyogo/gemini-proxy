@@ -124,7 +124,8 @@ describe('MetricsService Time-Series Aggregations', () => {
       error: 0,
       avgDurationMs: 300,
       models: {},
-      modelDurations: {}
+      modelDurations: {},
+      modelNodes: {}
     });
 
     expect(p10).toEqual({
@@ -134,7 +135,8 @@ describe('MetricsService Time-Series Aggregations', () => {
       error: 0,
       avgDurationMs: 150,
       models: {},
-      modelDurations: {}
+      modelDurations: {},
+      modelNodes: {}
     });
 
     expect(p14).toEqual({
@@ -144,7 +146,8 @@ describe('MetricsService Time-Series Aggregations', () => {
       error: 1,
       avgDurationMs: 0,
       models: {},
-      modelDurations: {}
+      modelDurations: {},
+      modelNodes: {}
     });
   });
 
@@ -159,6 +162,51 @@ describe('MetricsService Time-Series Aggregations', () => {
     expect(latest.models['claude-3-5-sonnet']).toBe(1);
     expect(latest.modelDurations['gemini-3.1-flash']).toBe(100);
     expect(latest.modelDurations['claude-3-5-sonnet']).toBe(200);
+  });
+
+  it('tracks per-model and per-upstream-node requests, success, errors and latencies', () => {
+    // Record success on node 0
+    metricsService.record(false, 150, new Date(), 'gemini-2.5-flash', 0);
+    // Record error on node 0
+    metricsService.record(true, 500, new Date(), 'gemini-2.5-flash', 0);
+    // Record success on node 1
+    metricsService.record(false, 300, new Date(), 'gemini-2.5-flash', 1);
+    // Record unassigned/legacy (no serverIndex)
+    metricsService.record(false, 200, new Date(), 'gemini-2.5-flash');
+
+    const stats = metricsService.getStats();
+    const latest = stats.timeSeries[stats.timeSeries.length - 1];
+
+    expect(latest.modelNodes).toBeDefined();
+    const nodeStats = latest.modelNodes['gemini-2.5-flash'];
+    expect(nodeStats).toBeDefined();
+
+    // Node 0
+    expect(nodeStats['0']).toEqual({
+      requests: 2,
+      success: 1,
+      error: 1,
+      totalDuration: 150,
+      durationCount: 1
+    });
+
+    // Node 1
+    expect(nodeStats['1']).toEqual({
+      requests: 1,
+      success: 1,
+      error: 0,
+      totalDuration: 300,
+      durationCount: 1
+    });
+
+    // Legacy / unassigned
+    expect(nodeStats['legacy']).toEqual({
+      requests: 1,
+      success: 1,
+      error: 0,
+      totalDuration: 200,
+      durationCount: 1
+    });
   });
 });
 

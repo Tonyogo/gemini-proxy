@@ -154,7 +154,7 @@ class GeminiController {
           try { errJson = JSON.parse(errText); } catch { errJson = { error: errText }; }
           accountUsageService.record(accountName, targetModelName || 'unknown', false);
           const duration = Date.now() - startTime;
-          payloadLogger.saveTransaction(transactionId, clientReq, clientReq, errJson, errJson, duration, requestPath, response.status, true, ...(accountName ? [accountName] : []));
+          payloadLogger.saveTransaction(transactionId, clientReq, clientReq, errJson, errJson, duration, requestPath, response.status, true, accountName || null, serverIndex);
           if (!res.headersSent) {
             return res.status(response.status).json(errJson);
           } else if (!res.writableEnded) {
@@ -201,7 +201,7 @@ class GeminiController {
             } catch {
               parsedResponse = accumulatedStreamText;
             }
-            payloadLogger.saveTransaction(transactionId, clientReq, clientReq, parsedResponse, parsedResponse, duration, requestPath, 200, true, ...(accountName ? [accountName] : []));
+            payloadLogger.saveTransaction(transactionId, clientReq, clientReq, parsedResponse, parsedResponse, duration, requestPath, 200, true, accountName || null, serverIndex);
           });
 
           response.body.on('error', (err: any) => {
@@ -218,7 +218,7 @@ class GeminiController {
                 }
               };
               logger.warn(`[Timeout Error] [Transaction: ${transactionId}] Stream timed out after ${timeoutMs}ms (duration: ${(duration / 1000).toFixed(2)}s)`);
-              payloadLogger.saveTransaction(transactionId, clientReq, clientReq, { error: 'Timeout' }, errJson, duration, requestPath, 504, true, ...(accountName ? [accountName] : []));
+              payloadLogger.saveTransaction(transactionId, clientReq, clientReq, { error: 'Timeout' }, errJson, duration, requestPath, 504, true, accountName || null, serverIndex);
               if (!res.headersSent) {
                 return res.status(504).json(errJson);
               } else if (!res.writableEnded) {
@@ -238,7 +238,7 @@ class GeminiController {
             accountUsageService.record(accountName, targetModelName || 'unknown', false);
             logger.error(`[GeminiProxy] [Transaction: ${transactionId}] Stream error: ${err.message}`);
             const errJson = { error: { code: 502, message: err.message, status: 'BAD_GATEWAY' } };
-            payloadLogger.saveTransaction(transactionId, clientReq, clientReq, { error: err.message }, errJson, duration, requestPath, 502, true, ...(accountName ? [accountName] : []));
+            payloadLogger.saveTransaction(transactionId, clientReq, clientReq, { error: err.message }, errJson, duration, requestPath, 502, true, accountName || null, serverIndex);
             if (!res.headersSent) {
               return res.status(502).json(errJson);
             } else if (!res.writableEnded) {
@@ -264,7 +264,7 @@ class GeminiController {
               }
             };
             logger.warn(`[Timeout Error] [Transaction: ${transactionId}] Stream request timed out after ${timeoutMs}ms (duration: ${(duration / 1000).toFixed(2)}s)`);
-            payloadLogger.saveTransaction(transactionId, clientReq, clientReq, { error: 'Timeout' }, errJson, duration, requestPath, 504, true, ...(accountName ? [accountName] : []));
+            payloadLogger.saveTransaction(transactionId, clientReq, clientReq, { error: 'Timeout' }, errJson, duration, requestPath, 504, true, accountName || null, serverIndex);
             if (!res.headersSent) {
               return res.status(504).json(errJson);
             } else if (!res.writableEnded) {
@@ -280,7 +280,7 @@ class GeminiController {
         upstreamManager.recordRequestResult(serverIndex, false, err.message || 'Stream exception');
         logger.error(`[GeminiProxy] [Transaction: ${transactionId}] Stream exception: ${err.message}`);
         const errJson = { error: { code: 500, message: err.message, status: 'INTERNAL' } };
-        payloadLogger.saveTransaction(transactionId, clientReq, clientReq, errJson, errJson, duration, requestPath, 500, true);
+        payloadLogger.saveTransaction(transactionId, clientReq, clientReq, errJson, errJson, duration, requestPath, 500, true, null, serverIndex);
         if (!res.headersSent) {
           return res.status(500).json(errJson);
         } else if (!res.writableEnded) {
@@ -334,7 +334,7 @@ class GeminiController {
       }
 
       const duration = Date.now() - startTime;
-      payloadLogger.saveTransaction(transactionId, clientReq, clientReq, resJson, resJson, duration, requestPath, response.status, false, ...(accountName ? [accountName] : []));
+      payloadLogger.saveTransaction(transactionId, clientReq, clientReq, resJson, resJson, duration, requestPath, response.status, false, accountName || null, serverIndex);
 
       res.setHeader('x-transaction-id', transactionId);
       return res.status(response.status).json(resJson);
@@ -353,7 +353,7 @@ class GeminiController {
             }
           };
           logger.warn(`[Timeout Error] [Transaction: ${transactionId}] Request timed out after ${timeoutMs}ms (duration: ${(duration / 1000).toFixed(2)}s)`);
-          payloadLogger.saveTransaction(transactionId, clientReq, clientReq, { error: 'Timeout' }, timeoutErrJson, duration, requestPath, 504, false, ...(accountName ? [accountName] : []));
+          payloadLogger.saveTransaction(transactionId, clientReq, clientReq, { error: 'Timeout' }, timeoutErrJson, duration, requestPath, 504, false, accountName || null, serverIndex);
           if (!res.headersSent) {
             res.setHeader('x-transaction-id', transactionId);
             return res.status(504).json(timeoutErrJson);
@@ -366,7 +366,7 @@ class GeminiController {
       upstreamManager.recordRequestResult(serverIndex, false, err.message || 'Proxy error');
       logger.error(`[GeminiProxy] [Transaction: ${transactionId}] Proxy error: ${err.message}`);
       const errJson = { error: { code: 500, message: err.message, status: 'INTERNAL' } };
-      payloadLogger.saveTransaction(transactionId, clientReq, clientReq, errJson, errJson, duration, requestPath, 500, false);
+      payloadLogger.saveTransaction(transactionId, clientReq, clientReq, errJson, errJson, duration, requestPath, 500, false, null, serverIndex);
       if (!res.headersSent) {
         res.setHeader('x-transaction-id', transactionId);
         return res.status(500).json(errJson);

@@ -30,6 +30,7 @@ class ClaudeController {
     // Deep clone the client request body immediately upon entry to prevent reference mutations
     const clientReq = req.body ? JSON.parse(JSON.stringify(req.body)) : null;
     let gemReq: any = null;
+    let serverIndex: number | null = null;
 
     try {
       const apiKey = extractClientKey(req);
@@ -80,6 +81,7 @@ class ClaudeController {
         originalModel: clientModel,
         resolvedModel: cleanModelName
       });
+      serverIndex = serverSelection.serverIndex;
 
       if (serverSelection.serverType === 'direct') {
         return await this.handleDirectMessages(
@@ -110,9 +112,10 @@ class ClaudeController {
       if (isStream) {
         const streamManager = new StreamLifecycleManager({ req, res, transactionId, timeoutMs, enableSseHeartbeat: true });
         let targetUrl = serverSelection.targetUrl || `${serverSelection.serverUrl.replace(/\/+$/, '')}${targetPath}`;
-        const serverIndex = serverSelection.serverIndex;
+        const streamServerIndex = serverSelection.serverIndex;
+        serverIndex = streamServerIndex;
         const serverUrl = serverSelection.serverUrl;
-        logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini [server ${serverIndex + 1}: ${serverUrl}]: POST ${targetPath}`);
+        logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini [server ${streamServerIndex + 1}: ${serverUrl}]: POST ${targetPath}`);
 
         // Strip -high and inject thinkingConfig for all upstream servers
         const thinkingInfo = parseModelThinkingSuffix(proxyModelName);
@@ -159,7 +162,7 @@ class ClaudeController {
             const isHtml = typeof errMessage === 'string' && /<html|<!doctype/i.test(errMessage);
             const logErrMessage = isHtml ? `HTML error page (${errStatus})` : (errMessage.length > 500 ? errMessage.slice(0, 500) + '...' : errMessage);
             logger.error(`[Error] [Transaction: ${transactionId}] Stream request failed with status ${errStatus}: ${logErrMessage} (duration: ${(duration / 1000).toFixed(2)}s)`);
-            payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: errMessage }, normalized.payload, duration, requestPath, normalized.status, true, ...(accountName ? [accountName] : []));
+            payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: errMessage }, normalized.payload, duration, requestPath, normalized.status, true, accountName || null, serverIndex);
             if (!res.headersSent) {
               if (normalized.headers) {
                 res.set(normalized.headers);
@@ -262,10 +265,10 @@ class ClaudeController {
             }
 
             accountUsageService.record(accountName, cleanModelName, true);
-            upstreamManager.recordRequestResult(serverIndex, true);
+            upstreamManager.recordRequestResult(serverIndex!, true);
             const duration = Date.now() - startTime;
             logger.info(`[Response] [Transaction: ${transactionId}] Stream generated content finished successfully (duration: ${(duration / 1000).toFixed(2)}s)`);
-            payloadLogger.saveTransaction(transactionId, clientReq, gemReq, gemResChunks, claudeResChunks, duration, requestPath, 200, true, ...(accountName ? [accountName] : []));
+            payloadLogger.saveTransaction(transactionId, clientReq, gemReq, gemResChunks, claudeResChunks, duration, requestPath, 200, true, accountName || null, serverIndex);
             res.end();
           });
 
@@ -275,7 +278,7 @@ class ClaudeController {
             const duration = Date.now() - startTime;
             if (streamManager.isAborted || err.name === 'AbortError') {
               if (streamManager.reason === 'timeout') {
-                upstreamManager.recordRequestResult(serverIndex, false, 'Timeout');
+                upstreamManager.recordRequestResult(serverIndex!, false, 'Timeout');
                 const errPayload = {
                   type: 'error',
                   error: {
@@ -284,7 +287,7 @@ class ClaudeController {
                   }
                 };
                 logger.warn(`[Timeout Error] [Transaction: ${transactionId}] Stream request timed out after ${timeoutMs}ms (duration: ${(duration / 1000).toFixed(2)}s)`);
-                payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: 'Timeout' }, errPayload, duration, requestPath, 504, true, ...(accountName ? [accountName] : []));
+                payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: 'Timeout' }, errPayload, duration, requestPath, 504, true, accountName || null, serverIndex);
 
                 if (!res.headersSent) {
                   return res.status(504).json(errPayload);
@@ -297,7 +300,7 @@ class ClaudeController {
               logger.info(`[Client Disconnect] [Transaction: ${transactionId}] Stream aborted due to client disconnect (duration: ${(duration / 1000).toFixed(2)}s)`);
               return;
             }
-            upstreamManager.recordRequestResult(serverIndex, false, err.message || 'Downstream connection lost');
+            upstreamManager.recordRequestResult(serverIndex!, false, err.message || 'Downstream connection lost');
             logger.error(`[Error] [Transaction: ${transactionId}] Stream reading error: ${err.message} (duration: ${(duration / 1000).toFixed(2)}s)`);
             const errPayload = {
               type: 'error',
@@ -317,7 +320,8 @@ class ClaudeController {
               requestPath,
               500,
               true,
-              ...(accountName ? [accountName] : [])
+              accountName || null,
+              serverIndex
             );
           });
 
@@ -336,7 +340,7 @@ class ClaudeController {
                 }
               };
               logger.warn(`[Timeout Error] [Transaction: ${transactionId}] Stream request timed out after ${timeoutMs}ms (duration: ${(duration / 1000).toFixed(2)}s)`);
-              payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: 'Timeout' }, errPayload, duration, requestPath, 504, true);
+              payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: 'Timeout' }, errPayload, duration, requestPath, 504, true, null, serverIndex);
 
               if (!res.headersSent) {
                 return res.status(504).json(errPayload);
@@ -358,7 +362,7 @@ class ClaudeController {
       const streamManager = new StreamLifecycleManager({ req, res, transactionId, timeoutMs });
       const nonStreamPath = `/v1beta/models/${proxyModelName}:generateContent`;
       let targetUrl = serverSelection.targetUrl || `${serverSelection.serverUrl.replace(/\/+$/, '')}${nonStreamPath}`;
-      const serverIndex = serverSelection.serverIndex;
+      serverIndex = serverSelection.serverIndex;
       const serverUrl = serverSelection.serverUrl;
       logger.info(`[Request] [Transaction: ${transactionId}] Proxying to Gemini [server ${serverIndex + 1}: ${serverUrl}]: POST ${nonStreamPath}`);
 
@@ -407,7 +411,7 @@ class ClaudeController {
           const isHtml = typeof errMessage === 'string' && /<html|<!doctype/i.test(errMessage);
           const logErrMessage = isHtml ? `HTML error page (${errStatus})` : (errMessage.length > 500 ? errMessage.slice(0, 500) + '...' : errMessage);
           logger.error(`[Error] [Transaction: ${transactionId}] Non-stream request failed with status ${errStatus}: ${logErrMessage} (duration: ${(duration / 1000).toFixed(2)}s)`);
-          payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: errMessage }, normalized.payload, duration, requestPath, normalized.status, false, ...(accountName ? [accountName] : []));
+          payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: errMessage }, normalized.payload, duration, requestPath, normalized.status, false, accountName || null, serverIndex);
           if (normalized.headers && !res.headersSent) {
             res.set(normalized.headers);
           }
@@ -431,7 +435,7 @@ class ClaudeController {
 
         const duration = Date.now() - startTime;
         logger.info(`[Response] [Transaction: ${transactionId}] Non-stream content successfully returned with 200 OK (duration: ${(duration / 1000).toFixed(2)}s)`);
-        payloadLogger.saveTransaction(transactionId, clientReq, gemReq, geminiData, translatedResponse, duration, requestPath, 200, false, ...(accountName ? [accountName] : []));
+        payloadLogger.saveTransaction(transactionId, clientReq, gemReq, geminiData, translatedResponse, duration, requestPath, 200, false, accountName || null, serverIndex);
         return res.status(200).json(translatedResponse);
       } catch (err: any) {
         streamManager.markFinished();
@@ -447,7 +451,7 @@ class ClaudeController {
               }
             };
             logger.warn(`[Timeout Error] [Transaction: ${transactionId}] Request timed out after ${timeoutMs}ms (duration: ${(duration / 1000).toFixed(2)}s)`);
-            payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: 'Timeout' }, errPayload, duration, requestPath, 504, false);
+            payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: 'Timeout' }, errPayload, duration, requestPath, 504, false, null, serverIndex);
             return res.status(504).json(errPayload);
           }
           logger.info(`[Client Disconnect] [Transaction: ${transactionId}] Non-stream request fetch aborted due to client disconnect.`);
@@ -460,7 +464,7 @@ class ClaudeController {
       const duration = Date.now() - startTime;
       logger.error(`[Error] [Transaction: ${transactionId}] Unhandled error: ${err.message} (duration: ${(duration / 1000).toFixed(2)}s)`);
       const normalized = claudeTranslator.normalizeError(err);
-      payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: err.message }, normalized.payload, duration, requestPath, normalized.status, Boolean(clientReq && clientReq.stream));
+      payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: err.message }, normalized.payload, duration, requestPath, normalized.status, Boolean(clientReq && clientReq.stream), null, (typeof serverIndex === 'number' ? serverIndex : null));
       if (!res.headersSent) {
         if (normalized.headers) {
           res.set(normalized.headers);
@@ -547,7 +551,7 @@ class ClaudeController {
           const isHtml = typeof errMessage === 'string' && /<html|<!doctype/i.test(errMessage);
           const logErrMessage = isHtml ? `HTML error page (${errStatus})` : (errMessage.length > 500 ? errMessage.slice(0, 500) + '...' : errMessage);
           logger.error(`[Error] [Transaction: ${transactionId}] Direct stream failed with status ${errStatus}: ${logErrMessage} (duration: ${(duration / 1000).toFixed(2)}s)`);
-          payloadLogger.saveTransaction(transactionId, clientReq, directRequest, { error: errMessage }, normalized.payload, duration, requestPath, normalized.status, true, accountKey);
+          payloadLogger.saveTransaction(transactionId, clientReq, directRequest, { error: errMessage }, normalized.payload, duration, requestPath, normalized.status, true, accountKey, serverIndex);
           if (!res.headersSent) {
             if (normalized.headers) {
               res.set(normalized.headers);
@@ -610,7 +614,7 @@ class ClaudeController {
           upstreamManager.recordRequestResult(serverIndex, true);
           const duration = Date.now() - startTime;
           logger.info(`[Response] [Transaction: ${transactionId}] Direct stream finished successfully (duration: ${(duration / 1000).toFixed(2)}s)`);
-          payloadLogger.saveTransaction(transactionId, clientReq, directRequest, sseEvents, sseEvents, duration, requestPath, 200, true, accountKey);
+          payloadLogger.saveTransaction(transactionId, clientReq, directRequest, sseEvents, sseEvents, duration, requestPath, 200, true, accountKey, serverIndex);
           res.end();
         });
 
@@ -629,7 +633,7 @@ class ClaudeController {
                 }
               };
               logger.warn(`[Timeout Error] [Transaction: ${transactionId}] Direct stream timed out after ${timeoutMs}ms (duration: ${(duration / 1000).toFixed(2)}s)`);
-              payloadLogger.saveTransaction(transactionId, clientReq, directRequest, { error: 'Timeout' }, errPayload, duration, requestPath, 504, true, accountKey);
+              payloadLogger.saveTransaction(transactionId, clientReq, directRequest, { error: 'Timeout' }, errPayload, duration, requestPath, 504, true, accountKey, serverIndex);
 
               if (!res.headersSent) {
                 return res.status(504).json(errPayload);
@@ -662,7 +666,8 @@ class ClaudeController {
             requestPath,
             500,
             true,
-            accountKey
+            accountKey,
+            serverIndex
           );
         });
 
@@ -681,7 +686,7 @@ class ClaudeController {
               }
             };
             logger.warn(`[Timeout Error] [Transaction: ${transactionId}] Direct stream request timed out after ${timeoutMs}ms (duration: ${(duration / 1000).toFixed(2)}s)`);
-            payloadLogger.saveTransaction(transactionId, clientReq, directRequest, { error: 'Timeout' }, errPayload, duration, requestPath, 504, true);
+            payloadLogger.saveTransaction(transactionId, clientReq, directRequest, { error: 'Timeout' }, errPayload, duration, requestPath, 504, true, null, serverIndex);
 
             if (!res.headersSent) {
               return res.status(504).json(errPayload);
@@ -738,7 +743,7 @@ class ClaudeController {
         const isHtml = typeof errMessage === 'string' && /<html|<!doctype/i.test(errMessage);
         const logErrMessage = isHtml ? `HTML error page (${errStatus})` : (errMessage.length > 500 ? errMessage.slice(0, 500) + '...' : errMessage);
         logger.error(`[Error] [Transaction: ${transactionId}] Direct non-stream request failed with status ${errStatus}: ${logErrMessage} (duration: ${(duration / 1000).toFixed(2)}s)`);
-        payloadLogger.saveTransaction(transactionId, clientReq, directRequest, { error: errMessage }, normalized.payload, duration, requestPath, normalized.status, false, accountKey);
+        payloadLogger.saveTransaction(transactionId, clientReq, directRequest, { error: errMessage }, normalized.payload, duration, requestPath, normalized.status, false, accountKey, serverIndex);
         if (normalized.headers && !res.headersSent) {
           res.set(normalized.headers);
         }
@@ -766,7 +771,7 @@ class ClaudeController {
 
       const duration = Date.now() - startTime;
       logger.info(`[Response] [Transaction: ${transactionId}] Direct non-stream generated content finished successfully (duration: ${(duration / 1000).toFixed(2)}s)`);
-      payloadLogger.saveTransaction(transactionId, clientReq, directRequest, upstreamData, upstreamData, duration, requestPath, 200, false, accountKey);
+      payloadLogger.saveTransaction(transactionId, clientReq, directRequest, upstreamData, upstreamData, duration, requestPath, 200, false, accountKey, serverIndex);
       return res.status(200).json(upstreamData);
     } catch (err: any) {
       streamManager.markFinished();
@@ -782,7 +787,7 @@ class ClaudeController {
             }
           };
           logger.warn(`[Timeout Error] [Transaction: ${transactionId}] Direct non-stream request timed out after ${timeoutMs}ms (duration: ${(duration / 1000).toFixed(2)}s)`);
-          payloadLogger.saveTransaction(transactionId, clientReq, directRequest, { error: 'Timeout' }, errPayload, duration, requestPath, 504, false);
+          payloadLogger.saveTransaction(transactionId, clientReq, directRequest, { error: 'Timeout' }, errPayload, duration, requestPath, 504, false, null, serverIndex);
           if (!res.headersSent) {
             return res.status(504).json(errPayload);
           }
@@ -805,6 +810,7 @@ class ClaudeController {
     // Deep clone immediately
     const clientReq = req.body ? JSON.parse(JSON.stringify(req.body)) : null;
     let gemReq: any = null;
+    let serverIndex: number | null = null;
 
     try {
       const apiKey = extractClientKey(req);
@@ -851,6 +857,7 @@ class ClaudeController {
         originalModel: requestedModel,
         resolvedModel: effectiveCountModel
       });
+      serverIndex = serverSelection.serverIndex;
 
       if (serverSelection.serverType === 'direct') {
         const { directRequest } = claudeTranslator.preprocessClaudeDirectRequest(
@@ -892,7 +899,7 @@ class ClaudeController {
                 }
               };
               logger.warn(`[Timeout Error] [Transaction: ${transactionId}] Request timed out after ${timeoutMs}ms (duration: ${(duration / 1000).toFixed(2)}s)`);
-              payloadLogger.saveTransaction(transactionId, clientReq, directRequest, { error: 'Timeout' }, errPayload, duration, requestPath, 504, false);
+              payloadLogger.saveTransaction(transactionId, clientReq, directRequest, { error: 'Timeout' }, errPayload, duration, requestPath, 504, false, null, serverSelection.serverIndex);
               if (!res.headersSent) {
                 return res.status(504).json(errPayload);
               }
@@ -921,7 +928,7 @@ class ClaudeController {
 
           const duration = Date.now() - startTime;
           logger.error(`[Error] [Transaction: ${transactionId}] Direct token count failed with status ${errStatus}: ${errMessage} (duration: ${(duration / 1000).toFixed(2)}s)`);
-          payloadLogger.saveTransaction(transactionId, clientReq, directRequest, { error: errMessage }, normalized.payload, duration, requestPath, normalized.status, false);
+          payloadLogger.saveTransaction(transactionId, clientReq, directRequest, { error: errMessage }, normalized.payload, duration, requestPath, normalized.status, false, null, serverSelection.serverIndex);
           if (normalized.headers && !res.headersSent) {
             res.set(normalized.headers);
           }
@@ -937,7 +944,7 @@ class ClaudeController {
 
         const duration = Date.now() - startTime;
         logger.info(`[Response] [Transaction: ${transactionId}] Direct token count successfully returned: ${tokenResponse.input_tokens} input tokens (duration: ${(duration / 1000).toFixed(2)}s)`);
-        payloadLogger.saveTransaction(transactionId, clientReq, directRequest, data, tokenResponse, duration, requestPath, 200, false);
+        payloadLogger.saveTransaction(transactionId, clientReq, directRequest, data, tokenResponse, duration, requestPath, 200, false, null, serverSelection.serverIndex);
         return res.status(200).json(tokenResponse);
       }
 
@@ -969,7 +976,7 @@ class ClaudeController {
 
       const proxyCountTargetPath = `/v1beta/models/${cleanModelName}:countTokens`;
       let targetUrl = serverSelection.targetUrl || `${serverSelection.serverUrl.replace(/\/+$/, '')}${proxyCountTargetPath}`;
-      const serverIndex = serverSelection.serverIndex;
+      serverIndex = serverSelection.serverIndex;
       const serverUrl = serverSelection.serverUrl;
 
       const thinkingInfo = parseModelThinkingSuffix(cleanModelName);
@@ -1006,7 +1013,7 @@ class ClaudeController {
               }
             };
             logger.warn(`[Timeout Error] [Transaction: ${transactionId}] Request timed out after ${timeoutMs}ms (duration: ${(duration / 1000).toFixed(2)}s)`);
-            payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: 'Timeout' }, errPayload, duration, requestPath, 504, false);
+            payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: 'Timeout' }, errPayload, duration, requestPath, 504, false, null, serverIndex);
             if (!res.headersSent) {
               return res.status(504).json(errPayload);
             }
@@ -1035,7 +1042,7 @@ class ClaudeController {
 
         const duration = Date.now() - startTime;
         logger.error(`[Error] [Transaction: ${transactionId}] Token count failed with status ${errStatus}: ${errMessage} (duration: ${(duration / 1000).toFixed(2)}s)`);
-        payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: errMessage }, normalized.payload, duration, requestPath, normalized.status, false);
+        payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: errMessage }, normalized.payload, duration, requestPath, normalized.status, false, null, serverIndex);
         if (normalized.headers && !res.headersSent) {
           res.set(normalized.headers);
         }
@@ -1051,14 +1058,14 @@ class ClaudeController {
 
       const duration = Date.now() - startTime;
       logger.info(`[Response] [Transaction: ${transactionId}] Token count successfully returned: ${tokenResponse.input_tokens} input tokens (duration: ${(duration / 1000).toFixed(2)}s)`);
-      payloadLogger.saveTransaction(transactionId, clientReq, gemReq, geminiData, tokenResponse, duration, requestPath, 200, false);
+      payloadLogger.saveTransaction(transactionId, clientReq, gemReq, geminiData, tokenResponse, duration, requestPath, 200, false, null, serverIndex);
       return res.status(200).json(tokenResponse);
     } catch (err: any) {
       const duration = Date.now() - startTime;
       logger.error(`[Error] [Transaction: ${transactionId}] Unhandled count tokens error: ${err.message} (duration: ${(duration / 1000).toFixed(2)}s)`);
       const normalized = claudeTranslator.normalizeError(err);
       const requestPath = req.originalUrl || req.path;
-      payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: err.message }, normalized.payload, duration, requestPath, normalized.status, false);
+      payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: err.message }, normalized.payload, duration, requestPath, normalized.status, false, null, (typeof serverIndex === 'number' ? serverIndex : null));
       if (normalized.headers && !res.headersSent) {
         res.set(normalized.headers);
       }
@@ -1075,6 +1082,7 @@ class ClaudeController {
 
     const clientReq = { method: req.method, query: req.query };
     let gemReq: any = null;
+    let serverIndex: number | null = null;
 
     try {
       const apiKey = extractClientKey(req);
@@ -1094,7 +1102,8 @@ class ClaudeController {
       }
 
       const serverSelection = upstreamManager.getUpstreamServer();
-      const { serverUrl, serverIndex, serverType } = serverSelection;
+      serverIndex = serverSelection.serverIndex;
+      const { serverUrl, serverType } = serverSelection;
 
       if (serverType === 'direct') {
         const targetUrl = `${serverUrl.replace(/\/+$/, '')}/v1/models`;
@@ -1127,7 +1136,7 @@ class ClaudeController {
                 }
               };
               logger.warn(`[Timeout Error] [Transaction: ${transactionId}] Request timed out after ${timeoutMs}ms (duration: ${(duration / 1000).toFixed(2)}s)`);
-              payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: 'Timeout' }, errPayload, duration, requestPath, 504, false);
+              payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: 'Timeout' }, errPayload, duration, requestPath, 504, false, null, serverIndex);
               if (!res.headersSent) {
                 return res.status(504).json(errPayload);
               }
@@ -1156,7 +1165,7 @@ class ClaudeController {
 
           const duration = Date.now() - startTime;
           logger.error(`[Error] [Transaction: ${transactionId}] Models list request failed with status ${errStatus}: ${errMessage}`);
-          payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: errMessage }, normalized.payload, duration, requestPath, normalized.status, false);
+          payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: errMessage }, normalized.payload, duration, requestPath, normalized.status, false, null, serverIndex);
           if (normalized.headers && !res.headersSent) {
             res.set(normalized.headers);
           }
@@ -1195,7 +1204,7 @@ class ClaudeController {
 
         const duration = Date.now() - startTime;
         logger.info(`[Response] [Transaction: ${transactionId}] Direct models list query finished successfully`);
-        payloadLogger.saveTransaction(transactionId, clientReq, gemReq, upstreamData, responsePayload, duration, requestPath, 200, false);
+        payloadLogger.saveTransaction(transactionId, clientReq, gemReq, upstreamData, responsePayload, duration, requestPath, 200, false, null, serverIndex);
         return res.status(200).json(responsePayload);
       }
 
@@ -1230,7 +1239,7 @@ class ClaudeController {
               }
             };
             logger.warn(`[Timeout Error] [Transaction: ${transactionId}] Request timed out after ${timeoutMs}ms (duration: ${(duration / 1000).toFixed(2)}s)`);
-            payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: 'Timeout' }, errPayload, duration, requestPath, 504, false);
+            payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: 'Timeout' }, errPayload, duration, requestPath, 504, false, null, serverIndex);
             if (!res.headersSent) {
               return res.status(504).json(errPayload);
             }
@@ -1259,7 +1268,7 @@ class ClaudeController {
 
         const duration = Date.now() - startTime;
         logger.error(`[Error] [Transaction: ${transactionId}] Models list request failed with status ${errStatus}: ${errMessage}`);
-        payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: errMessage }, normalized.payload, duration, requestPath, normalized.status, false);
+        payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: errMessage }, normalized.payload, duration, requestPath, normalized.status, false, null, serverIndex);
         if (normalized.headers && !res.headersSent) {
           res.set(normalized.headers);
         }
@@ -1291,13 +1300,13 @@ class ClaudeController {
 
       const duration = Date.now() - startTime;
       logger.info(`[Response] [Transaction: ${transactionId}] Models list query finished successfully: Returning ${dynamicModels.length} dynamic models from Gemini`);
-      payloadLogger.saveTransaction(transactionId, clientReq, gemReq, geminiData, responsePayload, duration, requestPath, 200, false);
+      payloadLogger.saveTransaction(transactionId, clientReq, gemReq, geminiData, responsePayload, duration, requestPath, 200, false, null, serverIndex);
       return res.status(200).json(responsePayload);
     } catch (err: any) {
       const duration = Date.now() - startTime;
       logger.error(`[Error] [Transaction: ${transactionId}] Unhandled list models error: ${err.message}`);
       const normalized = claudeTranslator.normalizeError(err);
-      payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: err.message }, normalized.payload, duration, requestPath, normalized.status, false);
+      payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: err.message }, normalized.payload, duration, requestPath, normalized.status, false, null, (typeof serverIndex === 'number' ? serverIndex : null));
       if (normalized.headers && !res.headersSent) {
         res.set(normalized.headers);
       }
@@ -1315,6 +1324,7 @@ class ClaudeController {
 
     const clientReq = { method: req.method, model_id: modelId, query: req.query };
     let gemReq: any = null;
+    let serverIndex: number | null = null;
 
     try {
       const apiKey = extractClientKey(req);
@@ -1353,7 +1363,8 @@ class ClaudeController {
 
       const targetPath = `/v1beta/models/${resolvedModelId}`;
       const serverSelection = upstreamManager.getUpstreamUrl(targetPath, { model: resolvedModelId, originalModel: cleanModelId, resolvedModel: resolvedModelId });
-      const { serverUrl, serverIndex, serverType } = serverSelection;
+      const { serverUrl, serverType } = serverSelection;
+      serverIndex = serverSelection.serverIndex;
 
       if (serverType === 'direct') {
         const thinkingInfo = parseModelThinkingSuffix(resolvedModelId);
@@ -1392,7 +1403,7 @@ class ClaudeController {
                 }
               };
               logger.warn(`[Timeout Error] [Transaction: ${transactionId}] Request timed out after ${timeoutMs}ms (duration: ${(duration / 1000).toFixed(2)}s)`);
-              payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: 'Timeout' }, errPayload, duration, requestPath, 504, false);
+              payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: 'Timeout' }, errPayload, duration, requestPath, 504, false, null, serverIndex);
               if (!res.headersSent) {
                 return res.status(504).json(errPayload);
               }
@@ -1421,7 +1432,7 @@ class ClaudeController {
               message: `Model '${modelId}' does not exist.`
             }
           };
-          payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: `HTTP ${response.status}` }, errPayload, duration, requestPath, response.status === 404 ? 404 : 400, false);
+          payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: `HTTP ${response.status}` }, errPayload, duration, requestPath, response.status === 404 ? 404 : 400, false, null, serverIndex);
           return res.status(response.status === 404 ? 404 : 400).json(errPayload);
         }
 
@@ -1445,7 +1456,7 @@ class ClaudeController {
 
         const duration = Date.now() - startTime;
         logger.info(`[Response] [Transaction: ${transactionId}] Direct retrieve model finished successfully`);
-        payloadLogger.saveTransaction(transactionId, clientReq, gemReq, upstreamData, responsePayload, duration, requestPath, 200, false);
+        payloadLogger.saveTransaction(transactionId, clientReq, gemReq, upstreamData, responsePayload, duration, requestPath, 200, false, null, serverIndex);
         return res.status(200).json(responsePayload);
       }
 
@@ -1483,7 +1494,7 @@ class ClaudeController {
               }
             };
             logger.warn(`[Timeout Error] [Transaction: ${transactionId}] Request timed out after ${timeoutMs}ms (duration: ${(duration / 1000).toFixed(2)}s)`);
-            payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: 'Timeout' }, errPayload, duration, requestPath, 504, false);
+            payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: 'Timeout' }, errPayload, duration, requestPath, 504, false, null, serverIndex);
             if (!res.headersSent) {
               return res.status(504).json(errPayload);
             }
@@ -1512,7 +1523,7 @@ class ClaudeController {
             message: `Model '${modelId}' does not exist.`
           }
         };
-        payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: `Model not found: ${response.status}` }, errPayload, duration, requestPath, 404, false);
+        payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: `Model not found: ${response.status}` }, errPayload, duration, requestPath, 404, false, null, serverIndex);
         return res.status(404).json(errPayload);
       }
 
@@ -1529,13 +1540,13 @@ class ClaudeController {
 
       const duration = Date.now() - startTime;
       logger.info(`[Response] [Transaction: ${transactionId}] Retrieve model metadata finished: Returning specs for '${modelId}'`);
-      payloadLogger.saveTransaction(transactionId, clientReq, gemReq, m, mappedModel, duration, requestPath, 200, false);
+      payloadLogger.saveTransaction(transactionId, clientReq, gemReq, m, mappedModel, duration, requestPath, 200, false, null, serverIndex);
       return res.status(200).json(mappedModel);
     } catch (err: any) {
       const duration = Date.now() - startTime;
       logger.error(`[Error] [Transaction: ${transactionId}] Unhandled retrieve model error: ${err.message}`);
       const normalized = claudeTranslator.normalizeError(err);
-      payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: err.message }, normalized.payload, duration, requestPath, normalized.status, false);
+      payloadLogger.saveTransaction(transactionId, clientReq, gemReq, { error: err.message }, normalized.payload, duration, requestPath, normalized.status, false, null, (typeof serverIndex === 'number' ? serverIndex : null));
       if (normalized.headers && !res.headersSent) {
         res.set(normalized.headers);
       }

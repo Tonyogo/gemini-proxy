@@ -82,7 +82,10 @@ class AdminController {
       }
     }
     const stats = await logService.getStats(range);
-    res.json(stats);
+    res.json({
+      ...stats,
+      upstreamServers: upstreamManager.getUpstreamServerStatusList(),
+    });
   }
 
   public async updateConfig(req: Request, res: Response): Promise<void> {

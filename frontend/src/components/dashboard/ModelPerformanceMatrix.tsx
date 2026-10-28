@@ -1,9 +1,9 @@
-import React, { useMemo, useState } from 'react';
-import { Layers, Zap, TrendingUp, Clock, Activity, Search, ArrowUpDown, ArrowUp, ArrowDown, Copy, Check } from 'lucide-react';
+import React, { useMemo, useState, useEffect } from 'react';
+import { Layers, TrendingUp, Clock, Activity, Search, ArrowUpDown, ArrowUp, ArrowDown, Copy, Check, Server } from 'lucide-react';
 import { useTranslation } from '../../i18n/LanguageContext';
-import { ModelStatItem, detectModelFamily } from '../../utils/modelHelpers';
+import { ModelStatItem, ModelNodeStatItem, detectModelFamily } from '../../utils/modelHelpers';
 
-export type { ModelStatItem };
+export type { ModelStatItem, ModelNodeStatItem };
 
 export interface ModelPerformanceMatrixProps {
   modelStats: {
@@ -14,7 +14,48 @@ export interface ModelPerformanceMatrixProps {
   range?: number | 'today';
 }
 
-type SortField = 'model' | 'spec' | 'requests' | 'percentage' | 'avgLatency' | 'throughput';
+interface UpstreamNodeCapsuleProps {
+  node: ModelNodeStatItem;
+  onHover: (node: ModelNodeStatItem, el: HTMLElement) => void;
+  onLeave: () => void;
+  onClick: (node: ModelNodeStatItem, el: HTMLElement, e: React.MouseEvent) => void;
+}
+
+const UpstreamNodeCapsule: React.FC<UpstreamNodeCapsuleProps> = ({
+  node,
+  onHover,
+  onLeave,
+  onClick,
+}) => {
+  const styleClass = node.isIsolated
+    ? 'bg-rose-500/10 text-rose-400 border-rose-500/25 hover:border-rose-500/50 hover:bg-rose-500/15'
+    : node.isLegacy
+    ? 'bg-slate-500/10 text-slate-400 border-slate-500/25 hover:border-slate-500/50 hover:bg-slate-500/15'
+    : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25 hover:border-emerald-500/50 hover:bg-emerald-500/15';
+
+  const dotClass = node.isIsolated
+    ? 'bg-rose-400 shadow-[0_0_5px_rgba(244,63,94,0.6)] animate-pulse'
+    : node.isLegacy
+    ? 'bg-slate-400'
+    : 'bg-emerald-400 shadow-[0_0_5px_rgba(52,211,153,0.5)]';
+
+  return (
+    <button
+      type="button"
+      className={`px-2 py-0.5 rounded-md border text-[10px] font-mono font-medium flex items-center space-x-1.5 cursor-pointer transition-all shrink-0 ${styleClass}`}
+      onMouseEnter={(e) => onHover(node, e.currentTarget)}
+      onMouseLeave={onLeave}
+      onClick={(e) => onClick(node, e.currentTarget, e)}
+      title={`${node.nodeName}: ${node.requests.toLocaleString()} reqs (${node.percentage.toFixed(1)}%)`}
+    >
+      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotClass}`} />
+      <span className="truncate max-w-[90px] font-semibold text-[var(--text-primary)]">{node.nodeName}</span>
+      <span className="tabular-nums opacity-85 font-mono">{node.requests.toLocaleString()}</span>
+    </button>
+  );
+};
+
+type SortField = 'model' | 'requests' | 'percentage' | 'avgLatency' | 'throughput';
 type SortDirection = 'asc' | 'desc';
 
 export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
@@ -29,6 +70,41 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedModel, setCopiedModel] = useState<string | null>(null);
+
+  const [activeTooltip, setActiveTooltip] = useState<{
+    node: ModelNodeStatItem;
+    rect: DOMRect;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!activeTooltip) return;
+    const close = () => setActiveTooltip(null);
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    window.addEventListener('click', close);
+    return () => {
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+      window.removeEventListener('click', close);
+    };
+  }, [activeTooltip]);
+
+  const handleNodeHover = (node: ModelNodeStatItem, el: HTMLElement) => {
+    setActiveTooltip({ node, rect: el.getBoundingClientRect() });
+  };
+
+  const handleNodeLeave = () => {
+    setActiveTooltip(null);
+  };
+
+  const handleNodeClick = (node: ModelNodeStatItem, el: HTMLElement, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (activeTooltip?.node.nodeKey === node.nodeKey) {
+      setActiveTooltip(null);
+    } else {
+      setActiveTooltip({ node, rect: el.getBoundingClientRect() });
+    }
+  };
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -103,13 +179,6 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
       switch (sortField) {
         case 'model':
           return factor * a.model.localeCompare(b.model);
-        case 'spec': {
-          const aTotal = (a.standardRequests || 0) + (a.highRequests || 0);
-          const bTotal = (b.standardRequests || 0) + (b.highRequests || 0);
-          const aRatio = aTotal > 0 ? (a.highRequests || 0) / aTotal : 0;
-          const bRatio = bTotal > 0 ? (b.highRequests || 0) / bTotal : 0;
-          return factor * (aRatio - bRatio || (a.highRequests || 0) - (b.highRequests || 0));
-        }
         case 'requests':
         case 'throughput':
         case 'percentage':
@@ -219,15 +288,10 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
                     </div>
                   </th>
 
-                  {/* High Spec Distribution */}
-                  <th
-                    className="py-2.5 px-3 font-semibold text-center min-w-[210px] cursor-pointer select-none group hover:text-[var(--text-primary)] transition-colors"
-                    onClick={() => handleSort('spec')}
-                    title={t('dashboard.sortBy', '点击排序')}
-                  >
-                    <div className="flex items-center justify-center space-x-1.5">
-                      <span>{t('dashboard.highSpecDistribution', 'High 规格用量与延迟')}</span>
-                      {renderSortIcon('spec')}
+                  {/* Upstream Nodes Comparison */}
+                  <th className="py-2.5 px-3 font-semibold min-w-[200px] select-none text-[var(--text-secondary)]">
+                    <div className="flex items-center space-x-1.5">
+                      <span>{t('dashboard.upstreamNodes', '上游节点对比')}</span>
                     </div>
                   </th>
 
@@ -283,10 +347,6 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
               <tbody>
                 {displayList.map((item, index) => {
                   const color = getModelColor(item.model, index);
-                  const stdCount = item.standardRequests || 0;
-                  const highCount = item.highRequests || 0;
-                  const totalSpec = stdCount + highCount;
-                  const highPercent = totalSpec > 0 ? (highCount / totalSpec) * 100 : 0;
                   const family = detectModelFamily(item.model);
 
                   const latencyTier = item.avgLatency < 1000
@@ -355,27 +415,23 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
                         </div>
                       </td>
 
-                      {/* High Spec Distribution */}
+                      {/* Upstream Nodes Comparison */}
                       <td className="py-3 px-3">
-                        <div className="flex items-center justify-center">
-                          {highCount > 0 ? (
-                            <span
-                              className="bg-fuchsia-500/10 text-fuchsia-400 font-mono text-[10px] px-2.5 py-0.5 rounded-full flex items-center space-x-1 font-medium whitespace-nowrap border border-fuchsia-500/20"
-                              title={`${t('dashboard.highReqs', 'High 规格')}: ${highCount.toLocaleString()} (${Math.round(highPercent)}%)${item.highAvgLatency > 0 ? ` · ${t('dashboard.averageLatency')}: ~${item.highAvgLatency}ms` : ''}`}
-                            >
-                              <Zap className="w-2.5 h-2.5 text-fuchsia-400 shrink-0" />
-                              <span className="tabular-nums">High {highCount.toLocaleString()} · {Math.round(highPercent)}%{item.highAvgLatency > 0 ? ` · ~${item.highAvgLatency}ms` : ''}</span>
-                            </span>
-                          ) : (
-                            <span
-                              className="bg-black/5 dark:bg-white/5 text-[var(--text-secondary)] opacity-40 font-mono text-[10px] px-2 py-0.5 rounded-full flex items-center space-x-1 whitespace-nowrap"
-                              title={`${t('dashboard.highReqs', 'High 规格')}: 0 (0%)`}
-                            >
-                              <Zap className="w-2.5 h-2.5 shrink-0 opacity-60" />
-                              <span>High 0 · 0%</span>
-                            </span>
-                          )}
-                        </div>
+                        {item.nodes && item.nodes.length > 0 ? (
+                          <div className="flex flex-wrap gap-1.5 items-center max-w-[340px]">
+                            {item.nodes.map(node => (
+                              <UpstreamNodeCapsule
+                                key={node.nodeKey}
+                                node={node}
+                                onHover={handleNodeHover}
+                                onLeave={handleNodeLeave}
+                                onClick={handleNodeClick}
+                              />
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-[11px] text-[var(--text-muted)] font-mono">-</span>
+                        )}
                       </td>
 
                       {/* Total Requests */}
@@ -437,10 +493,6 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
           <div className="md:hidden space-y-2">
             {displayList.map((item, index) => {
               const color = getModelColor(item.model, index);
-              const stdCount = item.standardRequests || 0;
-              const highCount = item.highRequests || 0;
-              const totalSpec = stdCount + highCount;
-              const highPct = totalSpec > 0 ? (highCount / totalSpec) * 100 : 0;
               const family = detectModelFamily(item.model);
 
               const latencyTier = item.avgLatency < 1000
@@ -497,38 +549,38 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
                     </span>
                   </div>
 
-                  {/* High Spec Distribution & Requests */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between text-[11px] font-mono text-[var(--text-secondary)]">
-                      <span className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider font-medium">
-                        {t('dashboard.highSpecDistribution', 'High 规格用量与延迟')}
-                      </span>
-                      <span className="text-[var(--text-primary)] font-bold text-[10px] tabular-nums">
-                        {item.requests.toLocaleString()} reqs ({item.percentage.toFixed(0)}%)
-                      </span>
-                    </div>
-
-                    {/* High Capsule */}
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {highCount > 0 ? (
-                        <span
-                          className="bg-fuchsia-500/10 text-fuchsia-400 font-mono text-[10px] px-2.5 py-0.5 rounded-full flex items-center space-x-1 font-medium whitespace-nowrap border border-fuchsia-500/20"
-                          title={`${t('dashboard.highReqs', 'High 规格')}: ${highCount.toLocaleString()} (${Math.round(highPct)}%)${item.highAvgLatency > 0 ? ` · ${t('dashboard.averageLatency')}: ~${item.highAvgLatency}ms` : ''}`}
-                        >
-                          <Zap className="w-2.5 h-2.5 text-fuchsia-400 shrink-0" />
-                          <span className="tabular-nums">High {highCount.toLocaleString()} · {Math.round(highPct)}%{item.highAvgLatency > 0 ? ` · ~${item.highAvgLatency}ms` : ''}</span>
-                        </span>
-                      ) : (
-                        <span
-                          className="bg-black/5 dark:bg-white/5 text-[var(--text-secondary)] opacity-40 font-mono text-[10px] px-2 py-0.5 rounded-full flex items-center space-x-1 whitespace-nowrap"
-                          title={`${t('dashboard.highReqs', 'High 规格')}: 0 (0%)`}
-                        >
-                          <Zap className="w-2.5 h-2.5 shrink-0 opacity-60" />
-                          <span>High 0 · 0%</span>
-                        </span>
-                      )}
-                    </div>
+                  {/* Requests Summary */}
+                  <div className="flex items-center justify-between text-[11px] font-mono text-[var(--text-secondary)]">
+                    <span className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider font-medium">
+                      {t('dashboard.totalTransactions', '总请求量')}
+                    </span>
+                    <span className="text-[var(--text-primary)] font-bold text-[11px] tabular-nums text-indigo-400">
+                      {item.requests.toLocaleString()} reqs ({item.percentage.toFixed(0)}%)
+                    </span>
                   </div>
+
+                  {/* Upstream Nodes Comparison */}
+                  {item.nodes && item.nodes.length > 0 && (
+                    <div className="space-y-1.5 pt-1.5 border-t border-[var(--border-subtle)]">
+                      <div className="flex items-center justify-between text-[10px] font-mono text-[var(--text-secondary)]">
+                        <span className="uppercase tracking-wider font-medium">
+                          {t('dashboard.upstreamNodes', '上游节点对比')}
+                        </span>
+                        <span className="opacity-75">{item.nodes.length} 个节点</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {item.nodes.map(node => (
+                          <UpstreamNodeCapsule
+                            key={node.nodeKey}
+                            node={node}
+                            onHover={handleNodeHover}
+                            onLeave={handleNodeLeave}
+                            onClick={handleNodeClick}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Traffic Share & Throughput */}
                   <div className="flex items-center justify-between pt-1 border-t border-[var(--border-subtle)] text-[10px] font-mono text-[var(--text-secondary)]">
@@ -615,6 +667,96 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
             </div>
           </div>
         </>
+      )}
+
+      {/* Floating Glassmorphic Tooltip Card */}
+      {activeTooltip && (
+        <div
+          className="fixed z-[9999] pointer-events-none p-3 rounded-xl bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-md border border-slate-700/60 shadow-2xl text-[11px] font-mono text-[var(--text-primary)] transition-all duration-150 w-[270px] space-y-2 animate-in fade-in zoom-in-95 duration-100"
+          style={{
+            left: Math.max(12, Math.min(window.innerWidth - 282, activeTooltip.rect.left + activeTooltip.rect.width / 2 - 135)),
+            ...(activeTooltip.rect.top > 230
+              ? { bottom: window.innerHeight - activeTooltip.rect.top + 8 }
+              : { top: activeTooltip.rect.bottom + 8 }),
+          }}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+            <div className="flex items-center space-x-1.5 min-w-0">
+              <Server className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+              <span className="font-bold text-white truncate max-w-[150px]" title={activeTooltip.node.nodeName}>
+                {activeTooltip.node.nodeName}
+              </span>
+            </div>
+            <div className="flex items-center space-x-1 shrink-0">
+              {activeTooltip.node.type && (
+                <span className="px-1.5 py-0.5 rounded text-[9px] uppercase font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                  {activeTooltip.node.type}
+                </span>
+              )}
+              {activeTooltip.node.isIsolated ? (
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                  {t('dashboard.upstreamNodeIsolated', '已熔断')}
+                </span>
+              ) : activeTooltip.node.isLegacy ? (
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-slate-700 text-slate-300">
+                  Legacy
+                </span>
+              ) : (
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  正常
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Metric Grid */}
+          <div className="grid grid-cols-2 gap-2 text-[10px]">
+            <div className="bg-slate-800/60 p-1.5 rounded-lg border border-slate-700/40">
+              <div className="text-slate-400 text-[9px] uppercase">{t('dashboard.upstreamNodeShare', '流量占比')}</div>
+              <div className="text-white font-bold text-[11px] mt-0.5">{activeTooltip.node.percentage.toFixed(1)}%</div>
+            </div>
+            <div className="bg-slate-800/60 p-1.5 rounded-lg border border-slate-700/40">
+              <div className="text-slate-400 text-[9px] uppercase">{t('dashboard.upstreamNodeLatency', '平均延迟')}</div>
+              <div className="text-white font-bold text-[11px] mt-0.5">~{activeTooltip.node.avgLatency}ms</div>
+            </div>
+            <div className="bg-slate-800/60 p-1.5 rounded-lg border border-slate-700/40 col-span-2">
+              <div className="flex justify-between items-center text-slate-400 text-[9px] uppercase">
+                <span>{t('dashboard.upstreamNodeSuccessRate', '成功率')}</span>
+                <span className="text-slate-400">{activeTooltip.node.requests.toLocaleString()} 总请求</span>
+              </div>
+              <div className="flex justify-between items-center mt-0.5">
+                <span className={`font-bold text-[11px] ${activeTooltip.node.successRate >= 98 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                  {activeTooltip.node.successRate.toFixed(1)}%
+                </span>
+                <span className="text-[10px] text-slate-400">
+                  ({activeTooltip.node.success.toLocaleString()} 成功 / {activeTooltip.node.error.toLocaleString()} 失败)
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Weight & URL */}
+          {activeTooltip.node.weight !== undefined && (
+            <div className="flex justify-between items-center text-[10px] text-slate-400 pt-1 border-t border-slate-800/60">
+              <span>{t('dashboard.upstreamNodeWeight', '调度权重')}:</span>
+              <span className="text-[var(--text-primary)] font-semibold">{activeTooltip.node.weight}</span>
+            </div>
+          )}
+
+          {activeTooltip.node.url && (
+            <div className="text-[9px] text-slate-400 break-all bg-slate-950/60 p-1.5 rounded border border-slate-800/80">
+              <span className="text-slate-500 mr-1">URL:</span>
+              <span className="text-slate-300 select-all">{activeTooltip.node.url}</span>
+            </div>
+          )}
+
+          {activeTooltip.node.isLegacy && (
+            <div className="text-[9px] text-slate-400 bg-slate-800/40 p-1.5 rounded border border-slate-700/30">
+              升级前或未绑定上游节点索引的历史请求
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

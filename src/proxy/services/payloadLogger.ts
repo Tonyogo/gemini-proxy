@@ -20,6 +20,7 @@ export interface LogIndexRecord {
   isStream: boolean;
   account?: string | null;
   reqSize?: number;
+  serverIndex?: number | null;
 }
 
 class PayloadLogger {
@@ -114,7 +115,8 @@ class PayloadLogger {
     reqPath?: string,
     status?: number,
     isStream?: boolean,
-    account?: string | null
+    account?: string | null,
+    serverIndex?: number | null
   ): Promise<void> {
     try {
       this.cleanupExpiredLogs().catch(() => {});
@@ -130,6 +132,10 @@ class PayloadLogger {
         ? isStream
         : Boolean(clientReq && clientReq.stream);
 
+      const resolvedServerIndex = (typeof serverIndex === 'number' && !isNaN(serverIndex))
+        ? serverIndex
+        : null;
+
       const payload = {
         timestamp: new Date().toISOString(),
         duration: duration !== undefined ? duration : null,
@@ -137,6 +143,7 @@ class PayloadLogger {
         status: resolvedStatus,
         is_stream: resolvedIsStream,
         account: account || null,
+        server_index: resolvedServerIndex,
         client_req: sanitizeData(clientReq) || null,
         gem_req: sanitizeData(gemReq) || null,
         gem_res: sanitizeData(gemRes) || null,
@@ -179,6 +186,7 @@ class PayloadLogger {
         model: modelName,
         isStream: resolvedIsStream,
         account: account || null,
+        serverIndex: resolvedServerIndex,
         reqSize
       };
 
@@ -187,8 +195,8 @@ class PayloadLogger {
         logger.error(`[PayloadLogger] Failed to append to index.jsonl: ${err.message}`);
       });
 
-      const isError = Boolean(claudeRes && claudeRes.error);
-      metricsService.record(isError, duration, undefined, modelName);
+      const isError = Boolean(claudeRes && (claudeRes.error || claudeRes.type === 'error')) || resolvedStatus >= 400;
+      metricsService.record(isError, duration, undefined, modelName, resolvedServerIndex);
     } catch (err: any) {
       logger.error(`[PayloadLogger] Failed to write transaction file: ${err.message}`);
     }

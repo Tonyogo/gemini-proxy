@@ -107,7 +107,9 @@ describe('GeminiController - Native Gemini API Proxy', () => {
       expect.any(Number),
       '/v1beta/models/gemini-2.0-flash:streamGenerateContent?alt=sse',
       200,
-      true
+      true,
+      null,
+      0
     );
   });
 

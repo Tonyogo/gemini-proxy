@@ -58,11 +58,12 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
   const cfg = status?.config || {};
   const timeSeries: TimeSeriesPoint[] = stats?.timeSeries || [];
   const N = timeSeries.length;
+  const upstreamServers = stats?.upstreamServers || status?.upstreamStatus || status?.config?.upstreamServers;
 
   // Cumulative model metrics summary with model normalization
   const modelStatsSummary = useMemo(() => {
-    return aggregateModelStats(timeSeries);
-  }, [timeSeries]);
+    return aggregateModelStats(timeSeries, upstreamServers);
+  }, [timeSeries, upstreamServers]);
 
   if (loading) {
     return (

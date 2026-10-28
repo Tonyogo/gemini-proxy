@@ -18,9 +18,9 @@ describe('ModelPerformanceMatrix Normalization & Dual-State View', () => {
     expect(matrixContent).toContain('md:hidden');
   });
 
-  test('desktop table view should display standardRequests and highRequests columns', () => {
-    expect(matrixContent).toContain('standardRequests');
-    expect(matrixContent).toContain('highRequests');
+  test('desktop table view should not display spec columns', () => {
+    expect(matrixContent).not.toContain('standardRequests');
+    expect(matrixContent).not.toContain('highRequests');
   });
 
   test('DashboardView should place ModelPerformanceMatrix before charts', () => {
