@@ -667,7 +667,7 @@ export default function App() {
                     {t('nav.discover')}
                   </button>
                   <ChevronRight className="hidden sm:inline w-3.5 h-3.5 text-slate-600 shrink-0" />
-                  <span className="text-[var(--text-primary)] font-semibold truncate max-w-[130px] sm:max-w-none">
+                  <span className="text-[var(--text-primary)] font-semibold truncate min-w-0">
                     {discoverSubView === 'systemLogs' && t('discover.systemLogsTitle')}
                     {discoverSubView === 'playground' && t('discover.playgroundTitle')}
                     {discoverSubView === 'translate' && t('discover.translateTitle')}
@@ -676,7 +676,7 @@ export default function App() {
                   </span>
                 </>
               ) : (
-                <span className="text-[var(--text-primary)] font-semibold truncate max-w-[130px] sm:max-w-none">{getActiveTabTitle()}</span>
+                <span className="text-[var(--text-primary)] font-semibold truncate min-w-0">{getActiveTabTitle()}</span>
               )}
               <EffortSelector
                 effortLevel={effortLevel}

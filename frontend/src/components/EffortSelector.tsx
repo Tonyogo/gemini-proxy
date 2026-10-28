@@ -87,21 +87,21 @@ export const EffortSelector: React.FC<EffortSelectorProps> = ({
         type="button"
         disabled={disabled || isSwitching}
         onClick={() => setIsOpen(!isOpen)}
-        className={`inline-flex items-center space-x-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full text-xs font-medium border transition-all duration-150 focus:outline-none focus:ring-2 ${pillColorStyles[safeEffortLevel].badge} ${pillColorStyles[safeEffortLevel].ring} ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer shadow-sm'}`}
-        title={t('effort.title')}
+        className={`inline-flex items-center space-x-1 sm:space-x-1.5 px-1.5 py-1 sm:px-2.5 sm:py-1 rounded-full text-xs font-medium border transition-all duration-150 focus:outline-none focus:ring-2 ${pillColorStyles[safeEffortLevel].badge} ${pillColorStyles[safeEffortLevel].ring} ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer shadow-sm'}`}
+        title={`${t('effort.title')}: ${t(`effort.${safeEffortLevel}`)}`}
+        aria-label={`${t('effort.title')}: ${t(`effort.${safeEffortLevel}`)}`}
         data-testid="effort-selector-trigger"
       >
         <SignalBars level={safeEffortLevel} />
         {safeEffortLevel === 'high' && <Zap className="w-3 h-3 text-amber-500 fill-amber-500/30 shrink-0" />}
         <span className="hidden sm:inline font-semibold">{t(`effort.${safeEffortLevel}`)}</span>
-        <span className="sm:hidden font-semibold">{t(`effort.${safeEffortLevel}Short`)}</span>
-        <ChevronDown className={`w-3 h-3 transition-transform duration-200 opacity-60 ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`hidden sm:inline w-3 h-3 transition-transform duration-200 opacity-60 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {isOpen && (
         <div
           role="menu"
-          className="absolute left-0 mt-1.5 w-64 sm:w-72 bg-white dark:bg-[#11131C] border border-slate-200/90 dark:border-slate-700/80 rounded-xl shadow-2xl ring-1 ring-black/5 dark:ring-white/10 z-50 p-1.5 space-y-1 animate-in fade-in zoom-in-95 duration-100"
+          className="absolute left-0 mt-1.5 w-64 sm:w-72 max-w-[calc(100vw-24px)] bg-white dark:bg-[#11131C] border border-slate-200/90 dark:border-slate-700/80 rounded-xl shadow-2xl ring-1 ring-black/5 dark:ring-white/10 z-50 p-1.5 space-y-1 animate-in fade-in zoom-in-95 duration-100"
         >
           <div className="px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center justify-between select-none border-b border-[var(--border-subtle)] mb-1">
             <span>{t('effort.title')}</span>

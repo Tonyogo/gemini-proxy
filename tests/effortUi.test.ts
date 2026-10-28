@@ -127,6 +127,16 @@ describe('Effort Level UI & ConfigModal Workbench Integration', () => {
       expect(configModalContent).not.toContain('--card-bg');
       expect(configModalContent).not.toContain('--text-tertiary');
     });
+
+    test('optimizes mobile header space with icon-only mini pill and popover overflow constraint', () => {
+      // Hides text and chevron on mobile screens
+      expect(effortSelectorContent).toContain('hidden sm:inline font-semibold');
+      expect(effortSelectorContent).toContain('hidden sm:inline w-3 h-3 transition-transform');
+      // Compact trigger padding for mobile
+      expect(effortSelectorContent).toContain('px-1.5 py-1 sm:px-2.5 sm:py-1');
+      // Popover has max-width guard to prevent right-edge viewport overflow
+      expect(effortSelectorContent).toContain('max-w-[calc(100vw-24px)]');
+    });
   });
 
   describe('Header Integration in App.tsx', () => {
@@ -136,6 +146,11 @@ describe('Effort Level UI & ConfigModal Workbench Integration', () => {
       expect(appContent).toContain('effortLevel={effortLevel}');
       expect(appContent).toContain('effortModelMappings={effortModelMappings}');
       expect(appContent).toContain("setConfigModalInitialTab('mappings')");
+    });
+
+    test('allows flexible title expansion without rigid max-width restriction', () => {
+      expect(appContent).toContain('text-[var(--text-primary)] font-semibold truncate min-w-0');
+      expect(appContent).not.toContain('max-w-[130px]');
     });
 
     test('maintains effortLevel and effortModelMappings state with server sync', () => {
