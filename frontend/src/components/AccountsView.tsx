@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from '../i18n/LanguageContext';
 import { calculateServerModelStats, getAccountTopModels } from '../utils/accountModelStats';
+import { normalizeModelName } from '../utils/modelHelpers';
 
 export interface ModelUsageDetail {
   limit?: number;
@@ -792,21 +793,22 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     }>();
 
     for (const [rawModel, item] of Object.entries(usage.byModel)) {
-      const model = rawModel.replace(/^models\//, '').trim();
+      const cleanModel = rawModel.replace(/^models\//, '').trim();
+      const { baseModel } = normalizeModelName(cleanModel);
       const count = item.usage ?? item.requests ?? 0;
       const success = item.success ?? count;
       const error = item.error ?? 0;
       const limit = item.limit;
 
-      const existing = map.get(model);
+      const existing = map.get(baseModel);
       if (existing) {
         existing.count += count;
         existing.success = (existing.success ?? 0) + success;
         existing.error = (existing.error ?? 0) + error;
         if (limit !== undefined) existing.limit = limit;
       } else {
-        map.set(model, {
-          model,
+        map.set(baseModel, {
+          model: baseModel,
           count,
           limit,
           success,

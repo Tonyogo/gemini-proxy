@@ -90,4 +90,58 @@ describe('accountModelStats utility', () => {
       { model: 'claude-3-7-sonnet', count: 50 }
     ]);
   });
+
+  it('merges -high suffix models into base models in calculateServerModelStats', () => {
+    const mockAccounts: AccountDetail[] = [
+      {
+        index: 0,
+        name: 'acc1@gmail.com',
+        status: 'active',
+        isDisabled: false,
+        isInvalid: false,
+        isDuplicate: false,
+        isExpired: false,
+        isRotation: true,
+        hasContext: true,
+        canonicalIndex: null,
+        usage: {
+          totalRequests: 80,
+          totalSuccess: 75,
+          totalError: 5,
+          byModel: {
+            'gemini-2.5-pro': { requests: 20, success: 18, error: 2 },
+            'gemini-2.5-pro-high': { requests: 30, success: 28, error: 2 },
+            'models/gemini-2.5-flash-high': { requests: 30, success: 29, error: 1 }
+          }
+        }
+      }
+    ];
+
+    const stats = calculateServerModelStats(mockAccounts);
+    expect(stats.models).toHaveLength(2);
+    expect(stats.models[0].model).toBe('gemini-2.5-pro');
+    expect(stats.models[0].requests).toBe(50);
+    expect(stats.models[0].success).toBe(46);
+    expect(stats.models[0].error).toBe(4);
+
+    expect(stats.models[1].model).toBe('gemini-2.5-flash');
+    expect(stats.models[1].requests).toBe(30);
+    expect(stats.models[1].success).toBe(29);
+    expect(stats.models[1].error).toBe(1);
+  });
+
+  it('merges -high suffix models into base models in getAccountTopModels', () => {
+    const usage = {
+      byModel: {
+        'gemini-2.5-pro': { requests: 20 },
+        'gemini-2.5-pro-high': { requests: 40 },
+        'claude-3-7-sonnet': { requests: 50 }
+      }
+    };
+    const top = getAccountTopModels(usage, 2);
+    expect(top).toEqual([
+      { model: 'gemini-2.5-pro', count: 60 },
+      { model: 'claude-3-7-sonnet', count: 50 }
+    ]);
+  });
 });

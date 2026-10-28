@@ -1,3 +1,5 @@
+import { normalizeModelName } from './modelHelpers';
+
 export interface ModelUsageDetail {
   usage?: number;
   requests?: number;
@@ -72,15 +74,16 @@ export function calculateServerModelStats(accounts: AccountDetail[]): ServerMode
     if (usage.byModel) {
       for (const [rawModel, item] of Object.entries(usage.byModel)) {
         const cleanModel = rawModel.replace(/^models\//, '').trim();
+        const { baseModel } = normalizeModelName(cleanModel);
         const reqCount = item.requests ?? item.usage ?? 0;
         const succCount = item.success ?? reqCount;
         const errCount = item.error ?? 0;
 
-        const current = modelMap.get(cleanModel) || { requests: 0, success: 0, error: 0 };
+        const current = modelMap.get(baseModel) || { requests: 0, success: 0, error: 0 };
         current.requests += reqCount;
         current.success += succCount;
         current.error += errCount;
-        modelMap.set(cleanModel, current);
+        modelMap.set(baseModel, current);
       }
     }
   }
@@ -119,13 +122,19 @@ export function calculateServerModelStats(accounts: AccountDetail[]): ServerMode
 export function getAccountTopModels(usage?: AccountUsage, limit: number = 2): Array<{ model: string; count: number }> {
   if (!usage?.byModel) return [];
 
-  const list: Array<{ model: string; count: number }> = [];
+  const map = new Map<string, number>();
   for (const [rawModel, item] of Object.entries(usage.byModel)) {
     const cleanModel = rawModel.replace(/^models\//, '').trim();
+    const { baseModel } = normalizeModelName(cleanModel);
     const count = item.requests ?? item.usage ?? 0;
     if (count > 0) {
-      list.push({ model: cleanModel, count });
+      map.set(baseModel, (map.get(baseModel) || 0) + count);
     }
+  }
+
+  const list: Array<{ model: string; count: number }> = [];
+  for (const [model, count] of map.entries()) {
+    list.push({ model, count });
   }
 
   return list.sort((a, b) => b.count - a.count).slice(0, limit);
