@@ -242,6 +242,8 @@ export const en = {
     previewMode: "Preview Mode",
     rawJsonTab: "Raw JSON",
     loadingDetail: "Loading request log...",
+    detailLoadError: "Log detail file not found or failed to load",
+    detailLoadErrorDesc: "This log file may have been pruned by retention policies or does not exist on disk.",
     claudeClientReq: "Client Request",
     geminiUpstreamReq: "Upstream Request",
     claudeFinalRes: "Client Response",

@@ -17,7 +17,8 @@ import {
   ArrowUpRight,
   ArrowDownLeft,
   User,
-  HardDrive
+  HardDrive,
+  AlertCircle
 } from 'lucide-react';
 import JsonTreeView from './JsonTreeView';
 import SseStreamPreview from './SseStreamPreview';
@@ -52,6 +53,8 @@ export default function LogsView({
   const [selectedFile, setSelectedFile] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
+  const detailAbortControllerRef = useRef<AbortController | null>(null);
 
   // Status Filter: 'all' | '2xx' | '4xx' | '5xx'
   const [statusFilter, setStatusFilter] = useState<'all' | '2xx' | '4xx' | '5xx'>('all');
@@ -153,45 +156,46 @@ export default function LogsView({
       .catch(() => {});
   }, [adminKey]);
 
+  useEffect(() => {
+    return () => {
+      if (detailAbortControllerRef.current) {
+        detailAbortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
   const loadDetail = (log: any, openMobile = true) => {
     setSelectedFile(log.path);
     if (openMobile) {
       setMobileDetailOpen(true);
     }
+    // Cancel any pending in-flight request
+    if (detailAbortControllerRef.current) {
+      detailAbortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    detailAbortControllerRef.current = controller;
+
     if (detailCacheRef.current.has(log.path)) {
       setSelectedLog(detailCacheRef.current.get(log.path));
+      setDetailError(null);
       setDetailLoading(false);
       return;
     }
+
+    // Isolate previous state: clear previous selectedLog and errors
+    setSelectedLog(null);
+    setDetailError(null);
     setDetailLoading(true);
+
     const headers: Record<string, string> = adminKey ? { 'x-admin-key': adminKey } : {};
-    fetch(`/api/admin/logs/${log.date}/${log.hour}/${log.filename}`, { headers })
+    fetch(`/api/admin/logs/${log.date}/${log.hour}/${log.filename}`, {
+      headers,
+      signal: controller.signal
+    })
       .then(async r => {
         if (!r.ok) {
-          // If detailed transaction JSON was not found, synthesize a fallback payload from log metadata
-          return {
-            timestamp: log.timestamp || new Date().toISOString(),
-            status: log.status || 200,
-            duration: log.duration,
-            path: log.reqPath || '/v1/messages',
-            model: log.model,
-            is_stream: log.isStream,
-            client_req: {
-              info: "Detailed transaction body file not found on disk. Showing indexed metadata.",
-              path: log.reqPath || '/v1/messages',
-              model: log.model || 'unknown',
-              stream: Boolean(log.isStream)
-            },
-            gem_req: {
-              model: log.model,
-              upstreamStatus: log.status
-            },
-            claude_res: {
-              status: log.status,
-              duration: log.duration
-            },
-            gem_res: null
-          };
+          throw new Error(`HTTP ${r.status}`);
         }
         return r.json();
       })
@@ -205,33 +209,24 @@ export default function LogsView({
         };
         detailCacheRef.current.set(log.path, enriched);
         setSelectedLog(enriched);
+        setDetailError(null);
         const realReqBytes = calculatePayloadSize(enriched).reqBytes;
         if (realReqBytes > 0) {
           setLogs(prevLogs => prevLogs.map(l => ((log.path && l.path === log.path) || (log.filename && l.filename === log.filename)) ? { ...l, reqSize: realReqBytes } : l));
         }
       })
-      .catch(() => {
-        const fallback = {
-          timestamp: log.timestamp || new Date().toISOString(),
-          status: log.status || 200,
-          duration: log.duration,
-          path: log.reqPath || '/v1/messages',
-          filename: log.filename,
-          model: log.model,
-          account: log.account || null,
-          is_stream: log.isStream,
-          client_req: {
-            path: log.reqPath || '/v1/messages',
-            model: log.model || 'unknown',
-            stream: Boolean(log.isStream)
-          },
-          gem_req: null,
-          claude_res: null,
-          gem_res: null
-        };
-        setSelectedLog(fallback);
+      .catch((err: any) => {
+        if (err.name === 'AbortError') {
+          return; // Ignore aborted requests
+        }
+        setSelectedLog(null);
+        setDetailError(t('logs.detailLoadError'));
       })
-      .finally(() => setDetailLoading(false));
+      .finally(() => {
+        if (detailAbortControllerRef.current === controller) {
+          setDetailLoading(false);
+        }
+      });
   };
 
   const handleDateChange = (date: string) => {
@@ -1035,6 +1030,16 @@ export default function LogsView({
           <div className="flex flex-col items-center justify-center flex-1 text-slate-400 text-xs space-y-2">
             <RefreshCw className="w-6 h-6 animate-spin text-indigo-400" />
             <span>{t('logs.loadingDetail')}</span>
+          </div>
+        ) : detailError ? (
+          <div className="flex flex-col items-center justify-center flex-1 text-slate-400 text-xs space-y-2 p-6 text-center">
+            <div className="w-12 h-12 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-500 mb-2">
+              <AlertCircle className="w-6 h-6" />
+            </div>
+            <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">{detailError}</span>
+            <span className="text-slate-500 dark:text-slate-400 text-xs max-w-sm">
+              {t('logs.detailLoadErrorDesc')}
+            </span>
           </div>
         ) : selectedLog ? (
           <div className={`flex-1 min-h-0 flex flex-col pr-1 ${

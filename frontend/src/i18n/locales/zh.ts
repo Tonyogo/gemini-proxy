@@ -244,6 +244,8 @@ export const zh: Translations = {
     previewMode: "预览模式",
     rawJsonTab: "原始 JSON",
     loadingDetail: "正在加载请求日志详情...",
+    detailLoadError: "日志详情文件未找到或加载失败",
+    detailLoadErrorDesc: "该日志详情文件可能已被自动清理策略移除，或磁盘文件不存在。",
     claudeClientReq: "客户端请求",
     geminiUpstreamReq: "上游请求",
     claudeFinalRes: "客户端响应",

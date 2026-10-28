@@ -66,6 +66,28 @@ describe('LogsView Header & Metadata Optimization', () => {
       /max-w-\[100px\] sm:max-w-\[120px\] truncate[\s\S]*?title=\{log\.reqPath \|\| pathLabel\}/
     );
   });
+
+  test('should isolate detail loading state, cancel in-flight requests, and render error card on failure', () => {
+    // 1. Manages detailError state and detailAbortControllerRef
+    expect(content).toContain('detailError');
+    expect(content).toContain('setDetailError');
+    expect(content).toContain('detailAbortControllerRef');
+
+    // 2. Abort controller lifecycle in loadDetail
+    expect(content).toContain('detailAbortControllerRef.current.abort()');
+    expect(content).toContain('signal: controller.signal');
+
+    // 3. Resets selectedLog and detailError to null before fetch to prevent stale ribbon
+    expect(content).toMatch(/setSelectedLog\(null\)[\s\S]*?setDetailError\(null\)[\s\S]*?setDetailLoading\(true\)/);
+
+    // 4. Sets detailError on error or !r.ok rather than falling back into selectedLog
+    expect(content).toContain("setDetailError(t('logs.detailLoadError'))");
+
+    // 5. Renders AlertCircle and error card container when detailError is present
+    expect(content).toContain('AlertCircle');
+    expect(content).toContain('{detailError}');
+    expect(content).toMatch(/t\(['"]logs\.detailLoadErrorDesc['"]\)/);
+  });
 });
 
 
