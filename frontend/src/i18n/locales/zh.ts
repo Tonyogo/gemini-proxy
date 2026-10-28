@@ -206,6 +206,7 @@ export const zh: Translations = {
     highReqs: "High 规格",
     highBadge: "High",
     specDistribution: "规格分布 (标 / 高)",
+    highSpecDistribution: "High 规格用量与延迟",
     standardOnly: "纯标准规格",
     latencyScaleFast: "极速",
     latencyScaleModerate: "正常",

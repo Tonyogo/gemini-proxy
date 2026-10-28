@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Layers, Zap, TrendingUp, Clock, Activity, Search, ArrowUpDown, ArrowUp, ArrowDown, Copy, Check } from 'lucide-react';
 import { useTranslation } from '../../i18n/LanguageContext';
-import { ModelStatItem } from '../../utils/modelHelpers';
+import { ModelStatItem, detectModelFamily } from '../../utils/modelHelpers';
 
 export type { ModelStatItem };
 
@@ -16,55 +16,6 @@ export interface ModelPerformanceMatrixProps {
 
 type SortField = 'model' | 'spec' | 'requests' | 'percentage' | 'avgLatency' | 'throughput';
 type SortDirection = 'asc' | 'desc';
-
-interface ModelFamilyConfig {
-  label: string;
-  badgeClass: string;
-}
-
-const detectModelFamily = (modelName: string): ModelFamilyConfig => {
-  const lower = (modelName || '').toLowerCase();
-  if (lower.includes('gemini')) {
-    return {
-      label: 'Gemini',
-      badgeClass: 'bg-blue-500/10 text-blue-400 border-blue-500/25'
-    };
-  }
-  if (lower.includes('claude')) {
-    return {
-      label: 'Claude',
-      badgeClass: 'bg-amber-500/10 text-amber-400 border-amber-500/25'
-    };
-  }
-  if (lower.includes('gpt') || lower.includes('o1') || lower.includes('o3') || lower.includes('o4')) {
-    return {
-      label: 'OpenAI',
-      badgeClass: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25'
-    };
-  }
-  if (lower.includes('deepseek')) {
-    return {
-      label: 'DeepSeek',
-      badgeClass: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/25'
-    };
-  }
-  if (lower.includes('qwen')) {
-    return {
-      label: 'Qwen',
-      badgeClass: 'bg-purple-500/10 text-purple-400 border-purple-500/25'
-    };
-  }
-  if (lower.includes('llama')) {
-    return {
-      label: 'Llama',
-      badgeClass: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/25'
-    };
-  }
-  return {
-    label: 'LLM',
-    badgeClass: 'bg-slate-500/10 text-slate-400 border-slate-500/25'
-  };
-};
 
 export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
   modelStats,
@@ -268,14 +219,14 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
                     </div>
                   </th>
 
-                  {/* Spec Distribution */}
+                  {/* High Spec Distribution */}
                   <th
                     className="py-2.5 px-3 font-semibold text-center min-w-[210px] cursor-pointer select-none group hover:text-[var(--text-primary)] transition-colors"
                     onClick={() => handleSort('spec')}
                     title={t('dashboard.sortBy', '点击排序')}
                   >
                     <div className="flex items-center justify-center space-x-1.5">
-                      <span>{t('dashboard.specDistribution', '规格分布 (标 / 高)')}</span>
+                      <span>{t('dashboard.highSpecDistribution', 'High 规格用量与延迟')}</span>
                       {renderSortIcon('spec')}
                     </div>
                   </th>
@@ -335,7 +286,6 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
                   const stdCount = item.standardRequests || 0;
                   const highCount = item.highRequests || 0;
                   const totalSpec = stdCount + highCount;
-                  const stdPercent = totalSpec > 0 ? (stdCount / totalSpec) * 100 : 0;
                   const highPercent = totalSpec > 0 ? (highCount / totalSpec) * 100 : 0;
                   const family = detectModelFamily(item.model);
 
@@ -405,26 +355,16 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
                         </div>
                       </td>
 
-                      {/* Spec Distribution: Dual-spec capsules */}
+                      {/* High Spec Distribution */}
                       <td className="py-3 px-3">
-                        <div className="flex items-center justify-center gap-1.5">
-                          {/* Standard Capsule */}
-                          <span
-                            className="bg-sky-500/10 text-sky-400 font-mono text-[10px] px-2 py-0.5 rounded-full flex items-center space-x-1 font-medium whitespace-nowrap"
-                            title={`${t('dashboard.standardReqs', '标准请求')}: ${stdCount.toLocaleString()} (${Math.round(stdPercent)}%)`}
-                          >
-                            <span className="w-1.5 h-1.5 rounded-full bg-sky-400 shrink-0 shadow-[0_0_4px_rgba(56,189,248,0.6)]" />
-                            <span className="tabular-nums">Std {stdCount.toLocaleString()} · {Math.round(stdPercent)}%</span>
-                          </span>
-
-                          {/* High Capsule */}
+                        <div className="flex items-center justify-center">
                           {highCount > 0 ? (
                             <span
-                              className="bg-fuchsia-500/10 text-fuchsia-400 font-mono text-[10px] px-2 py-0.5 rounded-full flex items-center space-x-1 font-medium whitespace-nowrap"
-                              title={`${t('dashboard.highReqs', 'High 规格')}: ${highCount.toLocaleString()} (${Math.round(highPercent)}%)`}
+                              className="bg-fuchsia-500/10 text-fuchsia-400 font-mono text-[10px] px-2.5 py-0.5 rounded-full flex items-center space-x-1 font-medium whitespace-nowrap border border-fuchsia-500/20"
+                              title={`${t('dashboard.highReqs', 'High 规格')}: ${highCount.toLocaleString()} (${Math.round(highPercent)}%)${item.highAvgLatency > 0 ? ` · ${t('dashboard.averageLatency')}: ~${item.highAvgLatency}ms` : ''}`}
                             >
                               <Zap className="w-2.5 h-2.5 text-fuchsia-400 shrink-0" />
-                              <span className="tabular-nums">High {highCount.toLocaleString()} · {Math.round(highPercent)}%</span>
+                              <span className="tabular-nums">High {highCount.toLocaleString()} · {Math.round(highPercent)}%{item.highAvgLatency > 0 ? ` · ~${item.highAvgLatency}ms` : ''}</span>
                             </span>
                           ) : (
                             <span
@@ -500,7 +440,6 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
               const stdCount = item.standardRequests || 0;
               const highCount = item.highRequests || 0;
               const totalSpec = stdCount + highCount;
-              const stdPct = totalSpec > 0 ? (stdCount / totalSpec) * 100 : 0;
               const highPct = totalSpec > 0 ? (highCount / totalSpec) * 100 : 0;
               const family = detectModelFamily(item.model);
 
@@ -558,36 +497,26 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
                     </span>
                   </div>
 
-                  {/* Spec Distribution & Requests */}
+                  {/* High Spec Distribution & Requests */}
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between text-[11px] font-mono text-[var(--text-secondary)]">
                       <span className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider font-medium">
-                        {t('dashboard.specDistribution', '规格分布')}
+                        {t('dashboard.highSpecDistribution', 'High 规格用量与延迟')}
                       </span>
                       <span className="text-[var(--text-primary)] font-bold text-[10px] tabular-nums">
                         {item.requests.toLocaleString()} reqs ({item.percentage.toFixed(0)}%)
                       </span>
                     </div>
 
-                    {/* Dual Capsules */}
+                    {/* High Capsule */}
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      {/* Standard Capsule */}
-                      <span
-                        className="bg-sky-500/10 text-sky-400 font-mono text-[10px] px-2 py-0.5 rounded-full flex items-center space-x-1 font-medium whitespace-nowrap"
-                        title={`${t('dashboard.standardReqs', '标准请求')}: ${stdCount.toLocaleString()} (${Math.round(stdPct)}%)`}
-                      >
-                        <span className="w-1.5 h-1.5 rounded-full bg-sky-400 shrink-0" />
-                        <span className="tabular-nums">Std {stdCount.toLocaleString()} · {Math.round(stdPct)}%</span>
-                      </span>
-
-                      {/* High Capsule */}
                       {highCount > 0 ? (
                         <span
-                          className="bg-fuchsia-500/10 text-fuchsia-400 font-mono text-[10px] px-2 py-0.5 rounded-full flex items-center space-x-1 font-medium whitespace-nowrap"
-                          title={`${t('dashboard.highReqs', 'High 规格')}: ${highCount.toLocaleString()} (${Math.round(highPct)}%)`}
+                          className="bg-fuchsia-500/10 text-fuchsia-400 font-mono text-[10px] px-2.5 py-0.5 rounded-full flex items-center space-x-1 font-medium whitespace-nowrap border border-fuchsia-500/20"
+                          title={`${t('dashboard.highReqs', 'High 规格')}: ${highCount.toLocaleString()} (${Math.round(highPct)}%)${item.highAvgLatency > 0 ? ` · ${t('dashboard.averageLatency')}: ~${item.highAvgLatency}ms` : ''}`}
                         >
                           <Zap className="w-2.5 h-2.5 text-fuchsia-400 shrink-0" />
-                          <span className="tabular-nums">High {highCount.toLocaleString()} · {Math.round(highPct)}%</span>
+                          <span className="tabular-nums">High {highCount.toLocaleString()} · {Math.round(highPct)}%{item.highAvgLatency > 0 ? ` · ~${item.highAvgLatency}ms` : ''}</span>
                         </span>
                       ) : (
                         <span

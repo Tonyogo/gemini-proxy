@@ -18,30 +18,36 @@ describe('ModelPerformanceMatrix Visual & Metrics Enhancement', () => {
 
   test('should have localization keys for matrix enhancements in zh and en', () => {
     expect(zhContent).toContain('specDistribution');
+    expect(zhContent).toContain('highSpecDistribution');
     expect(zhContent).toContain('insightsPrimaryModel');
     expect(zhContent).toContain('insightsFastest');
     expect(zhContent).toContain('insightsTotalThroughput');
 
     expect(enContent).toContain('specDistribution');
+    expect(enContent).toContain('highSpecDistribution');
     expect(enContent).toContain('insightsPrimaryModel');
     expect(enContent).toContain('insightsFastest');
     expect(enContent).toContain('insightsTotalThroughput');
   });
 
-  test('ModelPerformanceMatrix should render spec distribution capsules', () => {
-    expect(matrixContent).toContain('specDistribution');
-    expect(matrixContent).toMatch(/standardRequests|highRequests/);
+  test('ModelPerformanceMatrix should render high spec distribution capsules with highAvgLatency', () => {
+    expect(matrixContent).toContain('highSpecDistribution');
+    expect(matrixContent).toMatch(/highRequests/);
+    expect(matrixContent).toContain('highAvgLatency');
     expect(matrixContent).toContain('rounded-full');
   });
 
-  test('ModelPerformanceMatrix should render dual-color spec capsules without bottom horizontal bar', () => {
-    // Should use fuchsia and sky badge colors for capsules
+  test('ModelPerformanceMatrix should render High spec capsule and ghost capsule without standard spec capsule', () => {
+    // Should use fuchsia badge colors for High spec capsule
     expect(matrixContent).toMatch(/fuchsia-500|fuchsia-400/);
-    expect(matrixContent).toMatch(/sky-500|sky-400/);
     // Should have ghost capsule styling for zero high requests
     expect(matrixContent).toContain('High 0 · 0%');
     // Should have min-w-[210px] for desktop spec column
     expect(matrixContent).toContain('min-w-[210px]');
+    // Should display High average latency when present
+    expect(matrixContent).toContain('highAvgLatency');
+    // Standard spec capsule should not be rendered
+    expect(matrixContent).not.toContain('Std {stdCount');
     // Bottom bar removed as requested
     expect(matrixContent).not.toMatch(/h-2\.5\s+rounded-full\s+overflow-hidden/);
     expect(matrixContent).not.toContain('from-sky-500 to-blue-500');
@@ -75,7 +81,7 @@ describe('ModelPerformanceMatrix Visual & Metrics Enhancement', () => {
     expect(matrixContent).toContain('detectModelFamily');
     expect(matrixContent).toContain('handleCopy');
     expect(matrixContent).toContain('copiedModel');
-    expect(matrixContent).toMatch(/Gemini|Claude|OpenAI|DeepSeek/);
+    expect(matrixContent).toContain('family.label');
   });
 
   test('ModelPerformanceMatrix should use tabular-nums font styling for numerical data', () => {

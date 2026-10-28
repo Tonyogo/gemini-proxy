@@ -204,6 +204,7 @@ export const en = {
     highReqs: "High Spec",
     highBadge: "High",
     specDistribution: "Spec Distribution (Std / High)",
+    highSpecDistribution: "High Spec & Latency",
     standardOnly: "Standard Only",
     latencyScaleFast: "Fast",
     latencyScaleModerate: "Normal",
