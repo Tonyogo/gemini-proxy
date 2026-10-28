@@ -54,5 +54,18 @@ describe('LogsView Header & Metadata Optimization', () => {
     // Mobile single-row controls include search trigger and refresh buttons
     expect(content).toMatch(/flex md:hidden[\s\S]*?setIsMobileSearchOpen[\s\S]*?fetchLogs\(true\)/);
   });
+
+  test('should enforce path truncation and tooltip in metadata ribbon and list items', () => {
+    // Detail metadata ribbon: path truncation and title tooltip
+    expect(content).toMatch(
+      /<span[^>]*className="[^"]*max-w-\[160px\] sm:max-w-\[220px\] md:max-w-\[280px\] lg:max-w-\[360px\][^"]*truncate[^"]*inline-block[^"]*"[^>]*title=\{selectedLog\.path\}[^>]*>\s*\{selectedLog\.path\}\s*<\/span>/
+    );
+
+    // Master list row 1: pathLabel truncation and title tooltip
+    expect(content).toMatch(
+      /max-w-\[100px\] sm:max-w-\[120px\] truncate[\s\S]*?title=\{log\.reqPath \|\| pathLabel\}/
+    );
+  });
 });
+
 

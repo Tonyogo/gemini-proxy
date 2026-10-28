@@ -722,7 +722,10 @@ export default function LogsView({
                           {log.method || 'POST'}
                         </span>
                         {pathLabel && (
-                          <span className={`px-1.5 py-0.5 rounded border text-[9px] font-semibold shrink-0 ${pathBadgeColor}`}>
+                          <span
+                            className={`px-1.5 py-0.5 rounded border text-[9px] font-semibold shrink-0 max-w-[100px] sm:max-w-[120px] truncate ${pathBadgeColor}`}
+                            title={log.reqPath || pathLabel}
+                          >
                             {pathLabel}
                           </span>
                         )}
@@ -949,7 +952,10 @@ export default function LogsView({
 
               {/* 3. Path */}
               {selectedLog.path && (
-                <span className="bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20 px-2 py-0.5 rounded font-medium">
+                <span
+                  className="bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-500/20 px-2 py-0.5 rounded font-medium max-w-[160px] sm:max-w-[220px] md:max-w-[280px] lg:max-w-[360px] truncate inline-block"
+                  title={selectedLog.path}
+                >
                   {selectedLog.path}
                 </span>
               )}
