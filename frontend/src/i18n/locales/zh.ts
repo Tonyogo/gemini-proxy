@@ -26,6 +26,7 @@ export const zh: Translations = {
     nodeTotalRequests: "总调用量",
     nodeSuccessRate: "成功率",
     modelTrafficShare: "模型流量占比",
+    activeModelsTitle: "活跃模型处理明细",
     activeModels: "活跃模型明细",
     noModelUsageYet: "当前节点暂无模型调用数据",
     toggleStatsCollapse: "收起概览",

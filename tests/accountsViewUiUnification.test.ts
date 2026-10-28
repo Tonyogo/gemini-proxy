@@ -20,4 +20,18 @@ describe('AccountsView UI Design System Unification Test', () => {
     expect(code).not.toContain('bg-slate-800/50 text-slate-500 mb-3 border border-white/[0.04]');
     expect(code).toContain('tabular-nums');
   });
+
+  it('verifies active models breakdown adopts model family badges, glow dots, copy actions, and unified header', () => {
+    const zhCode = fs.readFileSync(path.resolve(__dirname, '../frontend/src/i18n/locales/zh.ts'), 'utf-8');
+    const enCode = fs.readFileSync(path.resolve(__dirname, '../frontend/src/i18n/locales/en.ts'), 'utf-8');
+
+    expect(code).toContain('activeModelsTitle');
+    expect(zhCode).toContain('activeModelsTitle');
+    expect(enCode).toContain('activeModelsTitle');
+
+    expect(code).toContain('detectModelFamily');
+    expect(code).toContain('handleCopyServerModel');
+    expect(code).toContain('copiedServerModel');
+    expect(code).toContain('boxShadow');
+  });
 });

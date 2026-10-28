@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from '../i18n/LanguageContext';
 import { calculateServerModelStats, getAccountTopModels } from '../utils/accountModelStats';
-import { normalizeModelName } from '../utils/modelHelpers';
+import { normalizeModelName, detectModelFamily } from '../utils/modelHelpers';
 
 export interface ModelUsageDetail {
   limit?: number;
@@ -123,6 +123,7 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
   const loading = isCurrentLoading;
 
   const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
+  const [copiedServerModel, setCopiedServerModel] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
@@ -765,6 +766,18 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
     setTimeout(() => setCopiedKeyIndex(null), 1500);
   };
 
+  const handleCopyServerModel = (modelName: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(modelName).then(() => {
+        setCopiedServerModel(modelName);
+        setTimeout(() => {
+          setCopiedServerModel(prev => (prev === modelName ? null : prev));
+        }, 2000);
+      }).catch(() => {});
+    }
+  };
+
   const getTotalUsage = (usage?: AccountUsage): number => {
     if (!usage) return 0;
     if (typeof usage.totalRequests === 'number') return usage.totalRequests;
@@ -1008,11 +1021,22 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
         {serverModelStats.models.length > 0 ? (
           <>
             {/* Minimalist Top Summary Header */}
-            <div className="flex items-center justify-between text-[11px] font-mono text-slate-500 dark:text-slate-400 px-0.5 select-none">
-              <span className="font-medium text-slate-700 dark:text-slate-300">
-                {serverModelStats.models.length} {t('accounts.activeModels', '个模型处理中')}
-              </span>
+            {/* Top Summary Header Aligned with Dashboard Matrix */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-0.5 select-none">
               <div className="flex items-center space-x-2">
+                <div className="p-1 rounded-lg bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 border border-indigo-500/20">
+                  <Layers className="w-4 h-4" />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <h3 className="text-xs font-semibold text-[var(--text-primary)] tracking-wider uppercase">
+                    {t('accounts.activeModelsTitle', '活跃模型处理明细')}
+                  </h3>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full font-mono border border-indigo-500/30 bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 font-medium">
+                    {serverModelStats.models.length} {t('accounts.activeModels', '个模型处理中')}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2 text-[11px] font-mono text-slate-500 dark:text-slate-400">
                 <span>
                   {t('accounts.nodeTotalRequests')}: <strong className="text-indigo-600 dark:text-indigo-400 font-mono tabular-nums">{serverModelStats.totalRequests.toLocaleString()}</strong>
                 </span>
@@ -1026,28 +1050,53 @@ export default function AccountsView({ adminKey }: { adminKey: string }) {
             {/* Model Breakdown Grid - up to 5 models per row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
               {serverModelStats.models.map((item, idx) => {
-                const colors = ['bg-indigo-500', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-purple-500', 'bg-rose-500'];
-                const dotColor = colors[idx % colors.length];
+                const dotColors = ['#6366f1', '#3b82f6', '#10b981', '#f59e0b', '#a855f7', '#f43f5e', '#06b6d4'];
+                const dotColor = dotColors[idx % dotColors.length];
+                const family = detectModelFamily(item.model);
+
                 return (
                   <div
                     key={item.model}
-                    className="p-2 sm:p-2.5 rounded-lg bg-black/[0.02] dark:bg-white/[0.03] border border-[var(--border-subtle)] flex flex-col justify-between gap-1.5 text-xs min-w-0"
+                    className="group p-2.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.03] border border-[var(--border-subtle)] hover:border-indigo-500/30 flex flex-col justify-between gap-2 text-xs min-w-0 transition-colors"
                   >
-                    {/* Top Row: Model Name & Request Count Badge */}
-                    <div className="flex items-center justify-between gap-2 min-w-0">
+                    {/* Top Row: Glow Dot, Family Badge, Truncated Model Name, and Copy Button */}
+                    <div className="flex items-center justify-between gap-1.5 min-w-0">
                       <div className="flex items-center space-x-1.5 min-w-0 flex-1">
-                        <span className={`w-2 h-2 rounded-full ${dotColor} shrink-0`} />
-                        <span className="font-mono font-medium truncate text-slate-800 dark:text-slate-200" title={item.model}>
+                        <span
+                          className="w-2 h-2 rounded-full shrink-0 shadow-sm transition-transform group-hover:scale-110"
+                          style={{
+                            backgroundColor: dotColor,
+                            boxShadow: `0 0 6px ${dotColor}60`
+                          }}
+                        />
+                        <span
+                          className={`text-[9px] px-1.5 py-0.5 rounded font-mono font-semibold uppercase tracking-wider border shrink-0 ${family.badgeClass}`}
+                        >
+                          {family.label}
+                        </span>
+                        <span className="font-mono font-semibold truncate text-[var(--text-primary)] text-xs" title={item.model}>
                           {item.model}
                         </span>
+                        <button
+                          type="button"
+                          onClick={(e) => handleCopyServerModel(item.model, e)}
+                          className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-[var(--bg-surface-sub)] rounded text-[var(--text-secondary)] hover:text-indigo-400 transition-all shrink-0"
+                          title={copiedServerModel === item.model ? t('dashboard.modelCopied', '已复制') : t('dashboard.copyModelName', '复制模型名称')}
+                        >
+                          {copiedServerModel === item.model ? (
+                            <Check className="w-3 h-3 text-emerald-400" />
+                          ) : (
+                            <Copy className="w-3 h-3" />
+                          )}
+                        </button>
                       </div>
-                      <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-slate-500/10 text-slate-700 dark:text-slate-300 shrink-0 tabular-nums">
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0 tabular-nums">
                         {item.requests.toLocaleString()} <span className="text-[9px] text-slate-400">({item.sharePercent}%)</span>
                       </span>
                     </div>
 
                     {/* Bottom Row: Success/Error & Success Rate */}
-                    <div className="flex items-center justify-between gap-1 pt-1 border-t border-[var(--border-subtle)]/60 text-[10px] font-mono text-slate-500 dark:text-slate-400 tabular-nums">
+                    <div className="flex items-center justify-between gap-1 pt-1.5 border-t border-[var(--border-subtle)]/70 text-[10px] font-mono text-[var(--text-secondary)] tabular-nums">
                       <span className="truncate tabular-nums">
                         {t('accounts.modelSuccessFailed', { success: item.success.toLocaleString(), error: item.error.toLocaleString() })}
                       </span>

@@ -472,7 +472,7 @@ export const ModelPerformanceMatrix: React.FC<ModelPerformanceMatrixProps> = ({
                         }}
                       />
                       <span
-                        className={`text-[9px] px-1 py-0.2 rounded font-mono font-semibold uppercase tracking-wider border shrink-0 ${family.badgeClass}`}
+                        className={`text-[9px] px-1 py-0.5 rounded font-mono font-semibold uppercase tracking-wider border shrink-0 ${family.badgeClass}`}
                       >
                         {family.label}
                       </span>

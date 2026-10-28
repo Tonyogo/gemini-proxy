@@ -24,6 +24,7 @@ export const en = {
     nodeTotalRequests: "Total Requests",
     nodeSuccessRate: "Success Rate",
     modelTrafficShare: "Model Traffic Share",
+    activeModelsTitle: "Active Models Breakdown",
     activeModels: "Active Models Breakdown",
     noModelUsageYet: "No model usage recorded on this node yet",
     toggleStatsCollapse: "Collapse Overview",
