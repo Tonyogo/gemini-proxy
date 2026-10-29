@@ -558,6 +558,8 @@ export const en = {
     playgroundDesc: "Raw Claude & Gemini JSON payload & SSE stream debugger",
     translateTitle: "Translate Studio",
     translateDesc: "AI-assisted translation & multi-model prompt workbench",
+    upstreamNodesTitle: "Upstream Nodes",
+    upstreamNodesDesc: "Manage multi-node account credentials, runtime state & context rotation",
     back: "Discover",
     launch: "Launch",
     viewLogs: "View Logs",

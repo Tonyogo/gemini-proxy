@@ -48,6 +48,17 @@ export const DEFAULT_BUILTIN_APPS: DiscoverAppItem[] = [
     enabled: true,
     order: 3,
   },
+  {
+    id: 'upstreamNodes',
+    type: 'builtin',
+    name: '上游节点信息',
+    description: '集中管理多节点账号凭据、状态监控与上下文轮换',
+    icon: 'Server',
+    color: 'from-blue-600 to-indigo-700',
+    badge: 'MULTI-NODE',
+    enabled: true,
+    order: 4,
+  },
 ];
 
 export const PRESET_CUSTOM_APP: DiscoverAppItem = {
@@ -59,7 +70,7 @@ export const PRESET_CUSTOM_APP: DiscoverAppItem = {
   color: 'from-orange-500 to-amber-600',
   badge: undefined,
   enabled: true,
-  order: 3,
+  order: 5,
   url: 'https://ubuntu.yatao.cc.cd/ui/',
   createdAt: 1726045000000,
 };

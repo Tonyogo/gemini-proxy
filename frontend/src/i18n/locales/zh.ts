@@ -560,6 +560,8 @@ export const zh: Translations = {
     playgroundDesc: "Claude 与 Gemini 原始报文及流式响应调试器",
     translateTitle: "翻译工作台",
     translateDesc: "AI 辅助智能翻译与多语言对比工作台",
+    upstreamNodesTitle: "上游节点信息",
+    upstreamNodesDesc: "集中管理多节点账号凭据、状态监控与上下文轮换",
     back: "发现",
     launch: "立即启动",
     viewLogs: "查看日志",

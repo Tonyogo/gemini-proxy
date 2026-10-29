@@ -1,3 +1,5 @@
+export type DiscoverToolId = 'systemLogs' | 'playground' | 'translate' | 'tasks' | 'upstreamNodes';
+
 export type DiscoverAppType = 'builtin' | 'custom';
 
 export interface DiscoverAppItem {

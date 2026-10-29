@@ -10,9 +10,10 @@ import {
   Globe,
   Plus,
   Settings2,
+  Server,
 } from 'lucide-react';
 import { useTranslation } from '../i18n/LanguageContext';
-import { DiscoverAppItem } from '../types/discoverApps';
+import { DiscoverAppItem, DiscoverToolId } from '../types/discoverApps';
 import { CustomWebAppItem } from '../types/customWebApps';
 import { loadCustomWebApps } from '../utils/customWebAppsStorage';
 import {
@@ -33,7 +34,7 @@ export const PRESET_APP_GRADIENTS = [
   'from-blue-500 to-cyan-600',
 ];
 
-export type DiscoverToolId = 'systemLogs' | 'playground' | 'translate' | 'tasks';
+export type { DiscoverToolId };
 
 export interface DiscoverHubViewProps {
   adminKey: string;
@@ -164,6 +165,9 @@ export const DiscoverHubView: React.FC<DiscoverHubViewProps> = ({
     if (app.id === 'tasks' || app.icon === 'CheckSquare') {
       return <CheckSquare className={sizeClass} />;
     }
+    if (app.id === 'upstreamNodes' || app.icon === 'Server') {
+      return <Server className={sizeClass} />;
+    }
     return <Globe className={sizeClass} />;
   };
 
@@ -172,6 +176,7 @@ export const DiscoverHubView: React.FC<DiscoverHubViewProps> = ({
     if (app.id === 'playground') return t('discover.playgroundTitle');
     if (app.id === 'translate') return t('discover.translateTitle');
     if (app.id === 'tasks') return t('tasks.title', '在线事项');
+    if (app.id === 'upstreamNodes') return t('discover.upstreamNodesTitle', '上游节点信息');
     return app.name;
   };
 
@@ -180,6 +185,7 @@ export const DiscoverHubView: React.FC<DiscoverHubViewProps> = ({
     if (app.id === 'playground') return t('discover.playgroundDesc');
     if (app.id === 'translate') return t('discover.translateDesc');
     if (app.id === 'tasks') return t('tasks.subtitle', '轻量高效的待办清单与状态看板，云端实时同步');
+    if (app.id === 'upstreamNodes') return t('discover.upstreamNodesDesc', '集中管理多节点账号凭据、状态监控与上下文轮换');
     if (app.description) return app.description;
     if (app.type === 'custom' && app.url) return getHostname(app.url);
     return '';
@@ -190,6 +196,7 @@ export const DiscoverHubView: React.FC<DiscoverHubViewProps> = ({
     if (app.id === 'systemLogs') return 'SSE STREAM';
     if (app.id === 'playground') return 'REST & STREAM';
     if (app.id === 'translate') return 'BILINGUAL';
+    if (app.id === 'upstreamNodes') return 'MULTI-NODE';
     return undefined;
   };
 
