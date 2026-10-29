@@ -48,7 +48,7 @@
   - `DEFAULT_BUILTIN_APPS`: contains `{ id: 'upstreamNodes', type: 'builtin', name: '上游节点信息', icon: 'Server', color: 'from-blue-600 to-indigo-700', badge: 'MULTI-NODE', enabled: true, order: 4 }`
   - `DiscoverHubView`: renders `Server` icon for `upstreamNodes` and launches `onSelectTool('upstreamNodes')`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/discoverUpstreamNodes.test.ts`:
 ```ts
@@ -88,12 +88,12 @@ describe('Discover Upstream Nodes Builtin Tool', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/discoverUpstreamNodes.test.ts`
 Expected: FAIL with `upstreamNodes` not found in `DEFAULT_BUILTIN_APPS` or missing translations.
 
-- [ ] **Step 3: Implement `upstreamNodes` registration and DiscoverHubView rendering**
+- [x] **Step 3: Implement `upstreamNodes` registration and DiscoverHubView rendering**
 
 1. In `frontend/src/types/discoverApps.ts`:
    - Extend `DiscoverToolId`:
@@ -139,12 +139,12 @@ Expected: FAIL with `upstreamNodes` not found in `DEFAULT_BUILTIN_APPS` or missi
 4. In `frontend/src/i18n/locales/zh.ts` & `en.ts`:
    - Add `upstreamNodesTitle` and `upstreamNodesDesc` under `discover`.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/discoverUpstreamNodes.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src/types/discoverApps.ts frontend/src/utils/discoverAppsStorage.ts frontend/src/components/DiscoverHubView.tsx frontend/src/i18n/locales/zh.ts frontend/src/i18n/locales/en.ts tests/discoverUpstreamNodes.test.ts
@@ -168,7 +168,7 @@ git commit -m "feat(discover): register upstreamNodes builtin tool and i18n supp
   - `App`: renders `AccountsView` when `activeTab === 'discover' && discoverSubView === 'upstreamNodes'`
   - `localStorage.admin_active_tab === 'accounts'` migration to `'discover'` + `discoverSubView: 'upstreamNodes'`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/navItemMigration.test.ts`:
 ```ts
@@ -208,12 +208,12 @@ describe('App Navigation Slimming & Backward Compatibility Migration', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/navItemMigration.test.ts`
 Expected: FAIL with missing navigation structure or migration code.
 
-- [ ] **Step 3: Implement primary navigation slimming and discover subview in `App.tsx`**
+- [x] **Step 3: Implement primary navigation slimming and discover subview in `App.tsx`**
 
 1. Update `TabType` and `DiscoverSubView`:
    ```ts
@@ -276,12 +276,12 @@ Expected: FAIL with missing navigation structure or migration code.
    ```
    Remove the old standalone `{activeTab === 'accounts' && ...}` block.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/navItemMigration.test.ts tests/discoverNavigation.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src/App.tsx tests/navItemMigration.test.ts
@@ -320,7 +320,7 @@ git commit -m "feat(nav): slim primary navigation to 3 items and embed AccountsV
     ```
   - `calculateUpstreamNodeSummary(upstreamServers?: any[], timeSeries?: any[]): UpstreamNodeSummaryItem[]`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/upstreamNodeHelpers.test.ts`:
 ```ts
@@ -418,12 +418,12 @@ describe('upstreamNodeHelpers.calculateUpstreamNodeSummary', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/upstreamNodeHelpers.test.ts`
 Expected: FAIL with module `upstreamNodeHelpers` not found.
 
-- [ ] **Step 3: Implement `frontend/src/utils/upstreamNodeHelpers.ts`**
+- [x] **Step 3: Implement `frontend/src/utils/upstreamNodeHelpers.ts`**
 
 ```ts
 export interface UpstreamNodeSummaryItem {
@@ -527,12 +527,12 @@ export function calculateUpstreamNodeSummary(
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/upstreamNodeHelpers.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src/utils/upstreamNodeHelpers.ts tests/upstreamNodeHelpers.test.ts
@@ -557,7 +557,7 @@ git commit -m "feat(dashboard): add calculateUpstreamNodeSummary helper"
 - Produces:
   - `<UpstreamNodesOverview upstreamServers={upstreamServers} timeSeries={timeSeries} range={range} />` rendered in `DashboardView.tsx`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/upstreamNodesOverview.test.ts`:
 ```ts
@@ -597,12 +597,12 @@ describe('UpstreamNodesOverview Component & Integration', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/upstreamNodesOverview.test.ts`
 Expected: FAIL with component file not found.
 
-- [ ] **Step 3: Implement `UpstreamNodesOverview.tsx` and integrate into `DashboardView.tsx`**
+- [x] **Step 3: Implement `UpstreamNodesOverview.tsx` and integrate into `DashboardView.tsx`**
 
 1. Create `frontend/src/components/dashboard/UpstreamNodesOverview.tsx`:
    - Use `calculateUpstreamNodeSummary(upstreamServers, timeSeries)`.
@@ -633,12 +633,12 @@ Expected: FAIL with component file not found.
      - `nodeLatency`: "平均延迟" / "Avg Latency"
      - `nodeDirectKeys`: "API Key 池" / "API Key Pool"
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/upstreamNodesOverview.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src/components/dashboard/UpstreamNodesOverview.tsx frontend/src/components/DashboardView.tsx frontend/src/i18n/locales/zh.ts frontend/src/i18n/locales/en.ts tests/upstreamNodesOverview.test.ts
@@ -652,17 +652,17 @@ git commit -m "feat(dashboard): mount UpstreamNodesOverview card grid in Dashboa
 **Files:**
 - Existing test files
 
-- [ ] **Step 1: Run frontend build**
+- [x] **Step 1: Run frontend build**
 
 Run: `npm run build:frontend`
 Expected: SUCCESS with zero TypeScript or Vite bundle errors.
 
-- [ ] **Step 2: Run full test suite**
+- [x] **Step 2: Run full test suite**
 
 Run: `npx jest --runInBand`
 Expected: ALL test suites PASS.
 
-- [ ] **Step 3: Final sanity commit if any cleanup required**
+- [x] **Step 3: Final sanity commit if any cleanup required**
 
 ```bash
 git status
