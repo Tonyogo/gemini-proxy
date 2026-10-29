@@ -225,7 +225,15 @@ export const en = {
     upstreamNodeWeight: "Weight",
     upstreamNodeUrl: "Endpoint URL",
     upstreamNodeIsolated: "Isolated (Circuit Broken)",
-    upstreamNodeLegacy: "Unassigned / Legacy Traffic"
+    upstreamNodeLegacy: "Unassigned / Legacy Traffic",
+    upstreamNodesTitle: "Upstream Nodes Overview",
+    nodesConfigured: "Nodes Configured",
+    nodesHealthy: "Healthy",
+    nodesIsolated: "Isolated",
+    nodeWeightShare: "Traffic Share",
+    nodeReqsAndRate: "Requests / Success",
+    nodeLatency: "Avg Latency",
+    nodeDirectKeys: "API Key Pool"
   },
   logs: {
     title: "Request Logs",

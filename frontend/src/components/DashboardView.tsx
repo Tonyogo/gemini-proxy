@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from '../i18n/LanguageContext';
 import ModelPerformanceMatrix from './dashboard/ModelPerformanceMatrix';
+import UpstreamNodesOverview from './dashboard/UpstreamNodesOverview';
 import {
   formatUptime,
   formatThroughput,
@@ -405,6 +406,13 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
           </div>
         </div>
       </div>
+
+      {/* Upstream Nodes Health & Traffic Overview */}
+      <UpstreamNodesOverview
+        upstreamServers={upstreamServers}
+        timeSeries={timeSeries}
+        range={range}
+      />
 
       {/* Tier 2: Top Priority: Full-width Model Performance DataTable & Matrix */}
       <ModelPerformanceMatrix

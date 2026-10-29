@@ -227,7 +227,15 @@ export const zh: Translations = {
     upstreamNodeWeight: "调度权重",
     upstreamNodeUrl: "节点地址",
     upstreamNodeIsolated: "已熔断隔离",
-    upstreamNodeLegacy: "未分配 / 历史流量"
+    upstreamNodeLegacy: "未分配 / 历史流量",
+    upstreamNodesTitle: "上游节点概览",
+    nodesConfigured: "个节点已配置",
+    nodesHealthy: "健康",
+    nodesIsolated: "熔断隔离",
+    nodeWeightShare: "流量权重",
+    nodeReqsAndRate: "请求 / 成功率",
+    nodeLatency: "平均延迟",
+    nodeDirectKeys: "API Key 池"
   },
   logs: {
     title: "请求日志列表",
