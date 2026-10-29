@@ -8,7 +8,7 @@ export interface UpstreamNodeSummaryItem {
   effectivePercent: number;
   enabled: boolean;
   isIsolated: boolean;
-  keyCount?: number;
+  keyCount: number;
   requests: number;
   success: number;
   error: number;
@@ -39,14 +39,18 @@ export function calculateUpstreamNodeSummary(
     const serverIndex = typeof server.serverIndex === 'number' ? server.serverIndex : idx;
     const url = server.url || '';
     const host = extractHost(url);
-    const fallbackName = host ? `Node ${serverIndex + 1} (${host})` : `Node ${serverIndex + 1}`;
+    const fallbackName = `s${serverIndex + 1}`;
     const name = server.name?.trim() ? server.name.trim() : fallbackName;
     const type = server.type === 'direct' ? 'direct' : 'proxy';
     const weight = typeof server.weight === 'number' ? server.weight : 1;
     const effectivePercent = typeof server.effectivePercent === 'number' ? server.effectivePercent : 0;
     const enabled = server.enabled !== false;
     const isIsolated = Boolean(server.isIsolated);
-    const keyCount = Array.isArray(server.apiKeys) ? server.apiKeys.length : undefined;
+    const keyCount = typeof server.keyCount === 'number' && server.keyCount > 0
+      ? server.keyCount
+      : Array.isArray(server.apiKeys) && server.apiKeys.length > 0
+      ? server.apiKeys.length
+      : 1;
 
     let requests = 0;
     let success = 0;

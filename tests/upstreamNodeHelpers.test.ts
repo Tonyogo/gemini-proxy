@@ -89,4 +89,21 @@ describe('upstreamNodeHelpers.calculateUpstreamNodeSummary', () => {
     expect(summary[0].successRate).toBe(100.0);
     expect(summary[0].avgLatency).toBe(0);
   });
+
+  it('uses short fallback name s1, s2 when server.name is omitted and resolves keyCount', () => {
+    const upstreamServers = [
+      {
+        serverIndex: 0,
+        url: 'https://s1.yatao.cc.cd',
+        type: 'direct',
+        weight: 1,
+        enabled: true,
+        keyCount: 3,
+      },
+    ];
+    const summary = calculateUpstreamNodeSummary(upstreamServers, []);
+    expect(summary[0].name).toBe('s1');
+    expect(summary[0].url).toBe('https://s1.yatao.cc.cd');
+    expect(summary[0].keyCount).toBe(3);
+  });
 });
