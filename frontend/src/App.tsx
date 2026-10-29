@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import {
   LayoutDashboard,
-  Users,
   FileText,
   Settings,
   Globe,
@@ -49,8 +48,8 @@ const ViewLoadingFallback: React.FC = () => (
   </div>
 );
 
-type TabType = 'dashboard' | 'accounts' | 'logs' | 'discover';
-export type DiscoverSubView = 'hub' | 'systemLogs' | 'playground' | 'translate' | 'tasks' | 'embeddedWeb';
+type TabType = 'dashboard' | 'logs' | 'discover';
+export type DiscoverSubView = 'hub' | 'systemLogs' | 'playground' | 'translate' | 'tasks' | 'embeddedWeb' | 'upstreamNodes';
 
 interface NavItem {
   id: TabType;
@@ -60,12 +59,11 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { id: 'dashboard', icon: LayoutDashboard, shortcut: '⌘1' },
-  { id: 'accounts', icon: Users, shortcut: '⌘2' },
-  { id: 'logs', icon: FileText, shortcut: '⌘3' },
-  { id: 'discover', icon: Compass, shortcut: '⌘4' },
+  { id: 'logs', icon: FileText, shortcut: '⌘2' },
+  { id: 'discover', icon: Compass, shortcut: '⌘3' },
 ];
 
-const VALID_TABS: TabType[] = ['dashboard', 'accounts', 'logs', 'discover'];
+const VALID_TABS: TabType[] = ['dashboard', 'logs', 'discover'];
 
 const GITHUB_REPO_URL = 'https://github.com/Tonyogo/gemini-proxy';
 
@@ -73,7 +71,10 @@ export default function App() {
   const { t, lang, setLang } = useTranslation();
   const [activeTab, setActiveTab] = useState<TabType>(() => {
     const rawSaved = localStorage.getItem('admin_active_tab');
-    if (rawSaved === 'systemLogs' || rawSaved === 'playground' || rawSaved === 'translate' || rawSaved === 'tasks') {
+    if (rawSaved === 'accounts') {
+      return 'discover';
+    }
+    if (rawSaved === 'systemLogs' || rawSaved === 'playground' || rawSaved === 'translate' || rawSaved === 'tasks' || rawSaved === 'upstreamNodes') {
       return 'discover';
     }
     const saved = rawSaved as TabType;
@@ -81,7 +82,10 @@ export default function App() {
   });
   const [discoverSubView, setDiscoverSubView] = useState<DiscoverSubView>(() => {
     const rawSaved = localStorage.getItem('admin_active_tab');
-    if (rawSaved === 'systemLogs' || rawSaved === 'playground' || rawSaved === 'translate' || rawSaved === 'tasks') {
+    if (rawSaved === 'accounts') {
+      return 'upstreamNodes';
+    }
+    if (rawSaved === 'systemLogs' || rawSaved === 'playground' || rawSaved === 'translate' || rawSaved === 'tasks' || rawSaved === 'upstreamNodes') {
       return rawSaved as DiscoverSubView;
     }
     return 'hub';
@@ -672,6 +676,7 @@ export default function App() {
                     {discoverSubView === 'playground' && t('discover.playgroundTitle')}
                     {discoverSubView === 'translate' && t('discover.translateTitle')}
                     {discoverSubView === 'tasks' && t('tasks.title', '在线事项')}
+                    {discoverSubView === 'upstreamNodes' && t('discover.upstreamNodesTitle', '上游节点信息')}
                     {discoverSubView === 'embeddedWeb' && (activeEmbeddedApp?.name || t('discover.customAppsTitle'))}
                   </span>
                 </>
@@ -829,12 +834,6 @@ export default function App() {
                 adminKey={adminKey}
               />
             )}
-            {activeTab === 'accounts' && (
-              <AccountsView
-                key={refreshTrigger}
-                adminKey={adminKey}
-              />
-            )}
             {activeTab === 'logs' && (
               <LogsView
                 key={refreshTrigger}
@@ -851,6 +850,12 @@ export default function App() {
                     initialApps={cloudDiscoverApps}
                     onSelectTool={handleSelectDiscoverTool}
                     onSelectCustomApp={handleSelectCustomApp}
+                  />
+                )}
+                {discoverSubView === 'upstreamNodes' && (
+                  <AccountsView
+                    key={refreshTrigger}
+                    adminKey={adminKey}
                   />
                 )}
                 {discoverSubView === 'systemLogs' && (
