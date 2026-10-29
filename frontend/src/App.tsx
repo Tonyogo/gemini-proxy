@@ -832,6 +832,10 @@ export default function App() {
               <DashboardView
                 key={refreshTrigger}
                 adminKey={adminKey}
+                onEditNodes={() => {
+                  setConfigModalInitialTab('upstream');
+                  setIsConfigModalOpen(true);
+                }}
               />
             )}
             {activeTab === 'logs' && (

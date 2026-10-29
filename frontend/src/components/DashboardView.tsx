@@ -29,7 +29,13 @@ interface TimeSeriesPoint {
   modelDurations?: Record<string, number>;
 }
 
-export default function DashboardView({ adminKey }: { adminKey: string }) {
+export default function DashboardView({
+  adminKey,
+  onEditNodes,
+}: {
+  adminKey: string;
+  onEditNodes?: () => void;
+}) {
   const { t } = useTranslation();
   const [status, setStatus] = useState<any>(null);
   const [stats, setStats] = useState<any>(null);
@@ -412,6 +418,7 @@ export default function DashboardView({ adminKey }: { adminKey: string }) {
         upstreamServers={upstreamServers}
         timeSeries={timeSeries}
         range={range}
+        onEditNodes={onEditNodes}
       />
 
       {/* Tier 2: Top Priority: Full-width Model Performance DataTable & Matrix */}
