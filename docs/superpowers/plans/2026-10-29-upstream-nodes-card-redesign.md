@@ -54,7 +54,7 @@
     - `nodeKeyPoolPolling`: `'密钥池: {count} 个轮询'` (zh) / `'Key Pool: {count} Polling'` (en)
     - `nodeAvgLatencyItem`: `'平均延迟: {ms}ms'` (zh) / `'Avg Latency: {ms}ms'` (en)
 
-- [ ] **Step 1: Update the unit test in `tests/upstreamNodeHelpers.test.ts`**
+- [x] **Step 1: Update the unit test in `tests/upstreamNodeHelpers.test.ts`**
 
 ```ts
   it('uses short fallback name s1, s2 when server.name is omitted and resolves keyCount', () => {
@@ -75,12 +75,12 @@
   });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/upstreamNodeHelpers.test.ts`
 Expected: FAIL on `summary[0].name` being `'Node 1 (s1.yatao.cc.cd)'` instead of `'s1'` and `keyCount` being `undefined`.
 
-- [ ] **Step 3: Update `frontend/src/utils/upstreamNodeHelpers.ts` and i18n files**
+- [x] **Step 3: Update `frontend/src/utils/upstreamNodeHelpers.ts` and i18n files**
 
 1. In `frontend/src/utils/upstreamNodeHelpers.ts`:
    - Set `const fallbackName = \`s\${serverIndex + 1}\`;`
@@ -95,12 +95,12 @@ Expected: FAIL on `summary[0].name` being `'Node 1 (s1.yatao.cc.cd)'` instead of
 2. In `frontend/src/i18n/locales/zh.ts` and `en.ts`:
    - Update `dashboard.upstreamNodesTitle` to `'上游集群节点列表'` / `'Upstream Cluster Nodes'` and add `editClusterNodes`, `nodeWeightLabel`, `nodeHealthyOnline`, `nodeDisabled`, `nodeKeyPoolPolling`, `nodeAvgLatencyItem`.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx jest tests/upstreamNodeHelpers.test.ts`
 Expected: PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src/utils/upstreamNodeHelpers.ts frontend/src/i18n/locales/zh.ts frontend/src/i18n/locales/en.ts tests/upstreamNodeHelpers.test.ts
@@ -125,7 +125,7 @@ git commit -m "feat(dashboard): refine upstream node summary fallback name, keyC
   - `DashboardView`: accepts `{ adminKey: string; onEditNodes?: () => void }` and passes `onEditNodes` to `UpstreamNodesOverview`
   - `App.tsx`: passes `onEditNodes={() => { setConfigModalInitialTab('upstream'); setIsConfigModalOpen(true); }}` to `DashboardView`
 
-- [ ] **Step 1: Update the test in `tests/upstreamNodesOverview.test.ts`**
+- [x] **Step 1: Update the test in `tests/upstreamNodesOverview.test.ts`**
 
 ```ts
 import * as fs from 'fs';
@@ -168,12 +168,12 @@ describe('UpstreamNodesOverview Flat Cluster Card Design', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx jest tests/upstreamNodesOverview.test.ts`
 Expected: FAIL with missing `ShieldCheck`, `KeyRound`, `onEditNodes`, etc.
 
-- [ ] **Step 3: Implement `UpstreamNodesOverview.tsx`, `DashboardView.tsx`, and `App.tsx`**
+- [x] **Step 3: Implement `UpstreamNodesOverview.tsx`, `DashboardView.tsx`, and `App.tsx`**
 
 1. In `frontend/src/components/dashboard/UpstreamNodesOverview.tsx`:
    - Outer container: `<div className="space-y-3">` (no outer `.ui-card` box).
@@ -216,12 +216,12 @@ Expected: FAIL with missing `ShieldCheck`, `KeyRound`, `onEditNodes`, etc.
 3. In `frontend/src/App.tsx`:
    - Pass `onEditNodes={() => { setConfigModalInitialTab('upstream'); setIsConfigModalOpen(true); }}` to `<DashboardView />`.
 
-- [ ] **Step 4: Run tests and frontend build**
+- [x] **Step 4: Run tests and frontend build**
 
 Run: `npx jest tests/upstreamNodesOverview.test.ts tests/upstreamNodeHelpers.test.ts && npm run build:frontend`
 Expected: PASS with 0 errors.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add frontend/src/components/dashboard/UpstreamNodesOverview.tsx frontend/src/components/DashboardView.tsx frontend/src/App.tsx tests/upstreamNodesOverview.test.ts
