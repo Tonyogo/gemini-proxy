@@ -187,6 +187,10 @@ export interface UpstreamServerStatus extends UpstreamServerConfig {
   isolatedUntil: number;
   lastError?: string;
   keyCount?: number;
+  healthStatus?: 'healthy' | 'unhealthy';
+  healthOk?: boolean;
+  healthLatency?: number;
+  healthError?: string;
 }
 
 export interface UpstreamServerSelection {

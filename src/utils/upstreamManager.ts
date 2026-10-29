@@ -1,6 +1,8 @@
+import fetch from 'node-fetch';
 import config, { parseUpstreamServers } from '../../config/default';
 import { UpstreamServerConfig, UpstreamServerStatus, UpstreamServerSelection } from '../types';
 import logger from './logger';
+import proxyAgentManager from './proxyAgentManager';
 import { parseModelThinkingSuffix } from './modelThinkingHelper';
 
 export { UpstreamServerSelection };
@@ -108,6 +110,95 @@ export class UpstreamManager {
       };
       return status;
     });
+  }
+
+  private inFlightHealthCheck: Promise<UpstreamServerStatus[]> | null = null;
+
+  /**
+   * Probes the /health endpoint of an upstream server using outbound proxy agent if configured.
+   */
+  public async probeNodeHealth(server: UpstreamServerConfig): Promise<{
+    healthStatus: 'healthy' | 'unhealthy';
+    healthOk: boolean;
+    healthLatency?: number;
+    healthError?: string;
+  }> {
+    const startTime = Date.now();
+    const cleanUrl = server.url.replace(/\/+$/, '');
+    const healthUrl = `${cleanUrl}/health`;
+    const timeoutMs = process.env.NODE_ENV === 'test' ? 1500 : 3500;
+
+    try {
+      const agent = proxyAgentManager.getAgent(server);
+      const res = await fetch(healthUrl, {
+        method: 'GET',
+        agent,
+        timeout: timeoutMs,
+        headers: {
+          'Accept': 'application/json, text/plain, */*'
+        }
+      });
+      const healthLatency = Date.now() - startTime;
+      if (res.status >= 200 && res.status < 300) {
+        return {
+          healthStatus: 'healthy',
+          healthOk: true,
+          healthLatency
+        };
+      }
+      return {
+        healthStatus: 'unhealthy',
+        healthOk: false,
+        healthLatency,
+        healthError: `HTTP ${res.status}`
+      };
+    } catch (err: any) {
+      const healthLatency = Date.now() - startTime;
+      return {
+        healthStatus: 'unhealthy',
+        healthOk: false,
+        healthLatency,
+        healthError: err?.message || 'Connection failed'
+      };
+    }
+  }
+
+  /**
+   * Returns upstream server status list with real-time /health probe results.
+   * Concurrently probes all enabled upstream nodes and deduplicates in-flight calls.
+   */
+  public async getUpstreamServerStatusListWithHealth(): Promise<UpstreamServerStatus[]> {
+    if (this.inFlightHealthCheck) {
+      return this.inFlightHealthCheck;
+    }
+
+    this.inFlightHealthCheck = (async () => {
+      try {
+        const baseList = this.getUpstreamServerStatusList();
+        const probedList = await Promise.all(
+          baseList.map(async (serverStatus) => {
+            if (!serverStatus.enabled) {
+              return {
+                ...serverStatus,
+                healthStatus: undefined,
+                healthOk: false,
+                healthError: 'Node is disabled'
+              };
+            }
+            const probeResult = await this.probeNodeHealth(serverStatus);
+            return {
+              ...serverStatus,
+              ...probeResult
+            };
+          })
+        );
+        return probedList;
+      } finally {
+        this.inFlightHealthCheck = null;
+      }
+    })();
+
+    return this.inFlightHealthCheck;
   }
 
   /**

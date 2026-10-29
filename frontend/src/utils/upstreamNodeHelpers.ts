@@ -14,6 +14,10 @@ export interface UpstreamNodeSummaryItem {
   error: number;
   successRate: number;
   avgLatency: number;
+  healthStatus?: 'healthy' | 'unhealthy';
+  healthOk?: boolean;
+  healthLatency?: number;
+  healthError?: string;
 }
 
 export function extractHost(urlStr?: string): string {
@@ -82,6 +86,11 @@ export function calculateUpstreamNodeSummary(
       ? Math.round(totalDuration / durationCount)
       : 0;
 
+    const healthStatus = server.healthStatus;
+    const healthOk = server.healthOk;
+    const healthLatency = server.healthLatency;
+    const healthError = server.healthError;
+
     return {
       serverIndex,
       name,
@@ -98,6 +107,10 @@ export function calculateUpstreamNodeSummary(
       error,
       successRate,
       avgLatency,
+      healthStatus,
+      healthOk,
+      healthLatency,
+      healthError,
     };
   });
 }

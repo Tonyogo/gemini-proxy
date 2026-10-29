@@ -202,7 +202,7 @@ describe('ModelPerformanceMatrix Upstream Nodes Comparison Feature', () => {
     });
 
     test('adminController.getStats should attach upstreamServers to response', () => {
-      expect(adminControllerContent).toContain('upstreamServers: upstreamManager.getUpstreamServerStatusList()');
+      expect(adminControllerContent).toMatch(/upstreamServers:\s*(?:await\s+)?upstreamManager\.getUpstreamServerStatusList(?:WithHealth)?\(\)/);
     });
   });
 });

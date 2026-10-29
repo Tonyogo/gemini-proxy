@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Server, ShieldCheck, ShieldAlert, KeyRound } from 'lucide-react';
+import { Server, ShieldCheck, ShieldAlert, KeyRound, RefreshCw } from 'lucide-react';
 import { useTranslation } from '../../i18n/LanguageContext';
 import { calculateUpstreamNodeSummary, UpstreamNodeSummaryItem } from '../../utils/upstreamNodeHelpers';
 
@@ -8,12 +8,14 @@ export interface UpstreamNodesOverviewProps {
   timeSeries?: any[];
   range?: number | 'today';
   onEditNodes?: () => void;
+  onRefresh?: () => void;
 }
 
 export const UpstreamNodesOverview: React.FC<UpstreamNodesOverviewProps> = ({
   upstreamServers,
   timeSeries,
   onEditNodes,
+  onRefresh,
 }) => {
   const { t } = useTranslation();
 
@@ -35,25 +37,38 @@ export const UpstreamNodesOverview: React.FC<UpstreamNodesOverviewProps> = ({
             {t('dashboard.upstreamNodesTitle', '上游集群节点列表')}
           </h3>
         </div>
-        <button
-          type="button"
-          onClick={onEditNodes}
-          className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 transition-colors cursor-pointer"
-        >
-          {t('dashboard.editClusterNodes', '编辑集群节点')}
-        </button>
+        <div className="flex items-center space-x-3">
+          {onRefresh && (
+            <button
+              type="button"
+              onClick={onRefresh}
+              className="text-xs font-semibold text-[var(--text-secondary)] hover:text-indigo-500 transition-colors cursor-pointer flex items-center space-x-1"
+              title={t('dashboard.refreshHealth', '刷新节点健康状态')}
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onEditNodes}
+            className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 transition-colors cursor-pointer"
+          >
+            {t('dashboard.editClusterNodes', '编辑集群节点')}
+          </button>
+        </div>
       </div>
 
       {/* 2-Column Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
         {summary.map((node: UpstreamNodeSummaryItem) => {
           const isDirect = node.type === 'direct';
+          const isUnreachable = node.enabled && !node.isIsolated && (node.healthOk === false || node.healthStatus === 'unhealthy');
 
           return (
             <div
               key={node.serverIndex}
               className={`ui-card p-4 sm:p-5 rounded-2xl transition-all ${
-                node.isIsolated ? 'border-rose-500/30' : ''
+                node.isIsolated || isUnreachable ? 'border-rose-500/30' : ''
               }`}
             >
               {/* Row 1: Node Title, Weight, DIRECT/PROXY Badge & Status Pill */}
@@ -79,8 +94,19 @@ export const UpstreamNodesOverview: React.FC<UpstreamNodesOverviewProps> = ({
                   <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-500/10 text-slate-500 dark:text-slate-400 border border-slate-500/30 shrink-0">
                     <span>{t('dashboard.nodeDisabled', '已禁用')}</span>
                   </span>
+                ) : isUnreachable ? (
+                  <span
+                    className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30 shrink-0"
+                    title={node.healthError ? `${t('dashboard.nodeUnreachable', '无法连接')}: ${node.healthError}` : t('dashboard.nodeUnreachable', '无法连接')}
+                  >
+                    <ShieldAlert className="w-3.5 h-3.5" />
+                    <span>{t('dashboard.nodeUnreachable', '无法连接')}</span>
+                  </span>
                 ) : (
-                  <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 shrink-0">
+                  <span
+                    className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 shrink-0"
+                    title={node.healthLatency !== undefined ? `${node.healthLatency}ms` : undefined}
+                  >
                     <ShieldCheck className="w-3.5 h-3.5" />
                     <span>{t('dashboard.nodeHealthyOnline', '健康在线')}</span>
                   </span>

@@ -32,7 +32,22 @@ describe('UpstreamNodesOverview Flat Cluster Card Design', () => {
     expect((zh as any).dashboard.upstreamNodesTitle).toBe('上游集群节点列表');
     expect((zh as any).dashboard.editClusterNodes).toBe('编辑集群节点');
     expect((zh as any).dashboard.nodeHealthyOnline).toBe('健康在线');
+    expect((zh as any).dashboard.nodeUnreachable).toBe('无法连接');
     expect((en as any).dashboard.upstreamNodesTitle).toBe('Upstream Cluster Nodes');
     expect((en as any).dashboard.editClusterNodes).toBe('Edit Cluster Nodes');
+    expect((en as any).dashboard.nodeUnreachable).toBe('Unreachable');
+  });
+
+  it('handles unreachable node health state with rose badge and warning icon', () => {
+    const code = fs.readFileSync(componentPath, 'utf-8');
+    expect(code).toContain('isUnreachable');
+    expect(code).toContain('nodeUnreachable');
+    expect(code).toContain('nodeHealthyOnline');
+    expect(code).toContain('RefreshCw');
+  });
+
+  it('wires onRefresh to loadData in DashboardView', () => {
+    const dashCode = fs.readFileSync(dashboardPath, 'utf-8');
+    expect(dashCode).toContain('onRefresh={() => loadData(range)}');
   });
 });

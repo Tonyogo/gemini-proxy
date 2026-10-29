@@ -32,7 +32,7 @@ class AdminController {
         discoverApps: config.discoverApps,
         ignoredTools: config.ignoredTools,
       },
-      upstreamStatus: upstreamManager.getUpstreamServerStatusList(),
+      upstreamStatus: await upstreamManager.getUpstreamServerStatusListWithHealth(),
     });
   }
 
@@ -84,8 +84,13 @@ class AdminController {
     const stats = await logService.getStats(range);
     res.json({
       ...stats,
-      upstreamServers: upstreamManager.getUpstreamServerStatusList(),
+      upstreamServers: await upstreamManager.getUpstreamServerStatusListWithHealth(),
     });
+  }
+
+  public async getUpstreamHealth(req: Request, res: Response): Promise<void> {
+    const upstreamServers = await upstreamManager.getUpstreamServerStatusListWithHealth();
+    res.json({ upstreamServers });
   }
 
   public async updateConfig(req: Request, res: Response): Promise<void> {
@@ -141,7 +146,7 @@ class AdminController {
           discoverApps: config.discoverApps,
           ignoredTools: config.ignoredTools,
         },
-        upstreamStatus: upstreamManager.getUpstreamServerStatusList(),
+        upstreamStatus: await upstreamManager.getUpstreamServerStatusListWithHealth(),
       });
     } catch (err: any) {
       res.status(500).json({ error: `Failed to update configuration: ${err.message}` });

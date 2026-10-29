@@ -419,6 +419,7 @@ export default function DashboardView({
         timeSeries={timeSeries}
         range={range}
         onEditNodes={onEditNodes}
+        onRefresh={() => loadData(range)}
       />
 
       {/* Tier 2: Top Priority: Full-width Model Performance DataTable & Matrix */}
